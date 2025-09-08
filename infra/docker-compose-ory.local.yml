@@ -1,0 +1,97 @@
+version: '3.8'
+
+services:
+  # ----------------------------------------------------------------
+  # 1. PostgreSQL 数据库 (Kratos 和 Keto 共享)
+  # ----------------------------------------------------------------
+  postgres:
+    image: postgres:15-alpine
+    container_name: tsu_ory_postgres
+    ports:
+      # 将数据库端口映射到本地，方便我们用工具连接和查看
+      - "5433:5433" 
+    environment:
+      - POSTGRES_USER=ory_user     # Kratos 和 Keto 使用的数据库用户
+      - POSTGRES_PASSWORD=ory_test # Kratos 和 Keto 使用的数据库密码
+      - POSTGRES_DB=ory_db         # Kratos 和 Keto 共享的数据库
+    volumes:
+      # 使用绑定挂载，将数据存在项目目录下的 ory-postgres-data 文件夹中
+      - ./.ory-postgres-data:/var/lib/postgresql/data
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ory_user -d ory_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ----------------------------------------------------------------
+  # 2. ORY Kratos 数据库迁移任务
+  # ----------------------------------------------------------------
+  kratos-migrate:
+    image: oryd/kratos:latest # 使用最新版的 Kratos 镜像
+    container_name: tsu_kratos_migrate
+    environment:
+      # 告诉 Kratos 数据库在哪里
+      - DSN=postgres://ory_user:ory_test@postgres:5432/ory_db?sslmode=disable
+    command: migrate sql -e --yes # 容器启动时执行的命令：执行数据库迁移
+    restart: on-failure # 如果迁移失败，会自动重试
+    depends_on:
+      postgres:
+        condition: service_healthy # 确保在数据库完全准备好之后再开始迁移
+
+  # ----------------------------------------------------------------
+  # 3. ORY Kratos 主服务
+  # ----------------------------------------------------------------
+  kratos:
+    image: oryd/kratos:latest
+    container_name: tsu_kratos_service
+    ports:
+      - "4433:4433" # Public API 端口，供前端调用
+      - "4434:4434" # Admin API 端口，供后端服务间调用
+    environment:
+      - DSN=postgres://ory_user:ory_test@postgres:5432/ory_db?sslmode=disable
+      # - courier.smtp.connection_uri=smtps://test:test@mailslurper:1025/?skip_ssl_verify=true
+    command: serve -c /etc/kratos/kratos.yml --dev --watch-courier --sqa-opt-out # 启动服务并监控配置文件
+    volumes:
+      - ./ory:/etc/kratos
+    restart: always
+    depends_on:
+      kratos-migrate:
+        condition: service_completed_successfully
+      # mailslurper:
+      #   condition: service_started
+
+  # ----------------------------------------------------------------
+  # 4. ORY Keto 数据库迁移任务
+  # ----------------------------------------------------------------
+  keto-migrate:
+    image: oryd/keto:latest
+    container_name: tsu_keto_migrate
+    command: migrate up -c /etc/keto/keto.yml -y 
+    environment:
+      - DSN=postgres://ory_user:ory_test@postgres:5432/ory_db?sslmode=disable
+    volumes:
+      - ./ory:/etc/keto
+    restart: on-failure
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ----------------------------------------------------------------
+  # 5. ORY Keto 主服务
+  # ----------------------------------------------------------------
+  keto:
+    image: oryd/keto:latest
+    container_name: tsu_keto_service
+    ports:
+      - "4466:4466" # Read API 端口，用于检查权限
+      - "4467:4467" # Write API 端口，用于管理权限
+    command: serve -c /etc/keto/keto.yml
+    environment:
+      - DSN=postgres://ory_user:ory_test@postgres:5432/ory_db?sslmode=disable
+    volumes:
+      - ./ory:/etc/keto
+    restart: always
+    depends_on:
+      keto-migrate:
+        condition: service_completed_successfully

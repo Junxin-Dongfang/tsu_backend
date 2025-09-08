@@ -1,0 +1,27 @@
+# Docker Compose 文件版本
+version: '3.8'
+
+# 定义所有服务
+services:
+  postgres:
+    image: postgres:15-alpine
+    
+    # 容器的名称，方便识别
+    container_name: tsu_postgres
+    
+    # 环境变量，用于初始化数据库
+    environment:
+      - POSTGRES_USER=tsu_user      
+      - POSTGRES_PASSWORD=tsu_test  
+      - POSTGRES_DB=tsu_db          
+      - PGDATA=/var/lib/postgresql/data/pgdata # 指定数据存储目录
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./.postgres-data:/var/lib/postgresql/data/pgdata # 持久化存储,开发时用
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tsu_user -d tsu_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
