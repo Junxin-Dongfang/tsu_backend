@@ -19,8 +19,5 @@ build/
 .env
 .devops/config.env
 
-# Docker data
-**/data/
-
 .postgres-data/
 infra/.ory-postgres-data/
