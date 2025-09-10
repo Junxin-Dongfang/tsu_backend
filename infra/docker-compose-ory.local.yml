@@ -9,7 +9,7 @@ services:
     container_name: tsu_ory_postgres
     ports:
       # 将数据库端口映射到本地，方便我们用工具连接和查看
-      - "5433:5433" 
+      - "5433:5432" 
     environment:
       - POSTGRES_USER=ory_user     # Kratos 和 Keto 使用的数据库用户
       - POSTGRES_PASSWORD=ory_test # Kratos 和 Keto 使用的数据库密码
