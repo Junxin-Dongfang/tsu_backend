@@ -95,3 +95,7 @@ services:
     depends_on:
       keto-migrate:
         condition: service_completed_successfully
+
+networks:
+  tsu_network:
+    driver: bridge

@@ -4,6 +4,10 @@ serve:
   public:
     host: 0.0.0.0
     port: 4433
+    cors:
+      enabled: true
+      allowed_origins:
+        - http://localhost:3000
   admin:
     host: 0.0.0.0
     port: 4434
@@ -23,6 +27,10 @@ selfservice:
       ui_url: "http://127.0.0.1:3000/recovery"
     verification:
       ui_url: "http://127.0.0.1:3000/verification"
+
+log:
+  level: debug
+  format: text
 
 secrets:
   cookie:
