@@ -1,0 +1,43 @@
+# infra/ory/oathkeeper/oathkeeper.yml (Corrected Version)
+
+version: v0.40.8
+
+serve:
+  proxy:
+    port: 4456
+  api:
+    port: 4457
+
+errors:
+  handlers:
+    # Handler 1: For API clients that want JSON
+    json:
+      enabled: true
+      config: {}
+
+    # Handler 2: For browsers that need to be redirected
+    redirect:
+      enabled: true
+      config:
+        to: http://127.0.0.1/user/ # Your UI's login page
+
+access_rules:
+  repositories:
+    - file:///etc/config/oathkeeper/access-rules.json
+
+authenticators:
+  cookie_session:
+    enabled: true
+    config:
+      check_session_url: http://kratos:4434/sessions/whoami
+
+authorizers:
+  allow:
+    enabled: true
+
+mutators:
+  header:
+    enabled: true
+    config:
+      headers:
+        X-Userinfo: '{{ print .Subject }}'

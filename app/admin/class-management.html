@@ -1,0 +1,2470 @@
+<!doctype html>
+<html lang="zh-cn">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>职业管理 - TSU管理后台</title>
+  <style>
+    body{font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 0; background: #0b1220; color: #e2e8f0}
+    .wrap{max-width: 1200px; margin: 2vh auto; padding: 24px}
+    .card{background:#0f172a;border:1px solid #334155;border-radius:12px;padding:20px;margin-bottom:20px}
+    h1{margin:0 0 12px;font-size:24px}
+    h2{margin:16px 0 8px;font-size:18px}
+    h3{margin:12px 0 6px;font-size:16px}
+    input,select,textarea,button{padding:10px 12px;border-radius:8px;border:1px solid #334155;background:#0b1220;color:#e2e8f0;font-size:14px}
+    button{background:#22c55e;border-color:#22c55e;cursor:pointer;transition:all 0.2s}
+    button:hover{background:#16a34a}
+    button.danger{background:#dc2626;border-color:#dc2626}
+    button.danger:hover{background:#b91c1c}
+    button.secondary{background:#64748b;border-color:#64748b}
+    button.secondary:hover{background:#475569}
+    .row{display:flex;gap:8px;margin:8px 0;flex-wrap:wrap;align-items:center}
+    .muted{color:#94a3b8;font-size:12px}
+    .success{color:#22c55e}
+    .error{color:#dc2626}
+    .warning{color:#f59e0b}
+    pre{white-space:pre-wrap;background:#0b1220;border:1px solid #334155;border-radius:8px;padding:12px;font-size:12px}
+    a{color:#60a5fa;text-decoration:none}
+    a:hover{text-decoration:underline}
+    .grid{display:grid;grid-template-columns:2fr 1fr;gap:20px}
+    .panel{border:1px solid #334155;border-radius:10px;padding:16px;background:#0b1220}
+    .list{max-height:400px;overflow:auto;border:1px solid #334155;border-radius:8px;padding:8px;background:#0f172a}
+    .list-item{padding:12px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center}
+    .list-item:last-child{border-bottom:none}
+    .list-item:hover{background:#1e293b}
+    .list-item.selected{background:#1e3a8a;border-left:3px solid #3b82f6}
+    .list-item{cursor:pointer}
+    label{display:flex;align-items:center;gap:8px;margin:6px 0}
+    .form-group{margin:12px 0}
+    .form-group label{display:block;margin-bottom:4px;font-weight:500}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+    input[type="checkbox"]{width:auto;margin-right:8px}
+    textarea{min-height:80px;resize:vertical}
+    .tag{display:inline-block;background:#334155;color:#e2e8f0;padding:4px 8px;border-radius:4px;font-size:12px;margin:2px}
+    .tag.primary{background:#3b82f6}
+    .skill-item{background:#1e293b;border:1px solid #334155;border-radius:8px;padding:12px;margin:8px 0}
+    .skill-info{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+    .skill-details{font-size:12px;color:#94a3b8}
+    .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:1000}
+    .modal.show{display:flex;align-items:center;justify-content:center}
+    .modal-content{background:#0f172a;border:1px solid #334155;border-radius:12px;padding:24px;max-width:600px;width:90%;max-height:80vh;overflow-y:auto}
+    .btn-group{display:flex;gap:8px}
+    .toolbar{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:12px;margin-bottom:16px}
+    .tabs{display:flex;border-bottom:1px solid #334155;margin-bottom:16px}
+    .tab{padding:8px 16px;cursor:pointer;border-bottom:2px solid transparent}
+    .tab.active{border-bottom-color:#22c55e;color:#22c55e}
+    .tab-content{display:none}
+    .tab-content.active{display:block}
+    .breadcrumb{margin-bottom:16px;color:#94a3b8;font-size:14px}
+    .breadcrumb a{color:#60a5fa}
+    .stats{display:flex;gap:16px;margin:16px 0}
+    .stat{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:12px;text-align:center;flex:1}
+    .stat-value{font-size:24px;font-weight:bold;color:#22c55e}
+    .stat-label{font-size:12px;color:#94a3b8;margin-top:4px}
+    .loading{opacity:0.6;pointer-events:none}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <!-- 面包屑导航 -->
+  <div class="breadcrumb">
+    <a href="index.html">管理后台</a> > 职业管理
+  </div>
+
+  <!-- 页面标题和统计 -->
+  <div class="card">
+    <h1>职业管理</h1>
+    <div class="stats" id="stats">
+      <div class="stat">
+        <div class="stat-value" id="total-classes">-</div>
+        <div class="stat-label">总职业数</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="active-classes">-</div>
+        <div class="stat-label">激活职业</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="starter-classes">-</div>
+        <div class="stat-label">新手职业</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 工具栏 -->
+  <div class="toolbar">
+    <div class="row">
+      <button onclick="showCreateClassModal()">创建新职业</button>
+      <button class="secondary" onclick="showGlobalTagModal()">管理标签</button>
+      <button class="secondary" onclick="showSkillsModal()">技能管理</button>
+      <button class="secondary" onclick="refreshData()">刷新数据</button>
+      <div style="flex:1"></div>
+      <select id="filter-tier" onchange="filterClasses()">
+        <option value="">所有层级</option>
+        <option value="1">T1</option>
+        <option value="2">T2</option>
+        <option value="3">T3</option>
+        <option value="4">T4</option>
+        <option value="5">T5</option>
+      </select>
+      <select id="filter-status" onchange="filterClasses()">
+        <option value="">所有状态</option>
+        <option value="active">激活</option>
+        <option value="inactive">未激活</option>
+        <option value="starter">新手职业</option>
+        <option value="hidden">隐藏</option>
+      </select>
+      <input type="text" id="search-box" placeholder="搜索职业名称..." oninput="filterClasses()" />
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- 职业列表 -->
+    <div class="panel">
+      <h2>职业列表</h2>
+      <div id="class-list" class="list">
+        <div class="muted" style="text-align:center;padding:20px">正在加载...</div>
+      </div>
+    </div>
+
+    <!-- 职业详情 -->
+    <div class="panel">
+      <h2>职业详情</h2>
+      <div id="class-details">
+        <div class="muted" style="text-align:center;padding:20px">请从左侧选择一个职业</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 结果输出 -->
+  <div class="card">
+    <h2>操作日志</h2>
+    <pre id="output">等待操作...</pre>
+  </div>
+</div>
+
+<!-- 创建/编辑职业模态框 -->
+<div id="class-modal" class="modal">
+  <div class="modal-content">
+    <h2 id="modal-title">创建新职业</h2>
+    <form id="class-form">
+      <div class="form-group">
+        <label>职业代码 *</label>
+        <input type="text" id="class-code" required placeholder="如: warrior_basic" />
+      </div>
+      <div class="form-group">
+        <label>职业名称 *</label>
+        <input type="text" id="class-name" required placeholder="如: 基础战士" />
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>职业层级</label>
+          <select id="class-tier">
+            <option value="1">T1 - 基础职业</option>
+            <option value="2">T2 - 进阶职业</option>
+            <option value="3">T3 - 高级职业</option>
+            <option value="4">T4 - 专家职业</option>
+            <option value="5">T5 - 传说职业</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>父职业</label>
+          <select id="class-parent">
+            <option value="">无父职业</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>职业描述</label>
+        <textarea id="class-description" placeholder="描述这个职业的特点和作用..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>背景故事</label>
+        <textarea id="class-lore" placeholder="这个职业的背景故事和世界观设定..."></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>职业特色</label>
+          <input type="text" id="class-specialty" placeholder="如: 近战输出" />
+        </div>
+        <div class="form-group">
+          <label>游戏风格</label>
+          <input type="text" id="class-playstyle" placeholder="如: 暴力美学" />
+        </div>
+      </div>
+      <div class="form-row-3">
+        <div class="form-group">
+          <label>允许转职奖励</label>
+          <input type="number" id="class-job-bonus" min="0" value="0" />
+        </div>
+        <div class="form-group">
+          <label>显示顺序</label>
+          <input type="number" id="class-display-order" min="0" value="0" />
+        </div>
+        <div class="form-group">
+          <label>主题色</label>
+          <input type="color" id="class-color" value="#22c55e" />
+        </div>
+      </div>
+      <div class="form-row">
+        <label><input type="checkbox" id="class-starter" /> 新手职业</label>
+        <label><input type="checkbox" id="class-job-change" /> 允许转职</label>
+        <label><input type="checkbox" id="class-hidden" /> 隐藏职业</label>
+      </div>
+      <div class="btn-group" style="margin-top:20px">
+        <button type="submit">保存职业</button>
+        <button type="button" class="secondary" onclick="hideClassModal()">取消</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 技能管理模态框 -->
+<div id="skill-modal" class="modal">
+  <div class="modal-content">
+    <h2>管理职业技能</h2>
+    <div class="tabs">
+      <div class="tab active" onclick="switchSkillTab('current')">当前技能</div>
+      <div class="tab" onclick="switchSkillTab('available')">可用技能</div>
+      <div class="tab" onclick="switchSkillTab('batch')">批量操作</div>
+    </div>
+    
+    <div id="skill-tab-current" class="tab-content active">
+      <div id="current-skills"></div>
+    </div>
+    
+    <div id="skill-tab-available" class="tab-content">
+      <div class="row">
+        <select id="skill-type-filter">
+          <option value="">所有类型</option>
+        </select>
+        <input type="text" id="skill-search" placeholder="搜索技能..." />
+        <button onclick="loadAvailableSkills()">搜索</button>
+      </div>
+      <div id="available-skills"></div>
+    </div>
+    
+    <div id="skill-tab-batch" class="tab-content">
+      <div class="form-group">
+        <label>批量操作类型</label>
+        <select id="batch-operation">
+          <option value="add">批量添加</option>
+          <option value="remove">批量移除</option>
+        </select>
+      </div>
+      <div id="batch-skills"></div>
+      <button onclick="performBatchSkillOperation()">执行批量操作</button>
+    </div>
+    
+    <div class="btn-group" style="margin-top:20px">
+      <button class="secondary" onclick="hideSkillModal()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 标签管理模态框 -->
+<div id="tag-modal" class="modal">
+  <div class="modal-content">
+    <h2>管理职业标签</h2>
+    <div id="current-tags"></div>
+    <h3>可用标签</h3>
+    <div id="available-tags"></div>
+    <div class="btn-group" style="margin-top:20px">
+      <button class="secondary" onclick="hideTagModal()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 全局标签管理模态框 -->
+<div id="global-tag-modal" class="modal">
+  <div class="modal-content" style="max-width: 800px;">
+    <h2>全局标签管理</h2>
+    <div class="toolbar" style="margin-bottom: 16px;">
+      <button onclick="showCreateTagModal()">创建新标签</button>
+      <div style="flex:1"></div>
+      <select id="tag-type-filter" onchange="filterGlobalTags()">
+        <option value="">所有类型</option>
+        <option value="category">职业类别</option>
+        <option value="style">战斗风格</option>
+        <option value="weapon">武器类型</option>
+        <option value="element">元素类型</option>
+      </select>
+    </div>
+    <div id="global-tags-list" class="list-container" style="max-height: 400px; overflow-y: auto;"></div>
+    <div class="btn-group" style="margin-top:20px">
+      <button class="secondary" onclick="hideGlobalTagModal()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 创建/编辑标签模态框 -->
+<div id="create-tag-modal" class="modal">
+  <div class="modal-content">
+    <h2 id="tag-modal-title">创建新标签</h2>
+    <form id="tag-form" onsubmit="submitTagForm(event)">
+      <div class="form-group">
+        <label>标签代码</label>
+        <input type="text" id="tag-code" required maxlength="50" placeholder="例如: warrior">
+      </div>
+      <div class="form-group">
+        <label>标签名称</label>
+        <input type="text" id="tag-name" required maxlength="100" placeholder="例如: 战士">
+      </div>
+      <div class="form-group">
+        <label>描述</label>
+        <textarea id="tag-description" maxlength="500" placeholder="标签描述"></textarea>
+      </div>
+      <div class="form-group">
+        <label>标签类型</label>
+        <select id="tag-type" required>
+          <option value="">请选择</option>
+          <option value="category">职业类别</option>
+          <option value="style">战斗风格</option>
+          <option value="weapon">武器类型</option>
+          <option value="element">元素类型</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>图标路径</label>
+        <input type="text" id="tag-icon" placeholder="例如: /icons/warrior.svg">
+      </div>
+      <div class="form-group">
+        <label>颜色</label>
+        <input type="color" id="tag-color" value="#3498DB">
+      </div>
+      <div class="form-group">
+        <label>显示顺序</label>
+        <input type="number" id="tag-display-order" min="0" value="0">
+      </div>
+      <div class="btn-group" style="margin-top:20px">
+        <button type="submit">保存</button>
+        <button type="button" class="secondary" onclick="hideCreateTagModal()">取消</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 技能配置模态框 -->
+<div id="skill-config-modal" class="modal">
+  <div class="modal-content">
+    <h2 id="skill-config-title">技能配置</h2>
+    <div id="skill-config-info" class="form-group">
+      <div><strong id="config-skill-name">技能名称</strong></div>
+      <div class="muted" id="config-skill-description">技能描述</div>
+    </div>
+    
+    <form id="skill-config-form" onsubmit="submitSkillConfig(event)">
+      <div class="form-group">
+        <label>需求等级</label>
+        <input type="number" id="config-required-level" min="0" max="100" value="0" required>
+        <small class="muted">学习此技能需要的最低等级</small>
+      </div>
+      
+      <div class="form-group">
+        <label>学习优先级</label>
+        <input type="number" id="config-learn-priority" min="0" max="100" value="0">
+        <small class="muted">数值越高，AI优先学习（0-100）</small>
+      </div>
+      
+      <div class="form-group">
+        <label>消耗修正</label>
+        <input type="number" id="config-cost-modifier" step="0.1" min="0" max="10" value="1.0">
+        <small class="muted">技能消耗的倍数修正（1.0为正常）</small>
+      </div>
+      
+      <div class="form-group">
+        <label>技能分组</label>
+        <input type="text" id="config-skill-group" maxlength="50" placeholder="例如: 攻击技能">
+        <small class="muted">用于技能分类管理</small>
+      </div>
+      
+      <div class="form-group">
+        <label>显示顺序</label>
+        <input type="number" id="config-display-order" min="0" value="0">
+        <small class="muted">在技能列表中的显示顺序</small>
+      </div>
+      
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="config-is-initial"> 初始技能
+        </label>
+        <small class="muted">职业创建时就拥有的技能</small>
+      </div>
+      
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="config-is-signature"> 签名技能
+        </label>
+        <small class="muted">该职业的标志性技能</small>
+      </div>
+      
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="config-is-inheritance"> 继承技能
+        </label>
+        <small class="muted">从父职业继承的技能</small>
+      </div>
+      
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="config-auto-learn"> 自动学习
+        </label>
+        <small class="muted">满足条件时自动学习</small>
+      </div>
+      
+      <div class="btn-group" style="margin-top:20px">
+        <button type="submit">保存配置</button>
+        <button type="button" class="secondary" onclick="hideSkillConfigModal()">取消</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 转职需求管理模态框 -->
+<div id="advancement-modal" class="modal">
+  <div class="modal-content" style="max-width: 700px;">
+    <h2>管理转职需求</h2>
+    <p class="muted">配置其他职业转职到当前职业的需求条件</p>
+    
+    <!-- 当前转职需求列表 -->
+    <div class="form-group">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h3>现有转职需求</h3>
+        <button onclick="showCreateAdvancementForm()">添加新需求</button>
+      </div>
+      <div id="advancement-requirements-list" class="list" style="max-height: 300px;"></div>
+    </div>
+    
+    <!-- 创建/编辑转职需求表单 -->
+    <div id="advancement-form-container" style="display: none;">
+      <h3 id="advancement-form-title">创建转职需求</h3>
+      <form id="advancement-form" onsubmit="submitAdvancementRequirement(event)">
+        <div class="form-group">
+          <label>从职业 *</label>
+          <select id="advancement-from-class" required>
+            <option value="">请选择父职业</option>
+          </select>
+          <small class="muted">选择可以转职到当前职业的父职业</small>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label>最低等级要求 *</label>
+            <input type="number" id="advancement-required-level" min="1" max="500" value="10" required>
+          </div>
+          <div class="form-group">
+            <label>推荐等级</label>
+            <input type="number" id="advancement-recommended-level" min="1" max="500" value="15">
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label>需要转职次数</label>
+            <input type="number" id="advancement-job-changes" min="0" value="0">
+          </div>
+          <div class="form-group">
+            <label>需要金币</label>
+            <input type="number" id="advancement-gold" min="0" value="1000">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label>属性需求 (JSON格式)</label>
+          <textarea id="advancement-attributes" placeholder='{"STR": 30, "AGI": 25}' rows="3"></textarea>
+          <small class="muted">例如：{"STR": 30, "AGI": 25, "INT": 20}</small>
+        </div>
+        
+        <div class="form-group">
+          <label>转职描述</label>
+          <textarea id="advancement-description" placeholder="描述转职的条件和说明..." rows="2"></textarea>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label>性别限制</label>
+            <select id="advancement-gender">
+              <option value="any">无限制</option>
+              <option value="male">仅男性</option>
+              <option value="female">仅女性</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="advancement-active" checked> 激活状态
+            </label>
+          </div>
+        </div>
+        
+        <div class="btn-group" style="margin-top:16px">
+          <button type="submit" id="advancement-submit-btn">保存转职需求</button>
+          <button type="button" class="secondary" onclick="showAdvancementRequirementEditor()">高级编辑</button>
+          <button type="button" class="secondary" onclick="hideAdvancementForm()">取消</button>
+        </div>
+      </form>
+    </div>
+    
+    <div class="btn-group" style="margin-top:20px">
+      <button class="secondary" onclick="hideAdvancementModal()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 技能管理模态框 -->
+<div id="skills-modal" class="modal">
+  <div class="modal-content" style="max-width: 900px;">
+    <h2>技能管理</h2>
+    <div class="row" style="margin-bottom: 16px;">
+      <input type="text" id="skill-search" placeholder="搜索技能名称..." style="flex: 1;" oninput="filterSkills()">
+      <select id="skill-type-filter" onchange="filterSkills()">
+        <option value="">所有类型</option>
+        <option value="active">主动技能</option>
+        <option value="passive">被动技能</option>
+        <option value="basic">基础技能</option>
+      </select>
+    </div>
+    
+    <div id="skills-list" class="list" style="max-height: 500px;">
+      <div class="muted" style="text-align:center;padding:20px">正在加载技能...</div>
+    </div>
+    
+    <div class="btn-group" style="margin-top: 16px;">
+      <button class="secondary" onclick="refreshSkills()">刷新技能</button>
+      <button class="secondary" onclick="hideSkillsModal()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 高级转职需求编辑器模态框 -->
+<div id="advanced-requirement-modal" class="modal">
+  <div class="modal-content" style="max-width: 800px;">
+    <h2>高级转职需求编辑器</h2>
+    <p class="muted">编辑复杂的转职需求JSON数据</p>
+    
+    <div class="form-group">
+      <label>需求配置 (JSON格式)</label>
+      <textarea id="advanced-requirements-json" rows="15" style="font-family: monospace; font-size: 13px;" placeholder='{
+  "description": "职业转职描述",
+  "required_level": 25,
+  "recommended_level": 30,
+  "required_attributes": {
+    "STR": 40,
+    "AGI": 30,
+    "INT": 20
+  },
+  "required_gold": 50000,
+  "required_skills": [
+    {
+      "skill_id": "skill-uuid-here",
+      "min_level": 5
+    }
+  ],
+  "special_conditions": {
+    "completed_quests": ["quest-1", "quest-2"],
+    "required_items": {
+      "item1": 1,
+      "item2": 3
+    }
+  }
+}'></textarea>
+    </div>
+    
+    <div class="form-group">
+      <div class="row">
+        <button onclick="validateAdvancedRequirements()">验证JSON</button>
+        <button onclick="formatAdvancedRequirements()">格式化</button>
+        <button onclick="loadAdvancedRequirementTemplate()">加载模板</button>
+      </div>
+    </div>
+    
+    <div id="json-validation-result" style="margin: 12px 0;"></div>
+    
+    <div class="btn-group">
+      <button onclick="saveAdvancedRequirements()">保存配置</button>
+      <button class="secondary" onclick="hideAdvancedRequirementModal()">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- 职业技能管理模态框 -->
+<div id="class-skills-modal" class="modal">
+  <div class="modal-content" style="max-width: 1000px;">
+    <h2>职业技能管理</h2>
+    <p class="muted" id="skill-modal-class-info">为职业配置技能池</p>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+      <!-- 当前技能池 -->
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <h3>当前技能池</h3>
+          <div class="btn-group">
+            <button onclick="showAddSkillForm()">添加技能</button>
+            <button class="secondary" onclick="refreshCurrentClassSkills()">刷新</button>
+          </div>
+        </div>
+        <div id="current-class-skills" class="list" style="max-height: 400px;">
+          <div class="muted" style="text-align:center;padding:20px">正在加载...</div>
+        </div>
+      </div>
+      
+      <!-- 可用技能列表 -->
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <h3>可用技能</h3>
+          <div class="row" style="gap: 8px;">
+            <select id="available-skill-type-filter" onchange="filterAvailableSkills()">
+              <option value="">所有类型</option>
+              <option value="active">主动技能</option>
+              <option value="passive">被动技能</option>
+              <option value="basic">基础技能</option>
+            </select>
+            <input type="text" id="available-skill-search" placeholder="搜索技能..." style="width: 150px;" oninput="filterAvailableSkills()">
+          </div>
+        </div>
+        <div id="available-skills-for-class" class="list" style="max-height: 400px;">
+          <div class="muted" style="text-align:center;padding:20px">正在加载...</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 技能配置表单 -->
+    <div id="skill-config-form" style="display: none; margin-top: 20px; border: 1px solid #334155; border-radius: 8px; padding: 16px;">
+      <h3 id="skill-config-title">添加技能配置</h3>
+      <form id="class-skill-form" onsubmit="submitSkillConfig(event)">
+        <input type="hidden" id="config-skill-id" />
+        <input type="hidden" id="config-operation" value="add" />
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label>技能名称</label>
+            <input type="text" id="config-skill-name" readonly style="background: #1e293b;">
+          </div>
+          <div class="form-group">
+            <label>需要等级 *</label>
+            <input type="number" id="config-required-level" min="1" max="500" value="1" required>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label>学习优先级</label>
+            <input type="number" id="config-learn-priority" min="0" max="100" value="1">
+          </div>
+          <div class="form-group">
+            <label>显示顺序</label>
+            <input type="number" id="config-display-order" min="0" max="999" value="1">
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label>消耗修正</label>
+            <input type="number" id="config-cost-modifier" min="0.1" max="10" step="0.1" value="1.0">
+          </div>
+          <div class="form-group">
+            <label>技能组</label>
+            <input type="text" id="config-skill-group" placeholder="如: combat, magic" maxlength="50">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <div class="row">
+            <label>
+              <input type="checkbox" id="config-is-initial"> 初始技能
+            </label>
+            <label>
+              <input type="checkbox" id="config-is-signature"> 招牌技能
+            </label>
+            <label>
+              <input type="checkbox" id="config-is-inheritance"> 传承技能
+            </label>
+            <label>
+              <input type="checkbox" id="config-auto-learn"> 自动学习
+            </label>
+          </div>
+        </div>
+        
+        <div class="btn-group">
+          <button type="submit" id="skill-config-submit">保存配置</button>
+          <button type="button" class="secondary" onclick="hideSkillConfigForm()">取消</button>
+        </div>
+      </form>
+    </div>
+    
+    <div class="btn-group" style="margin-top: 20px;">
+      <button class="secondary" onclick="hideClassSkillsModal()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // 全局变量
+  let currentClassId = null;
+  let allClasses = [];
+  let allTags = [];
+  let allSkills = [];
+
+  // 通用函数
+  const authHeader = () => {
+    const token = localStorage.getItem('session_token') || '';
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  };
+
+  function showOutput(data) {
+    document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+  }
+
+  function showError(message) {
+    const output = document.getElementById('output');
+    output.textContent = `错误: ${message}`;
+    output.style.color = '#dc2626';
+    setTimeout(() => { output.style.color = '#e2e8f0'; }, 3000);
+  }
+
+  function showSuccess(message) {
+    const output = document.getElementById('output');
+    output.textContent = `成功: ${message}`;
+    output.style.color = '#22c55e';
+    setTimeout(() => { output.style.color = '#e2e8f0'; }, 3000);
+  }
+
+  // API 调用函数
+  async function apiCall(url, options = {}) {
+    try {
+      const response = await fetch(url, {
+        headers: { ...authHeader(), 'Content-Type': 'application/json' },
+        credentials: 'include',
+        ...options
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || data.error || '请求失败');
+      }
+      return data;
+    } catch (error) {
+      showError(error.message);
+      throw error;
+    }
+  }
+
+  // 页面初始化
+  document.addEventListener('DOMContentLoaded', function() {
+    loadClasses();
+    loadStats();
+    loadParentClasses();
+    
+    // 设置表单提交事件
+    document.getElementById('class-form').addEventListener('submit', handleClassSubmit);
+  });
+
+  // 统计数据加载
+  async function loadStats() {
+    try {
+      const response = await apiCall('/admin/classes?page=1&page_size=1000');
+      if (response.data && response.data.classes) {
+        const classes = response.data.classes;
+        document.getElementById('total-classes').textContent = response.data.total || classes.length;
+        document.getElementById('active-classes').textContent = classes.filter(c => c.is_active).length;
+        document.getElementById('starter-classes').textContent = classes.filter(c => c.is_starter_class).length;
+      }
+    } catch (error) {
+      console.error('加载统计数据失败:', error);
+    }
+  }
+
+  // 职业列表加载
+  async function loadClasses() {
+    try {
+      const response = await apiCall('/admin/classes?page=1&page_size=100&sort_by=tier&sort_dir=asc');
+      if (response.data && response.data.classes) {
+        allClasses = response.data.classes;
+        displayClasses(allClasses);
+      }
+    } catch (error) {
+      document.getElementById('class-list').innerHTML = `<div class="error">加载失败: ${error.message}</div>`;
+    }
+  }
+
+  // 显示职业列表
+  function displayClasses(classes) {
+    const container = document.getElementById('class-list');
+    if (classes.length === 0) {
+      container.innerHTML = '<div class="muted" style="text-align:center;padding:20px">没有找到职业</div>';
+      return;
+    }
+
+    container.innerHTML = classes.map(cls => `
+      <div class="list-item" onclick="selectClass('${cls.id}')">
+        <div>
+          <div style="font-weight:bold">${cls.name}</div>
+          <div class="muted">T${cls.tier} | ${cls.code}</div>
+          <div style="margin-top:4px">
+            ${cls.is_active ? '<span class="tag">激活</span>' : '<span class="tag" style="background:#64748b">未激活</span>'}
+            ${cls.is_starter ? '<span class="tag primary">新手</span>' : ''}
+            ${cls.is_hidden ? '<span class="tag" style="background:#f59e0b">隐藏</span>' : ''}
+          </div>
+        </div>
+        <div class="btn-group">
+          <button class="secondary" onclick="event.stopPropagation(); editClass('${cls.id}')">编辑</button>
+          <button class="danger" onclick="event.stopPropagation(); deleteClass('${cls.id}', '${cls.name}')">删除</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // 筛选职业
+  function filterClasses() {
+    const tierFilter = document.getElementById('filter-tier').value;
+    const statusFilter = document.getElementById('filter-status').value;
+    const searchText = document.getElementById('search-box').value.toLowerCase();
+
+    let filtered = allClasses.filter(cls => {
+      let match = true;
+      
+      if (tierFilter && cls.tier.toString() !== tierFilter) match = false;
+      
+      if (statusFilter) {
+        switch (statusFilter) {
+          case 'active': if (!cls.is_active) match = false; break;
+          case 'inactive': if (cls.is_active) match = false; break;
+          case 'starter': if (!cls.is_starter) match = false; break;
+          case 'hidden': if (!cls.is_hidden) match = false; break;
+        }
+      }
+      
+      if (searchText && !cls.name.toLowerCase().includes(searchText) && !cls.code.toLowerCase().includes(searchText)) {
+        match = false;
+      }
+      
+      return match;
+    });
+
+    displayClasses(filtered);
+  }
+
+  // 选择职业显示详情
+  async function selectClass(classId) {
+    currentClassId = classId;
+    try {
+      const response = await apiCall(`/admin/classes/${classId}`);
+      if (response.data) {
+        displayClassDetails(response.data);
+      }
+    } catch (error) {
+      document.getElementById('class-details').innerHTML = `<div class="error">加载详情失败: ${error.message}</div>`;
+    }
+  }
+
+  // 显示职业详情
+  function displayClassDetails(classData) {
+    const detailsContainer = document.getElementById('class-details');
+    
+    const parentInfo = classData.parent_class ? 
+      `<div><strong>父职业:</strong> ${classData.parent_class.name}</div>` : '';
+    
+    const childrenInfo = classData.child_classes && classData.child_classes.length > 0 ?
+      `<div><strong>子职业:</strong> ${classData.child_classes.map(c => c.name).join(', ')}</div>` : '';
+    
+    const tagsInfo = classData.tags && classData.tags.length > 0 ?
+      `<div><strong>标签:</strong> ${classData.tags.map(t => `<span class="tag ${t.is_primary ? 'primary' : ''}">${t.name}</span>`).join('')}</div>` : '';
+    
+    const skillsInfo = classData.skill_pools && classData.skill_pools.length > 0 ?
+      `<div><strong>技能数量:</strong> ${classData.skill_pools.length}</div>` : '';
+
+    detailsContainer.innerHTML = `
+      <h3>${classData.name}</h3>
+      <div class="muted">${classData.code}</div>
+      <div style="margin:12px 0">
+        <div><strong>层级:</strong> T${classData.tier}</div>
+        <div><strong>状态:</strong> 
+          ${classData.is_active ? '<span class="success">激活</span>' : '<span class="error">未激活</span>'}
+          ${classData.is_starter ? ' | <span class="tag primary">新手职业</span>' : ''}
+          ${classData.is_hidden ? ' | <span class="warning">隐藏</span>' : ''}
+        </div>
+        ${parentInfo}
+        ${childrenInfo}
+        ${skillsInfo}
+        ${tagsInfo}
+      </div>
+      ${classData.description ? `<div><strong>描述:</strong> ${classData.description}</div>` : ''}
+      ${classData.specialty ? `<div><strong>特色:</strong> ${classData.specialty}</div>` : ''}
+      ${classData.playstyle ? `<div><strong>风格:</strong> ${classData.playstyle}</div>` : ''}
+      ${classData.hero_count !== undefined ? `<div><strong>使用英雄:</strong> ${classData.hero_count}个</div>` : ''}
+      
+      <div class="btn-group" style="margin-top:16px">
+        <button onclick="editClass('${classData.id}')">编辑职业</button>
+        <button class="secondary" onclick="manageClassSkills('${classData.id}')">管理技能</button>
+        <button class="secondary" onclick="manageClassTags('${classData.id}')">管理标签</button>
+        <button class="secondary" onclick="manageAdvancementRequirements('${classData.id}')">管理转职需求</button>
+      </div>
+    `;
+  }
+
+  // 模态框操作
+  function showCreateClassModal() {
+    document.getElementById('modal-title').textContent = '创建新职业';
+    document.getElementById('class-form').reset();
+    document.getElementById('class-modal').classList.add('show');
+  }
+
+  function hideClassModal() {
+    document.getElementById('class-modal').classList.remove('show');
+  }
+
+  function showSkillModal() {
+    document.getElementById('skill-modal').classList.add('show');
+  }
+
+  function hideSkillModal() {
+    document.getElementById('skill-modal').classList.remove('show');
+  }
+
+  function showTagModal() {
+    document.getElementById('tag-modal').classList.add('show');
+  }
+
+  function hideTagModal() {
+    document.getElementById('tag-modal').classList.remove('show');
+  }
+
+  // 加载父职业选项
+  async function loadParentClasses() {
+    try {
+      const response = await apiCall('/admin/classes?page=1&page_size=100');
+      if (response.data && response.data.classes) {
+        const select = document.getElementById('class-parent');
+        select.innerHTML = '<option value="">无父职业</option>' +
+          response.data.classes.map(cls => `<option value="${cls.id}">${cls.name} (T${cls.tier})</option>`).join('');
+      }
+    } catch (error) {
+      console.error('加载父职业失败:', error);
+    }
+  }
+
+  // 表单提交处理
+  async function handleClassSubmit(e) {
+    e.preventDefault();
+    
+    const formData = {
+      code: document.getElementById('class-code').value,
+      name: document.getElementById('class-name').value,
+      tier: parseInt(document.getElementById('class-tier').value),
+      description: document.getElementById('class-description').value || null,
+      lore_text: document.getElementById('class-lore').value || null,
+      specialty: document.getElementById('class-specialty').value || null,
+      playstyle: document.getElementById('class-playstyle').value || null,
+      job_change_bonus: parseInt(document.getElementById('class-job-bonus').value) || 0,
+      display_order: parseInt(document.getElementById('class-display-order').value) || 0,
+      color_theme: document.getElementById('class-color').value,
+      is_starter: document.getElementById('class-starter').checked,
+      allows_job_change: document.getElementById('class-job-change').checked,
+      is_hidden: document.getElementById('class-hidden').checked
+    };
+
+    const parentValue = document.getElementById('class-parent').value;
+    if (parentValue) {
+      formData.parent_class_id = parentValue;
+    }
+
+    try {
+      let response;
+      if (currentClassId && document.getElementById('modal-title').textContent.includes('编辑')) {
+        // 更新职业
+        response = await apiCall(`/admin/classes/${currentClassId}`, {
+          method: 'PUT',
+          body: JSON.stringify(formData)
+        });
+        showSuccess('职业更新成功');
+      } else {
+        // 创建职业
+        response = await apiCall('/admin/classes', {
+          method: 'POST',
+          body: JSON.stringify(formData)
+        });
+        showSuccess('职业创建成功');
+      }
+      
+      hideClassModal();
+      loadClasses();
+      loadStats();
+      if (currentClassId) {
+        selectClass(currentClassId);
+      }
+    } catch (error) {
+      // 错误已在 apiCall 中处理
+    }
+  }
+
+  // 编辑职业
+  async function editClass(classId) {
+    try {
+      const response = await apiCall(`/admin/classes/${classId}`);
+      if (response.data) {
+        const cls = response.data;
+        currentClassId = classId;
+        
+        document.getElementById('modal-title').textContent = '编辑职业';
+        document.getElementById('class-code').value = cls.code;
+        document.getElementById('class-name').value = cls.name;
+        document.getElementById('class-tier').value = cls.tier;
+        document.getElementById('class-description').value = cls.description || '';
+        document.getElementById('class-lore').value = cls.lore_text || '';
+        document.getElementById('class-specialty').value = cls.specialty || '';
+        document.getElementById('class-playstyle').value = cls.playstyle || '';
+        document.getElementById('class-job-bonus').value = cls.job_change_bonus || 0;
+        document.getElementById('class-display-order').value = cls.display_order || 0;
+        document.getElementById('class-color').value = cls.color_theme || '#22c55e';
+        document.getElementById('class-starter').checked = cls.is_starter;
+        document.getElementById('class-job-change').checked = cls.allows_job_change;
+        document.getElementById('class-hidden').checked = cls.is_hidden;
+        document.getElementById('class-parent').value = cls.parent_class_id || '';
+        
+        document.getElementById('class-modal').classList.add('show');
+      }
+    } catch (error) {
+      // 错误已在 apiCall 中处理
+    }
+  }
+
+  // 删除职业
+  async function deleteClass(classId, className) {
+    if (!confirm(`确定要删除职业 "${className}" 吗？此操作将软删除该职业。`)) {
+      return;
+    }
+
+    try {
+      await apiCall(`/admin/classes/${classId}`, { method: 'DELETE' });
+      showSuccess(`职业 "${className}" 删除成功`);
+      loadClasses();
+      loadStats();
+      if (currentClassId === classId) {
+        document.getElementById('class-details').innerHTML = '<div class="muted" style="text-align:center;padding:20px">请从左侧选择一个职业</div>';
+        currentClassId = null;
+      }
+    } catch (error) {
+      // 错误已在 apiCall 中处理
+    }
+  }
+
+  // 技能管理
+
+
+  // 标签管理
+  async function manageClassTags(classId) {
+    currentClassId = classId;
+    showTagModal();
+    await loadClassTags();
+  }
+
+  async function loadClassTags() {
+    try {
+      // 加载可用标签
+      const tagsResponse = await apiCall('/admin/tags');
+      if (tagsResponse.data) {
+        allTags = tagsResponse.data;
+        const container = document.getElementById('available-tags');
+        container.innerHTML = allTags.map(tag => `
+          <div class="list-item">
+            <div>
+              <strong>${tag.name}</strong>
+              <div class="muted">${tag.tag_type}</div>
+            </div>
+            <button onclick="addTagToClass('${tag.id}')">添加</button>
+          </div>
+        `).join('');
+      }
+      
+      // 加载当前职业标签
+      if (currentClassId) {
+        const tagsResponse = await apiCall(`/admin/classes/${currentClassId}/class-tags`);
+        if (tagsResponse.data) {
+          const container = document.getElementById('current-tags');
+          container.innerHTML = '<h3>当前标签</h3>' + 
+            tagsResponse.data.map(tag => `
+              <div class="list-item">
+                <div>
+                  <span class="tag ${tag.is_primary ? 'primary' : ''}">${tag.name}</span>
+                </div>
+                <button class="danger" onclick="removeTagFromClass('${tag.id}')">移除</button>
+              </div>
+            `).join('');
+        }
+      }
+    } catch (error) {
+      console.error('加载标签失败:', error);
+    }
+  }
+
+  async function addTagToClass(tagId) {
+    if (!currentClassId) return;
+    
+    try {
+      await apiCall(`/admin/classes/${currentClassId}/class-tags/${tagId}`, {
+        method: 'POST'
+      });
+      showSuccess('标签添加成功');
+      await loadClassTags();
+      if (currentClassId) {
+        selectClass(currentClassId);
+      }
+    } catch (error) {
+      // 错误已在 apiCall 中处理
+    }
+  }
+
+  async function removeTagFromClass(tagId) {
+    if (!currentClassId) return;
+    
+    try {
+      await apiCall(`/admin/classes/${currentClassId}/class-tags/${tagId}`, {
+        method: 'DELETE'
+      });
+      showSuccess('标签移除成功');
+      await loadClassTags();
+      if (currentClassId) {
+        selectClass(currentClassId);
+      }
+    } catch (error) {
+      // 错误已在 apiCall 中处理
+    }
+  }
+
+  // 全局标签管理
+  let currentEditingTagId = null;
+  let globalTags = [];
+
+  function showGlobalTagModal() {
+    document.getElementById('global-tag-modal').classList.add('show');
+    loadGlobalTags();
+  }
+
+  function hideGlobalTagModal() {
+    document.getElementById('global-tag-modal').classList.remove('show');
+  }
+
+  function showCreateTagModal(tagId = null) {
+    currentEditingTagId = tagId;
+    const modal = document.getElementById('create-tag-modal');
+    const title = document.getElementById('tag-modal-title');
+    
+    if (tagId) {
+      title.textContent = '编辑标签';
+      const tag = globalTags.find(t => t.id === tagId);
+      if (tag) {
+        document.getElementById('tag-code').value = tag.code;
+        document.getElementById('tag-name').value = tag.name;
+        document.getElementById('tag-description').value = tag.description || '';
+        document.getElementById('tag-type').value = tag.tag_type;
+        document.getElementById('tag-icon').value = tag.icon || '';
+        document.getElementById('tag-color').value = tag.color || '#3498DB';
+        document.getElementById('tag-display-order').value = tag.display_order;
+      }
+    } else {
+      title.textContent = '创建新标签';
+      document.getElementById('tag-form').reset();
+      document.getElementById('tag-color').value = '#3498DB';
+    }
+    
+    modal.classList.add('show');
+  }
+
+  function hideCreateTagModal() {
+    document.getElementById('create-tag-modal').classList.remove('show');
+    currentEditingTagId = null;
+  }
+
+  async function loadGlobalTags() {
+    try {
+      const response = await apiCall('/admin/tags');
+      if (response.data) {
+        globalTags = response.data;
+        renderGlobalTags();
+      }
+    } catch (error) {
+      // 错误已在 apiCall 中处理
+    }
+  }
+
+  function renderGlobalTags() {
+    const container = document.getElementById('global-tags-list');
+    const filter = document.getElementById('tag-type-filter').value;
+    
+    const filteredTags = filter ? globalTags.filter(tag => tag.tag_type === filter) : globalTags;
+    
+    container.innerHTML = filteredTags.map(tag => `
+      <div class="list-item">
+        <div style="flex: 1;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="width: 16px; height: 16px; background: ${tag.color || '#ccc'}; border-radius: 3px;"></div>
+            <strong>${tag.name}</strong>
+            <span class="badge">${tag.tag_type}</span>
+          </div>
+          <div class="muted">${tag.description || '无描述'}</div>
+          <div class="muted">代码: ${tag.code}</div>
+        </div>
+        <div class="btn-group">
+          <button class="secondary" onclick="showCreateTagModal('${tag.id}')">编辑</button>
+          <button class="danger" onclick="deleteGlobalTag('${tag.id}')">删除</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function filterGlobalTags() {
+    renderGlobalTags();
+  }
+
+  async function submitTagForm(event) {
+    event.preventDefault();
+    
+    const formData = {
+      code: document.getElementById('tag-code').value,
+      name: document.getElementById('tag-name').value,
+      description: document.getElementById('tag-description').value || null,
+      tag_type: document.getElementById('tag-type').value,
+      icon: document.getElementById('tag-icon').value || null,
+      color: document.getElementById('tag-color').value,
+      display_order: parseInt(document.getElementById('tag-display-order').value)
+    };
+
+    try {
+      if (currentEditingTagId) {
+        await apiCall(`/admin/tags/${currentEditingTagId}`, {
+          method: 'PUT',
+          body: JSON.stringify(formData)
+        });
+        showSuccess('标签更新成功');
+      } else {
+        await apiCall('/admin/tags', {
+          method: 'POST',
+          body: JSON.stringify(formData)
+        });
+        showSuccess('标签创建成功');
+      }
+      
+      hideCreateTagModal();
+      await loadGlobalTags();
+    } catch (error) {
+      // 错误已在 apiCall 中处理
+    }
+  }
+
+  async function deleteGlobalTag(tagId) {
+    if (!confirm('确定要删除这个标签吗？这将影响所有使用该标签的职业。')) {
+      return;
+    }
+
+    try {
+      await apiCall(`/admin/tags/${tagId}`, {
+        method: 'DELETE'
+      });
+      showSuccess('标签删除成功');
+      await loadGlobalTags();
+    } catch (error) {
+      // 错误已在 apiCall 中处理
+    }
+  }
+
+  // 技能配置管理
+  let currentConfigSkillId = null;
+  let currentSkillPoolData = null;
+
+  async function editSkillConfig(skillId) {
+    if (!currentClassId) return;
+    
+    currentConfigSkillId = skillId;
+    
+    try {
+      // 获取当前职业中该技能的配置
+      const classResponse = await apiCall(`/admin/classes/${currentClassId}`);
+      if (classResponse.data && classResponse.data.skill_pools) {
+        const skillPool = classResponse.data.skill_pools.find(sp => sp.skill_id === skillId);
+        if (skillPool) {
+          currentSkillPoolData = skillPool;
+          
+          // 设置技能基本信息
+          document.getElementById('config-skill-name').textContent = skillPool.skill_name || '未知技能';
+          document.getElementById('config-skill-description').textContent = '配置该技能在当前职业中的参数';
+          
+          // 填充表单
+          document.getElementById('config-required-level').value = skillPool.required_level || 0;
+          document.getElementById('config-learn-priority').value = skillPool.learn_priority || 0;
+          document.getElementById('config-cost-modifier').value = skillPool.cost_modifier || 1.0;
+          document.getElementById('config-skill-group').value = skillPool.skill_group || '';
+          document.getElementById('config-display-order').value = skillPool.display_order || 0;
+          document.getElementById('config-is-initial').checked = skillPool.is_initial || false;
+          document.getElementById('config-is-signature').checked = skillPool.is_signature || false;
+          document.getElementById('config-is-inheritance').checked = skillPool.is_inheritance || false;
+          document.getElementById('config-auto-learn').checked = skillPool.auto_learn || false;
+        }
+      }
+      
+      showSkillConfigModal();
+    } catch (error) {
+      // 错误已在 apiCall 中处理
+    }
+  }
+
+  function showSkillConfigModal() {
+    document.getElementById('skill-config-modal').classList.add('show');
+  }
+
+  function hideSkillConfigModal() {
+    document.getElementById('skill-config-modal').classList.remove('show');
+    currentConfigSkillId = null;
+    currentSkillPoolData = null;
+  }
+
+  async function submitSkillConfig(event) {
+    event.preventDefault();
+    
+    if (!currentClassId || !currentConfigSkillId) return;
+    
+    const formData = {
+      skill_id: currentConfigSkillId,
+      required_level: parseInt(document.getElementById('config-required-level').value),
+      learn_priority: parseInt(document.getElementById('config-learn-priority').value),
+      cost_modifier: parseFloat(document.getElementById('config-cost-modifier').value),
+      skill_group: document.getElementById('config-skill-group').value || null,
+      display_order: parseInt(document.getElementById('config-display-order').value),
+      is_initial: document.getElementById('config-is-initial').checked,
+      is_signature: document.getElementById('config-is-signature').checked,
+      is_inheritance: document.getElementById('config-is-inheritance').checked,
+      auto_learn: document.getElementById('config-auto-learn').checked
+    };
+
+    try {
+      await apiCall(`/admin/classes/${currentClassId}/skill-pool`, {
+        method: 'POST',
+        body: JSON.stringify(formData)
+      });
+      
+      showSuccess('技能配置更新成功');
+      hideSkillConfigModal();
+      await loadCurrentClassSkills();
+      
+      // 刷新职业详情
+      if (currentClassId) {
+        selectClass(currentClassId);
+      }
+    } catch (error) {
+      // 错误已在 apiCall 中处理
+    }
+  }
+
+  // Tab 切换
+  function switchSkillTab(tabName) {
+    document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    
+    document.querySelector(`.tab:nth-child(${tabName === 'current' ? 1 : tabName === 'available' ? 2 : 3})`).classList.add('active');
+    document.getElementById(`skill-tab-${tabName}`).classList.add('active');
+  }
+
+  // 转职需求Tab切换
+  function switchAdvancementTab(tabName) {
+    // 获取转职需求模态框内的tab元素
+    const modal = document.getElementById('advancement-modal');
+    const tabs = modal.querySelectorAll('.tab');
+    const contents = modal.querySelectorAll('.tab-content');
+    
+    tabs.forEach(tab => tab.classList.remove('active'));
+    contents.forEach(content => content.classList.remove('active'));
+    
+    // 根据tabName激活对应的tab
+    const tabIndex = tabName === 'from' ? 0 : tabName === 'to' ? 1 : 2;
+    tabs[tabIndex].classList.add('active');
+    document.getElementById(`advancement-tab-${tabName}`).classList.add('active');
+  }
+
+  // 刷新数据
+  function refreshData() {
+    loadClasses();
+    loadStats();
+    showSuccess('数据已刷新');
+  }
+
+  //#endregion
+
+  //#region 转职需求管理
+
+  let currentEditingRequirementId = null;
+
+  // 管理转职需求
+  async function manageAdvancementRequirements(classId) {
+    currentClassId = classId;
+    showAdvancementModal();
+    await loadAdvancementRequirements();
+    await loadClassOptions();
+  }
+
+  function showAdvancementModal() {
+    document.getElementById('advancement-modal').classList.add('show');
+    hideAdvancementForm(); // 确保表单是隐藏的
+  }
+
+  function hideAdvancementModal() {
+    document.getElementById('advancement-modal').classList.remove('show');
+    hideAdvancementForm();
+    currentEditingRequirementId = null;
+  }
+
+  // 显示创建转职需求表单
+  function showCreateAdvancementForm() {
+    currentEditingRequirementId = null;
+    document.getElementById('advancement-form-title').textContent = '创建转职需求';
+    document.getElementById('advancement-submit-btn').textContent = '保存转职需求';
+    document.getElementById('advancement-form').reset();
+    document.getElementById('advancement-required-level').value = '10';
+    document.getElementById('advancement-recommended-level').value = '15';
+    document.getElementById('advancement-gold').value = '1000';
+    document.getElementById('advancement-active').checked = true;
+    document.getElementById('advancement-form-container').style.display = 'block';
+  }
+
+  // 隐藏转职需求表单
+  function hideAdvancementForm() {
+    document.getElementById('advancement-form-container').style.display = 'none';
+    currentEditingRequirementId = null;
+  }
+
+  // 加载转职需求数据
+  async function loadAdvancementRequirements() {
+    if (!currentClassId) return;
+    
+    try {
+      // 只加载转职到当前职业的需求（从父职业转职到当前子职业）
+      const response = await apiCall(`/admin/advancement-requirements?to_class_id=${currentClassId}`);
+      if (response.data && response.data.requirements) {
+        displayAdvancementRequirementsList(response.data.requirements);
+      } else {
+        displayAdvancementRequirementsList([]);
+      }
+    } catch (error) {
+      console.error('加载转职需求失败:', error);
+      displayAdvancementRequirementsList([]);
+    }
+  }
+
+  // 显示转职需求列表
+  function displayAdvancementRequirementsList(requirements) {
+    const container = document.getElementById('advancement-requirements-list');
+    if (requirements.length === 0) {
+      container.innerHTML = '<div class="muted" style="text-align:center;padding:20px">暂无转职需求配置</div>';
+      return;
+    }
+
+    container.innerHTML = requirements.map(req => {
+      const requirements_json = req.requirements || {};
+      const description = requirements_json.description || req.description || '';
+      
+      return `
+        <div class="list-item">
+          <div style="flex: 1;">
+            <div><strong>${req.from_class_name || '未知职业'} → ${req.to_class_name || '当前职业'}</strong></div>
+            <div class="muted">
+              等级要求: ${req.required_level} 
+              ${req.required_gold ? ` | 金币: ${req.required_gold}` : ''}
+              ${req.required_job_changes ? ` | 转职次数: ${req.required_job_changes}` : ''}
+            </div>
+            ${req.required_attributes ? `<div class="muted">属性要求: ${JSON.stringify(req.required_attributes)}</div>` : ''}
+            ${description ? `<div class="muted">说明: ${description}</div>` : ''}
+            <div class="muted">状态: ${req.is_active ? '<span class="success">激活</span>' : '<span class="error">禁用</span>'}</div>
+          </div>
+          <div class="btn-group">
+            <button class="secondary" onclick="editAdvancementRequirement('${req.id}')">编辑</button>
+            <button class="danger" onclick="deleteAdvancementRequirement('${req.id}')">删除</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // 加载职业选项
+  async function loadClassOptions() {
+    try {
+      const response = await apiCall('/admin/classes?page=1&page_size=100');
+      if (response.data && response.data.classes) {
+        const fromSelect = document.getElementById('advancement-from-class');
+        
+        // 过滤出可能作为父职业的选项（层级比当前职业低的）
+        const currentClass = response.data.classes.find(cls => cls.id === currentClassId);
+        const parentClassOptions = response.data.classes
+          .filter(cls => cls.id !== currentClassId && (!currentClass || cls.tier < currentClass.tier))
+          .map(cls => `<option value="${cls.id}">${cls.name} (T${cls.tier})</option>`)
+          .join('');
+        
+        fromSelect.innerHTML = '<option value="">请选择父职业</option>' + parentClassOptions;
+      }
+    } catch (error) {
+      console.error('加载职业选项失败:', error);
+    }
+  }
+
+  // 提交转职需求
+  async function submitAdvancementRequirement(event) {
+    event.preventDefault();
+    
+    const formData = {
+      from_class_id: document.getElementById('advancement-from-class').value,
+      to_class_id: currentClassId, // 固定为当前职业
+      required_level: parseInt(document.getElementById('advancement-required-level').value),
+      required_job_changes: parseInt(document.getElementById('advancement-job-changes').value) || 0,
+      required_gold: parseInt(document.getElementById('advancement-gold').value) || 0,
+      required_honor: 0,
+      priority: 0,
+      gender_restriction: document.getElementById('advancement-gender').value,
+      is_active: document.getElementById('advancement-active').checked
+    };
+
+    // 处理属性需求
+    const attributesText = document.getElementById('advancement-attributes').value.trim();
+    if (attributesText) {
+      try {
+        formData.required_attributes = JSON.parse(attributesText);
+      } catch (error) {
+        showError('属性需求JSON格式错误');
+        return;
+      }
+    }
+
+    // 构建requirements JSON
+    const requirements = {
+      required_level: formData.required_level,
+      recommended_level: parseInt(document.getElementById('advancement-recommended-level').value)
+    };
+
+    if (formData.required_attributes) {
+      requirements.required_attributes = formData.required_attributes;
+    }
+    if (formData.required_gold > 0) {
+      requirements.required_gold = formData.required_gold;
+    }
+
+    const description = document.getElementById('advancement-description').value.trim();
+    if (description) {
+      requirements.description = description;
+    }
+
+    formData.requirements = requirements;
+
+    try {
+      if (currentEditingRequirementId) {
+        // 更新转职需求
+        await apiCall(`/admin/advancement-requirements/${currentEditingRequirementId}`, {
+          method: 'PUT',
+          body: JSON.stringify(formData)
+        });
+        showSuccess('转职需求更新成功');
+      } else {
+        // 创建转职需求
+        await apiCall('/admin/advancement-requirements', {
+          method: 'POST',
+          body: JSON.stringify(formData)
+        });
+        showSuccess('转职需求创建成功');
+      }
+      
+      hideAdvancementForm();
+      await loadAdvancementRequirements();
+    } catch (error) {
+      // 错误已在 apiCall 中处理
+    }
+  }
+
+  // 编辑转职需求
+  async function editAdvancementRequirement(requirementId) {
+    try {
+      const response = await apiCall(`/admin/advancement-requirements/${requirementId}`);
+      if (response.data) {
+        const req = response.data;
+        currentEditingRequirementId = requirementId;
+        
+        // 填充表单数据
+        document.getElementById('advancement-form-title').textContent = '编辑转职需求';
+        document.getElementById('advancement-submit-btn').textContent = '更新转职需求';
+        document.getElementById('advancement-from-class').value = req.from_class_id;
+        document.getElementById('advancement-required-level').value = req.required_level;
+        document.getElementById('advancement-recommended-level').value = req.requirements?.recommended_level || req.required_level;
+        document.getElementById('advancement-job-changes').value = req.required_job_changes || 0;
+        document.getElementById('advancement-gold').value = req.required_gold || 0;
+        document.getElementById('advancement-gender').value = req.gender_restriction || 'any';
+        document.getElementById('advancement-active').checked = req.is_active;
+        
+        if (req.required_attributes) {
+          document.getElementById('advancement-attributes').value = JSON.stringify(req.required_attributes, null, 2);
+        } else {
+          document.getElementById('advancement-attributes').value = '';
+        }
+        
+        const description = req.requirements?.description || '';
+        document.getElementById('advancement-description').value = description;
+
+        // 显示编辑表单
+        document.getElementById('advancement-form-container').style.display = 'block';
+      }
+    } catch (error) {
+      // 错误已在 apiCall 中处理
+    }
+  }
+
+
+  // 删除转职需求
+  async function deleteAdvancementRequirement(requirementId) {
+    if (!confirm('确定要删除这个转职需求吗？')) {
+      return;
+    }
+    
+    try {
+      await apiCall(`/admin/advancement-requirements/${requirementId}`, {
+        method: 'DELETE'
+      });
+      
+      showSuccess('转职需求删除成功');
+      await loadAdvancementRequirements();
+    } catch (error) {
+      // 错误已在 apiCall 中处理
+    }
+  }
+
+  //#endregion
+
+  // 点击模态框外部关闭
+  document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('modal')) {
+      e.target.classList.remove('show');
+    }
+  });
+
+  // ===== 技能管理功能 =====
+  
+  // 显示技能管理模态框
+  function showSkillsModal() {
+    document.getElementById('skills-modal').classList.add('show');
+    loadSkills();
+  }
+
+  // 隐藏技能管理模态框
+  function hideSkillsModal() {
+    document.getElementById('skills-modal').classList.remove('show');
+  }
+
+  // 加载技能列表
+  async function loadSkills() {
+    try {
+      showOutput('正在加载技能列表...');
+      const response = await apiCall('/admin/skills?page=1&page_size=100');
+      allSkills = response.data?.skills || [];
+      displaySkills(allSkills);
+      showSuccess(`成功加载 ${allSkills.length} 个技能`);
+    } catch (error) {
+      showError('加载技能失败: ' + error.message);
+      document.getElementById('skills-list').innerHTML = '<div class="error" style="text-align:center;padding:20px">加载失败</div>';
+    }
+  }
+
+  // 显示技能列表
+  function displaySkills(skills) {
+    const container = document.getElementById('skills-list');
+    if (!skills || skills.length === 0) {
+      container.innerHTML = '<div class="muted" style="text-align:center;padding:20px">暂无技能数据</div>';
+      return;
+    }
+
+    container.innerHTML = skills.map(skill => `
+      <div class="skill-item">
+        <div class="skill-info">
+          <div>
+            <strong>${skill.name}</strong>
+            <span class="tag ${skill.skill_type === 'active' ? 'primary' : ''}">${getSkillTypeText(skill.skill_type)}</span>
+            ${skill.element_type ? `<span class="tag">${skill.element_type}</span>` : ''}
+          </div>
+          <div class="muted">${skill.code}</div>
+        </div>
+        <div class="skill-details">
+          <div>等级: 1-${skill.max_level} | 基础消耗: ${skill.base_cost} | 每级消耗: ${skill.cost_per_level}</div>
+          ${skill.description ? `<div style="margin-top:4px">${skill.description}</div>` : ''}
+          ${skill.effects ? `<div style="margin-top:4px"><strong>效果:</strong> ${JSON.stringify(skill.effects)}</div>` : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // 获取技能类型文本
+  function getSkillTypeText(type) {
+    const types = {
+      'active': '主动技能',
+      'passive': '被动技能', 
+      'basic': '基础技能'
+    };
+    return types[type] || type;
+  }
+
+  // 筛选技能
+  function filterSkills() {
+    const searchTerm = document.getElementById('skill-search').value.toLowerCase();
+    const typeFilter = document.getElementById('skill-type-filter').value;
+    
+    const filtered = allSkills.filter(skill => {
+      const matchesSearch = skill.name.toLowerCase().includes(searchTerm) || 
+                           skill.code.toLowerCase().includes(searchTerm);
+      const matchesType = !typeFilter || skill.skill_type === typeFilter;
+      return matchesSearch && matchesType;
+    });
+    
+    displaySkills(filtered);
+  }
+
+  // 刷新技能列表
+  function refreshSkills() {
+    loadSkills();
+  }
+
+  // ===== 高级转职需求编辑器功能 =====
+
+  let currentAdvancedRequirementData = null;
+
+  // 显示高级需求编辑器
+  function showAdvancementRequirementEditor() {
+    // 收集当前表单数据并转换为JSON
+    const formData = collectAdvancementFormData();
+    currentAdvancedRequirementData = formData;
+    
+    document.getElementById('advanced-requirements-json').value = JSON.stringify(formData.requirements || {}, null, 2);
+    document.getElementById('advanced-requirement-modal').classList.add('show');
+  }
+
+  // 隐藏高级需求编辑器
+  function hideAdvancedRequirementModal() {
+    document.getElementById('advanced-requirement-modal').classList.remove('show');
+  }
+
+  // 收集转职表单数据
+  function collectAdvancementFormData() {
+    const formData = {
+      from_class_id: document.getElementById('advancement-from-class').value,
+      to_class_id: currentClassId,
+      required_level: parseInt(document.getElementById('advancement-required-level').value),
+      required_job_changes: parseInt(document.getElementById('advancement-job-changes').value) || 0,
+      required_gold: parseInt(document.getElementById('advancement-gold').value) || 0,
+      gender_restriction: document.getElementById('advancement-gender').value === 'any' ? null : document.getElementById('advancement-gender').value,
+      is_active: document.getElementById('advancement-active').checked,
+      priority: 0
+    };
+
+    // 构建requirements对象
+    const requirements = {
+      required_level: formData.required_level,
+      recommended_level: parseInt(document.getElementById('advancement-recommended-level').value) || formData.required_level + 5,
+      required_gold: formData.required_gold
+    };
+
+    const attributesText = document.getElementById('advancement-attributes').value.trim();
+    if (attributesText) {
+      try {
+        requirements.required_attributes = JSON.parse(attributesText);
+      } catch (error) {
+        requirements.required_attributes = {};
+      }
+    }
+
+    const description = document.getElementById('advancement-description').value.trim();
+    if (description) {
+      requirements.description = description;
+    }
+
+    formData.requirements = requirements;
+    return formData;
+  }
+
+  // 验证JSON格式
+  function validateAdvancedRequirements() {
+    const jsonText = document.getElementById('advanced-requirements-json').value;
+    const resultDiv = document.getElementById('json-validation-result');
+    
+    try {
+      const parsed = JSON.parse(jsonText);
+      resultDiv.innerHTML = '<div class="success">✓ JSON格式正确</div>';
+      return true;
+    } catch (error) {
+      resultDiv.innerHTML = `<div class="error">✗ JSON格式错误: ${error.message}</div>`;
+      return false;
+    }
+  }
+
+  // 格式化JSON
+  function formatAdvancedRequirements() {
+    const jsonText = document.getElementById('advanced-requirements-json').value;
+    try {
+      const parsed = JSON.parse(jsonText);
+      document.getElementById('advanced-requirements-json').value = JSON.stringify(parsed, null, 2);
+      document.getElementById('json-validation-result').innerHTML = '<div class="success">✓ JSON已格式化</div>';
+    } catch (error) {
+      document.getElementById('json-validation-result').innerHTML = `<div class="error">✗ 无法格式化: ${error.message}</div>`;
+    }
+  }
+
+  // 加载需求模板
+  function loadAdvancedRequirementTemplate() {
+    const template = {
+      "description": "详细的转职描述",
+      "required_level": 25,
+      "recommended_level": 30,
+      "required_attributes": {
+        "STR": 40,
+        "AGI": 30,
+        "INT": 20,
+        "VIT": 25
+      },
+      "required_gold": 50000,
+      "required_skills": [
+        {
+          "skill_id": "40000000-0000-0000-0000-000000000010",
+          "min_level": 5
+        }
+      ],
+      "special_conditions": {
+        "completed_quests": ["quest-uuid-1", "quest-uuid-2"],
+        "required_items": {
+          "特殊材料1": 1,
+          "稀有道具": 3
+        },
+        "required_achievements": ["achievement-uuid-1"]
+      },
+      "late_advancement_bonus": {
+        "extra_hp": 100,
+        "extra_mana": 50,
+        "stat_bonus": {
+          "STR": 5,
+          "VIT": 3
+        }
+      }
+    };
+    
+    document.getElementById('advanced-requirements-json').value = JSON.stringify(template, null, 2);
+    document.getElementById('json-validation-result').innerHTML = '<div class="success">✓ 已加载完整需求模板</div>';
+  }
+
+  // 保存高级需求配置
+  function saveAdvancedRequirements() {
+    if (!validateAdvancedRequirements()) {
+      return;
+    }
+
+    const jsonText = document.getElementById('advanced-requirements-json').value;
+    try {
+      const requirements = JSON.parse(jsonText);
+      
+      // 更新基础表单字段
+      if (requirements.required_level) {
+        document.getElementById('advancement-required-level').value = requirements.required_level;
+      }
+      if (requirements.recommended_level) {
+        document.getElementById('advancement-recommended-level').value = requirements.recommended_level;
+      }
+      if (requirements.required_gold) {
+        document.getElementById('advancement-gold').value = requirements.required_gold;
+      }
+      if (requirements.description) {
+        document.getElementById('advancement-description').value = requirements.description;
+      }
+      if (requirements.required_attributes) {
+        document.getElementById('advancement-attributes').value = JSON.stringify(requirements.required_attributes);
+      }
+
+      // 保存完整需求数据到全局变量
+      if (currentAdvancedRequirementData) {
+        currentAdvancedRequirementData.requirements = requirements;
+      }
+
+      hideAdvancedRequirementModal();
+      showSuccess('高级需求配置已应用到表单');
+    } catch (error) {
+      showError('保存失败: ' + error.message);
+    }
+  }
+
+  // ===== 增强的用户反馈 =====
+
+  // 增强的成功提示
+  function showSuccess(message, duration = 3000) {
+    showOutput(`<span class="success">✓ ${message}</span>`);
+    showNotification(message, 'success', duration);
+  }
+
+  // 增强的错误提示  
+  function showError(message, duration = 5000) {
+    showOutput(`<span class="error">✗ ${message}</span>`);
+    showNotification(message, 'error', duration);
+  }
+
+  // 顶部通知系统
+  function showNotification(message, type = 'info', duration = 3000) {
+    let container = document.getElementById('notification-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'notification-container';
+      container.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 2000;
+        max-width: 300px;
+      `;
+      document.body.appendChild(container);
+    }
+
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+      background: ${type === 'success' ? '#059669' : type === 'error' ? '#dc2626' : '#3b82f6'};
+      color: white;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+    `;
+    notification.textContent = message;
+
+    container.appendChild(notification);
+
+    setTimeout(() => {
+      notification.style.transform = 'translateX(0)';
+    }, 10);
+
+    setTimeout(() => {
+      notification.style.transform = 'translateX(100%)';
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.parentNode.removeChild(notification);
+        }
+      }, 300);
+    }, duration);
+  }
+
+  // ===== 核心职业管理功能 =====
+
+  // 选择并显示职业详情
+  async function selectClass(classId) {
+    if (currentClassId === classId) return; // 避免重复选择
+    
+    currentClassId = classId;
+    
+    try {
+      showOutput(`正在加载职业详情...`);
+      const response = await apiCall(`/admin/classes/${classId}`);
+      displayClassDetails(response.data);
+      
+      // 更新列表中的选中状态
+      document.querySelectorAll('.list-item').forEach(item => {
+        item.classList.remove('selected');
+      });
+      const selectedItem = document.querySelector(`[onclick="selectClass('${classId}')"]`);
+      if (selectedItem) {
+        selectedItem.closest('.list-item').classList.add('selected');
+      }
+      
+    } catch (error) {
+      showError('加载职业详情失败: ' + error.message);
+      document.getElementById('class-details').innerHTML = '<div class="error" style="text-align:center;padding:20px">加载失败</div>';
+    }
+  }
+
+  // 增强显示职业详情
+  function displayClassDetails(classData) {
+    const container = document.getElementById('class-details');
+    
+    if (!classData) {
+      container.innerHTML = '<div class="muted" style="text-align:center;padding:20px">请从左侧选择一个职业</div>';
+      return;
+    }
+
+    const parentInfo = classData.parent_class ? 
+      `<a href="#" onclick="selectClass('${classData.parent_class.id}')">${classData.parent_class.name}</a>` : 
+      '<span class="muted">无（顶级职业）</span>';
+    
+    const childrenInfo = classData.child_classes && classData.child_classes.length > 0 ?
+      classData.child_classes.map(child => 
+        `<a href="#" onclick="selectClass('${child.id}')">${child.name}</a>`
+      ).join(', ') : '<span class="muted">无</span>';
+
+    const tagsInfo = classData.tags && classData.tags.length > 0 ?
+      classData.tags.map(tag => `<span class="tag">${tag.name}</span>`).join('') :
+      '<span class="muted">无标签</span>';
+
+    const advancementReqs = classData.advancement_requirements && classData.advancement_requirements.length > 0 ?
+      `<div class="muted">转职需求: ${classData.advancement_requirements.length} 条</div>` : '';
+
+    container.innerHTML = `
+      <div class="form-group">
+        <h3>${classData.name}</h3>
+        <div class="muted">ID: ${classData.id}</div>
+        <div class="muted">代码: ${classData.code}</div>
+      </div>
+
+      <div class="form-group">
+        <label>基本信息</label>
+        <div class="row">
+          <div class="stat">
+            <div class="stat-value">T${classData.tier}</div>
+            <div class="stat-label">层级</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value">${classData.hero_count || 0}</div>
+            <div class="stat-label">英雄数</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value ${classData.is_active ? 'success' : 'error'}">${classData.is_active ? '激活' : '未激活'}</div>
+            <div class="stat-label">状态</div>
+          </div>
+        </div>
+      </div>
+
+      ${classData.description ? `
+        <div class="form-group">
+          <label>描述</label>
+          <div>${classData.description}</div>
+        </div>
+      ` : ''}
+
+      ${classData.lore_text ? `
+        <div class="form-group">
+          <label>背景故事</label>
+          <div style="font-style: italic; color: #94a3b8;">${classData.lore_text}</div>
+        </div>
+      ` : ''}
+
+      <div class="form-group">
+        <label>职业关系</label>
+        <div><strong>父职业:</strong> ${parentInfo}</div>
+        <div><strong>子职业:</strong> ${childrenInfo}</div>
+      </div>
+
+      <div class="form-group">
+        <label>标签</label>
+        <div>${tagsInfo}</div>
+      </div>
+
+      ${classData.allows_job_change ? `
+        <div class="form-group">
+          <label>转职设置</label>
+          <div>允许转职 | 转职奖励: ${classData.job_change_bonus || 0}</div>
+          ${advancementReqs}
+        </div>
+      ` : ''}
+
+      ${classData.specialty || classData.playstyle ? `
+        <div class="form-group">
+          <label>职业特色</label>
+          ${classData.specialty ? `<div><strong>专精:</strong> ${classData.specialty}</div>` : ''}
+          ${classData.playstyle ? `<div><strong>玩法:</strong> ${classData.playstyle}</div>` : ''}
+        </div>
+      ` : ''}
+
+      ${classData.skill_pools && classData.skill_pools.length > 0 ? `
+        <div class="form-group">
+          <label>技能池 (${classData.skill_pools.length} 个技能)</label>
+          <div class="list" style="max-height: 200px;">
+            ${classData.skill_pools.map(pool => `
+              <div class="list-item">
+                <div>
+                  <strong>${pool.skill_name || pool.skill_id}</strong>
+                  <span class="tag">Lv.${pool.required_level}</span>
+                  ${pool.is_signature ? '<span class="tag primary">招牌</span>' : ''}
+                  ${pool.is_initial ? '<span class="tag">初始</span>' : ''}
+                </div>
+                <div class="muted">优先级: ${pool.learn_priority}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
+
+      <div class="btn-group" style="margin-top: 16px;">
+        <button onclick="editClass('${classData.id}')">编辑职业</button>
+        <button class="secondary" onclick="manageAdvancementRequirements('${classData.id}')">管理转职需求</button>
+        <button class="secondary" onclick="manageClassSkills('${classData.id}')">管理技能</button>
+        <button class="danger" onclick="deleteClass('${classData.id}')">删除职业</button>
+      </div>
+    `;
+    
+    showSuccess(`职业详情加载完成: ${classData.name}`);
+  }
+
+  // 管理职业技能
+  function manageClassSkills(classId) {
+    currentClassId = classId;
+    showClassSkillsModal();
+    loadCurrentClassSkills();
+  }
+
+  // 编辑职业
+  function editClass(classId) {
+    // 触发编辑模态框
+    showCreateClassModal(classId);
+  }
+
+  // 加载并显示职业列表（增强现有功能）
+  async function loadClasses() {
+    try {
+      showOutput('正在加载职业列表...');
+      const response = await apiCall('/admin/classes?page=1&page_size=100');
+      allClasses = response.data?.classes || [];
+      displayClassList(allClasses);
+      showSuccess(`成功加载 ${allClasses.length} 个职业`);
+    } catch (error) {
+      showError('加载职业列表失败: ' + error.message);
+    }
+  }
+
+  // 显示职业列表
+  function displayClassList(classes) {
+    const container = document.getElementById('class-list');
+    
+    if (!classes || classes.length === 0) {
+      container.innerHTML = '<div class="muted" style="text-align:center;padding:20px">暂无职业数据</div>';
+      return;
+    }
+
+    container.innerHTML = classes.map(cls => `
+      <div class="list-item ${currentClassId === cls.id ? 'selected' : ''}" onclick="selectClass('${cls.id}')">
+        <div>
+          <strong>${cls.name}</strong>
+          <span class="tag">T${cls.tier}</span>
+          ${cls.is_starter ? '<span class="tag primary">新手</span>' : ''}
+          ${!cls.is_active ? '<span class="tag" style="background:#dc2626">未激活</span>' : ''}
+          ${cls.is_hidden ? '<span class="tag">隐藏</span>' : ''}
+          <div class="muted">${cls.code}</div>
+        </div>
+        <div class="muted">${cls.hero_count || 0} 个英雄</div>
+      </div>
+    `).join('');
+  }
+
+  // ===== 职业技能管理功能 =====
+
+  let currentClassSkills = [];
+  let availableSkillsForClass = [];
+  let filteredAvailableSkills = [];
+  let currentEditingSkillConfig = null;
+
+  // 显示职业技能管理模态框
+  function showClassSkillsModal() {
+    document.getElementById('class-skills-modal').classList.add('show');
+    loadClassInfo();
+    loadAvailableSkillsForClass();
+  }
+
+  // 隐藏职业技能管理模态框
+  function hideClassSkillsModal() {
+    document.getElementById('class-skills-modal').classList.remove('show');
+    hideSkillConfigForm();
+  }
+
+  // 加载职业信息
+  function loadClassInfo() {
+    if (!currentClassId) return;
+    
+    const classData = allClasses.find(cls => cls.id === currentClassId);
+    if (classData) {
+      document.getElementById('skill-modal-class-info').textContent = 
+        `为职业 "${classData.name}" (T${classData.tier}) 配置技能池`;
+    }
+  }
+
+  // 加载当前职业的技能池
+  async function loadCurrentClassSkills() {
+    if (!currentClassId) return;
+    
+    try {
+      showOutput('正在加载当前技能池...');
+      const response = await apiCall(`/admin/classes/${currentClassId}/skill-pool`);
+      currentClassSkills = response.data || [];
+      displayCurrentClassSkills(currentClassSkills);
+      showSuccess(`成功加载 ${currentClassSkills.length} 个技能`);
+    } catch (error) {
+      showError('加载技能池失败: ' + error.message);
+      document.getElementById('current-class-skills').innerHTML = 
+        '<div class="error" style="text-align:center;padding:20px">加载失败</div>';
+    }
+  }
+
+  // 显示当前职业技能池
+  function displayCurrentClassSkills(skills) {
+    const container = document.getElementById('current-class-skills');
+    
+    if (!skills || skills.length === 0) {
+      container.innerHTML = '<div class="muted" style="text-align:center;padding:20px">暂无技能</div>';
+      return;
+    }
+
+    container.innerHTML = skills.map(skill => `
+      <div class="skill-item">
+        <div class="skill-info">
+          <div>
+            <strong>${skill.skill_name}</strong>
+            <span class="tag">Lv.${skill.required_level}</span>
+            ${skill.is_initial ? '<span class="tag primary">初始</span>' : ''}
+            ${skill.is_signature ? '<span class="tag primary">招牌</span>' : ''}
+            ${skill.is_inheritance ? '<span class="tag">传承</span>' : ''}
+            ${skill.auto_learn ? '<span class="tag">自学</span>' : ''}
+          </div>
+          <div class="btn-group">
+            <button class="secondary" onclick="editSkillConfig('${skill.skill_id}')">编辑</button>
+            <button class="danger" onclick="removeSkillFromClass('${skill.skill_id}')">移除</button>
+          </div>
+        </div>
+        <div class="skill-details">
+          <div>优先级: ${skill.learn_priority} | 显示: ${skill.display_order} | 消耗: x${skill.cost_modifier}</div>
+          ${skill.skill_group ? `<div>技能组: ${skill.skill_group}</div>` : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // 加载可用技能列表（供职业添加用）
+  async function loadAvailableSkillsForClass() {
+    try {
+      showOutput('正在加载可用技能...');
+      const response = await apiCall('/admin/skills?page=1&page_size=100');
+      availableSkillsForClass = response.data?.skills || [];
+      filteredAvailableSkills = availableSkillsForClass;
+      displayAvailableSkillsForClass(filteredAvailableSkills);
+      showSuccess(`成功加载 ${availableSkillsForClass.length} 个可用技能`);
+    } catch (error) {
+      showError('加载可用技能失败: ' + error.message);
+      document.getElementById('available-skills-for-class').innerHTML = 
+        '<div class="error" style="text-align:center;padding:20px">加载失败</div>';
+    }
+  }
+
+  // 显示可用技能列表
+  function displayAvailableSkillsForClass(skills) {
+    const container = document.getElementById('available-skills-for-class');
+    
+    if (!skills || skills.length === 0) {
+      container.innerHTML = '<div class="muted" style="text-align:center;padding:20px">暂无可用技能</div>';
+      return;
+    }
+
+    // 过滤掉已经添加的技能
+    const currentSkillIds = new Set(currentClassSkills.map(skill => skill.skill_id));
+    const availableSkills = skills.filter(skill => !currentSkillIds.has(skill.id));
+
+    if (availableSkills.length === 0) {
+      container.innerHTML = '<div class="muted" style="text-align:center;padding:20px">所有技能已添加</div>';
+      return;
+    }
+
+    container.innerHTML = availableSkills.map(skill => `
+      <div class="skill-item">
+        <div class="skill-info">
+          <div>
+            <strong>${skill.name}</strong>
+            <span class="tag ${skill.skill_type === 'active' ? 'primary' : ''}">${getSkillTypeText(skill.skill_type)}</span>
+            ${skill.element_type ? `<span class="tag">${skill.element_type}</span>` : ''}
+          </div>
+          <button onclick="quickAddSkill('${skill.id}', '${skill.name}')">快速添加</button>
+        </div>
+        <div class="skill-details">
+          <div>等级: 1-${skill.max_level} | 基础消耗: ${skill.base_cost} | 每级: ${skill.cost_per_level}</div>
+          ${skill.description ? `<div style="margin-top:4px">${skill.description}</div>` : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // 筛选可用技能
+  function filterAvailableSkills() {
+    const searchTerm = document.getElementById('available-skill-search').value.toLowerCase();
+    const typeFilter = document.getElementById('available-skill-type-filter').value;
+    
+    filteredAvailableSkills = availableSkillsForClass.filter(skill => {
+      const matchesSearch = skill.name.toLowerCase().includes(searchTerm) || 
+                           skill.code.toLowerCase().includes(searchTerm);
+      const matchesType = !typeFilter || skill.skill_type === typeFilter;
+      return matchesSearch && matchesType;
+    });
+    
+    displayAvailableSkillsForClass(filteredAvailableSkills);
+  }
+
+  // 刷新当前职业技能
+  function refreshCurrentClassSkills() {
+    loadCurrentClassSkills();
+  }
+
+  // 显示添加技能表单
+  function showAddSkillForm() {
+    document.getElementById('skill-config-title').textContent = '添加技能配置';
+    document.getElementById('config-operation').value = 'add';
+    resetSkillConfigForm();
+    document.getElementById('skill-config-form').style.display = 'block';
+  }
+
+  // 快速添加技能（使用默认配置）
+  async function quickAddSkill(skillId, skillName) {
+    currentEditingSkillConfig = {
+      skill_id: skillId,
+      required_level: 1,
+      learn_priority: 1,
+      display_order: currentClassSkills.length + 1,
+      cost_modifier: 1.0,
+      is_initial: false,
+      is_signature: false,
+      is_inheritance: false,
+      auto_learn: false
+    };
+
+    try {
+      showOutput(`正在添加技能: ${skillName}...`);
+      await submitSkillToAPI('add');
+      showSuccess(`技能 "${skillName}" 添加成功`);
+      await loadCurrentClassSkills();
+      loadAvailableSkillsForClass(); // 刷新可用技能列表
+    } catch (error) {
+      showError(`添加技能失败: ${error.message}`);
+    }
+  }
+
+  // 编辑技能配置
+  function editSkillConfig(skillId) {
+    const skill = currentClassSkills.find(s => s.skill_id === skillId);
+    if (!skill) return;
+
+    document.getElementById('skill-config-title').textContent = '编辑技能配置';
+    document.getElementById('config-operation').value = 'update';
+    
+    // 填充表单
+    document.getElementById('config-skill-id').value = skillId;
+    document.getElementById('config-skill-name').value = skill.skill_name;
+    document.getElementById('config-required-level').value = skill.required_level;
+    document.getElementById('config-learn-priority').value = skill.learn_priority;
+    document.getElementById('config-display-order').value = skill.display_order;
+    document.getElementById('config-cost-modifier').value = skill.cost_modifier;
+    document.getElementById('config-skill-group').value = skill.skill_group || '';
+    document.getElementById('config-is-initial').checked = skill.is_initial;
+    document.getElementById('config-is-signature').checked = skill.is_signature;
+    document.getElementById('config-is-inheritance').checked = skill.is_inheritance;
+    document.getElementById('config-auto-learn').checked = skill.auto_learn;
+
+    document.getElementById('skill-config-form').style.display = 'block';
+  }
+
+  // 隐藏技能配置表单
+  function hideSkillConfigForm() {
+    document.getElementById('skill-config-form').style.display = 'none';
+    resetSkillConfigForm();
+  }
+
+  // 重置技能配置表单
+  function resetSkillConfigForm() {
+    document.getElementById('class-skill-form').reset();
+    document.getElementById('config-skill-id').value = '';
+    document.getElementById('config-skill-name').value = '';
+    document.getElementById('config-required-level').value = 1;
+    document.getElementById('config-learn-priority').value = 1;
+    document.getElementById('config-display-order').value = currentClassSkills.length + 1;
+    document.getElementById('config-cost-modifier').value = 1.0;
+    currentEditingSkillConfig = null;
+  }
+
+  // 提交技能配置
+  async function submitSkillConfig(event) {
+    event.preventDefault();
+    
+    const operation = document.getElementById('config-operation').value;
+    const skillId = document.getElementById('config-skill-id').value;
+    const skillName = document.getElementById('config-skill-name').value;
+    
+    if (!skillId && operation !== 'remove') {
+      showError('请选择要配置的技能');
+      return;
+    }
+
+    currentEditingSkillConfig = {
+      skill_id: skillId,
+      required_level: parseInt(document.getElementById('config-required-level').value),
+      learn_priority: parseInt(document.getElementById('config-learn-priority').value),
+      display_order: parseInt(document.getElementById('config-display-order').value),
+      cost_modifier: parseFloat(document.getElementById('config-cost-modifier').value),
+      skill_group: document.getElementById('config-skill-group').value || null,
+      is_initial: document.getElementById('config-is-initial').checked,
+      is_signature: document.getElementById('config-is-signature').checked,
+      is_inheritance: document.getElementById('config-is-inheritance').checked,
+      auto_learn: document.getElementById('config-auto-learn').checked
+    };
+
+    try {
+      showOutput(`正在${operation === 'add' ? '添加' : '更新'}技能配置...`);
+      await submitSkillToAPI(operation);
+      showSuccess(`技能 "${skillName || '未知'}" ${operation === 'add' ? '添加' : '更新'}成功`);
+      hideSkillConfigForm();
+      await loadCurrentClassSkills();
+      if (operation === 'add') {
+        loadAvailableSkillsForClass(); // 重新加载可用技能
+      }
+    } catch (error) {
+      showError(`操作失败: ${error.message}`);
+    }
+  }
+
+  // 提交技能到API
+  async function submitSkillToAPI(operation) {
+    if (!currentClassId || !currentEditingSkillConfig) {
+      throw new Error('缺少必要参数');
+    }
+
+    const url = `/admin/classes/${currentClassId}/skill-pool`;
+    
+    const response = await apiCall(url, {
+      method: 'POST',
+      body: JSON.stringify(currentEditingSkillConfig)
+    });
+
+    return response;
+  }
+
+  // 从职业移除技能
+  async function removeSkillFromClass(skillId) {
+    const skill = currentClassSkills.find(s => s.skill_id === skillId);
+    if (!skill) return;
+
+    if (!confirm(`确定要移除技能 "${skill.skill_name}" 吗？`)) {
+      return;
+    }
+
+    try {
+      showOutput(`正在移除技能: ${skill.skill_name}...`);
+      
+      const response = await apiCall(`/admin/classes/${currentClassId}/skill-pool/${skillId}`, {
+        method: 'DELETE'
+      });
+
+      showSuccess(`技能 "${skill.skill_name}" 移除成功`);
+      await loadCurrentClassSkills();
+      loadAvailableSkillsForClass(); // 重新加载可用技能
+    } catch (error) {
+      showError(`移除技能失败: ${error.message}`);
+    }
+  }
+
+  // 配置技能（从可用技能列表点击）
+  function configureSkill(skillId, skillName) {
+    const skill = availableSkillsForClass.find(s => s.id === skillId);
+    if (!skill) return;
+
+    document.getElementById('skill-config-title').textContent = '配置技能';
+    document.getElementById('config-operation').value = 'add';
+    
+    // 填充基本信息
+    document.getElementById('config-skill-id').value = skillId;
+    document.getElementById('config-skill-name').value = skillName;
+    resetSkillConfigForm();
+    
+    document.getElementById('skill-config-form').style.display = 'block';
+  }
+</script>
+</body>
+</html>

@@ -1,3 +1,5 @@
+name: tsu_ory_local
+
 version: '3.8'
 
 services:
@@ -23,6 +25,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - tsu_network
 
   # ----------------------------------------------------------------
   # 2. ORY Kratos 数据库迁移任务
@@ -38,6 +42,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy # 确保在数据库完全准备好之后再开始迁移
+    networks:
+      - tsu_network
 
   # ----------------------------------------------------------------
   # 3. ORY Kratos 主服务
@@ -49,7 +55,7 @@ services:
       - "4433:4433" # Public API 端口，供前端调用
       - "4434:4434" # Admin API 端口，供后端服务间调用
     environment:
-      - DSN=postgres://ory_user:ory_test@postgres:5432/ory_db?sslmode=disable
+      - DSN=postgres://ory_user:ory_test@tsu_ory_postgres:5432/ory_db?sslmode=disable
       # - courier.smtp.connection_uri=smtps://test:test@mailslurper:1025/?skip_ssl_verify=true
     command: serve -c /etc/kratos/kratos.yml --dev --watch-courier --sqa-opt-out # 启动服务并监控配置文件
     volumes:
@@ -60,6 +66,8 @@ services:
         condition: service_completed_successfully
       # mailslurper:
       #   condition: service_started
+    networks:
+      - tsu_network
 
   # ----------------------------------------------------------------
   # 4. ORY Keto 数据库迁移任务
@@ -76,6 +84,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - tsu_network
 
   # ----------------------------------------------------------------
   # 5. ORY Keto 主服务
@@ -95,7 +105,24 @@ services:
     depends_on:
       keto-migrate:
         condition: service_completed_successfully
+    networks:
+      - tsu_network
+
+  oathkeeper:
+    image: oryd/oathkeeper:latest
+    container_name: tsu_oathkeeper
+    depends_on:
+      - kratos
+    ports:
+      - "4456:4456" # 代理端口
+      - "4457:4457" # API 端口
+    command: serve -c /etc/config/oathkeeper/oathkeeper.yml
+    volumes:
+      - ./ory/oathkeeper:/etc/config/oathkeeper # 挂载我们的配置文件
+    networks:
+      - tsu_network # 确保它在共享网络中
 
 networks:
   tsu_network:
-    driver: bridge
+    name: tsu-network
+    external: true

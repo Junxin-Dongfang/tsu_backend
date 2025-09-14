@@ -1,3 +1,5 @@
+name: tsu_server_local
+
 # Docker Compose 文件版本
 version: '3.8'
 
@@ -25,7 +27,30 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - tsu_network
+
+  login-shim:
+    container_name: tsu_login_shim
+    build:
+      context: .
+      dockerfile: ./cmd/login-shim/Dockerfile
+    ports:
+      - "8090:8090"
+    networks:
+      - tsu_network
+
+  admin:
+    container_name: tsu_admin
+    build:
+      context: . 
+      dockerfile: ./cmd/admin/Dockerfile
+    ports:
+    - "8080:8080" # 暴露端口以便直接调试
+    networks:
+      - tsu_network
 
 networks:
   tsu_network:
-    driver: bridge
+    name: tsu-network
+    external: true
