@@ -24,6 +24,20 @@
               "via": "email"
             }
           }
+        },
+        "username": {
+          "type": "string",
+          "title": "Username",
+          "minLength": 3,
+          "maxLength": 30,
+          "pattern": "^[a-zA-Z0-9_]+$",
+          "ory.sh/kratos": {
+            "credentials": {
+              "password": {
+                "identifier": true
+              }
+            }
+          }
         }
       },
       "required": [
@@ -31,5 +45,6 @@
       ],
       "additionalProperties": false
     }
-  }
+  },
+  "additionalProperties": false
 }

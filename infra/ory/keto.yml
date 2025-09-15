@@ -9,9 +9,7 @@ serve:
     host: 0.0.0.0
     port: 4467
 
-# 指定数据库连接信息。
-# 我们将使用环境变量 DSN 来覆盖这个值，但在这里写上是一个好习惯。
-# dsn: "postgres://user:password@host:port/database"
+# DSN is provided via environment variable in docker-compose
 
 # 如果需要，可以配置日志等级等
 # log:

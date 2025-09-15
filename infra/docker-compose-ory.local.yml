@@ -1,7 +1,5 @@
 name: tsu_ory_local
 
-version: '3.8'
-
 services:
   # ----------------------------------------------------------------
   # 1. PostgreSQL 数据库 (Kratos 和 Keto 共享)

@@ -1,8 +1,5 @@
 name: tsu_server_local
 
-# Docker Compose 文件版本
-version: '3.8'
-
 # 定义所有服务
 services:
   postgres:
