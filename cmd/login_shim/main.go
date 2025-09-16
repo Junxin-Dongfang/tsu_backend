@@ -2,56 +2,98 @@
 package main
 
 import (
+	"context"
+	"log"
 	"log/slog"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
-	// 引入项目级的共享包
-	"tsu-self/cmd/login-shim/internal/adapter"
-	"tsu-self/cmd/login-shim/internal/controller"
+	"tsu-self/internal/app/login-shim/adapter"
+	"tsu-self/internal/app/login-shim/controller"
 	"tsu-self/internal/middleware"
+	pkglog "tsu-self/internal/pkg/log"
 )
 
 func main() {
-	// --- 1. 初始化 ---
-	// 在程序的最开始初始化日志系统
-	log.Init(slog.LevelDebug)
+	// 初始化日志系统
+	pkglog.Init(slog.LevelInfo)
 
-	// --- 2. 依赖注入 (DI) ---
-	// 创建最底层的依赖：Kratos 适配器
-	kratosAdapter := adapter.NewKratosAdapter("http://kratos:4433")
+	// 初始化 Kratos 适配器
+	kratosURL := getEnv("KRATOS_PUBLIC_URL", "http://kratos:4433")
+	kratosAdapter := adapter.NewKratosAdapter(kratosURL)
 
-	// 创建控制器，并将 adapter 注入进去
+	// 初始化控制器
 	authController := controller.NewAuthController(kratosAdapter)
 
-	// --- 3. 路由和中间件 ---
-	// 创建一个新的 ServeMux 作为我们的主路由器
+	// 设置路由
+	mux := setupRoutes(authController)
+
+	// 应用中间件
+	handler := applyMiddleware(mux)
+
+	// 启动服务器
+	server := &http.Server{
+		Addr:         ":8090",
+		Handler:      handler,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
+
+	// 优雅关闭
+	go func() {
+		log.Println("Login Shim 服务启动在 :8090")
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("服务启动失败: %v", err)
+		}
+	}()
+
+	// 等待中断信号
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Println("正在关闭服务...")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		log.Fatalf("服务关闭失败: %v", err)
+	}
+	log.Println("服务已安全关闭")
+}
+
+// setupRoutes 设置路由
+func setupRoutes(authController *controller.AuthController) *http.ServeMux {
 	mux := http.NewServeMux()
 
-	// 定义认证相关的路由，并将请求指向我们刚刚创建的 controller 的方法
+	// 认证相关路由
 	mux.HandleFunc("POST /auth/login", authController.Login)
 	mux.HandleFunc("POST /auth/register", authController.Register)
 
-	// 定义一个简单的健康检查路由
-	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status": "ok"}`))
-	})
+	// 健康检查
+	mux.HandleFunc("GET /health", authController.HealthCheck)
+	mux.HandleFunc("GET /api/health", authController.HealthCheck)
 
-	// --- 4. 包裹中间件 ---
-	// 将我们的主路由器包裹在中间件中，注意包裹顺序
-	// TraceID 在最外层，这样内层的 Logger 才能获取到 trace_id
-	var handler http.Handler = mux
-	handler = middleware.Logger(handler)  // Logger 中间件在内层
-	handler = middleware.TraceID(handler) // TraceID 中间件在外层
+	return mux
+}
 
-	log.Info("Login API Shim service is starting...", "address", ":8090") // context.TODO() used at startup
+// applyMiddleware 应用中间件
+func applyMiddleware(handler http.Handler) http.Handler {
+	// 中间件应用顺序很重要
+	handler = middleware.CORS()(handler)
+	handler = middleware.TraceID(handler)
+	handler = middleware.Recovery()(handler)
+	return handler
+}
 
-	server := &http.Server{
-		Addr:    ":8090",
-		Handler: handler,
+// getEnv 获取环境变量，如果不存在则使用默认值
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
 	}
-
-	if err := server.ListenAndServe(); err != nil {
-		log.Error("Login API Shim service failed to start", err)
-	}
+	return defaultValue
 }

@@ -17,7 +17,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./.postgres-data:/var/lib/postgresql/data/pgdata # 持久化存储,开发时用
+      - ../../.postgres-data:/var/lib/postgresql/data/pgdata # 持久化存储,开发时用
     restart: always
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U tsu_user -d tsu_db"]
@@ -27,11 +27,11 @@ services:
     networks:
       - tsu_network
 
-  login-shim:
+  login_shim:
     container_name: tsu_login_shim
     build:
-      context: .
-      dockerfile: ./cmd/login-shim/Dockerfile
+      context: ../..
+      dockerfile: ./deployments/docker/Dockerfile.login_shim
     ports:
       - "8090:8090"
     restart: always
@@ -41,8 +41,8 @@ services:
   admin:
     container_name: tsu_admin
     build:
-      context: . 
-      dockerfile: ./cmd/admin/Dockerfile
+      context: ../.. 
+      dockerfile: ./deployments/docker/Dockerfile.admin
     ports:
     - "8080:8080" # 暴露端口以便直接调试
     restart: always

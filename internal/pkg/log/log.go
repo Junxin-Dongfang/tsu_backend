@@ -34,6 +34,14 @@ func Init(level slog.Level) {
 func fromContext(ctx context.Context) *slog.Logger {
 	l := logger // 从包级别的日志器开始
 
+	// 安全检查：如果 logger 还没有被初始化，使用默认的 logger
+	if l == nil {
+		handler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+			Level: slog.LevelInfo,
+		})
+		l = slog.New(handler)
+	}
+
 	// 使用从 contextkeys 包导入的唯一键，安全地从 context 中取值。
 	if traceID, ok := ctx.Value(contextkeys.TraceIDKey).(string); ok {
 		// 如果 context 中有 trace_id，就把它添加到这条日志的所有属性中。

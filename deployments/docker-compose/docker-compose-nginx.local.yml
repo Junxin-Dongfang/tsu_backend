@@ -8,7 +8,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx/local.conf:/etc/nginx/conf.d/default.conf:ro
+      - ../../infra/nginx/local.conf:/etc/nginx/conf.d/default.conf:ro
       - ./web/admin:/web/admin:ro
       - ./web/user:/web/user:ro
     restart: always

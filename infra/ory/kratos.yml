@@ -1,5 +1,8 @@
 # ORY Kratos 配置文件 - 最终简化版
 
+# 版本和网络配置
+version: v1.3.1
+
 serve:
   public:
     base_url: http://127.0.0.1:4433/
@@ -12,6 +15,12 @@ serve:
     port: 4434
 
 # DSN is provided via environment variable in docker-compose
+
+identity:
+  default_schema_id: default
+  schemas:
+    - id: default
+      url: file:///etc/kratos/identity.schema.json
 
 selfservice:
   default_browser_return_url: "http://127.0.0.1:3000/dashboard"
@@ -52,9 +61,3 @@ secrets:
 courier:
   smtp:
     connection_uri: "smtps://test:test@mailslurper:1025/?skip_ssl_verify=true"
-
-identity:
-  default_schema_id: default
-  schemas:
-    - id: default
-      url: file:///etc/kratos/identity.schema.json

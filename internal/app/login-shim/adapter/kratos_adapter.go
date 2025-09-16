@@ -1,4 +1,4 @@
-// File: cmd/login-shim/internal/adapter/kratos_adapter.go
+// File: cmd/login-shim/internal/adapter/kratos_adapter.go (改进版)
 package adapter
 
 import (
@@ -9,202 +9,250 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"time"
 
 	"tsu-self/internal/app/login-shim/domain"
 	"tsu-self/internal/pkg/log"
 	"tsu-self/internal/pkg/xerrors"
 )
 
-// KratosAdapter 封装了与 ORY Kratos 交互的所有逻辑。
-// 它是 login-api-shim 服务与 Kratos 之间的唯一“翻译官”。
+// KratosAdapter 封装了与 ORY Kratos 交互的所有逻辑
 type KratosAdapter struct {
 	kratosPublicURL string
+	timeout         time.Duration
 }
 
-// KratosErrorPayload 定义了 Kratos 登录/注册失败时返回的 JSON 结构。
-// 我们只关心我们需要翻译的字段。
+// KratosErrorPayload 定义了 Kratos 错误响应结构
 type KratosErrorPayload struct {
 	UI struct {
 		Messages []struct {
 			ID   int    `json:"id"`
 			Text string `json:"text"`
+			Type string `json:"type"`
 		} `json:"messages"`
 	} `json:"ui"`
+	Error *struct {
+		ID int64 `json:"id"`
+	} `json:"error,omitempty"`
 }
 
-// NewKratosAdapter 是 KratosAdapter 的构造函数。
+// NewKratosAdapter 创建新的 KratosAdapter 实例
 func NewKratosAdapter(kratosPublicURL string) *KratosAdapter {
 	return &KratosAdapter{
 		kratosPublicURL: kratosPublicURL,
+		timeout:         30 * time.Second, // 设置合理的超时时间
 	}
 }
 
-// Login 方法在后端完整地模拟了 Kratos 的浏览器登录流程。
-// 它接收前端传来的凭证，返回 Kratos 下发的 session cookie 或一个自定义的 AppError。
+// Login 执行登录流程
 func (ka *KratosAdapter) Login(ctx context.Context, req *domain.LoginRequest) (string, *KratosErrorPayload, *xerrors.AppError) {
-	log.InfoWithCtx(ctx, "KratosAdapter: 开始登录流程")
+	log.InfoWithCtx(ctx, "KratosAdapter: 开始登录流程", "identifier", req.Identifier)
 
-	// 1. 为本次流程创建一个全新的、独立的 HTTP Client
+	// 创建带超时的上下文
+	ctx, cancel := context.WithTimeout(ctx, ka.timeout)
+	defer cancel()
+
 	client := ka.createClient()
 
-	// 2. 初始化登录流程
+	// 1. 初始化登录流程
 	flowID, err := ka.initializeFlow(ctx, client, "/self-service/login/browser")
 	if err != nil {
-		// 注意：这里返回的是一个通用的内部错误，因为这是基础设施问题，不是用户凭证问题
-		return "", nil, xerrors.E_INTERNAL(fmt.Errorf("初始化 Kratos 登录流程失败: %w", err))
+		log.ErrorWithCtx(ctx, "初始化登录流程失败", err)
+		return "", nil, xerrors.NewSystemError("初始化登录流程失败").
+			WithContext(&xerrors.ErrorContext{
+				Service: "kratos-adapter",
+				Method:  "Login",
+			})
 	}
-	log.DebugWithCtx(ctx, "KratosAdapter: 成功获取 Flow ID", "flow_id", flowID)
 
-	// 3. 获取 Flow 详情，包括 CSRF Token 和 Action URL
+	// 2. 获取流程详情
 	actionURL, csrfToken, err := ka.getFlowDetails(ctx, client, "/self-service/login/flows", flowID)
 	if err != nil {
-		return "", nil, xerrors.E_INTERNAL(fmt.Errorf("获取 Kratos 流程详情失败: %w", err))
+		log.ErrorWithCtx(ctx, "获取登录流程详情失败", err)
+		return "", nil, xerrors.NewSystemError("获取登录流程详情失败").
+			WithContext(&xerrors.ErrorContext{
+				Service:  "kratos-adapter",
+				Method:   "Login",
+				Metadata: map[string]string{"flow_id": flowID},
+			})
 	}
-	log.DebugWithCtx(ctx, "KratosAdapter: 成功获取 Action URL 和 CSRF Token")
 
-	// 4. 修正 Action URL 以适应 Docker 内部网络
+	// 3. 修正 Action URL
 	finalActionURL, err := ka.rewriteActionURL(actionURL)
 	if err != nil {
-		return "", nil, xerrors.E_INTERNAL(fmt.Errorf("修正 Kratos Action URL 失败: %w", err))
+		log.ErrorWithCtx(ctx, "修正 Action URL 失败", err)
+		return "", nil, xerrors.NewSystemError("修正 Action URL 失败").
+			WithContext(&xerrors.ErrorContext{
+				Service:  "kratos-adapter",
+				Method:   "Login",
+				Metadata: map[string]string{"original_url": actionURL},
+			})
 	}
 
-	// 5. 构造并提交登录表单
+	// 4. 提交登录表单
 	formData := url.Values{
 		"method":     {"password"},
 		"identifier": {req.Identifier},
 		"password":   {req.Password},
 		"csrf_token": {csrfToken},
 	}
-	log.DebugWithCtx(ctx, "KratosAdapter: 准备提交登录表单", "url", finalActionURL)
+
 	loginResp, err := client.PostForm(finalActionURL, formData)
 	if err != nil {
-		log.ErrorWithCtx(ctx, "提交登录表单到 Kratos 时发生网络错误", err)
-		return "", nil, xerrors.E_INTERNAL(fmt.Errorf("提交登录表单到 Kratos 失败: %w", err))
+		log.ErrorWithCtx(ctx, "提交登录表单失败", err)
+		return "", nil, xerrors.NewSystemError("提交登录表单失败").
+			WithRetryable(true).
+			WithContext(&xerrors.ErrorContext{
+				Service: "kratos-adapter",
+				Method:  "Login",
+			})
 	}
 	defer loginResp.Body.Close()
 
-	// 6. 处理 Kratos 的最终响应
-	// 成功的唯一标志是 Kratos 在响应头中下发了 session cookie
-	if sessionCookie := loginResp.Header.Get("Set-Cookie"); sessionCookie != "" {
-		log.InfoWithCtx(ctx, "KratosAdapter: 登录成功，已获取 session cookie")
-		return sessionCookie, nil, nil
-	}
-
-	// 如果没有 session cookie，说明登录失败。我们需要解析错误原因。
-	log.WarnWithCtx(ctx, "KratosAdapter: Kratos 未返回 session cookie，判断为登录失败", "status_code", loginResp.StatusCode)
-
-	// 尝试解析 Kratos 返回的错误详情 JSON
-	var kratosErr KratosErrorPayload
-	body, _ := io.ReadAll(loginResp.Body)
-	if json.Unmarshal(body, &kratosErr) == nil && len(kratosErr.UI.Messages) > 0 {
-		return "", &kratosErr, nil
-	}
-
-	// 如果无法解析出具体的错误 ID，根据状态码返回合适的错误
-	// 对于登录流程，302/303 重定向通常表示凭证验证失败
-	if loginResp.StatusCode == 302 || loginResp.StatusCode == 303 {
-		// 回到 flow 查询 ui.messages，以便拿到可映射的错误 ID
-		if errPayload := ka.fetchFlowError(ctx, client, "/self-service/login/flows", flowID); errPayload != nil {
-			return "", errPayload, nil
-		}
-		appErr := xerrors.E_INVALID_CREDENTIALS(fmt.Errorf("kratos returned status %d", loginResp.StatusCode))
-		return "", nil, appErr
-	}
-
-	// 其他状态码返回通用内部错误
-	appErr := xerrors.E_INTERNAL(fmt.Errorf("kratos returned unexpected status %d", loginResp.StatusCode))
-	return "", nil, appErr
+	// 5. 处理响应
+	return ka.processAuthResponse(ctx, client, loginResp, "/self-service/login/flows", flowID)
 }
 
-// Register 方法的占位符，您可以仿照 Login 的逻辑来实现
+// Register 执行注册流程
 func (ka *KratosAdapter) Register(ctx context.Context, req *domain.RegisterRequest) (string, *KratosErrorPayload, *xerrors.AppError) {
-	log.InfoWithCtx(ctx, "KratosAdapter: 开始注册流程")
-	// 1. 创建 Client
+	log.InfoWithCtx(ctx, "KratosAdapter: 开始注册流程", "email", req.Email, "username", req.UserName)
+
+	// 创建带超时的上下文
+	ctx, cancel := context.WithTimeout(ctx, ka.timeout)
+	defer cancel()
+
 	client := ka.createClient()
 
-	// 2. 初始化注册流程: /self-service/registration/browser
+	// 1. 初始化注册流程
 	flowID, err := ka.initializeFlow(ctx, client, "/self-service/registration/browser")
 	if err != nil {
-		return "", nil, xerrors.E_INTERNAL(fmt.Errorf("初始化 Kratos 注册流程失败: %w", err))
+		log.ErrorWithCtx(ctx, "初始化注册流程失败", err)
+		return "", nil, xerrors.NewSystemError("初始化注册流程失败").
+			WithContext(&xerrors.ErrorContext{
+				Service: "kratos-adapter",
+				Method:  "Register",
+			})
 	}
-	log.DebugWithCtx(ctx, "KratosAdapter: 成功获取注册 Flow ID", "flow_id", flowID)
-	// 3. 获取注册 Flow 详情: /self-service/registration/flows
+
+	// 2. 获取流程详情
 	actionURL, csrfToken, err := ka.getFlowDetails(ctx, client, "/self-service/registration/flows", flowID)
 	if err != nil {
-		return "", nil, xerrors.E_INTERNAL(fmt.Errorf("获取 Kratos 注册流程详情失败: %w", err))
+		log.ErrorWithCtx(ctx, "获取注册流程详情失败", err)
+		return "", nil, xerrors.NewSystemError("获取注册流程详情失败").
+			WithContext(&xerrors.ErrorContext{
+				Service:  "kratos-adapter",
+				Method:   "Register",
+				Metadata: map[string]string{"flow_id": flowID},
+			})
 	}
-	log.DebugWithCtx(ctx, "KratosAdapter: 成功获取注册 Action URL 和 CSRF Token")
-	// 4. 提交注册表单
+
+	// 3. 修正 Action URL
 	finalActionURL, err := ka.rewriteActionURL(actionURL)
 	if err != nil {
-		return "", nil, xerrors.E_INTERNAL(fmt.Errorf("修正 Kratos 注册 Action URL 失败: %w", err))
+		log.ErrorWithCtx(ctx, "修正 Action URL 失败", err)
+		return "", nil, xerrors.NewSystemError("修正 Action URL 失败").
+			WithContext(&xerrors.ErrorContext{
+				Service:  "kratos-adapter",
+				Method:   "Register",
+				Metadata: map[string]string{"original_url": actionURL},
+			})
 	}
 
+	// 4. 提交注册表单
 	formData := url.Values{
-		"method":           {"password"},
-		"traits.email":     {req.Email},
-		"traits.username":  {req.UserName},
-		"password":         {req.Password},
-		"password_confirm": {req.Password}, // 通常需要确认密码
-		"csrf_token":       {csrfToken},
+		"method":          {"password"},
+		"traits.email":    {req.Email},
+		"traits.username": {req.UserName},
+		"password":        {req.Password},
+		"csrf_token":      {csrfToken},
 	}
-	log.DebugWithCtx(ctx, "KratosAdapter: 准备提交注册表单", "url", finalActionURL)
+
 	registerResp, err := client.PostForm(finalActionURL, formData)
 	if err != nil {
-		log.ErrorWithCtx(ctx, "提交注册表单到 Kratos 时发生网络错误", err)
-		return "", nil, xerrors.E_INTERNAL(fmt.Errorf("提交注册表单到 Kratos 失败: %w", err))
+		log.ErrorWithCtx(ctx, "提交注册表单失败", err)
+		return "", nil, xerrors.NewSystemError("提交注册表单失败").
+			WithRetryable(true).
+			WithContext(&xerrors.ErrorContext{
+				Service: "kratos-adapter",
+				Method:  "Register",
+			})
 	}
-	// 5. 处理最终响应
 	defer registerResp.Body.Close()
-	if sessionCookie := registerResp.Header.Get("Set-Cookie"); sessionCookie != "" {
-		log.InfoWithCtx(ctx, "KratosAdapter: 注册成功，已获取 session cookie")
+
+	// 5. 处理响应
+	return ka.processAuthResponse(ctx, client, registerResp, "/self-service/registration/flows", flowID)
+}
+
+// processAuthResponse 统一处理认证响应（登录/注册）
+func (ka *KratosAdapter) processAuthResponse(
+	ctx context.Context,
+	client *http.Client,
+	resp *http.Response,
+	flowPath string,
+	flowID string,
+) (string, *KratosErrorPayload, *xerrors.AppError) {
+
+	// 检查是否有 session cookie
+	if sessionCookie := resp.Header.Get("Set-Cookie"); sessionCookie != "" {
+		log.InfoWithCtx(ctx, "认证成功，获得 session cookie")
 		return sessionCookie, nil, nil
 	}
-	log.WarnWithCtx(ctx, "KratosAdapter: 注册失败，未获取到 session cookie", "status_code", registerResp.StatusCode)
 
-	// 尝试解析 Kratos 返回的错误详情 JSON
+	// 认证失败，解析错误
+	body, _ := io.ReadAll(resp.Body)
+
+	// 尝试从响应体解析错误
 	var kratosErr KratosErrorPayload
-	body, _ := io.ReadAll(registerResp.Body)
 	if json.Unmarshal(body, &kratosErr) == nil && len(kratosErr.UI.Messages) > 0 {
+		log.WarnWithCtx(ctx, "从响应体解析到 Kratos 错误", "messages_count", len(kratosErr.UI.Messages))
 		return "", &kratosErr, nil
 	}
 
-	// 如果无法解析出具体的错误 ID，根据状态码和场景返回合适的错误
-	// 对于注册流程，需要区分不同的错误类型
-	if registerResp.StatusCode == 302 || registerResp.StatusCode == 303 {
-		// 回到 flow 查询 ui.messages，以便拿到可映射的错误 ID
-		if errPayload := ka.fetchFlowError(ctx, client, "/self-service/registration/flows", flowID); errPayload != nil {
+	// 如果响应体没有错误信息，从流程中获取
+	if resp.StatusCode == 302 || resp.StatusCode == 303 {
+		if errPayload := ka.fetchFlowError(ctx, client, flowPath, flowID); errPayload != nil {
 			return "", errPayload, nil
 		}
-		// 若仍无法解析，返回通用的校验错误
-		appErr := xerrors.New(xerrors.Validation, "注册信息不符合要求，请检查后重试",
-			fmt.Errorf("kratos returned status %d", registerResp.StatusCode))
-		return "", nil, appErr
+		// 兜底错误
+		return "", nil, xerrors.New(xerrors.CodeInvalidCredentials, "认证失败").
+			WithUserMessage("用户名或密码错误")
 	}
 
-	// 其他状态码返回通用内部错误
-	appErr := xerrors.E_INTERNAL(fmt.Errorf("kratos returned unexpected status %d", registerResp.StatusCode))
-	return "", nil, appErr
+	// 其他状态码返回系统错误
+	return "", nil, xerrors.NewSystemError(fmt.Sprintf("Kratos 返回异常状态码: %d", resp.StatusCode)).
+		WithContext(&xerrors.ErrorContext{
+			Service: "kratos-adapter",
+			Metadata: map[string]string{
+				"status_code":   fmt.Sprintf("%d", resp.StatusCode),
+				"response_body": string(body),
+			},
+		})
 }
 
-// --- 以下是内部辅助函数 ---
+// --- 辅助方法 ---
 
-// createClient 创建一个适用于与 Kratos 流程交互的 HTTP Client
+// createClient 创建配置好的 HTTP 客户端
 func (ka *KratosAdapter) createClient() *http.Client {
 	jar, _ := cookiejar.New(nil)
 	return &http.Client{
-		Jar: jar,
+		Jar:     jar,
+		Timeout: ka.timeout,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse // 核心：禁止自动重定向
+			return http.ErrUseLastResponse // 禁止自动重定向
 		},
 	}
 }
 
-// initializeFlow 向 Kratos 发起请求以开始一个新的流程 (登录/注册等)
+// initializeFlow 初始化认证流程
 func (ka *KratosAdapter) initializeFlow(ctx context.Context, client *http.Client, path string) (string, error) {
 	initURL := ka.kratosPublicURL + path
-	log.DebugWithCtx(ctx, "KratosAdapter: 初始化流程", "url", initURL)
-	initResp, err := client.Get(initURL)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", initURL, nil)
+	if err != nil {
+		return "", err
+	}
+
+	initResp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -214,18 +262,25 @@ func (ka *KratosAdapter) initializeFlow(ctx context.Context, client *http.Client
 	if err != nil {
 		return "", fmt.Errorf("kratos 未返回 location 头: %w", err)
 	}
+
 	flowID := location.Query().Get("flow")
 	if flowID == "" {
-		return "", fmt.Errorf("未能从 Kratos 的重定向 URL 中获取 flow ID")
+		return "", fmt.Errorf("未能从重定向 URL 中获取 flow ID")
 	}
+
 	return flowID, nil
 }
 
-// getFlowDetails 使用 flow ID 获取流程的详细信息，包括 CSRF Token 和 Action URL
-func (ka *KratosAdapter) getFlowDetails(ctx context.Context, client *http.Client, path, flowID string) (actionURL, csrfToken string, err error) {
+// getFlowDetails 获取流程详细信息
+func (ka *KratosAdapter) getFlowDetails(ctx context.Context, client *http.Client, path, flowID string) (string, string, error) {
 	flowURL := fmt.Sprintf("%s%s?id=%s", ka.kratosPublicURL, path, flowID)
-	log.DebugWithCtx(ctx, "KratosAdapter: 获取流程详情", "url", flowURL)
-	flowResp, err := client.Get(flowURL)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", flowURL, nil)
+	if err != nil {
+		return "", "", err
+	}
+
+	flowResp, err := client.Do(req)
 	if err != nil {
 		return "", "", err
 	}
@@ -233,24 +288,27 @@ func (ka *KratosAdapter) getFlowDetails(ctx context.Context, client *http.Client
 
 	if flowResp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(flowResp.Body)
-		return "", "", fmt.Errorf("kratos 获取 Flow 详情返回非 200 状态: %s", string(body))
+		return "", "", fmt.Errorf("获取流程详情失败，状态码: %d, 响应: %s", flowResp.StatusCode, string(body))
 	}
 
 	var flowData map[string]interface{}
 	if err := json.NewDecoder(flowResp.Body).Decode(&flowData); err != nil {
-		return "", "", fmt.Errorf("解析 Kratos Flow JSON 失败: %w", err)
+		return "", "", fmt.Errorf("解析流程 JSON 失败: %w", err)
 	}
 
+	// 提取 Action URL
 	uiData, ok := flowData["ui"].(map[string]interface{})
 	if !ok {
-		return "", "", fmt.Errorf("kratos 响应中缺少 'ui' 字段")
+		return "", "", fmt.Errorf("响应中缺少 'ui' 字段")
 	}
 
-	actionURL, ok = uiData["action"].(string)
+	actionURL, ok := uiData["action"].(string)
 	if !ok || actionURL == "" {
-		return "", "", fmt.Errorf("kratos 响应中缺少或空的 'action' 字段")
+		return "", "", fmt.Errorf("响应中缺少或空的 'action' 字段")
 	}
 
+	// 提取 CSRF Token
+	var csrfToken string
 	if nodes, ok := uiData["nodes"].([]interface{}); ok {
 		for _, node := range nodes {
 			if nodeMap, ok := node.(map[string]interface{}); ok {
@@ -265,29 +323,36 @@ func (ka *KratosAdapter) getFlowDetails(ctx context.Context, client *http.Client
 			}
 		}
 	}
+
 	if csrfToken == "" {
-		return "", "", fmt.Errorf("未能在 Kratos 响应中找到 csrf_token")
+		return "", "", fmt.Errorf("未找到 csrf_token")
 	}
 
 	return actionURL, csrfToken, nil
 }
 
-// rewriteActionURL 将 Kratos 返回的 URL (通常是 localhost 或 127.0.0.1) 替换为 Docker 内部网络可达的地址
+// rewriteActionURL 重写 Action URL 以适应 Docker 网络
 func (ka *KratosAdapter) rewriteActionURL(originalURL string) (string, error) {
 	parsedURL, err := url.Parse(originalURL)
 	if err != nil {
-		return "", fmt.Errorf("解析 Action URL '%s' 失败: %w", originalURL, err)
+		return "", fmt.Errorf("解析 URL 失败: %w", err)
 	}
-	// 将 URL 的主机部分强制替换为 Docker 内部网络的服务名
+
+	// 将主机替换为 Docker 内部服务名
 	parsedURL.Host = "kratos:4433"
 	return parsedURL.String(), nil
 }
 
-// fetchFlowError 回到指定 flow 查询 ui.messages，从而获得可翻译的 Kratos 错误 ID
+// fetchFlowError 获取流程中的错误信息
 func (ka *KratosAdapter) fetchFlowError(ctx context.Context, client *http.Client, path, flowID string) *KratosErrorPayload {
 	flowURL := fmt.Sprintf("%s%s?id=%s", ka.kratosPublicURL, path, flowID)
-	log.DebugWithCtx(ctx, "KratosAdapter: 回查 Flow 错误消息", "url", flowURL)
-	resp, err := client.Get(flowURL)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", flowURL, nil)
+	if err != nil {
+		return nil
+	}
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil
 	}
@@ -297,8 +362,10 @@ func (ka *KratosAdapter) fetchFlowError(ctx context.Context, client *http.Client
 	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
 		return nil
 	}
+
 	if len(payload.UI.Messages) > 0 {
 		return &payload
 	}
+
 	return nil
 }
