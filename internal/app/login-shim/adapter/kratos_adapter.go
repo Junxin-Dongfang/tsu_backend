@@ -10,7 +10,7 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 
-	"tsu-self/cmd/login-shim/internal/domain"
+	"tsu-self/internal/app/login-shim/domain"
 	"tsu-self/internal/pkg/log"
 	"tsu-self/internal/pkg/xerrors"
 )

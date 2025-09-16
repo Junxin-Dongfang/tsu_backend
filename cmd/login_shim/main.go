@@ -5,13 +5,10 @@ import (
 	"log/slog"
 	"net/http"
 
-	// 引入服务内部的包
+	// 引入项目级的共享包
 	"tsu-self/cmd/login-shim/internal/adapter"
 	"tsu-self/cmd/login-shim/internal/controller"
-
-	// 引入项目级的共享包
 	"tsu-self/internal/middleware"
-	"tsu-self/internal/pkg/log"
 )
 
 func main() {

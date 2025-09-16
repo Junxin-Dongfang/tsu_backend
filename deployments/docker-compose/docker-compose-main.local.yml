@@ -34,6 +34,7 @@ services:
       dockerfile: ./cmd/login-shim/Dockerfile
     ports:
       - "8090:8090"
+    restart: always
     networks:
       - tsu_network
 
@@ -44,6 +45,7 @@ services:
       dockerfile: ./cmd/admin/Dockerfile
     ports:
     - "8080:8080" # 暴露端口以便直接调试
+    restart: always
     networks:
       - tsu_network
 

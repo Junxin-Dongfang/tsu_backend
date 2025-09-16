@@ -1,5 +1,3 @@
-// Package domain 定义了login-shim服务内部使用的领域模型
-// 这些结构体在controller、adapter等不同层之间共享，避免重复定义
 package domain
 
 // LoginRequest 定义了登录接口接收的JSON结构体

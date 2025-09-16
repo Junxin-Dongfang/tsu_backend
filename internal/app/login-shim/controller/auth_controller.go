@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"net/mail"
 	"regexp"
-	"tsu-self/cmd/login-shim/internal/adapter" // 引入同服务下的 adapter
-	"tsu-self/cmd/login-shim/internal/domain"
-	"tsu-self/internal/pkg/log"      // 引入项目级 log 包
+	"tsu-self/internal/app/login-shim/adapter"
+	"tsu-self/internal/app/login-shim/domain"
+	"tsu-self/internal/pkg/log"
 	"tsu-self/internal/pkg/response" // 引入项目级 response 包
 	"tsu-self/internal/pkg/xerrors"  // 引入项目级 errors 包
 )

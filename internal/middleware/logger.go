@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"tsu-self/internal/pkg/log" // 引入我们统一的 log 包
+	"tsu-self/internal/pkg/log" // 引入项目级 log 包
 )
 
 // responseWriter 包装器，用于捕获由下游处理程序写入的 HTTP 响应状态码。
@@ -39,8 +39,8 @@ func Logger(next http.Handler) http.Handler {
 
 		duration := time.Since(start)
 
-		// 使用我们统一的 log 包来记录日志。
-		// log.Info 函数会自动从请求的 context 中提取 trace_id。
+		// 使用我们统一的 logger 包来记录日志。
+		// logger.Info 函数会自动从请求的 context 中提取 trace_id。
 		log.InfoWithCtx(r.Context(), "http request processed",
 			"method", r.Method,
 			"path", r.URL.Path,
