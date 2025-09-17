@@ -27,17 +27,6 @@ services:
     networks:
       - tsu_network
 
-  login_shim:
-    container_name: tsu_login_shim
-    build:
-      context: ../..
-      dockerfile: ./deployments/docker/Dockerfile.login_shim
-    ports:
-      - "8090:8090"
-    restart: always
-    networks:
-      - tsu_network
-
   admin:
     container_name: tsu_admin
     build:

@@ -1,40 +1,40 @@
-// File: internal/middleware/middleware.go (汇总中间件)
 package middleware
 
 import (
-	"log"
-	"net/http"
-	"runtime"
-
+	"fmt"
+	"tsu-self/internal/pkg/log"
 	"tsu-self/internal/pkg/response"
 	"tsu-self/internal/pkg/xerrors"
+
+	"github.com/labstack/echo/v4"
 )
 
-// Recovery panic 恢复中间件
-func Recovery() func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// RecoveryMiddleware 恢复中间件
+func RecoveryMiddleware(respWriter response.Writer, logger log.Logger) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
 			defer func() {
-				if err := recover(); err != nil {
-					// 获取调用栈信息
-					stack := make([]byte, 1024*8)
-					length := runtime.Stack(stack, false)
+				if r := recover(); r != nil {
+					ctx := c.Request().Context()
 
-					log.Printf("[PANIC RECOVERED] %v\nStack: %s", err, stack[:length])
+					// 记录 panic 信息
+					logger.ErrorContext(ctx, "应用程序 panic",
+						log.Any("panic_value", r),
+						log.String("path", c.Request().URL.Path),
+						log.String("method", c.Request().Method),
+					)
 
-					// 检查响应是否已经写入
-					if w.Header().Get("Content-Type") == "" {
-						appErr := xerrors.NewSystemError("系统内部错误，请稍后重试")
-						if traceId := r.Context().Value("trace_id"); traceId != nil {
-							appErr.WithTraceID(traceId.(string))
-						}
+					// 创建系统错误
+					appErr := xerrors.FromCode(xerrors.CodeInternalError).
+						WithService("echo-middleware", "recovery").
+						WithMetadata("panic_value", fmt.Sprintf("%v", r))
 
-						response.Error[response.EmptyData](w, r, appErr)
-					}
+					// 发送错误响应
+					respWriter.WriteError(ctx, c.Response().Writer, appErr)
 				}
 			}()
 
-			next.ServeHTTP(w, r)
-		})
+			return next(c)
+		}
 	}
 }

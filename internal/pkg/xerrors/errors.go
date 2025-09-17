@@ -2,8 +2,8 @@
 package xerrors
 
 import (
-	"encoding/json"
 	"fmt"
+	"log/slog"
 	"runtime"
 	"time"
 )
@@ -33,7 +33,7 @@ func (l ErrorLevel) String() string {
 	}
 }
 
-// ErrorContext 错误上下文信息
+// ErrorContext 错误上下文信息（精简版，移除HTTP特定字段）
 type ErrorContext struct {
 	TraceID   string            `json:"trace_id,omitempty"`
 	SpanID    string            `json:"span_id,omitempty"`
@@ -41,31 +41,32 @@ type ErrorContext struct {
 	SessionID string            `json:"session_id,omitempty"`
 	RequestID string            `json:"request_id,omitempty"`
 	Service   string            `json:"service,omitempty"`
-	Method    string            `json:"method,omitempty"`
+	Operation string            `json:"operation,omitempty"` // 改为operation，更通用
 	Metadata  map[string]string `json:"metadata,omitempty"`
 }
 
-// AppError 自定义错误结构体
+// AppError 领域错误（专注于业务逻辑）
 type AppError struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 	Err     error  `json:"-"`
 
-	//错误级别和分类
+	// 错误分类和级别
 	Level    ErrorLevel `json:"level,omitempty"`
 	Category string     `json:"category,omitempty"`
 
-	// 上下文信息
+	// 业务上下文
 	Context   *ErrorContext `json:"context,omitempty"`
 	Timestamp time.Time     `json:"timestamp,omitempty"`
 
-	//调试信息
+	// 调试信息
 	Stack string `json:"stack,omitempty"`
 	File  string `json:"file,omitempty"`
 	Line  int    `json:"line,omitempty"`
 
-	UserMessage string `json:"user_message,omitempty"`
-	Retryable   bool   `json:"retryable,omitempty"`
+	// 业务属性
+	Retryable   bool `json:"retryable,omitempty"`
+	Recoverable bool `json:"recoverable,omitempty"` // 新增：是否可恢复
 }
 
 // Error 实现标准 error 接口
@@ -76,14 +77,47 @@ func (e *AppError) Error() string {
 	return fmt.Sprintf("[%d] %s", e.Code, e.Message)
 }
 
-// Unwrap 实现 errors.Unwrap 接口，返回底层错误
+// Unwrap 实现 errors.Unwrap 接口
 func (e *AppError) Unwrap() error {
 	return e.Err
 }
 
+// LogValue 实现 slog.LogValuer 接口，避免重复序列化逻辑
+func (e *AppError) LogValue() slog.Value {
+	attrs := []slog.Attr{
+		slog.Int("code", e.Code),
+		slog.String("message", e.Message),
+		slog.String("level", e.Level.String()),
+		slog.String("category", e.Category),
+		slog.Bool("retryable", e.Retryable),
+		slog.Bool("recoverable", e.Recoverable),
+	}
+
+	if e.Context != nil {
+		if e.Context.TraceID != "" {
+			attrs = append(attrs, slog.String("trace_id", e.Context.TraceID))
+		}
+		if e.Context.UserID != "" {
+			attrs = append(attrs, slog.String("user_id", e.Context.UserID))
+		}
+		if e.Context.Service != "" {
+			attrs = append(attrs, slog.String("service", e.Context.Service))
+		}
+		if e.Context.Operation != "" {
+			attrs = append(attrs, slog.String("operation", e.Context.Operation))
+		}
+	}
+
+	if e.Err != nil {
+		attrs = append(attrs, slog.Any("underlying_error", e.Err))
+	}
+
+	return slog.GroupValue(attrs...)
+}
+
 // WithContext 添加上下文信息
 func (e *AppError) WithContext(ctx *ErrorContext) *AppError {
-	newErr := *e // 复制当前错误
+	newErr := *e
 	newErr.Context = ctx
 	return &newErr
 }
@@ -93,7 +127,6 @@ func (e *AppError) WithTraceID(traceID string) *AppError {
 	if e.Context == nil {
 		e.Context = &ErrorContext{}
 	}
-
 	e.Context.TraceID = traceID
 	return e
 }
@@ -103,20 +136,18 @@ func (e *AppError) WithUser(userID, sessionID string) *AppError {
 	if e.Context == nil {
 		e.Context = &ErrorContext{}
 	}
-
 	e.Context.UserID = userID
 	e.Context.SessionID = sessionID
 	return e
 }
 
-// WithService 添加服务和方法信息
-func (e *AppError) WithService(service, method string) *AppError {
+// WithService 添加服务和操作信息
+func (e *AppError) WithService(service, operation string) *AppError {
 	if e.Context == nil {
 		e.Context = &ErrorContext{}
 	}
-
 	e.Context.Service = service
-	e.Context.Method = method
+	e.Context.Operation = operation
 	return e
 }
 
@@ -132,21 +163,9 @@ func (e *AppError) WithMetadata(key, value string) *AppError {
 	return e
 }
 
-// WithUserMessage 添加面向用户的错误信息
-func (e *AppError) WithUserMessage(userMessage string) *AppError {
-	if e.Context == nil {
-		e.Context = &ErrorContext{}
-	}
-	e.UserMessage = userMessage
-	return e
-}
-
-// WithRetryable 设置错误是否可重试
-func (e *AppError) WithRetryable(retryable bool) *AppError {
-	if e.Context == nil {
-		e.Context = &ErrorContext{}
-	}
-	e.Retryable = retryable
+// WithRecoverable 设置错误是否可恢复
+func (e *AppError) WithRecoverable(recoverable bool) *AppError {
+	e.Recoverable = recoverable
 	return e
 }
 
@@ -155,23 +174,14 @@ func (e *AppError) IsRetryable() bool {
 	return e.Retryable
 }
 
+// IsRecoverable 判断是否为可恢复错误
+func (e *AppError) IsRecoverable() bool {
+	return e.Recoverable
+}
+
 // IsCritical 判断是否为严重错误
 func (e *AppError) IsCritical() bool {
 	return e.Level == LevelCritical
-}
-
-// GetUserMessage 获取面向用户的错误信息
-func (e *AppError) GetUserMessage() string {
-	if e.UserMessage != "" {
-		return e.UserMessage
-	}
-	return e.Message
-}
-
-// ToJSON 格式化为 JSON 字符串
-func (e *AppError) ToJSON() string {
-	data, _ := json.Marshal(e)
-	return string(data)
 }
 
 // New 创建新的AppError
@@ -182,6 +192,7 @@ func New(code int, message string) *AppError {
 		Level:     LevelError,
 		Category:  getCategoryByCode(code),
 		Timestamp: time.Now(),
+		Retryable: isRetryableByCode(code),
 	}
 }
 
@@ -190,7 +201,7 @@ func NewWithError(code int, message string, err error) *AppError {
 	appErr := New(code, message)
 	appErr.Err = err
 
-	//添加调试信息
+	// 添加调试信息
 	if pc, file, line, ok := runtime.Caller(1); ok {
 		appErr.File = file
 		appErr.Line = line
@@ -218,80 +229,89 @@ func FromCode(code int) *AppError {
 	}
 }
 
-// ErrorBuilder 错误构建器
-type ErrorBuilder struct {
-	error *AppError
-}
-
-// NewBuilder 创建错误构建器
-func NewBuilder(code int, message string) *ErrorBuilder {
-	return &ErrorBuilder{
-		error: New(code, message),
-	}
-}
-
-func (b *ErrorBuilder) WithError(err error) *ErrorBuilder {
-	b.error.Err = err
-	return b
-}
-
-func (b *ErrorBuilder) WithLevel(level ErrorLevel) *ErrorBuilder {
-	b.error.Level = level
-	return b
-}
-
-func (b *ErrorBuilder) WithCategory(category string) *ErrorBuilder {
-	b.error.Category = category
-	return b
-}
-
-func (b *ErrorBuilder) WithContext(ctx *ErrorContext) *ErrorBuilder {
-	b.error.Context = ctx
-	return b
-}
-
-func (b *ErrorBuilder) WithUserMessage(msg string) *ErrorBuilder {
-	b.error.UserMessage = msg
-	return b
-}
-
-func (b *ErrorBuilder) WithRetryable(retryable bool) *ErrorBuilder {
-	b.error.Retryable = retryable
-	return b
-}
-
-func (b *ErrorBuilder) Build() *AppError {
-	return b.error
-}
-
-// 快捷构造函数
-
-func NewSystemError(message string) *AppError {
-	return FromCode(CodeInternalError).WithUserMessage(message)
-}
-
-func NewBusinessError(code int, message string) *AppError {
-	return FromCode(code).WithUserMessage(message)
-}
-
-func NewValidationError(message string) *AppError {
-	return FromCode(CodeInvalidParams).WithUserMessage(message)
+// 快捷构造函数（专注于业务错误，使用你的错误码）
+func NewValidationError(field, message string) *AppError {
+	return FromCode(CodeInvalidParams).
+		WithMetadata("field", field).
+		WithMetadata("validation_message", message)
 }
 
 func NewAuthError(message string) *AppError {
-	return FromCode(CodeAuthenticationFailed).WithUserMessage(message)
+	return FromCode(CodeAuthenticationFailed).
+		WithMetadata("auth_message", message)
 }
 
-func NewPermissionError(message string) *AppError {
-	return FromCode(CodePermissionDenied).WithUserMessage(message)
+func NewPermissionError(resource, action string) *AppError {
+	return FromCode(CodePermissionDenied).
+		WithMetadata("resource", resource).
+		WithMetadata("action", action)
 }
 
-func NewNotFoundError(resource string) *AppError {
+func NewNotFoundError(resource, identifier string) *AppError {
 	return FromCode(CodeResourceNotFound).
-		WithUserMessage(fmt.Sprintf("%s不存在", resource))
+		WithMetadata("resource", resource).
+		WithMetadata("identifier", identifier)
 }
 
-func NewConflictError(resource string) *AppError {
+func NewConflictError(resource, reason string) *AppError {
 	return FromCode(CodeDuplicateResource).
-		WithUserMessage(fmt.Sprintf("%s已存在", resource))
+		WithMetadata("resource", resource).
+		WithMetadata("conflict_reason", reason)
+}
+
+// 新增：基于你的错误码系统的便捷函数
+func NewUserNotFoundError(userID string) *AppError {
+	return FromCode(CodeUserNotFound).
+		WithMetadata("user_id", userID)
+}
+
+func NewUserExistsError(field, value string) *AppError {
+	var code int
+	switch field {
+	case "email":
+		code = CodeEmailExists
+	case "username":
+		code = CodeUsernameExists
+	case "phone":
+		code = CodePhoneExists
+	default:
+		code = CodeUserAlreadyExists
+	}
+	return FromCode(code).
+		WithMetadata("field", field).
+		WithMetadata("value", value)
+}
+
+func NewTokenError(tokenType string) *AppError {
+	return FromCode(CodeInvalidToken).
+		WithMetadata("token_type", tokenType)
+}
+
+func NewTokenExpiredError(tokenType string) *AppError {
+	return FromCode(CodeTokenExpired).
+		WithMetadata("token_type", tokenType)
+}
+
+func NewRoleError(roleID string) *AppError {
+	return FromCode(CodeRoleNotFound).
+		WithMetadata("role_id", roleID)
+}
+
+func NewExternalServiceError(service string, err error) *AppError {
+	appErr := FromCode(CodeExternalServiceError).
+		WithMetadata("external_service", service)
+	if err != nil {
+		appErr.Err = err
+	}
+	return appErr
+}
+
+func NewDatabaseError(operation, table string, err error) *AppError {
+	appErr := FromCode(CodeDatabaseError).
+		WithMetadata("db_operation", operation).
+		WithMetadata("table", table)
+	if err != nil {
+		appErr.Err = err
+	}
+	return appErr
 }

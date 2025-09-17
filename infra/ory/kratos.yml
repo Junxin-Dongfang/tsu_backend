@@ -44,9 +44,9 @@ selfservice:
       enabled: true
       config:
         haveibeenpwned_enabled: false
-        min_password_length: 8
+        min_password_length: 6
     profile:
-      enabled: true
+      enabled: false
 
 log:
   level: debug

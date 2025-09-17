@@ -17,6 +17,7 @@ services:
     volumes:
       # 使用绑定挂载，将数据存在项目目录下的 ory-postgres-data 文件夹中
       - ../../.ory-postgres-data:/var/lib/postgresql/data
+      - ../../infra/ory/init-schemas.sql:/docker-entrypoint-initdb.d/init-schemas.sql # 初始化脚本
     restart: always
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ory_user -d ory_db"]
@@ -30,11 +31,11 @@ services:
   # 2. ORY Kratos 数据库迁移任务
   # ----------------------------------------------------------------
   kratos-migrate:
-    image: oryd/kratos:v1.2.0  # 使用相同版本进行迁移
+    image: oryd/kratos:v1.3.1
     container_name: tsu_kratos_migrate
     environment:
-      # 告诉 Kratos 数据库在哪里
-      - DSN=postgres://ory_user:ory_test@postgres:5432/ory_db?sslmode=disable
+      # 告诉 Kratos 数据库在哪里,存放到 kratos的空间里
+      - DSN=postgres://ory_user:ory_test@tsu_ory_postgres:5432/ory_db?sslmode=disable&search_path=kratos
     command: migrate sql -e --yes # 容器启动时执行的命令：执行数据库迁移
     restart: on-failure # 如果迁移失败，会自动重试
     depends_on:
@@ -47,13 +48,13 @@ services:
   # 3. ORY Kratos 主服务
   # ----------------------------------------------------------------
   kratos:
-    image: oryd/kratos:v1.2.0  # 使用较旧的稳定版本
+    image: oryd/kratos:v1.3.1
     container_name: tsu_kratos_service
     ports:
       - "4433:4433" # Public API 端口，供前端调用
       - "4434:4434" # Admin API 端口，供后端服务间调用
     environment:
-      - DSN=postgres://ory_user:ory_test@tsu_ory_postgres:5432/ory_db?sslmode=disable
+      - DSN=postgres://ory_user:ory_test@tsu_ory_postgres:5432/ory_db?sslmode=disable&search_path=kratos
       # - courier.smtp.connection_uri=smtps://test:test@mailslurper:1025/?skip_ssl_verify=true
     command: serve -c /etc/kratos/kratos.yml --dev --watch-courier --sqa-opt-out # 启动服务并监控配置文件
     volumes:
@@ -71,11 +72,11 @@ services:
   # 4. ORY Keto 数据库迁移任务
   # ----------------------------------------------------------------
   keto-migrate:
-    image: oryd/keto:latest
+    image: oryd/keto:v0.14.0
     container_name: tsu_keto_migrate
     command: migrate up -c /etc/keto/keto.yml -y 
     environment:
-      - DSN=postgres://ory_user:ory_test@postgres:5432/ory_db?sslmode=disable
+      - DSN=postgres://ory_user:ory_test@tsu_ory_postgres:5432/ory_db?sslmode=disable&search_path=keto
     volumes:
       - ../../infra/ory:/etc/keto
     restart: on-failure
@@ -89,14 +90,14 @@ services:
   # 5. ORY Keto 主服务
   # ----------------------------------------------------------------
   keto:
-    image: oryd/keto:latest
+    image: oryd/keto:v0.14.0
     container_name: tsu_keto_service
     ports:
       - "4466:4466" # Read API 端口，用于检查权限
       - "4467:4467" # Write API 端口，用于管理权限
     command: serve -c /etc/keto/keto.yml
     environment:
-      - DSN=postgres://ory_user:ory_test@postgres:5432/ory_db?sslmode=disable
+      - DSN=postgres://ory_user:ory_test@tsu_ory_postgres:5432/ory_db?sslmode=disable&search_path=keto
     volumes:
       - ../../infra/ory:/etc/keto
     restart: always
@@ -107,7 +108,7 @@ services:
       - tsu_network
 
   oathkeeper:
-    image: oryd/oathkeeper:latest
+    image: oryd/oathkeeper:v0.40.9
     container_name: tsu_oathkeeper
     depends_on:
       - kratos

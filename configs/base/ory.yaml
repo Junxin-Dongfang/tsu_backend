@@ -1,0 +1,12 @@
+ory:
+  kratos:
+    admin_url: "http://kratos:4434"
+    public_url: "http://kratos:4433"
+  keto:
+    read_url: "http://keto:4466"  
+    write_url: "http://keto:4467"
+  timeout: "30s"
+  retry:
+    max_attempts: 3
+    initial_interval: "1s"
+    max_interval: "10s"

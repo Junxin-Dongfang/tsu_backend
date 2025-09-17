@@ -1,139 +1,301 @@
+// File: internal/pkg/response/response.go
 package response
 
 import (
+	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
+	"os"
 	"time"
+
 	"tsu-self/internal/pkg/xerrors"
 )
 
-// EmptyData 用于在 API 成功响应中表示“无数据”结构体
+// ResponseWriter 接口定义（在消费端定义接口）
+type Writer interface {
+	WriteJSON(ctx context.Context, w http.ResponseWriter, data interface{}, statusCode int) error
+	WriteError(ctx context.Context, w http.ResponseWriter, err error) error
+	WriteSuccess(ctx context.Context, w http.ResponseWriter, data interface{}) error
+}
+
+// Logger 接口定义（简化的日志接口）
+type Logger interface {
+	InfoContext(ctx context.Context, msg string, args ...any)
+	WarnContext(ctx context.Context, msg string, args ...any)
+	ErrorContext(ctx context.Context, msg string, args ...any)
+}
+
+// EmptyData 用于在 API 成功响应中表示"无数据"
 type EmptyData struct{}
 
-// ResponseResult 通用的API响应结构体
-type ResponseResult[T any] struct {
-	Code      int               `json:"code"`               // 业务响应码
-	Message   string            `json:"message"`            // 响应消息
-	Data      *T                `json:"data,omitempty"`     // 响应数据，成功时返回
-	Error     *xerrors.AppError `json:"error,omitempty"`    // 错误详情，失败时返回
-	Timestamp int64             `json:"timestamp"`          // Unix时间戳
-	TraceId   string            `json:"trace_id,omitempty"` // 请求追踪ID
+// APIResponse 通用的API响应结构体（完全不包含错误详情）
+type APIResponse[T any] struct {
+	Code      int    `json:"code"`               // 业务响应码
+	Message   string `json:"message"`            // 面向用户的响应消息
+	Data      *T     `json:"data,omitempty"`     // 响应数据，成功时返回
+	Timestamp int64  `json:"timestamp"`          // Unix时间戳
+	TraceID   string `json:"trace_id,omitempty"` // 请求追踪ID
 }
 
-// Success 创建一个成功的响应
-func Success[T any](data *T) *ResponseResult[T] {
-	return &ResponseResult[T]{
-		Code:      xerrors.CodeSuccess,
-		Message:   "操作成功",
-		Data:      data,
-		Timestamp: time.Now().Unix(),
+// ErrorDetail 错误详情（仅在开发环境的特殊端点返回，用于调试）
+type ErrorDetail struct {
+	Code     int                    `json:"code"`
+	Message  string                 `json:"message"`
+	Category string                 `json:"category,omitempty"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	Stack    string                 `json:"stack,omitempty"`
+	File     string                 `json:"file,omitempty"`
+	Line     int                    `json:"line,omitempty"`
+}
+
+// ResponseHandler HTTP响应处理器
+type ResponseHandler struct {
+	logger      Logger
+	environment string // "development" | "production"
+}
+
+// NewResponseHandler 创建响应处理器
+func NewResponseHandler(logger Logger, environment string) *ResponseHandler {
+	return &ResponseHandler{
+		logger:      logger,
+		environment: environment,
 	}
 }
 
-// SuccessWithMessage 创建一个成功的响应，并允许自定义消息
-func SuccessWithMessage[T any](data *T, message string) *ResponseResult[T] {
-	return &ResponseResult[T]{
-		Code:      xerrors.CodeSuccess,
-		Message:   message,
-		Data:      data,
-		Timestamp: time.Now().Unix(),
-	}
-}
-
-// ErrorFromAppError 创建一个失败的响应，基于 AppError
-func ErrorFromAppError[T any](appErr *xerrors.AppError) *ResponseResult[T] {
-	resp := &ResponseResult[T]{
-		Code:      appErr.Code,
-		Message:   appErr.GetUserMessage(),
-		Error:     appErr,
-		Timestamp: time.Now().Unix(),
-	}
-
-	if appErr.Context != nil {
-		resp.TraceId = appErr.Context.TraceID
-	}
-	return resp
-}
-
-// JSON 将响应以JSON格式写入 http.ResponseWriter
-func JSON[T any](w http.ResponseWriter, r *http.Request, resp *ResponseResult[T]) {
-	// 尝试从上下文中获取 trace_id (通常由中间件注入)
-	if resp.TraceId == "" {
-		if traceID, ok := r.Context().Value("trace_id").(string); ok {
-			resp.TraceId = traceID
-		}
-	}
-
-	if isProduction() && resp.Error != nil {
-		// 在生产环境中，隐藏详细的错误信息
-		resp.Error = &xerrors.AppError{
-			Code:    resp.Error.Code,
-			Message: "服务器内部错误",
-			Level:   resp.Error.Level,
-		}
-	}
-
-	statusCode := xerrors.GetHTTPStatus(resp.Code)
-
+// WriteJSON 写入JSON响应
+func (h *ResponseHandler) WriteJSON(ctx context.Context, w http.ResponseWriter, data interface{}, statusCode int) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(statusCode)
 
-	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		// 序列化失败的兜底处理
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		h.logger.ErrorContext(ctx, "failed to encode JSON response",
+			slog.Any("error", err),
+			slog.Int("status_code", statusCode),
+		)
+		return err
+	}
+
+	return nil
+}
+
+// WriteSuccess 写入成功响应
+func (h *ResponseHandler) WriteSuccess(ctx context.Context, w http.ResponseWriter, data interface{}) error {
+	resp := &APIResponse[interface{}]{
+		Code:      xerrors.CodeSuccess,
+		Message:   "操作成功",
+		Data:      &data,
+		Timestamp: time.Now().Unix(),
+		TraceID:   extractTraceID(ctx),
+	}
+
+	h.logger.InfoContext(ctx, "successful response",
+		slog.Int("code", resp.Code),
+		slog.String("message", resp.Message),
+	)
+
+	return h.WriteJSON(ctx, w, resp, http.StatusOK)
+}
+
+// WriteError 写入错误响应
+func (h *ResponseHandler) WriteError(ctx context.Context, w http.ResponseWriter, err error) error {
+	// 将任意error转换为AppError
+	appErr := h.normalizeError(err)
+
+	// 构建响应（错误响应不包含error详情）
+	resp := &APIResponse[interface{}]{
+		Code:      appErr.Code,
+		Message:   h.getUserMessage(appErr),
+		Data:      nil, // 错误响应不返回data
+		Timestamp: time.Now().Unix(),
+		TraceID:   extractTraceID(ctx),
+	}
+
+	// 记录错误日志（这里才包含完整错误信息）
+	h.logError(ctx, appErr)
+
+	// 映射HTTP状态码
+	statusCode := xerrors.GetHTTPStatus(appErr.Code)
+
+	return h.WriteJSON(ctx, w, resp, statusCode)
+}
+
+// WriteDebugError 写入调试错误响应（仅开发环境使用）
+func (h *ResponseHandler) WriteDebugError(ctx context.Context, w http.ResponseWriter, err error) error {
+	if h.environment == "production" {
+		// 生产环境降级为普通错误响应
+		return h.WriteError(ctx, w, err)
+	}
+
+	appErr := h.normalizeError(err)
+
+	// 开发环境可以返回详细的错误信息
+	detail := &ErrorDetail{
+		Code:     appErr.Code,
+		Message:  appErr.Message,
+		Category: appErr.Category,
+		File:     appErr.File,
+		Line:     appErr.Line,
+		Stack:    appErr.Stack,
+	}
+
+	if appErr.Context != nil && appErr.Context.Metadata != nil {
+		detail.Metadata = make(map[string]interface{})
+		for k, v := range appErr.Context.Metadata {
+			detail.Metadata[k] = v
+		}
+	}
+
+	resp := &APIResponse[*ErrorDetail]{
+		Code:      appErr.Code,
+		Message:   h.getUserMessage(appErr),
+		Data:      &detail,
+		Timestamp: time.Now().Unix(),
+		TraceID:   extractTraceID(ctx),
+	}
+
+	h.logError(ctx, appErr)
+	statusCode := xerrors.GetHTTPStatus(appErr.Code)
+
+	return h.WriteJSON(ctx, w, resp, statusCode)
+}
+
+// normalizeError 将任意error转换为AppError
+func (h *ResponseHandler) normalizeError(err error) *xerrors.AppError {
+	if appErr, ok := err.(*xerrors.AppError); ok {
+		return appErr
+	}
+
+	// 将标准error包装为AppError
+	return xerrors.NewWithError(xerrors.CodeInternalError, "系统内部错误", err)
+}
+
+// getUserMessage 获取面向用户的错误消息
+func (h *ResponseHandler) getUserMessage(appErr *xerrors.AppError) string {
+	// 在生产环境隐藏敏感错误信息
+	if h.environment == "production" && appErr.IsCritical() {
+		return "服务暂时不可用，请稍后重试"
+	}
+
+	// 优先使用metadata中的详细错误消息
+	if appErr.Context != nil && appErr.Context.Metadata != nil {
+		// 优先使用用户消息
+		if userMsg, ok := appErr.Context.Metadata["user_message"]; ok {
+			return userMsg
+		}
+		// 其次使用验证消息（用于表单验证错误）
+		if validationMsg, ok := appErr.Context.Metadata["validation_message"]; ok {
+			return validationMsg
+		}
+		// 最后使用认证消息
+		if authMsg, ok := appErr.Context.Metadata["auth_message"]; ok {
+			return authMsg
+		}
+	}
+
+	return appErr.Message
+}
+
+// logError 记录错误日志
+func (h *ResponseHandler) logError(ctx context.Context, appErr *xerrors.AppError) {
+	// 使用AppError的LogValue方法，避免重复序列化逻辑
+	if appErr.IsCritical() {
+		h.logger.ErrorContext(ctx, "critical error occurred", slog.Any("error", appErr))
+	} else if appErr.Level == xerrors.LevelWarn {
+		h.logger.WarnContext(ctx, "warning occurred", slog.Any("error", appErr))
+	} else {
+		h.logger.InfoContext(ctx, "error occurred", slog.Any("error", appErr))
 	}
 }
 
-// isProduction 检查是否为生产环境
-func isProduction() bool {
-	// 根据你的环境变量或配置来判断
-	// return os.Getenv("ENV") == "production"
-	return false // 这里先返回 false，你可以根据实际情况修改
+// mapHTTPStatus 映射业务错误码到HTTP状态码（使用你的GetHTTPStatus函数）
+func (h *ResponseHandler) mapHTTPStatus(code int) int {
+	return xerrors.GetHTTPStatus(code)
 }
+
+// extractTraceID 从context中提取trace_id
+func extractTraceID(ctx context.Context) string {
+	// 尝试从context中获取trace_id
+	if traceID, ok := ctx.Value("trace_id").(string); ok {
+		return traceID
+	}
+
+	// 或者从OpenTelemetry span中获取
+	// if span := trace.SpanFromContext(ctx); span.IsRecording() {
+	//     return span.SpanContext().TraceID().String()
+	// }
+
+	return ""
+}
+
+// 便捷函数，避免直接操作http.ResponseWriter
 
 // OK 返回成功响应
-func OK[T any](w http.ResponseWriter, r *http.Request, data *T) {
-	JSON(w, r, Success(data))
-}
-
-// OKWithMessage 返回带消息的成功响应
-func OKWithMessage[T any](w http.ResponseWriter, r *http.Request, data *T, message string) {
-	JSON(w, r, SuccessWithMessage(data, message))
+func OK[T any](ctx context.Context, w http.ResponseWriter, h Writer, data *T) error {
+	return h.WriteSuccess(ctx, w, data)
 }
 
 // Error 返回错误响应
-func Error[T any](w http.ResponseWriter, r *http.Request, appErr *xerrors.AppError) {
-	JSON(w, r, ErrorFromAppError[T](appErr))
+func Error(ctx context.Context, w http.ResponseWriter, h Writer, err error) error {
+	return h.WriteError(ctx, w, err)
 }
 
-// 以下是常用错误的便捷函数
-
-// BadRequest 返回参数错误响应
-func BadRequest(w http.ResponseWriter, r *http.Request, message string) {
-	appErr := xerrors.NewValidationError(message)
-	Error[EmptyData](w, r, appErr)
+// 快捷错误响应函数
+func BadRequest(ctx context.Context, w http.ResponseWriter, h Writer, message string) error {
+	err := xerrors.NewValidationError("request", message)
+	return h.WriteError(ctx, w, err)
 }
 
-// Unauthorized 返回未授权响应
-func Unauthorized(w http.ResponseWriter, r *http.Request, message string) {
-	appErr := xerrors.NewAuthError(message)
-	Error[EmptyData](w, r, appErr)
+func Unauthorized(ctx context.Context, w http.ResponseWriter, h Writer, message string) error {
+	err := xerrors.NewAuthError(message)
+	return h.WriteError(ctx, w, err)
 }
 
-// Forbidden 返回权限不足响应
-func Forbidden(w http.ResponseWriter, r *http.Request, message string) {
-	appErr := xerrors.NewPermissionError(message)
-	Error[EmptyData](w, r, appErr)
+func Forbidden(ctx context.Context, w http.ResponseWriter, h Writer, resource, action string) error {
+	err := xerrors.NewPermissionError(resource, action)
+	return h.WriteError(ctx, w, err)
 }
 
-// NotFound 返回资源不存在响应
-func NotFound(w http.ResponseWriter, r *http.Request, resource string) {
-	appErr := xerrors.NewNotFoundError(resource)
-	Error[EmptyData](w, r, appErr)
+func NotFound(ctx context.Context, w http.ResponseWriter, h Writer, resource, identifier string) error {
+	err := xerrors.NewNotFoundError(resource, identifier)
+	return h.WriteError(ctx, w, err)
 }
 
-// InternalServerError 返回内部服务错误响应
-func InternalServerError(w http.ResponseWriter, r *http.Request, message string) {
-	appErr := xerrors.NewSystemError(message)
-	Error[EmptyData](w, r, appErr)
+func InternalServerError(ctx context.Context, w http.ResponseWriter, h Writer, message string) error {
+	err := xerrors.NewWithError(xerrors.CodeInternalError, message, nil)
+	return h.WriteError(ctx, w, err)
+}
+
+// DefaultResponseHandler 创建默认响应处理器
+func DefaultResponseHandler() Writer {
+	// 简单的默认logger实现
+	defaultLogger := &defaultLoggerImpl{
+		logger: slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+			Level: slog.LevelInfo,
+		})),
+	}
+
+	environment := os.Getenv("ENV")
+	if environment == "" {
+		environment = "development"
+	}
+
+	return NewResponseHandler(defaultLogger, environment)
+}
+
+// defaultLoggerImpl 默认logger实现
+type defaultLoggerImpl struct {
+	logger *slog.Logger
+}
+
+func (l *defaultLoggerImpl) InfoContext(ctx context.Context, msg string, args ...any) {
+	l.logger.InfoContext(ctx, msg, args...)
+}
+
+func (l *defaultLoggerImpl) WarnContext(ctx context.Context, msg string, args ...any) {
+	l.logger.WarnContext(ctx, msg, args...)
+}
+
+func (l *defaultLoggerImpl) ErrorContext(ctx context.Context, msg string, args ...any) {
+	l.logger.ErrorContext(ctx, msg, args...)
 }
