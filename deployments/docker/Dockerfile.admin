@@ -7,12 +7,21 @@ RUN go mod download
 # 复制所有源代码
 COPY . .
 
-WORKDIR /app/cmd/admin
-
-RUN CGO_ENABLED=0 go build -o /bin/admin .
+# 在模块根目录构建，指定具体的 main.go 路径
+RUN CGO_ENABLED=0 go build -o /bin/admin ./cmd/admin-server
 
 FROM alpine:latest
+RUN apk --no-cache add ca-certificates
+WORKDIR /app
+
+# 复制二进制文件
 COPY --from=builder /bin/admin /bin/admin
+
+# 复制整个项目结构以保持相对路径正确
+COPY --from=builder /app/configs /app/configs
+
+# 设置工作目录为 cmd/admin-server，这样相对路径 ../configs 就是正确的
+WORKDIR /app/cmd/admin-server
 
 EXPOSE 8080
 CMD [ "/bin/admin" ]

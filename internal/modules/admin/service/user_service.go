@@ -8,6 +8,7 @@ import (
 
 	client "github.com/ory/client-go"
 
+	"tsu-self/internal/model/usermodel"
 	"tsu-self/internal/pkg/log"
 	"tsu-self/internal/pkg/xerrors"
 )
@@ -38,30 +39,8 @@ const (
 	IdentityStateInactive string = "inactive"
 )
 
-// CreateIdentityRequest 创建身份请求
-type CreateIdentityRequest struct {
-	Email    string                 `json:"email" binding:"required,email"`
-	Username string                 `json:"username" binding:"required,min=3,max=30"`
-	Password string                 `json:"password,omitempty" binding:"omitempty,min=8"`
-	Traits   map[string]interface{} `json:"traits,omitempty"`
-}
-
-// UpdateIdentityRequest 更新身份请求
-type UpdateIdentityRequest struct {
-	Email    string                 `json:"email,omitempty" binding:"omitempty,email"`
-	Username string                 `json:"username,omitempty" binding:"omitempty,min=3,max=30"`
-	Traits   map[string]interface{} `json:"traits,omitempty"`
-}
-
-// ListIdentitiesQuery 列表查询参数
-type ListIdentitiesQuery struct {
-	Page    int64  `query:"page" validate:"min=1"`
-	PerPage int64  `query:"per_page" validate:"min=1,max=1000"`
-	Ids     string `query:"ids"`
-}
-
 // ListIdentities 列出身份
-func (s *UserService) ListIdentities(ctx context.Context, query *ListIdentitiesQuery) ([]client.Identity, int64, *xerrors.AppError) {
+func (s *UserService) ListIdentities(ctx context.Context, query *usermodel.ListIdentitiesQuery) ([]client.Identity, int64, *xerrors.AppError) {
 	s.logger.DebugContext(ctx, "列出身份",
 		log.Int64("page", query.Page),
 		log.Int64("per_page", query.PerPage),
@@ -115,7 +94,7 @@ func (s *UserService) GetIdentity(ctx context.Context, id string) (*client.Ident
 }
 
 // CreateIdentity 创建身份
-func (s *UserService) CreateIdentity(ctx context.Context, req *CreateIdentityRequest) (*client.Identity, *xerrors.AppError) {
+func (s *UserService) CreateIdentity(ctx context.Context, req *usermodel.CreateIdentityRequest) (*client.Identity, *xerrors.AppError) {
 	s.logger.InfoContext(ctx, "创建身份",
 		log.String("email", req.Email),
 		log.String("username", req.Username),
@@ -165,7 +144,7 @@ func (s *UserService) CreateIdentity(ctx context.Context, req *CreateIdentityReq
 }
 
 // UpdateIdentity 更新身份
-func (s *UserService) UpdateIdentity(ctx context.Context, id string, req *UpdateIdentityRequest) (*client.Identity, *xerrors.AppError) {
+func (s *UserService) UpdateIdentity(ctx context.Context, id string, req *usermodel.UpdateIdentityRequest) (*client.Identity, *xerrors.AppError) {
 	s.logger.InfoContext(ctx, "更新身份",
 		log.String("identity_id", id),
 	)

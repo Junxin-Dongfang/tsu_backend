@@ -1,0 +1,14 @@
+{
+    "Settings": {
+        "ConsulAddr":"127.0.0.1:8500",
+        "NatsAddr":"127.0.0.1:4222"
+    },
+    "Module": {
+        "admin":[
+            {
+                "Id":"admin",
+                "ProcessID":"development"
+            }
+        ]
+    }
+}

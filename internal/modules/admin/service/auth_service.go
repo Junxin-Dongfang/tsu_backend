@@ -7,6 +7,7 @@ import (
 
 	client "github.com/ory/client-go"
 
+	"tsu-self/internal/model/authmodel"
 	"tsu-self/internal/pkg/log"
 	"tsu-self/internal/pkg/xerrors"
 )
@@ -39,41 +40,22 @@ func NewAuthService(publicURL, adminURL string, logger log.Logger) (*AuthService
 	}, nil
 }
 
-// LoginResult 登录结果
-type LoginResult struct {
-	Success       bool
-	SessionToken  string
-	SessionCookie string
-}
-
-// RegisterResult 注册结果
-type RegisterResult struct {
-	Success       bool
-	IdentityID    string
-	SessionToken  string
-	SessionCookie string
-}
-
-// LoginRequest 登录请求
-type LoginRequest struct {
-	Identifier string `json:"identifier" binding:"required"`
-	Password   string `json:"password" binding:"required"`
-}
-
-// RegisterRequest 注册请求
-type RegisterRequest struct {
-	Email    string `json:"email" binding:"required,email"`
-	Username string `json:"username" binding:"required,min=3,max=30"`
-	Password string `json:"password" binding:"required,min=8"`
-}
-
-// RecoveryRequest 恢复请求
-type RecoveryRequest struct {
-	Email string `json:"email" binding:"required,email"`
+// ValidateLoginRequest 验证登录请求
+func (s *AuthService) ValidateLoginRequest(req *authmodel.LoginRequest) *xerrors.AppError {
+	if req.Identifier == "" {
+		return xerrors.NewValidationError("identifier", "用户标识不能为空")
+	}
+	if req.Password == "" {
+		return xerrors.NewValidationError("password", "密码不能为空")
+	}
+	if len(req.Password) < 8 {
+		return xerrors.NewValidationError("password", "密码长度不能少于8位")
+	}
+	return nil
 }
 
 // Login 执行登录
-func (s *AuthService) Login(ctx context.Context, req *LoginRequest) (*LoginResult, *xerrors.AppError) {
+func (s *AuthService) Login(ctx context.Context, req *authmodel.LoginRequest) (*authmodel.LoginResult, *xerrors.AppError) {
 	s.logger.InfoContext(ctx, "开始登录流程",
 		log.String("identifier", req.Identifier),
 	)
@@ -117,7 +99,7 @@ func (s *AuthService) Login(ctx context.Context, req *LoginRequest) (*LoginResul
 			sessionToken = *loginResult.SessionToken
 		}
 
-		return &LoginResult{
+		return &authmodel.LoginResult{
 			Success:       true,
 			SessionToken:  sessionToken,
 			SessionCookie: extractSessionCookie(resp),
@@ -130,7 +112,7 @@ func (s *AuthService) Login(ctx context.Context, req *LoginRequest) (*LoginResul
 }
 
 // Register 执行注册
-func (s *AuthService) Register(ctx context.Context, req *RegisterRequest) (*RegisterResult, *xerrors.AppError) {
+func (s *AuthService) Register(ctx context.Context, req *authmodel.RegisterRequest) (*authmodel.RegisterResult, *xerrors.AppError) {
 	s.logger.InfoContext(ctx, "开始注册流程",
 		log.String("email", req.Email),
 		log.String("username", req.Username),
@@ -181,7 +163,7 @@ func (s *AuthService) Register(ctx context.Context, req *RegisterRequest) (*Regi
 			sessionToken = *registrationResult.SessionToken
 		}
 
-		return &RegisterResult{
+		return &authmodel.RegisterResult{
 			Success:       true,
 			IdentityID:    registrationResult.Session.Identity.Id,
 			SessionToken:  sessionToken,
@@ -224,7 +206,7 @@ func (s *AuthService) GetSession(ctx context.Context, sessionToken string) (*cli
 }
 
 // InitRecovery 初始化账户恢复
-func (s *AuthService) InitRecovery(ctx context.Context, req *RecoveryRequest) *xerrors.AppError {
+func (s *AuthService) InitRecovery(ctx context.Context, req *authmodel.RecoveryRequest) *xerrors.AppError {
 	s.logger.InfoContext(ctx, "开始账户恢复流程",
 		log.String("email", req.Email),
 	)
@@ -347,29 +329,8 @@ func extractSessionCookie(resp *http.Response) string {
 	return ""
 }
 
-// ValidateLoginRequest 验证登录请求
-func (s *AuthService) ValidateLoginRequest(req *LoginRequest) *xerrors.AppError {
-	if req.Identifier == "" {
-		return xerrors.NewValidationError("identifier", "用户名或邮箱不能为空")
-	}
-
-	if req.Password == "" {
-		return xerrors.NewValidationError("password", "密码不能为空")
-	}
-
-	if len(req.Password) < 6 {
-		return xerrors.FromCode(xerrors.CodePasswordTooShort)
-	}
-
-	if len(req.Password) > 128 {
-		return xerrors.FromCode(xerrors.CodePasswordTooLong)
-	}
-
-	return nil
-}
-
 // ValidateRegisterRequest 验证注册请求
-func (s *AuthService) ValidateRegisterRequest(req *RegisterRequest) *xerrors.AppError {
+func (s *AuthService) ValidateRegisterRequest(req *authmodel.RegisterRequest) *xerrors.AppError {
 	if req.Email == "" {
 		return xerrors.NewValidationError("email", "邮箱不能为空")
 	}
