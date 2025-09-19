@@ -7,7 +7,13 @@
         "admin":[
             {
                 "Id":"admin",
-                "ProcessID":"development"
+                "ProcessID":"development",
+                "Settings": {
+                    "kratos_public_url": "http://kratos:4433",
+                    "kratos_admin_url": "http://kratos:4434",
+                    "environment": "development",
+                    "http_port": "8081"
+                }
             }
         ]
     }

@@ -1,11 +1,13 @@
 module tsu-self
 
-go 1.24.6
+go 1.25.1
 
 require (
 	github.com/google/uuid v1.6.0
+	github.com/hashicorp/consul/api v1.20.0
 	github.com/labstack/echo/v4 v4.13.4
 	github.com/liangdas/mqant v1.5.3
+	github.com/nats-io/nats.go v1.45.0
 	github.com/ory/client-go v1.22.1
 	github.com/swaggo/echo-swagger v1.4.1
 )
@@ -30,7 +32,6 @@ require (
 	github.com/go-openapi/swag/stringutils v0.24.0 // indirect
 	github.com/go-openapi/swag/typeutils v0.24.0 // indirect
 	github.com/go-openapi/swag/yamlutils v0.24.0 // indirect
-	github.com/hashicorp/consul/api v1.20.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.1 // indirect
 	github.com/hashicorp/go-hclog v0.14.1 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.0 // indirect
@@ -49,7 +50,6 @@ require (
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
-	github.com/nats-io/nats.go v1.45.0 // indirect
 	github.com/nats-io/nkeys v0.4.11 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/pborman/uuid v1.2.0 // indirect

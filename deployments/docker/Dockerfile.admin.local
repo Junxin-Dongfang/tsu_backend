@@ -1,0 +1,37 @@
+FROM golang:1.25.1-alpine
+
+WORKDIR /app
+
+# 安装必要的工具，包括git
+RUN apk add --no-cache git
+
+# 安装air用于热重载
+RUN go install github.com/air-verse/air@v1.63.0
+
+# 复制go.mod和go.sum
+COPY go.mod go.sum ./
+RUN go mod download
+
+# 复制源码（开发时会被volume覆盖）
+COPY . .
+
+# 创建air配置文件
+RUN echo '[build]' > .air.toml && \
+    echo '  cmd = "go build -o ./tmp/main ./cmd/admin-server"' >> .air.toml && \
+    echo '  bin = "tmp/main"' >> .air.toml && \
+    echo '  full_bin = "./tmp/main"' >> .air.toml && \
+    echo '  include_ext = ["go", "tpl", "tmpl", "html", "yaml", "yml", "json"]' >> .air.toml && \
+    echo '  exclude_dir = ["tmp", "vendor", "web", "docs", "test", "migrations", "nginx", "scripts", ".git"]' >> .air.toml && \
+    echo '  include_dir = ["cmd", "internal", "api"]' >> .air.toml && \
+    echo '  log = "build-errors.log"' >> .air.toml && \
+    echo '' >> .air.toml && \
+    echo '[color]' >> .air.toml && \
+    echo '  main = "magenta"' >> .air.toml && \
+    echo '  watcher = "cyan"' >> .air.toml && \
+    echo '  build = "yellow"' >> .air.toml && \
+    echo '  runner = "green"' >> .air.toml
+
+EXPOSE 8080
+
+# 使用air启动，实现热重载
+CMD ["air"]

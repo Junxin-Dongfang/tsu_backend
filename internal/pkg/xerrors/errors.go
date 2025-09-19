@@ -45,7 +45,7 @@ type ErrorContext struct {
 	Metadata  map[string]string `json:"metadata,omitempty"`
 }
 
-// AppError 领域错误（专注于业务逻辑）
+// AppError 领域错误
 type AppError struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`

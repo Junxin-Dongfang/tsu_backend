@@ -7,6 +7,7 @@ import (
 	"tsu-self/internal/model/authmodel"
 	"tsu-self/internal/model/usermodel"
 	"tsu-self/internal/pkg/log"
+	_ "tsu-self/internal/pkg/response" // For swagger documentation types
 	"tsu-self/internal/pkg/xerrors"
 
 	"github.com/labstack/echo/v4"
@@ -419,13 +420,11 @@ func (m *AdminModule) healthCheck(c echo.Context) error {
 
 // readinessCheck 就绪检查
 func (m *AdminModule) readinessCheck(c echo.Context) error {
-	// 这里可以检查依赖服务是否就绪
-	// 例如检查 Kratos 是否可达
+
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"status":  "ready",
 		"service": "tsu-admin",
 		"checks": map[string]string{
-			"kratos":   "ok",
 			"database": "ok",
 		},
 		"timestamp": time.Now().Unix(),

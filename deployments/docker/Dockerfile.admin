@@ -1,4 +1,4 @@
-FROM golang:1.24-alpine AS builder
+FROM golang:1.25.1-alpine AS builder
 WORKDIR /app
 
 COPY go.mod go.sum ./
@@ -20,7 +20,8 @@ COPY --from=builder /bin/admin /bin/admin
 # 复制整个项目结构以保持相对路径正确
 COPY --from=builder /app/configs /app/configs
 
-# 设置工作目录为 cmd/admin-server，这样相对路径 ../configs 就是正确的
+# 创建 cmd/admin-server 目录和日志目录，并设置为工作目录
+RUN mkdir -p /app/cmd/admin-server /app/cmd/admin-server/logs/admin-server
 WORKDIR /app/cmd/admin-server
 
 EXPOSE 8080

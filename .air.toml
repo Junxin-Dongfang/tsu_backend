@@ -1,0 +1,14 @@
+[build]
+  cmd = "go build -o ./tmp/main ./cmd/admin-server"
+  bin = "tmp/main"
+  full_bin = "./tmp/main"
+  include_ext = ["go", "tpl", "tmpl", "html", "yaml", "yml", "json"]
+  exclude_dir = ["tmp", "vendor", "web", "docs", "test", "migrations", "nginx", "scripts", ".git"]
+  include_dir = ["cmd", "internal", "api"]
+  log = "build-errors.log"
+
+[color]
+  main = "magenta"
+  watcher = "cyan"
+  build = "yellow"
+  runner = "green"

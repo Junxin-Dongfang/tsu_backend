@@ -19,6 +19,11 @@ import (
 	"tsu-self/internal/pkg/response"
 )
 
+var Module = func() module.Module {
+	this := new(AdminModule)
+	return this
+}
+
 type AdminModule struct {
 	basemodule.BaseModule
 	echoServer  *echo.Echo
@@ -95,6 +100,7 @@ func (m *AdminModule) OnDestroy() {
 func (m *AdminModule) initServices() {
 	// 从配置中获取参数
 	settings := m.GetModuleSettings().Settings
+	log.Info("初始化服务", log.Any("settings", settings))
 	kratosPublicURL := settings["kratos_public_url"].(string)
 	kratosAdminURL := settings["kratos_admin_url"].(string)
 	environment := settings["environment"].(string)
@@ -148,7 +154,7 @@ func (m *AdminModule) setupRoutes() {
 	m.echoServer.GET("/ready", m.readinessCheck)
 
 	// API 路由
-	api := m.echoServer.Group("/admin/api/v1")
+	api := m.echoServer.Group("")
 
 	// 认证路由
 	auth := api.Group("/auth")

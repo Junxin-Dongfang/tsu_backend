@@ -1,15 +1,16 @@
 [
   {
-    "id": "tsu-api-rule",
+    "id": "tsu-admin-api-rule",
     "match": {
-      "url": "http://<.*>/api/<.*>",
+      "url": "http://<.*>/api/admin/<.*>",
       "methods": ["GET", "POST", "PUT", "DELETE", "PATCH"]
     },
     "authenticators": [{ "handler": "cookie_session" }],
     "authorizer": { "handler": "allow" },
     "mutators": [{ "handler": "header" }],
     "upstream": {
-      "url": "http://admin:8080"
+      "url": "http://admin:8081",
+      "strip_path": "/api/admin"
     },
     "errors": [
       {

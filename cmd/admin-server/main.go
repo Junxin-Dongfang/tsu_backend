@@ -59,7 +59,7 @@ func main() {
 
 	// 创建 mqant 应用
 	app := mqant.CreateApp(
-		module.Configure("../configs/server/admin-server.json"),
+		module.Configure("./configs/server/admin-server.json"),
 		module.KillWaitTTL(1*time.Minute),
 		module.Debug(true),
 		module.BILogDir("./logs/admin-server"),
@@ -72,6 +72,7 @@ func main() {
 	app.OnConfigurationLoaded(func(app module.App) {
 		log.Info("配置文件加载完成")
 	})
+	log.Info("应用配置加载完成", "settings", app.GetSettings().Settings)
 
 	// 注册模块
 	log.Info("注册模块...")

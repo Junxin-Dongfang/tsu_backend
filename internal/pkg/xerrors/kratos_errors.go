@@ -280,48 +280,66 @@ func TranslateKratosErrorText(errorText string) (int, string) {
 	// 转为小写以便匹配
 	errorTextLower := strings.ToLower(errorText)
 
-	// 按优先级顺序进行模式匹配
+	// 按优先级顺序进行模式匹配，包含更具体的错误信息
 	patterns := []struct {
 		keywords []string
 		code     int
+		message  string // 自定义错误消息
 	}{
 		// 凭据相关（最高优先级）
-		{[]string{"credentials are invalid", "invalid credentials", "wrong credentials"}, CodeInvalidCredentials},
-		{[]string{"account not found", "user not found", "no such user"}, CodeAccountNotFound},
+		{[]string{"credentials are invalid", "invalid credentials", "wrong credentials", "provided credentials are invalid"}, CodeInvalidCredentials, "用户名或密码错误"},
+		{[]string{"account not found", "user not found", "no such user", "identifier does not exist"}, CodeAccountNotFound, "账户不存在"},
 
-		// 重复资源（高优先级）
-		{[]string{"already taken", "already exists", "duplicate", "identifier is already taken"}, CodeDuplicateResource},
-		{[]string{"email is already taken", "email already exists"}, CodeEmailExists},
-		{[]string{"username is already taken", "username already exists"}, CodeUsernameExists},
+		// 邮箱相关错误（高优先级）
+		{[]string{"email is already taken", "email already exists", "email already in use"}, CodeEmailExists, "该邮箱已被注册"},
+		{[]string{"email format", "invalid email", "malformed email", "email is not valid"}, CodeInvalidParams, "邮箱格式不正确"},
+		{[]string{"email is required", "email cannot be empty", "email missing"}, CodeInvalidParams, "请输入邮箱地址"},
+
+		// 用户名相关错误
+		{[]string{"username is already taken", "username already exists", "username already in use"}, CodeUsernameExists, "该用户名已被使用"},
+		{[]string{"username format", "invalid username", "username is not valid"}, CodeInvalidParams, "用户名格式不正确"},
+		{[]string{"username is required", "username cannot be empty", "username missing"}, CodeInvalidParams, "请输入用户名"},
+		{[]string{"username too short", "username minimum length"}, CodeInvalidParams, "用户名长度不能少于3个字符"},
+		{[]string{"username too long", "username maximum length"}, CodeInvalidParams, "用户名长度不能超过30个字符"},
 
 		// 密码策略（中等优先级）
-		{[]string{"password is too short", "password too short", "minimum length"}, CodePasswordTooShort},
-		{[]string{"password is too long", "password too long", "maximum length"}, CodePasswordTooLong},
-		{[]string{"password policy", "password security", "password strength", "too many breaches"}, CodePasswordPolicyError},
-		{[]string{"password is too similar", "too similar to identifier"}, CodePasswordTooSimilar},
-		{[]string{"same as old password", "new password same as old"}, CodePasswordSameAsOld},
+		{[]string{"password is too short", "password too short", "password minimum length"}, CodePasswordTooShort, "密码长度不能少于8个字符"},
+		{[]string{"password is too long", "password too long", "password maximum length"}, CodePasswordTooLong, "密码长度不能超过128个字符"},
+		{[]string{"password policy", "password security", "password strength", "too many breaches", "password has been found in data breaches"}, CodePasswordPolicyError, "密码强度不够，请使用更复杂的密码"},
+		{[]string{"password is too similar", "too similar to identifier", "password too similar"}, CodePasswordTooSimilar, "密码不能与用户信息太相似"},
+		{[]string{"same as old password", "new password same as old"}, CodePasswordSameAsOld, "新密码不能与旧密码相同"},
+		{[]string{"password is required", "password cannot be empty", "password missing"}, CodeInvalidParams, "请输入密码"},
+
+		// 通用重复资源（较低优先级，避免覆盖具体的邮箱/用户名错误）
+		{[]string{"already taken", "already exists", "duplicate", "identifier is already taken"}, CodeDuplicateResource, "该信息已被使用"},
 
 		// 验证和流程相关
-		{[]string{"address is not verified", "email not verified", "not verified"}, CodeAddressNotVerified},
-		{[]string{"flow expired", "session expired", "expired"}, CodeFlowExpired},
-		{[]string{"code is invalid", "code already used", "invalid code", "code expired"}, CodeCodeInvalidOrUsed},
-		{[]string{"traits do not match", "traits mismatch"}, CodeTraitsMismatch},
-		{[]string{"captcha", "verification failed"}, CodeCaptchaError},
+		{[]string{"address is not verified", "email not verified", "not verified"}, CodeAddressNotVerified, "邮箱地址未验证"},
+		{[]string{"flow expired", "session expired", "expired"}, CodeFlowExpired, "操作已超时，请重新开始"},
+		{[]string{"code is invalid", "code already used", "invalid code", "code expired"}, CodeCodeInvalidOrUsed, "验证码无效或已使用"},
+		{[]string{"traits do not match", "traits mismatch"}, CodeTraitsMismatch, "用户信息不匹配"},
+		{[]string{"captcha", "verification failed"}, CodeCaptchaError, "验证码错误"},
 
 		// TOTP/MFA 相关
-		{[]string{"totp", "authenticator", "recovery code", "lookup"}, CodeTOTPError},
-		{[]string{"webauthn", "security key", "biometric"}, CodeWebAuthnError},
+		{[]string{"totp", "authenticator", "recovery code", "lookup"}, CodeTOTPError, "动态验证码错误"},
+		{[]string{"webauthn", "security key", "biometric"}, CodeWebAuthnError, "生物识别验证失败"},
 
 		// 通用验证错误（最低优先级）
-		{[]string{"required", "missing", "cannot be empty"}, CodeInvalidParams},
-		{[]string{"invalid format", "format is invalid", "malformed"}, CodeInvalidParams},
-		{[]string{"validation failed", "invalid input", "bad request"}, CodeInvalidParams},
+		{[]string{"required", "missing", "cannot be empty"}, CodeInvalidParams, "必填字段不能为空"},
+		{[]string{"invalid format", "format is invalid", "malformed"}, CodeInvalidParams, "输入格式不正确"},
+		{[]string{"validation failed", "invalid input", "bad request"}, CodeInvalidParams, "输入信息有误，请检查后重试"},
+		{[]string{"minimum", "too short"}, CodeInvalidParams, "输入长度不够"},
+		{[]string{"maximum", "too long"}, CodeInvalidParams, "输入长度过长"},
 	}
 
 	// 按顺序匹配模式
 	for _, pattern := range patterns {
 		for _, keyword := range pattern.keywords {
 			if strings.Contains(errorTextLower, keyword) {
+				// 优先使用自定义消息，如果没有则使用默认消息
+				if pattern.message != "" {
+					return pattern.code, pattern.message
+				}
 				if msg, exists := codeMessages[pattern.code]; exists {
 					return pattern.code, msg
 				}
