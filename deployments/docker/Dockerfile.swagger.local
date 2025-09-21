@@ -1,28 +1,40 @@
-FROM golang:1.25.1-alpine AS builder
+FROM golang:1.25.1-alpine
 
 WORKDIR /app
 
-# 安装 swag
+# 安装必要的工具
+RUN apk add --no-cache git
+
+# 安装 swag 工具
 RUN go install github.com/swaggo/swag/cmd/swag@latest
 
-# 复制源代码
+# 安装 air 用于热重载
+RUN go install github.com/air-verse/air@v1.63.0
+
+# 复制 go.mod 和 go.sum
 COPY go.mod go.sum ./
 RUN go mod download
 
+# 复制源码（开发时会被 volume 覆盖）
 COPY . .
 
-# 生成 swagger 文档
-RUN swag init -g cmd/swagger-server/main.go --parseDependency --parseInternal --dir ./ --output ./docs
+# 创建 air 配置文件
+RUN echo '[build]' > .air.toml && \
+    echo '  cmd = "go build -o ./tmp/swagger-server ./cmd/swagger-server"' >> .air.toml && \
+    echo '  bin = "tmp/swagger-server"' >> .air.toml && \
+    echo '  full_bin = "./tmp/swagger-server"' >> .air.toml && \
+    echo '  include_ext = ["go", "tpl", "tmpl", "html", "yaml", "yml", "json"]' >> .air.toml && \
+    echo '  exclude_dir = ["tmp", "vendor", "web", "docs", "test", "migrations", "nginx", "scripts", ".git"]' >> .air.toml && \
+    echo '  include_dir = ["cmd", "internal", "api"]' >> .air.toml && \
+    echo '  log = "build-errors.log"' >> .air.toml && \
+    echo '' >> .air.toml && \
+    echo '[color]' >> .air.toml && \
+    echo '  main = "magenta"' >> .air.toml && \
+    echo '  watcher = "cyan"' >> .air.toml && \
+    echo '  build = "yellow"' >> .air.toml && \
+    echo '  runner = "green"' >> .air.toml
 
-# 构建应用
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o swagger-server cmd/swagger-server/main.go
+EXPOSE 8080
 
-FROM alpine:latest
-RUN apk --no-cache add ca-certificates
-WORKDIR /root/
-
-COPY --from=builder /app/swagger-server .
-COPY --from=builder /app/web ./web
-COPY --from=builder /app/docs ./docs
-
-CMD ["./swagger-server"]
+# 使用 air 启动，实现热重载
+CMD ["air"]

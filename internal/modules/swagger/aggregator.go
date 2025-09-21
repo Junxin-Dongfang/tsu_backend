@@ -7,10 +7,12 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"tsu-self/internal/pkg/log"
 )
 
 type Aggregator struct {
 	httpClient *http.Client
+	logger     log.Logger
 }
 
 func NewAggregator() *Aggregator {
@@ -18,20 +20,22 @@ func NewAggregator() *Aggregator {
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
 		},
+		logger: log.GetLogger(),
 	}
 }
 
 type SwaggerDoc struct {
-	Swagger             string                 `json:"swagger"`
-	Info                map[string]interface{} `json:"info"`
-	Host                string                 `json:"host,omitempty"`
-	BasePath            string                 `json:"basePath,omitempty"`
-	Schemes             []string               `json:"schemes,omitempty"`
-	Consumes            []string               `json:"consumes,omitempty"`
-	Produces            []string               `json:"produces,omitempty"`
-	Paths               map[string]interface{} `json:"paths"`
-	Definitions         map[string]interface{} `json:"definitions,omitempty"`
-	SecurityDefinitions map[string]interface{} `json:"securityDefinitions,omitempty"`
+	Swagger             string                   `json:"swagger"`
+	Info                map[string]interface{}   `json:"info"`
+	Host                string                   `json:"host,omitempty"`
+	BasePath            string                   `json:"basePath,omitempty"`
+	Schemes             []string                 `json:"schemes,omitempty"`
+	Consumes            []string                 `json:"consumes,omitempty"`
+	Produces            []string                 `json:"produces,omitempty"`
+	Paths               map[string]interface{}   `json:"paths"`
+	Definitions         map[string]interface{}   `json:"definitions,omitempty"`
+	SecurityDefinitions map[string]interface{}   `json:"securityDefinitions,omitempty"`
+	Tags                []map[string]interface{} `json:"tags,omitempty"`
 }
 
 func (a *Aggregator) AggregateDocuments(services []ServiceInfo) (*SwaggerDoc, error) {
@@ -39,8 +43,12 @@ func (a *Aggregator) AggregateDocuments(services []ServiceInfo) (*SwaggerDoc, er
 		Swagger: "2.0",
 		Info: map[string]interface{}{
 			"title":       "TSU Microservices API",
-			"description": "Aggregated API documentation for all microservices",
+			"description": "聚合的微服务 API 文档",
 			"version":     "1.0.0",
+			"contact": map[string]interface{}{
+				"name":  "TSU Team",
+				"email": "support@tsu.com",
+			},
 		},
 		Host:        "localhost",
 		BasePath:    "/api",
@@ -57,15 +65,19 @@ func (a *Aggregator) AggregateDocuments(services []ServiceInfo) (*SwaggerDoc, er
 				"description": "Bearer token authentication",
 			},
 		},
+		Tags: []map[string]interface{}{},
 	}
 
 	// 获取每个服务的文档
 	for _, service := range services {
 		doc, err := a.fetchServiceDoc(service)
 		if err != nil {
-			fmt.Printf("Failed to fetch doc for service %s: %v\n", service.Name, err)
+			a.logger.Error("获取服务文档失败", err, log.String("service", service.Name))
 			continue
 		}
+
+		// 合并标签
+		a.mergeTags(aggregatedDoc, service)
 
 		// 合并路径
 		a.mergePaths(aggregatedDoc, doc, service)
@@ -80,14 +92,16 @@ func (a *Aggregator) AggregateDocuments(services []ServiceInfo) (*SwaggerDoc, er
 func (a *Aggregator) fetchServiceDoc(service ServiceInfo) (*SwaggerDoc, error) {
 	url := fmt.Sprintf("http://%s:%d/swagger/doc.json", service.Address, service.Port)
 
+	a.logger.Info("获取服务文档", log.String("url", url))
+
 	resp, err := a.httpClient.Get(url)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch %s: %w", url, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("service returned status %d", resp.StatusCode)
+		return nil, fmt.Errorf("service %s returned status %d", service.Name, resp.StatusCode)
 	}
 
 	body, err := io.ReadAll(resp.Body)
@@ -103,6 +117,14 @@ func (a *Aggregator) fetchServiceDoc(service ServiceInfo) (*SwaggerDoc, error) {
 	return &doc, nil
 }
 
+func (a *Aggregator) mergeTags(target *SwaggerDoc, service ServiceInfo) {
+	tag := map[string]interface{}{
+		"name":        service.DisplayName,
+		"description": fmt.Sprintf("%s 服务相关 API", service.DisplayName),
+	}
+	target.Tags = append(target.Tags, tag)
+}
+
 func (a *Aggregator) mergePaths(target *SwaggerDoc, source *SwaggerDoc, service ServiceInfo) {
 	for path, methods := range source.Paths {
 		// 添加服务前缀
@@ -116,12 +138,12 @@ func (a *Aggregator) mergePaths(target *SwaggerDoc, source *SwaggerDoc, service 
 					if tags, exists := detailsMap["tags"]; exists {
 						if tagsList, ok := tags.([]interface{}); ok {
 							// 在现有标签前添加服务名
-							newTags := []interface{}{strings.Title(service.Name)}
+							newTags := []interface{}{service.DisplayName}
 							newTags = append(newTags, tagsList...)
 							detailsMap["tags"] = newTags
 						}
 					} else {
-						detailsMap["tags"] = []interface{}{strings.Title(service.Name)}
+						detailsMap["tags"] = []interface{}{service.DisplayName}
 					}
 				}
 			}

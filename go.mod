@@ -10,6 +10,7 @@ require (
 	github.com/nats-io/nats.go v1.45.0
 	github.com/ory/client-go v1.22.1
 	github.com/swaggo/echo-swagger v1.4.1
+	github.com/swaggo/swag v1.16.6
 )
 
 require (
@@ -55,7 +56,6 @@ require (
 	github.com/pborman/uuid v1.2.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/swaggo/files/v2 v2.0.2 // indirect
-	github.com/swaggo/swag v1.16.6 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	golang.org/x/crypto v0.42.0 // indirect

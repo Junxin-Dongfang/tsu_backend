@@ -1,4 +1,14 @@
-// File: cmd/admin/main.go
+// @title Tsu Admin API
+// @version 1.0
+// @description Tsu 后台管理系统 API
+// @contact.name Tsu Team
+// @contact.email support@tsu.com
+// @host localhost
+// @BasePath /
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Bearer token format: Bearer {token}
 package main
 
 import (
@@ -20,7 +30,7 @@ import (
 // @description Tsu 后台管理 服务 API 文档
 // @contact.name Tsu Team
 // @contact.email tsu@tsu.com
-// @host localhost:8080
+// @host localhost
 // @BasePath /admin/api/v1
 // @schemes http
 // @securityDefinitions.apikey BearerAuth

@@ -1,3 +1,15 @@
+// @title Tsu Admin API
+// @version 1.0
+// @description Tsu 后台管理系统 API
+// @contact.name Tsu Team
+// @contact.email support@tsu.com
+// @host localhost
+// @BasePath /
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Bearer token format: Bearer {token}
+
 package admin
 
 import (

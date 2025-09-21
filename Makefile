@@ -15,15 +15,15 @@ migrate-up:
 migrate-down:
 	migrate -database $(MAIN_DB_URL) -path ./migrations down 1
 
-.PHONY: help swagger-gen swagger-admin swagger-game dev-up dev-down
+.PHONY: help swagger-gen swagger-admin dev-up dev-down dev-logs
 
 help:
 	@echo "Available commands:"
-	@echo "  swagger-gen    - Generate all swagger docs"
-	@echo "  swagger-admin  - Generate admin service swagger docs"
-	@echo "  swagger-game   - Generate game service swagger docs"
+	@echo "  swagger-gen     - Generate admin service swagger docs"
 	@echo "  dev-up         - Start development environment"
 	@echo "  dev-down       - Stop development environment"
+	@echo "  dev-logs       - Show logs from all services"
+	@echo "  dev-rebuild    - Rebuild and restart development environment"
 
 # 安装 swag 工具
 install-swag:
@@ -31,23 +31,29 @@ install-swag:
 
 # 生成 admin 服务的 swagger 文档
 swagger-admin: install-swag
-	swag init -g internal/modules/admin/http_handle.go -o ./docs/admin
-
-# 生成 game 服务的 swagger 文档（如果有的话）
-swagger-game: install-swag
-	swag init -g internal/modules/game/http_handle.go -o ./docs/game
+	swag init -g internal/modules/admin/http_handle.go -o ./docs
 
 # 生成所有 swagger 文档
-swagger-gen: swagger-admin swagger-game
+swagger-gen: swagger-admin
 
 # 启动开发环境
 dev-up:
+	docker network create tsu-network 2>/dev/null || true
 	docker-compose -f deployments/docker-compose/docker-compose-main.local.yml up -d
 
 # 停止开发环境
 dev-down:
 	docker-compose -f deployments/docker-compose/docker-compose-main.local.yml down
 
+# 查看日志
+dev-logs:
+	docker-compose -f deployments/docker-compose/docker-compose-main.local.yml logs -f
+
 # 重新构建并启动
 dev-rebuild:
 	docker-compose -f deployments/docker-compose/docker-compose-main.local.yml up -d --build
+
+# 清理
+clean:
+	docker-compose -f deployments/docker-compose/docker-compose-main.local.yml down -v
+	docker system prune -f
