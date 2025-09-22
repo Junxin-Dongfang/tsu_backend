@@ -1,0 +1,27 @@
+{
+    "Settings": {
+        "ConsulAddr":"127.0.0.1:8500",
+        "NatsAddr":"127.0.0.1:4222"
+    },
+    "Module": {
+        "auth":[
+            {
+                "Id":"auth",
+                "ProcessID":"development",
+                "Settings": {
+                    "kratos_public_url": "http://kratos:4433",
+                    "kratos_admin_url": "http://kratos:4434",
+                    "keto_read_url": "http://keto:4466",
+                    "keto_write_url": "http://keto:4467",
+                    "redis_addr": "localhost:6379",
+                    "redis_password": "tsu_redis_password",
+                    "redis_db": 0,
+                    "jwt_secret": "your-super-secret-jwt-key-change-in-production",
+                    "token_ttl_minutes": 30,
+                    "environment": "development",
+                    "database_url": "postgres://ory_user:ory_test@localhost:5433/ory_db?sslmode=disable&search_path=kratos"
+                }
+            }
+        ]
+    }
+}

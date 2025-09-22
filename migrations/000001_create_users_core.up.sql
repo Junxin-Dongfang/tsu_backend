@@ -11,6 +11,15 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
+--创建性别枚举类型
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'gender_enum') THEN
+        CREATE TYPE gender_enum AS ENUM ('male', 'female', 'other', 'prefer_not_to_say');
+    END IF;
+END;
+$$;
+
 -- =============================================================================
 -- 用户核心表：整合认证信息与业务数据
 -- 注意：这个表与 Kratos identities 表保持松耦合，可以独立存在
@@ -21,10 +30,13 @@ CREATE TABLE IF NOT EXISTS users (
     id                 UUID PRIMARY KEY,
     
     -- 业务核心字段
-    is_premium         BOOLEAN NOT NULL DEFAULT FALSE,
-    diamond_count      INTEGER NOT NULL DEFAULT 0 CHECK (diamond_count >= 0),
-    level              INTEGER NOT NULL DEFAULT 1 CHECK (level >= 1),
-    experience         INTEGER NOT NULL DEFAULT 0 CHECK (experience >= 0),
+    is_premium         BOOLEAN NOT NULL DEFAULT FALSE, --是否为高级用户
+    diamond_count      INTEGER NOT NULL DEFAULT 0 CHECK (diamond_count >= 0),--钻石数量
+
+    --用户信息
+    username          VARCHAR(50) UNIQUE NOT NULL,
+    email             VARCHAR(255) UNIQUE NOT NULL,
+    phone_number      VARCHAR(20) UNIQUE,
     
     -- 用户状态管理
     is_banned          BOOLEAN NOT NULL DEFAULT FALSE,
@@ -32,19 +44,25 @@ CREATE TABLE IF NOT EXISTS users (
     ban_reason         TEXT,
     
     -- 个人资料
-    avatar_url         VARCHAR(500),
-    bio                TEXT,
-    display_name       VARCHAR(100),
-    birth_date         DATE,
-    gender             VARCHAR(10) CHECK (gender IN ('male', 'female', 'other', 'prefer_not_to_say')),
-    timezone           VARCHAR(50) DEFAULT 'UTC',
-    language           VARCHAR(10) DEFAULT 'zh-CN',
+    avatar_url         VARCHAR(500),-- 头像URL
+    bio                TEXT,-- 个人简介
+    display_name       VARCHAR(100),-- 显示名称
+    birth_date         DATE,-- 出生日期
+    gender             gender_enum,-- 性别
+    timezone           VARCHAR(50) DEFAULT 'UTC',-- 时区
+    language           VARCHAR(10) DEFAULT 'zh-CN',-- 语言偏好
     
     -- 业务统计
-    total_spent        DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-    referral_code      VARCHAR(20) UNIQUE,
-    referred_by        UUID REFERENCES users(id),
-    
+    total_spent        DECIMAL(12,2) NOT NULL DEFAULT 0.00,-- 总消费金额
+    referral_code      VARCHAR(20) UNIQUE,-- 推荐码
+    referred_by        UUID REFERENCES users(id),-- 被推荐人
+    referral_count     INTEGER NOT NULL DEFAULT 0 CHECK (referral_count >= 0),-- 推荐人数
+
+    --登录追踪
+    last_login_at      TIMESTAMPTZ,-- 上次登录时间
+    last_login_ip      VARCHAR(45),-- 上次登录IP
+    login_count        INTEGER NOT NULL DEFAULT 0 CHECK (login_count >= 0),-- 登录次数
+
     -- 时间戳
     created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -55,7 +73,6 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE UNIQUE INDEX idx_users_referral_code ON users(referral_code) WHERE referral_code IS NOT NULL AND deleted_at IS NULL;
 CREATE INDEX idx_users_is_premium ON users(is_premium) WHERE deleted_at IS NULL;
 CREATE INDEX idx_users_is_banned ON users(is_banned) WHERE deleted_at IS NULL;
-CREATE INDEX idx_users_level ON users(level) WHERE deleted_at IS NULL;
 CREATE INDEX idx_users_created_at ON users(created_at) WHERE deleted_at IS NULL;
 CREATE INDEX idx_users_referred_by ON users(referred_by) WHERE deleted_at IS NULL;
 
@@ -63,6 +80,31 @@ CREATE INDEX idx_users_referred_by ON users(referred_by) WHERE deleted_at IS NUL
 CREATE TRIGGER update_users_updated_at 
     BEFORE UPDATE ON users 
     FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+
+-- 设备类型枚举
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'device_type_enum') THEN
+        CREATE TYPE device_type_enum AS ENUM ('mobile', 'desktop', 'tablet', 'other');
+    END IF;
+END;
+$$;
+
+-- 登录方式枚举
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'login_method_enum') THEN
+        CREATE TYPE login_method_enum AS ENUM ('password', 'oauth', 'sms', 'magic_link', 'biometric');
+    END IF;
+END;
+
+-- 登录结果枚举
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'login_status_enum') THEN
+        CREATE TYPE login_status_enum AS ENUM ('success', 'failed', 'blocked');
+    END IF;
+END;
 
 -- =============================================================================
 -- 用户登录历史表
@@ -80,7 +122,7 @@ CREATE TABLE IF NOT EXISTS user_login_history (
     -- 客户端信息
     ip_address     VARCHAR(45) NOT NULL,
     user_agent     TEXT,
-    device_type    VARCHAR(50), -- mobile, desktop, tablet
+    device_type    device_type_enum,
     browser_name   VARCHAR(100),
     browser_version VARCHAR(50),
     os_name        VARCHAR(100),
@@ -100,7 +142,7 @@ CREATE TABLE IF NOT EXISTS user_login_history (
     risk_score     INTEGER CHECK (risk_score >= 0 AND risk_score <= 100),
     
     -- 状态
-    status         VARCHAR(20) NOT NULL DEFAULT 'success' CHECK (status IN ('success', 'failed', 'blocked'))
+    status         login_status_enum NOT NULL DEFAULT 'success' CHECK (status IN ('success', 'failed', 'blocked'))
 );
 
 -- 登录历史索引
@@ -119,23 +161,22 @@ CREATE TABLE IF NOT EXISTS user_settings (
     user_id          UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     
     -- 通知设置
-    email_notifications BOOLEAN NOT NULL DEFAULT TRUE,
-    sms_notifications   BOOLEAN NOT NULL DEFAULT FALSE,
-    push_notifications  BOOLEAN NOT NULL DEFAULT TRUE,
-    marketing_emails    BOOLEAN NOT NULL DEFAULT FALSE,
-    
+    email_notifications BOOLEAN NOT NULL DEFAULT TRUE,-- 是否启用邮件通知
+    sms_notifications   BOOLEAN NOT NULL DEFAULT FALSE,-- 是否启用短信通知
+    push_notifications  BOOLEAN NOT NULL DEFAULT TRUE,-- 是否启用推送通知
+    marketing_emails    BOOLEAN NOT NULL DEFAULT FALSE,-- 是否接收营销邮件
+
     -- 隐私设置
     profile_visibility  VARCHAR(20) NOT NULL DEFAULT 'public' CHECK (profile_visibility IN ('public', 'friends', 'private')),
-    show_online_status  BOOLEAN NOT NULL DEFAULT TRUE,
-    allow_friend_requests BOOLEAN NOT NULL DEFAULT TRUE,
+    show_online_status  BOOLEAN NOT NULL DEFAULT TRUE,-- 是否显示在线状态
+    allow_friend_requests BOOLEAN NOT NULL DEFAULT TRUE,-- 是否允许好友请求
     
     -- 安全设置
-    two_factor_enabled  BOOLEAN NOT NULL DEFAULT FALSE,
-    login_alerts        BOOLEAN NOT NULL DEFAULT TRUE,
-    
+    two_factor_enabled  BOOLEAN NOT NULL DEFAULT FALSE,-- 是否启用双因素认证
+    login_alerts        BOOLEAN NOT NULL DEFAULT TRUE,-- 是否启用登录提醒
+
     -- 其他设置
-    theme              VARCHAR(20) NOT NULL DEFAULT 'light' CHECK (theme IN ('light', 'dark', 'auto')),
-    currency           VARCHAR(3) NOT NULL DEFAULT 'USD',
+    theme              VARCHAR(20) NOT NULL DEFAULT 'light' CHECK (theme IN ('light', 'dark', 'auto')),-- 主题
     
     created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),

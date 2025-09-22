@@ -3,12 +3,15 @@ module tsu-self
 go 1.25.1
 
 require (
+	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/consul/api v1.20.0
 	github.com/labstack/echo/v4 v4.13.4
 	github.com/liangdas/mqant v1.5.3
+	github.com/lib/pq v1.10.9
 	github.com/nats-io/nats.go v1.45.0
 	github.com/ory/client-go v1.22.1
+	github.com/redis/go-redis/v9 v9.14.0
 	github.com/swaggo/echo-swagger v1.4.1
 	github.com/swaggo/swag v1.16.6
 )
@@ -16,6 +19,8 @@ require (
 require (
 	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/armon/go-metrics v0.3.10 // indirect
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-openapi/jsonpointer v0.22.0 // indirect

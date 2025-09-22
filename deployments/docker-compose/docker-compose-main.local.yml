@@ -62,6 +62,26 @@ services:
     networks:
       - tsu_network
 
+  redis:
+    image: redis:7-alpine
+    container_name: tsu_redis
+    ports:
+      - "6379:6379"
+    environment:
+      - REDIS_PASSWORD=tsu_redis_password
+      - REDIS_DB=0
+    volumes:
+      - ../../.redis-data:/data # 持久化存储,开发时用
+    command: ["redis-server", "--appendonly", "yes"]
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tsu_network
+
   admin:
     container_name: tsu_admin
     build:
@@ -85,8 +105,33 @@ services:
     networks:
       - tsu_network
   
+  auth-server:
+    container_name: tsu_auth_server
+    build:
+      context: ../.. 
+      dockerfile: ./deployments/docker/Dockerfile.auth.local
+    ports:
+      - "8082:8082" # 暴露端口以便直接调试
+    environment:
+      - CONSUL_ADDRESS=consul:8500
+      - NATS_ADDRESS=nats:4222
+      - POSTGRES_DSN=host=postgres user=tsu_user password=tsu_test dbname=tsu_db sslmode=disable
+    volumes:
+      - ../..:/app
+    depends_on:
+      nats:
+        condition: service_healthy
+      consul:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: always
+    networks:
+      - tsu_network
+
   # Swagger 服务
   swagger-server:
+    container_name: tsu_swagger_server
     build:
       context: ../../
       dockerfile: deployments/docker/Dockerfile.swagger.local

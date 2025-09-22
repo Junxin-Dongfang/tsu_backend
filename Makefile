@@ -31,7 +31,7 @@ install-swag:
 
 # 生成 admin 服务的 swagger 文档
 swagger-admin: install-swag
-	swag init -g internal/modules/admin/http_handle.go -o ./docs
+	swag init -g internal/modules/admin/http_handle.go -o ./docs --parseDependency --parseInternal	
 
 # 生成所有 swagger 文档
 swagger-gen: swagger-admin

@@ -1,4 +1,4 @@
-// File: internal/app/admin/service/auth_service.go
+// internal/modules/auth/service/kratos_service.go - 更完整版本
 package service
 
 import (
@@ -18,65 +18,184 @@ import (
 	"tsu-self/internal/pkg/xerrors"
 )
 
-// AuthService 认证服务
-type AuthService struct {
+type KratosService struct {
 	publicClient *client.APIClient
 	adminClient  *client.APIClient
+	syncService  *SyncService
 	logger       log.Logger
 }
 
-// NewAuthService 创建认证服务
-func NewAuthService(publicURL, adminURL string, logger log.Logger) (*AuthService, error) {
-	// 创建公共客户端配置
+func NewKratosService(publicURL, adminURL string, syncService *SyncService, logger log.Logger) (*KratosService, error) {
 	publicConfig := client.NewConfiguration()
-	publicConfig.Servers = []client.ServerConfiguration{
-		{URL: publicURL},
-	}
+	publicConfig.Servers = []client.ServerConfiguration{{URL: publicURL}}
 
-	// 创建管理员客户端配置
 	adminConfig := client.NewConfiguration()
-	adminConfig.Servers = []client.ServerConfiguration{
-		{URL: adminURL},
-	}
+	adminConfig.Servers = []client.ServerConfiguration{{URL: adminURL}}
 
-	return &AuthService{
+	return &KratosService{
 		publicClient: client.NewAPIClient(publicConfig),
 		adminClient:  client.NewAPIClient(adminConfig),
+		syncService:  syncService,
 		logger:       logger,
 	}, nil
 }
 
-// ValidateLoginRequest 验证登录请求
-func (s *AuthService) ValidateLoginRequest(req *authmodel.LoginRequest) *xerrors.AppError {
-	if req.Identifier == "" {
-		return xerrors.NewValidationError("identifier", "用户标识不能为空")
+func (s *KratosService) Login(ctx context.Context, req *authmodel.LoginRPCRequest) (*authmodel.LoginRPCResponse, *xerrors.AppError) {
+	s.logger.InfoContext(ctx, "开始RPC登录流程", log.String("identifier", req.Identifier))
+
+	// 1. 验证登录请求
+	loginReq := &authmodel.LoginRequest{
+		Identifier: req.Identifier,
+		Password:   req.Password,
 	}
-	if req.Password == "" {
-		return xerrors.NewValidationError("password", "密码不能为空")
+
+	if err := s.validateLoginRequest(loginReq); err != nil {
+		return nil, err
 	}
-	if len(req.Password) < 8 {
-		return xerrors.NewValidationError("password", "密码长度不能少于8位")
+
+	// 2. 调用 Kratos 登录
+	kratosResult, err := s.performKratosLogin(ctx, loginReq)
+	if err != nil {
+		// 记录失败的登录历史
+		if userInfo := s.findUserByIdentifier(ctx, req.Identifier); userInfo != nil {
+			s.syncService.RecordLoginHistory(ctx, userInfo.ID, req.ClientIP, req.UserAgent, false)
+		}
+		return nil, err
 	}
-	return nil
+
+	// 3. 从 session 获取用户信息并同步
+	userInfo, syncErr := s.syncUserFromSession(ctx, kratosResult.SessionToken)
+	if syncErr != nil {
+		s.logger.WarnContext(ctx, "用户信息同步失败，但登录成功", log.Any("error", syncErr))
+		// 同步失败不影响登录，但需要返回基础信息
+		userInfo = &authmodel.BusinessUserInfo{
+			// 从 Kratos session 中提取基础信息
+		}
+	}
+
+	// 4. 更新登录统计和历史
+	s.syncService.UpdateLastLogin(ctx, userInfo.ID, req.ClientIP)
+	s.syncService.RecordLoginHistory(ctx, userInfo.ID, req.ClientIP, req.UserAgent, true)
+
+	// 5. 构建响应
+	return &authmodel.LoginRPCResponse{
+		Success:   true,
+		Token:     kratosResult.SessionToken,
+		UserInfo:  userInfo,
+		ExpiresIn: 1800, // 30分钟
+	}, nil
 }
 
-// Login 执行登录
-func (s *AuthService) Login(ctx context.Context, req *authmodel.LoginRequest) (*authmodel.LoginResult, *xerrors.AppError) {
-	s.logger.InfoContext(ctx, "开始登录流程",
-		log.String("identifier", req.Identifier),
-	)
+func (s *KratosService) Register(ctx context.Context, req *authmodel.RegisterRPCRequest) (*authmodel.RegisterRPCResponse, *xerrors.AppError) {
+	s.logger.InfoContext(ctx, "开始RPC注册流程",
+		log.String("email", req.Email),
+		log.String("username", req.Username))
 
-	// 1. 创建登录流程
+	// 1. 验证注册请求
+	registerReq := &authmodel.RegisterRequest{
+		Email:    req.Email,
+		Username: req.Username,
+		Password: req.Password,
+	}
+
+	if err := s.validateRegisterRequest(registerReq); err != nil {
+		return nil, err
+	}
+
+	// 2. 调用 Kratos 注册
+	kratosResult, err := s.performKratosRegistration(ctx, registerReq)
+	if err != nil {
+		return nil, err
+	}
+
+	// 3. 同步创建业务用户（关键的事务处理）
+	userInfo, syncErr := s.syncService.CreateBusinessUser(ctx, kratosResult.IdentityID, req.Email, req.Username)
+	if syncErr != nil {
+		// Saga 模式：回滚 Kratos 数据
+		s.logger.ErrorContext(ctx, "业务用户创建失败，开始回滚 Kratos 数据",
+			log.String("identity_id", kratosResult.IdentityID),
+			log.Any("error", syncErr))
+
+		if rollbackErr := s.deleteKratosIdentity(ctx, kratosResult.IdentityID); rollbackErr != nil {
+			s.logger.ErrorContext(ctx, "回滚 Kratos 数据失败",
+				log.String("identity_id", kratosResult.IdentityID),
+				log.Any("error", rollbackErr))
+		}
+
+		return nil, syncErr
+	}
+
+	// 4. 记录注册历史
+	s.syncService.RecordLoginHistory(ctx, userInfo.ID, req.ClientIP, req.UserAgent, true)
+
+	return &authmodel.RegisterRPCResponse{
+		Success:    true,
+		IdentityID: kratosResult.IdentityID,
+		Token:      kratosResult.SessionToken,
+		UserInfo:   userInfo,
+	}, nil
+}
+
+// GetUserInfo 获取用户信息（合并 Kratos 和业务数据）
+func (s *KratosService) GetUserInfo(ctx context.Context, sessionToken string) (*authmodel.BusinessUserInfo, *xerrors.AppError) {
+	// 1. 验证 session 并获取 identity
+	session, err := s.getKratosSession(ctx, sessionToken)
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. 获取业务用户信息
+	userInfo, err := s.syncService.GetUserByID(ctx, session.Identity.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	// 3. 同步 Kratos traits 到业务数据库（如果有更新）
+	if s.shouldSyncTraits(session.Identity, userInfo) {
+		email := s.extractTraitString(session.Identity.Traits, "email")
+		username := s.extractTraitString(session.Identity.Traits, "username")
+
+		if syncErr := s.syncService.UpdateUserTraits(ctx, userInfo.ID, email, username); syncErr != nil {
+			s.logger.WarnContext(ctx, "同步用户特征失败", log.Any("error", syncErr))
+		} else {
+			// 更新本地信息
+			userInfo.Email = email
+			userInfo.Username = username
+		}
+	}
+
+	return userInfo, nil
+}
+
+// UpdateUserTraits 更新用户特征（双向同步）
+func (s *KratosService) UpdateUserTraits(ctx context.Context, req *authmodel.UpdateUserTraitsRequest) (*authmodel.UpdateUserTraitsResponse, *xerrors.AppError) {
+	// 1. 更新 Kratos identity traits
+	if err := s.updateKratosTraits(ctx, req.UserID, req.Email, req.Username); err != nil {
+		return nil, err
+	}
+
+	// 2. 同步更新业务数据库
+	if err := s.syncService.UpdateUserTraits(ctx, req.UserID, req.Email, req.Username); err != nil {
+		// 如果业务数据库更新失败，需要回滚 Kratos
+		s.logger.ErrorContext(ctx, "业务数据库更新失败，需要回滚", log.Any("error", err))
+		// TODO: 实现 Kratos traits 回滚
+		return nil, err
+	}
+
+	return &authmodel.UpdateUserTraitsResponse{
+		Success: true,
+	}, nil
+}
+
+// === 私有辅助方法 ===
+
+func (s *KratosService) performKratosLogin(ctx context.Context, req *authmodel.LoginRequest) (*authmodel.LoginResult, *xerrors.AppError) {
+	// 移植你现有的登录逻辑
 	flow, resp, err := s.publicClient.FrontendAPI.CreateNativeLoginFlow(ctx).Execute()
 	if err != nil {
 		return nil, s.handleKratosError(ctx, "create_login_flow", err, resp)
 	}
 
-	s.logger.DebugContext(ctx, "创建登录流程成功",
-		log.String("flow_id", flow.Id),
-	)
-
-	// 2. 提交登录信息
 	submitReq := client.UpdateLoginFlowBody{
 		UpdateLoginFlowWithPasswordMethod: &client.UpdateLoginFlowWithPasswordMethod{
 			Method:     "password",
@@ -94,47 +213,28 @@ func (s *AuthService) Login(ctx context.Context, req *authmodel.LoginRequest) (*
 		return nil, s.handleKratosError(ctx, "submit_login", err, resp)
 	}
 
-	// 3. 处理登录结果
 	if loginResult.Session.Identity != nil {
-		s.logger.InfoContext(ctx, "登录成功",
-			log.String("identity_id", loginResult.Session.Identity.Id),
-		)
-
 		sessionToken := ""
 		if loginResult.SessionToken != nil {
 			sessionToken = *loginResult.SessionToken
 		}
 
 		return &authmodel.LoginResult{
-			Success:       true,
-			SessionToken:  sessionToken,
-			SessionCookie: extractSessionCookie(resp),
+			Success:      true,
+			SessionToken: sessionToken,
 		}, nil
 	}
 
-	return nil, xerrors.FromCode(xerrors.CodeInternalError).
-		WithService("auth-service", "login").
-		WithMetadata("unexpected_state", "no_session_in_successful_login")
+	return nil, xerrors.FromCode(xerrors.CodeInternalError)
 }
 
-// Register 执行注册
-func (s *AuthService) Register(ctx context.Context, req *authmodel.RegisterRequest) (*authmodel.RegisterResult, *xerrors.AppError) {
-	s.logger.InfoContext(ctx, "开始注册流程",
-		log.String("email", req.Email),
-		log.String("username", req.Username),
-	)
-
-	// 1. 创建注册流程
+func (s *KratosService) performKratosRegistration(ctx context.Context, req *authmodel.RegisterRequest) (*authmodel.RegisterResult, *xerrors.AppError) {
+	// 移植你现有的注册逻辑
 	flow, resp, err := s.publicClient.FrontendAPI.CreateNativeRegistrationFlow(ctx).Execute()
 	if err != nil {
 		return nil, s.handleKratosError(ctx, "create_registration_flow", err, resp)
 	}
 
-	s.logger.DebugContext(ctx, "创建注册流程成功",
-		log.String("flow_id", flow.Id),
-	)
-
-	// 2. 提交注册信息
 	traits := map[string]interface{}{
 		"email":    req.Email,
 		"username": req.Username,
@@ -157,49 +257,31 @@ func (s *AuthService) Register(ctx context.Context, req *authmodel.RegisterReque
 		return nil, s.handleKratosError(ctx, "submit_registration", err, resp)
 	}
 
-	// 3. 处理注册结果
 	if registrationResult.Session != nil {
-		s.logger.InfoContext(ctx, "注册成功",
-			log.String("identity_id", registrationResult.Session.Identity.Id),
-			log.String("email", req.Email),
-		)
-
 		sessionToken := ""
 		if registrationResult.SessionToken != nil {
 			sessionToken = *registrationResult.SessionToken
 		}
 
 		return &authmodel.RegisterResult{
-			Success:       true,
-			IdentityID:    registrationResult.Session.Identity.Id,
-			SessionToken:  sessionToken,
-			SessionCookie: extractSessionCookie(resp),
+			Success:      true,
+			IdentityID:   registrationResult.Session.Identity.Id,
+			SessionToken: sessionToken,
 		}, nil
 	}
 
-	return nil, xerrors.FromCode(xerrors.CodeInternalError).
-		WithService("auth-service", "register").
-		WithMetadata("unexpected_state", "no_session_in_successful_registration")
+	return nil, xerrors.FromCode(xerrors.CodeInternalError)
 }
 
-// Logout 执行登出
-func (s *AuthService) Logout(ctx context.Context, sessionToken string) *xerrors.AppError {
-	s.logger.InfoContext(ctx, "开始登出流程")
-
-	_, err := s.publicClient.FrontendAPI.PerformNativeLogout(ctx).
-		PerformNativeLogoutBody(*client.NewPerformNativeLogoutBody(sessionToken)).
-		Execute()
+func (s *KratosService) deleteKratosIdentity(ctx context.Context, identityID string) *xerrors.AppError {
+	_, err := s.adminClient.IdentityAPI.DeleteIdentity(ctx, identityID).Execute()
 	if err != nil {
-		return s.handleKratosError(ctx, "logout", err, nil)
+		return xerrors.NewExternalServiceError("kratos", err)
 	}
-	s.logger.InfoContext(ctx, "登出成功")
 	return nil
 }
 
-// GetSession 获取会话信息
-func (s *AuthService) GetSession(ctx context.Context, sessionToken string) (*client.Session, *xerrors.AppError) {
-	s.logger.DebugContext(ctx, "获取会话信息")
-
+func (s *KratosService) getKratosSession(ctx context.Context, sessionToken string) (*client.Session, *xerrors.AppError) {
 	session, resp, err := s.publicClient.FrontendAPI.ToSession(ctx).
 		XSessionToken(sessionToken).
 		Execute()
@@ -211,44 +293,100 @@ func (s *AuthService) GetSession(ctx context.Context, sessionToken string) (*cli
 	return session, nil
 }
 
-// InitRecovery 初始化账户恢复
-func (s *AuthService) InitRecovery(ctx context.Context, req *authmodel.RecoveryRequest) *xerrors.AppError {
-	s.logger.InfoContext(ctx, "开始账户恢复流程",
-		log.String("email", req.Email),
-	)
-
-	// 1. 创建恢复流程
-	flow, resp, err := s.publicClient.FrontendAPI.CreateNativeRecoveryFlow(ctx).Execute()
+func (s *KratosService) syncUserFromSession(ctx context.Context, sessionToken string) (*authmodel.BusinessUserInfo, *xerrors.AppError) {
+	session, err := s.getKratosSession(ctx, sessionToken)
 	if err != nil {
-		return s.handleKratosError(ctx, "create_recovery_flow", err, resp)
+		return nil, err
 	}
 
-	// 2. 提交恢复请求
-	submitReq := client.UpdateRecoveryFlowBody{
-		UpdateRecoveryFlowWithLinkMethod: &client.UpdateRecoveryFlowWithLinkMethod{
-			Method: "link",
-			Email:  req.Email,
-		},
+	return s.syncService.GetUserByID(ctx, session.Identity.Id)
+}
+
+func (s *KratosService) shouldSyncTraits(identity *client.Identity, userInfo *authmodel.BusinessUserInfo) bool {
+	email := s.extractTraitString(identity.Traits, "email")
+	username := s.extractTraitString(identity.Traits, "username")
+
+	return email != userInfo.Email || username != userInfo.Username
+}
+
+func (s *KratosService) extractTraitString(traits interface{}, key string) string {
+	if traits == nil {
+		return ""
 	}
 
-	_, resp, err = s.publicClient.FrontendAPI.UpdateRecoveryFlow(ctx).
-		Flow(flow.Id).
-		UpdateRecoveryFlowBody(submitReq).
+	traitsMap, ok := traits.(map[string]interface{})
+	if !ok {
+		return ""
+	}
+
+	value, exists := traitsMap[key]
+	if !exists {
+		return ""
+	}
+
+	str, ok := value.(string)
+	if !ok {
+		return ""
+	}
+
+	return str
+}
+
+func (s *KratosService) findUserByIdentifier(ctx context.Context, identifier string) *authmodel.BusinessUserInfo {
+	// 简单实现：根据 identifier 查找用户
+	// 实际实现需要判断是 email 还是 username
+	query := `SELECT id FROM users WHERE (email = $1 OR username = $1) AND deleted_at IS NULL LIMIT 1`
+
+	var userID string
+	if err := s.syncService.db.QueryRowContext(ctx, query, identifier).Scan(&userID); err != nil {
+		return nil
+	}
+
+	userInfo, _ := s.syncService.GetUserByID(ctx, userID)
+	return userInfo
+}
+
+// internal/modules/auth/service/kratos_service.go - 补充缺失的方法
+
+// Logout 登出方法
+func (s *KratosService) Logout(ctx context.Context, sessionToken string) *xerrors.AppError {
+	s.logger.InfoContext(ctx, "开始登出流程")
+
+	_, err := s.publicClient.FrontendAPI.PerformNativeLogout(ctx).
+		PerformNativeLogoutBody(*client.NewPerformNativeLogoutBody(sessionToken)).
+		Execute()
+	if err != nil {
+		return s.handleKratosError(ctx, "logout", err, nil)
+	}
+
+	s.logger.InfoContext(ctx, "登出成功")
+	return nil
+}
+
+// updateKratosTraits 更新 Kratos traits
+func (s *KratosService) updateKratosTraits(ctx context.Context, userID, email, username string) *xerrors.AppError {
+	traits := map[string]interface{}{
+		"email":    email,
+		"username": username,
+	}
+
+	body := client.UpdateIdentityBody{
+		Traits: traits,
+	}
+
+	_, resp, err := s.adminClient.IdentityAPI.UpdateIdentity(ctx, userID).
+		UpdateIdentityBody(body).
 		Execute()
 
 	if err != nil {
-		return s.handleKratosError(ctx, "submit_recovery", err, resp)
+		return s.handleKratosError(ctx, "update_traits", err, resp)
 	}
-
-	s.logger.InfoContext(ctx, "恢复邮件发送成功",
-		log.String("email", req.Email),
-	)
 
 	return nil
 }
 
 // handleKratosError 处理 Kratos 错误
-func (s *AuthService) handleKratosError(ctx context.Context, operation string, err error, resp *http.Response) *xerrors.AppError {
+func (s *KratosService) handleKratosError(ctx context.Context, operation string, err error, resp *http.Response) *xerrors.AppError {
 	s.logger.ErrorContext(ctx, "Kratos API 调用失败",
 		log.String("operation", operation),
 		log.Any("error", err),
@@ -344,7 +482,7 @@ func (s *AuthService) handleKratosError(ctx context.Context, operation string, e
 }
 
 // parseDetailedKratosError 解析详细的 Kratos 错误信息
-func (s *AuthService) parseDetailedKratosError(ctx context.Context, body []byte, operation string) *xerrors.AppError {
+func (s *KratosService) parseDetailedKratosError(ctx context.Context, body []byte, operation string) *xerrors.AppError {
 	if len(body) == 0 {
 		return nil
 	}
@@ -376,7 +514,7 @@ func (s *AuthService) parseDetailedKratosError(ctx context.Context, body []byte,
 }
 
 // extractErrorFromOryClient 从 Ory 客户端错误中提取详细信息
-func (s *AuthService) extractErrorFromOryClient(ctx context.Context, err error, operation string) *xerrors.AppError {
+func (s *KratosService) extractErrorFromOryClient(ctx context.Context, err error, operation string) *xerrors.AppError {
 	s.logger.DebugContext(ctx, "分析 Ory 客户端错误",
 		log.String("error_type", fmt.Sprintf("%T", err)),
 		log.String("error_string", err.Error()),
@@ -422,7 +560,7 @@ func (s *AuthService) extractErrorFromOryClient(ctx context.Context, err error, 
 }
 
 // parseErrorFromRawText 从原始文本中解析错误信息
-func (s *AuthService) parseErrorFromRawText(ctx context.Context, errorText string) *xerrors.AppError {
+func (s *KratosService) parseErrorFromRawText(ctx context.Context, errorText string) *xerrors.AppError {
 	if errorText == "" {
 		return nil
 	}
@@ -578,6 +716,20 @@ func parseKratosValidationError(resp *http.Response) *xerrors.AppError {
 	}
 
 	return appErr
+}
+
+func (s *KratosService) validateLoginRequest(req *authmodel.LoginRequest) *xerrors.AppError {
+	// 复用现有的验证逻辑
+	if req.Identifier == "" {
+		return xerrors.NewValidationError("identifier", "用户标识不能为空")
+	}
+	if req.Password == "" {
+		return xerrors.NewValidationError("password", "密码不能为空")
+	}
+	if len(req.Password) < 8 {
+		return xerrors.NewValidationError("password", "密码长度不能少于8位")
+	}
+	return nil
 }
 
 // kratosErrorInfo 表示一个 Kratos 错误信息
@@ -885,7 +1037,7 @@ func extractSessionCookie(resp *http.Response) string {
 }
 
 // ValidateRegisterRequest 验证注册请求
-func (s *AuthService) ValidateRegisterRequest(req *authmodel.RegisterRequest) *xerrors.AppError {
+func (s *KratosService) ValidateRegisterRequest(req *authmodel.RegisterRequest) *xerrors.AppError {
 	if req.Email == "" {
 		return xerrors.NewValidationError("email", "邮箱不能为空")
 	}
@@ -1096,4 +1248,27 @@ func getFieldSpecificError(field, errorText string) (int, string) {
 
 	// 如果没有找到字段特定的错误，返回 0 表示未找到
 	return 0, ""
+}
+
+func (s *KratosService) validateRegisterRequest(req *authmodel.RegisterRequest) *xerrors.AppError {
+	// 复用现有的验证逻辑
+	if req.Email == "" {
+		return xerrors.NewValidationError("email", "邮箱不能为空")
+	}
+	if req.Username == "" {
+		return xerrors.NewValidationError("username", "用户名不能为空")
+	}
+	if len(req.Username) < 3 || len(req.Username) > 30 {
+		return xerrors.NewValidationError("username", "用户名长度必须在3-30个字符之间")
+	}
+	if req.Password == "" {
+		return xerrors.NewValidationError("password", "密码不能为空")
+	}
+	if len(req.Password) < 8 {
+		return xerrors.FromCode(xerrors.CodePasswordTooShort)
+	}
+	if len(req.Password) > 128 {
+		return xerrors.FromCode(xerrors.CodePasswordTooLong)
+	}
+	return nil
 }

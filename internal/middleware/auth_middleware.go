@@ -1,0 +1,184 @@
+// internal/middleware/auth_middleware.go - 修正版本
+package middleware
+
+import (
+	"context"
+	"encoding/json"
+	"strings"
+	"time"
+
+	"github.com/labstack/echo/v4"
+	"github.com/liangdas/mqant/module"
+	mqrpc "github.com/liangdas/mqant/rpc"
+	"github.com/nats-io/nats.go"
+	"github.com/redis/go-redis/v9"
+
+	"tsu-self/internal/model/authmodel"
+	"tsu-self/internal/pkg/contextkeys"
+	"tsu-self/internal/pkg/log"
+	"tsu-self/internal/pkg/response"
+	"tsu-self/internal/pkg/xerrors"
+)
+
+type AuthMiddleware struct {
+	app         module.App // mqant app用于RPC调用
+	redis       *redis.Client
+	nc          *nats.Conn
+	logger      log.Logger
+	respHandler response.Writer
+
+	// 权限缓存
+	permissionCache map[string]*CachedPermissions
+}
+
+type CachedPermissions struct {
+	Permissions []string  `json:"permissions"`
+	CachedAt    time.Time `json:"cached_at"`
+}
+
+func NewAuthMiddleware(app module.App, redis *redis.Client, nc *nats.Conn, logger log.Logger) *AuthMiddleware {
+	middleware := &AuthMiddleware{
+		app:             app,
+		redis:           redis,
+		nc:              nc,
+		logger:          logger,
+		respHandler:     response.DefaultResponseHandler(),
+		permissionCache: make(map[string]*CachedPermissions),
+	}
+
+	// 订阅权限变更事件
+	middleware.subscribePermissionChanges()
+
+	return middleware
+}
+
+// RequireAuth Token验证中间件
+func (m *AuthMiddleware) RequireAuth() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			token := m.extractToken(c)
+			if token == "" {
+				return m.respHandler.WriteError(c.Request().Context(), c.Response().Writer,
+					xerrors.FromCode(xerrors.CodeInvalidToken).WithMetadata("reason", "missing_token"))
+			}
+
+			// 调用 auth module 验证 token
+			validateReq := &authmodel.ValidateTokenRequest{Token: token}
+
+			result, err := m.app.Call(context.Background(), "auth", "ValidateToken", mqrpc.Param(map[string]interface{}{"req": validateReq}))
+			if err != "" {
+				m.logger.ErrorContext(c.Request().Context(), "Token验证失败", log.Any("error", err))
+				return m.respHandler.WriteError(c.Request().Context(), c.Response().Writer,
+					xerrors.FromCode(xerrors.CodeInvalidToken))
+			}
+
+			validateResp, ok := result.(*authmodel.ValidateTokenResponse)
+			if !ok || !validateResp.Valid {
+				return m.respHandler.WriteError(c.Request().Context(), c.Response().Writer,
+					xerrors.FromCode(xerrors.CodeInvalidToken))
+			}
+
+			// 将用户信息添加到context
+			ctx := c.Request().Context()
+			ctx = context.WithValue(ctx, contextkeys.UserIDKey, validateResp.UserID)
+			c.SetRequest(c.Request().WithContext(ctx))
+
+			return next(c)
+		}
+	}
+}
+
+// RequirePermission 权限检查中间件
+func (m *AuthMiddleware) RequirePermission(resource, action string) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			userID, ok := c.Request().Context().Value(contextkeys.UserIDKey).(string)
+			if !ok {
+				return m.respHandler.WriteError(c.Request().Context(), c.Response().Writer,
+					xerrors.FromCode(xerrors.CodeAuthenticationFailed).WithMetadata("reason", "no_user_context"))
+			}
+
+			// 检查权限
+			if !m.checkPermission(c.Request().Context(), userID, resource, action) {
+				return m.respHandler.WriteError(c.Request().Context(), c.Response().Writer,
+					xerrors.FromCode(xerrors.CodePermissionDenied).WithMetadata("resource", resource).WithMetadata("action", action))
+			}
+
+			return next(c)
+		}
+	}
+}
+
+func (m *AuthMiddleware) checkPermission(ctx context.Context, userID, resource, action string) bool {
+	permission := resource + ":" + action
+
+	// 1. 检查缓存
+	if cached, exists := m.permissionCache[userID]; exists {
+		if time.Since(cached.CachedAt) < 5*time.Minute { // 5分钟缓存
+			for _, perm := range cached.Permissions {
+				if perm == permission {
+					return true
+				}
+			}
+			return false
+		}
+	}
+
+	// 2. 调用 auth module 检查权限
+	checkReq := &authmodel.CheckPermissionRequest{
+		UserID:   userID,
+		Resource: resource,
+		Action:   action,
+	}
+
+	result, err := m.app.Call(context.Background(), "auth", "CheckPermission", mqrpc.Param(map[string]interface{}{"req": checkReq}))
+	if err != "" {
+		m.logger.ErrorContext(ctx, "权限检查调用失败", log.Any("error", err))
+		return false
+	}
+
+	checkResp, ok := result.(*authmodel.CheckPermissionResponse)
+	if !ok {
+		m.logger.ErrorContext(ctx, "权限检查响应类型错误")
+		return false
+	}
+
+	return checkResp.Allowed
+}
+
+func (m *AuthMiddleware) subscribePermissionChanges() {
+	subject := "auth.permission.changed"
+
+	m.nc.Subscribe(subject, func(msg *nats.Msg) {
+		var event struct {
+			UserID    string `json:"user_id"`
+			EventType string `json:"event_type"`
+		}
+
+		if err := json.Unmarshal(msg.Data, &event); err != nil {
+			m.logger.Error("解析权限变更事件失败", err)
+			return
+		}
+
+		// 清理用户权限缓存
+		delete(m.permissionCache, event.UserID)
+
+		m.logger.InfoContext(context.Background(), "清理用户权限缓存",
+			log.String("user_id", event.UserID),
+			log.String("event_type", event.EventType))
+	})
+}
+
+func (m *AuthMiddleware) extractToken(c echo.Context) string {
+	auth := c.Request().Header.Get("Authorization")
+	if auth == "" {
+		return ""
+	}
+
+	const bearer = "Bearer "
+	if !strings.HasPrefix(auth, bearer) {
+		return ""
+	}
+
+	return auth[len(bearer):]
+}

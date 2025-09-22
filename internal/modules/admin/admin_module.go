@@ -17,7 +17,6 @@ import (
 	echoSwagger "github.com/swaggo/echo-swagger"
 
 	_ "tsu-self/docs"
-	"tsu-self/internal/modules/admin/service"
 	"tsu-self/internal/pkg/log"
 	"tsu-self/internal/pkg/response"
 )
@@ -29,11 +28,10 @@ var Module = func() module.Module {
 
 type AdminModule struct {
 	basemodule.BaseModule
-	echoServer  *echo.Echo
-	authService *service.AuthService
-	userService *service.UserService
-	respWriter  response.Writer
-	logger      log.Logger
+	app        module.App
+	echoServer *echo.Echo
+	respWriter response.Writer
+	logger     log.Logger
 }
 
 func (m *AdminModule) GetType() string {
@@ -107,27 +105,12 @@ func (m *AdminModule) initServices() {
 	// 从配置中获取参数
 	settings := m.GetModuleSettings().Settings
 	log.Info("初始化服务", log.Any("settings", settings))
-	kratosPublicURL := settings["kratos_public_url"].(string)
-	kratosAdminURL := settings["kratos_admin_url"].(string)
 	environment := settings["environment"].(string)
 
 	// 初始化响应处理器
 	m.respWriter = response.NewResponseHandler(m.logger, environment)
 
-	// 初始化认证服务
-	var err error
-	m.authService, err = service.NewAuthService(kratosPublicURL, kratosAdminURL, m.logger)
-	if err != nil {
-		m.logger.Error("初始化认证服务失败", err)
-		panic(err)
-	}
-
-	// 初始化用户服务
-	m.userService, err = service.NewUserService(kratosAdminURL, m.logger)
-	if err != nil {
-		m.logger.Error("初始化用户服务失败", err)
-		panic(err)
-	}
+	m.app = m.GetApp()
 }
 
 func (m *AdminModule) setupMiddleware() {
@@ -167,32 +150,32 @@ func (m *AdminModule) setupRoutes() {
 	{
 		auth.POST("/login", m.Login)
 		auth.POST("/register", m.Register)
-		auth.POST("/logout", m.Logout)
-		auth.GET("/session", m.GetSession)
-		auth.POST("/recovery", m.InitRecovery)
-		auth.POST("/recovery/submit", m.SubmitRecovery)
+		// auth.POST("/logout", m.Logout)
+		// auth.GET("/session", m.GetSession)
+		// auth.POST("/recovery", m.InitRecovery)
+		// auth.POST("/recovery/submit", m.SubmitRecovery)
 	}
 
-	// 用户管理路由
-	users := api.Group("/users")
-	{
-		users.GET("", m.ListUsers)
-		users.GET("/:id", m.GetUser)
-		users.PUT("/:id", m.UpdateUser)
-		users.DELETE("/:id", m.DeleteUser)
-		users.POST("/:id/disable", m.DisableUser)
-		users.POST("/:id/enable", m.EnableUser)
-	}
+	// // 用户管理路由
+	// users := api.Group("/users")
+	// {
+	// 	users.GET("", m.ListUsers)
+	// 	users.GET("/:id", m.GetUser)
+	// 	users.PUT("/:id", m.UpdateUser)
+	// 	users.DELETE("/:id", m.DeleteUser)
+	// 	users.POST("/:id/disable", m.DisableUser)
+	// 	users.POST("/:id/enable", m.EnableUser)
+	// }
 
-	// 管理员路由
-	admin := api.Group("/admin")
-	{
-		admin.GET("/identities", m.ListIdentities)
-		admin.POST("/identities", m.CreateIdentity)
-		admin.GET("/identities/:id", m.GetIdentity)
-		admin.PUT("/identities/:id", m.UpdateIdentity)
-		admin.DELETE("/identities/:id", m.DeleteIdentity)
-	}
+	// // 管理员路由
+	// admin := api.Group("/admin")
+	// {
+	// 	admin.GET("/identities", m.ListIdentities)
+	// 	admin.POST("/identities", m.CreateIdentity)
+	// 	admin.GET("/identities/:id", m.GetIdentity)
+	// 	admin.PUT("/identities/:id", m.UpdateIdentity)
+	// 	admin.DELETE("/identities/:id", m.DeleteIdentity)
+	// }
 }
 
 func (m *AdminModule) setupRPCMethods() {
