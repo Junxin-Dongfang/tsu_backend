@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS users (
 
     --用户信息
     username          VARCHAR(50) UNIQUE NOT NULL,
+    nickname          VARCHAR(50),
     email             VARCHAR(255) UNIQUE NOT NULL,
     phone_number      VARCHAR(20) UNIQUE,
     

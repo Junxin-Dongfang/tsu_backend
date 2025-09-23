@@ -16,6 +16,7 @@ type User struct {
 
 	// 用户信息
 	Username    string         `db:"username" json:"username"`
+	Nickname    string         `db:"nickname" json:"nickname"`
 	Email       string         `db:"email" json:"email"`
 	PhoneNumber sql.NullString `db:"phone_number" json:"phone_number,omitempty"`
 
@@ -34,20 +35,20 @@ type User struct {
 	Language    string         `db:"language" json:"language"`
 
 	// 业务统计
-	TotalSpent     float64        `db:"total_spent" json:"total_spent"`
-	ReferralCode   sql.NullString `db:"referral_code" json:"referral_code,omitempty"`
-	ReferredBy     sql.NullString `db:"referred_by" json:"referred_by,omitempty"`
-	ReferralCount  int            `db:"referral_count" json:"referral_count"`
+	TotalSpent    float64        `db:"total_spent" json:"total_spent"`
+	ReferralCode  sql.NullString `db:"referral_code" json:"referral_code,omitempty"`
+	ReferredBy    sql.NullString `db:"referred_by" json:"referred_by,omitempty"`
+	ReferralCount int            `db:"referral_count" json:"referral_count"`
 
 	// 登录追踪
-	LastLoginAt   sql.NullTime   `db:"last_login_at" json:"last_login_at,omitempty"`
-	LastLoginIP   sql.NullString `db:"last_login_ip" json:"last_login_ip,omitempty"`
-	LoginCount    int            `db:"login_count" json:"login_count"`
+	LastLoginAt sql.NullTime   `db:"last_login_at" json:"last_login_at,omitempty"`
+	LastLoginIP sql.NullString `db:"last_login_ip" json:"last_login_ip,omitempty"`
+	LoginCount  int            `db:"login_count" json:"login_count"`
 
 	// 时间戳
-	CreatedAt time.Time      `db:"created_at" json:"created_at"`
-	UpdatedAt time.Time      `db:"updated_at" json:"updated_at"`
-	DeletedAt sql.NullTime   `db:"deleted_at" json:"deleted_at,omitempty"`
+	CreatedAt time.Time    `db:"created_at" json:"created_at"`
+	UpdatedAt time.Time    `db:"updated_at" json:"updated_at"`
+	DeletedAt sql.NullTime `db:"deleted_at" json:"deleted_at,omitempty"`
 }
 
 // TableName 返回表名

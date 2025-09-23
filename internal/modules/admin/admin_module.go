@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/hashicorp/consul/api"
@@ -32,12 +33,12 @@ var Module = func() module.Module {
 
 type AdminModule struct {
 	basemodule.BaseModule
-	app               module.App
-	echoServer        *echo.Echo
-	respWriter        response.Writer
-	logger            log.Logger
-	db                *sqlx.DB
-	syncService       *service.SyncService
+	app                module.App
+	echoServer         *echo.Echo
+	respWriter         response.Writer
+	logger             log.Logger
+	db                 *sqlx.DB
+	syncService        *service.SyncService
 	transactionService *service.TransactionService
 }
 
@@ -217,32 +218,7 @@ func (m *AdminModule) setupRoutes() {
 	{
 		auth.POST("/login", m.Login)
 		auth.POST("/register", m.Register)
-		// auth.POST("/logout", m.Logout)
-		// auth.GET("/session", m.GetSession)
-		// auth.POST("/recovery", m.InitRecovery)
-		// auth.POST("/recovery/submit", m.SubmitRecovery)
 	}
-
-	// // 用户管理路由
-	// users := api.Group("/users")
-	// {
-	// 	users.GET("", m.ListUsers)
-	// 	users.GET("/:id", m.GetUser)
-	// 	users.PUT("/:id", m.UpdateUser)
-	// 	users.DELETE("/:id", m.DeleteUser)
-	// 	users.POST("/:id/disable", m.DisableUser)
-	// 	users.POST("/:id/enable", m.EnableUser)
-	// }
-
-	// // 管理员路由
-	// admin := api.Group("/admin")
-	// {
-	// 	admin.GET("/identities", m.ListIdentities)
-	// 	admin.POST("/identities", m.CreateIdentity)
-	// 	admin.GET("/identities/:id", m.GetIdentity)
-	// 	admin.PUT("/identities/:id", m.UpdateIdentity)
-	// 	admin.DELETE("/identities/:id", m.DeleteIdentity)
-	// }
 }
 
 func (m *AdminModule) setupRPCMethods() {
@@ -283,11 +259,11 @@ func (m *AdminModule) registerHTTPService() {
 		return
 	}
 	portInt := 8081 // 默认端口
-	// if httpPortStr := m.GetModuleSettings().Settings["http_port"].(string); httpPortStr != "" {
-	// 	if port, err := strconv.Atoi(httpPortStr); err == nil {
-	// 		portInt = port
-	// 	}
-	// }
+	if httpPortStr := m.GetModuleSettings().Settings["http_port"].(string); httpPortStr != "" {
+		if port, err := strconv.Atoi(httpPortStr); err == nil {
+			portInt = port
+		}
+	}
 
 	// 注册 HTTP 服务
 	registration := &api.AgentServiceRegistration{

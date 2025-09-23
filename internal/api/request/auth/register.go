@@ -9,6 +9,8 @@ type RegisterRequest struct {
 	Username string `json:"username" binding:"required,min=3,max=30" example:"newuser"`
 	// 密码
 	Password string `json:"password" binding:"required,min=8" example:"password123"`
+	// phone 手机号
+	Phone string `json:"phone" binding:"omitempty,e164" example:"11234567890"`
 	// 客户端IP (由服务器自动填充)
 	ClientIP string `json:"-"`
 	// 用户代理 (由服务器自动填充)
