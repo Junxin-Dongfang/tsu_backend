@@ -5,11 +5,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jmoiron/sqlx"
-	"tsu-self/internal/model/authmodel"
+	"tsu-self/internal/api/response/auth"
+	"tsu-self/internal/converter/common"
 	"tsu-self/internal/pkg/log"
 	"tsu-self/internal/pkg/xerrors"
-	authpb "tsu-self/proto"
+	authpb "tsu-self/internal/rpc/generated/auth"
+
+	"github.com/jmoiron/sqlx"
 )
 
 // TransactionService 事务协调服务，实现 Saga 模式
@@ -28,13 +30,13 @@ func NewTransactionService(db *sqlx.DB, syncService *SyncService, logger log.Log
 }
 
 // LoginTransaction 登录事务协调
-func (t *TransactionService) LoginTransaction(ctx context.Context, authResp *authpb.LoginResponse, clientIP string) (*authmodel.LoginResult, *xerrors.AppError) {
+func (t *TransactionService) LoginTransaction(ctx context.Context, authResp *authpb.LoginResponse, clientIP string) (*auth.LoginResult, *xerrors.AppError) {
 	t.logger.InfoContext(ctx, "开始登录事务协调",
 		log.String("identity_id", authResp.IdentityId),
 		log.Bool("auth_success", authResp.Success))
 
 	if !authResp.Success {
-		return &authmodel.LoginResult{
+		return &auth.LoginResult{
 			Success:      false,
 			SessionToken: "",
 			ErrorMessage: authResp.ErrorMessage,
@@ -58,14 +60,14 @@ func (t *TransactionService) LoginTransaction(ctx context.Context, authResp *aut
 				// 创建用户失败，需要回滚 Auth 操作
 				t.logger.ErrorContext(ctx, "创建业务用户失败，开始回滚", log.Any("error", syncErr))
 				// 注意：这里可以调用 auth 模块的 logout 来回滚会话
-				return &authmodel.LoginResult{
+				return &auth.LoginResult{
 					Success:      false,
 					SessionToken: "",
 					ErrorMessage: "用户数据同步失败",
 				}, syncErr
 			}
 		} else {
-			return &authmodel.LoginResult{
+			return &auth.LoginResult{
 				Success:      false,
 				SessionToken: "",
 				ErrorMessage: "用户数据同步失败",
@@ -78,22 +80,22 @@ func (t *TransactionService) LoginTransaction(ctx context.Context, authResp *aut
 		t.syncService.RecordLoginHistory(context.Background(), authResp.IdentityId, clientIP, "", true)
 	}()
 
-	return &authmodel.LoginResult{
+	return &auth.LoginResult{
 		Success:       true,
 		SessionToken:  authResp.Token,
 		SessionCookie: "", // 根据需要设置
-		UserInfo:      userInfo,
+		UserInfo:      common.UserInfoFromEntity(userInfo),
 	}, nil
 }
 
 // RegisterTransaction 注册事务协调
-func (t *TransactionService) RegisterTransaction(ctx context.Context, authResp *authpb.RegisterResponse) (*authmodel.RegisterResult, *xerrors.AppError) {
+func (t *TransactionService) RegisterTransaction(ctx context.Context, authResp *authpb.RegisterResponse) (*auth.RegisterResult, *xerrors.AppError) {
 	t.logger.InfoContext(ctx, "开始注册事务协调",
 		log.String("identity_id", authResp.IdentityId),
 		log.Bool("auth_success", authResp.Success))
 
 	if !authResp.Success {
-		return &authmodel.RegisterResult{
+		return &auth.RegisterResult{
 			Success:      false,
 			IdentityID:   "",
 			SessionToken: "",
@@ -114,7 +116,7 @@ func (t *TransactionService) RegisterTransaction(ctx context.Context, authResp *
 		// 但由于当前设计中 auth 不应该提供删除接口，我们记录错误并返回失败
 		// 实际生产中可能需要设计补偿机制
 
-		return &authmodel.RegisterResult{
+		return &auth.RegisterResult{
 			Success:      false,
 			IdentityID:   authResp.IdentityId,
 			SessionToken: "",
@@ -122,11 +124,11 @@ func (t *TransactionService) RegisterTransaction(ctx context.Context, authResp *
 		}, syncErr
 	}
 
-	return &authmodel.RegisterResult{
+	return &auth.RegisterResult{
 		Success:      true,
 		IdentityID:   authResp.IdentityId,
 		SessionToken: authResp.Token,
-		UserInfo:     userInfo,
+		UserInfo:     common.UserInfoFromEntity(userInfo),
 	}, nil
 }
 

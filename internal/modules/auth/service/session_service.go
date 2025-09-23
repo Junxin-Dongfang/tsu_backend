@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"time"
 
-	"tsu-self/internal/model/authmodel"
 	"tsu-self/internal/pkg/log"
 	"tsu-self/internal/pkg/xerrors"
+	"tsu-self/internal/repository/entity"
 	authpb "tsu-self/proto"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -53,7 +53,7 @@ func NewSessionService(redis *redis.Client, jwtSecret string, tokenTTL time.Dura
 	}
 }
 
-func (s *SessionService) CreateSession(ctx context.Context, userInfo *authmodel.BusinessUserInfo, clientIP, userAgent string) (string, error) {
+func (s *SessionService) CreateSession(ctx context.Context, userInfo *entity.User, clientIP, userAgent string) (string, error) {
 	// 1. 生成 SessionID
 	sessionID, err := s.generateSessionID()
 	if err != nil {

@@ -6,7 +6,7 @@ import (
 	"database/sql"
 
 	"github.com/jmoiron/sqlx"
-	"tsu-self/internal/model/authmodel"
+	"tsu-self/internal/repository/entity"
 	"tsu-self/internal/pkg/log"
 	"tsu-self/internal/pkg/xerrors"
 )
@@ -24,7 +24,7 @@ func NewSyncService(db *sqlx.DB, logger log.Logger) *SyncService {
 }
 
 // CreateBusinessUser 创建业务用户（注册时调用）
-func (s *SyncService) CreateBusinessUser(ctx context.Context, identityID, email, username string) (*authmodel.BusinessUserInfo, *xerrors.AppError) {
+func (s *SyncService) CreateBusinessUser(ctx context.Context, identityID, email, username string) (*entity.User, *xerrors.AppError) {
 	s.logger.InfoContext(ctx, "开始创建业务用户",
 		log.String("identity_id", identityID),
 		log.String("email", email),
@@ -44,7 +44,7 @@ func (s *SyncService) CreateBusinessUser(ctx context.Context, identityID, email,
 		RETURNING id, username, email, is_premium, diamond_count, created_at, updated_at
 	`
 
-	var userInfo authmodel.BusinessUserInfo
+	var userInfo entity.User
 	err = tx.QueryRowxContext(ctx, query, identityID, username, email).Scan(
 		&userInfo.ID,
 		&userInfo.Username,
@@ -81,14 +81,14 @@ func (s *SyncService) CreateBusinessUser(ctx context.Context, identityID, email,
 }
 
 // GetUserByID 根据ID获取用户信息
-func (s *SyncService) GetUserByID(ctx context.Context, userID string) (*authmodel.BusinessUserInfo, *xerrors.AppError) {
+func (s *SyncService) GetUserByID(ctx context.Context, userID string) (*entity.User, *xerrors.AppError) {
 	query := `
 		SELECT id, username, email, is_premium, diamond_count, created_at, updated_at
 		FROM users
 		WHERE id = $1 AND deleted_at IS NULL
 	`
 
-	var userInfo authmodel.BusinessUserInfo
+	var userInfo entity.User
 	err := s.db.GetContext(ctx, &userInfo, query, userID)
 
 	if err != nil {
@@ -196,7 +196,7 @@ func (s *SyncService) DeleteUser(ctx context.Context, userID string) *xerrors.Ap
 }
 
 // SyncUserAfterLogin 登录后同步用户信息
-func (s *SyncService) SyncUserAfterLogin(ctx context.Context, userID, clientIP string) (*authmodel.BusinessUserInfo, *xerrors.AppError) {
+func (s *SyncService) SyncUserAfterLogin(ctx context.Context, userID, clientIP string) (*entity.User, *xerrors.AppError) {
 	// 获取用户信息
 	userInfo, err := s.GetUserByID(ctx, userID)
 	if err != nil {

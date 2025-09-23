@@ -9,7 +9,9 @@ import (
 
 	"tsu-self/internal/modules/auth/service"
 	"tsu-self/internal/pkg/log"
-	authpb "tsu-self/proto"
+	"tsu-self/internal/rpc/generated/auth"
+	"tsu-self/internal/rpc/generated/common"
+	"tsu-self/internal/rpc/generated/user"
 )
 
 type AuthRPCHandler struct {
@@ -37,7 +39,7 @@ func NewAuthRPCHandler(
 }
 
 // Login RPC 方法 - 使用 protobuf
-func (h *AuthRPCHandler) Login(req *authpb.LoginRequest) (*authpb.LoginResponse, error) {
+func (h *AuthRPCHandler) Login(req *auth.LoginRequest) (*auth.LoginResponse, error) {
 	ctx := context.Background()
 
 	h.logger.InfoContext(ctx, "RPC Login 请求", log.String("identifier", req.Identifier))
@@ -46,7 +48,7 @@ func (h *AuthRPCHandler) Login(req *authpb.LoginRequest) (*authpb.LoginResponse,
 	resp, appErr := h.kratosService.Login(ctx, req)
 	if appErr != nil {
 		h.logger.ErrorContext(ctx, "Kratos 登录失败", log.Any("error", appErr))
-		return &authpb.LoginResponse{
+		return &auth.LoginResponse{
 			Success:      false,
 			ErrorMessage: appErr.Error(),
 		}, nil
@@ -56,7 +58,7 @@ func (h *AuthRPCHandler) Login(req *authpb.LoginRequest) (*authpb.LoginResponse,
 }
 
 // Register RPC 方法 - 使用 protobuf
-func (h *AuthRPCHandler) Register(req *authpb.RegisterRequest) (*authpb.RegisterResponse, error) {
+func (h *AuthRPCHandler) Register(req *auth.RegisterRequest) (*auth.RegisterResponse, error) {
 	ctx := context.Background()
 
 	h.logger.InfoContext(ctx, "RPC Register 请求",
@@ -67,7 +69,7 @@ func (h *AuthRPCHandler) Register(req *authpb.RegisterRequest) (*authpb.Register
 	resp, appErr := h.kratosService.Register(ctx, req)
 	if appErr != nil {
 		h.logger.ErrorContext(ctx, "Kratos 注册失败", log.Any("error", appErr))
-		return &authpb.RegisterResponse{
+		return &auth.RegisterResponse{
 			Success:      false,
 			ErrorMessage: appErr.Error(),
 		}, nil
@@ -77,17 +79,17 @@ func (h *AuthRPCHandler) Register(req *authpb.RegisterRequest) (*authpb.Register
 }
 
 // ValidateToken RPC 方法 - 使用 protobuf
-func (h *AuthRPCHandler) ValidateToken(req *authpb.ValidateTokenRequest) (*authpb.ValidateTokenResponse, error) {
+func (h *AuthRPCHandler) ValidateToken(req *auth.ValidateTokenRequest) (*auth.ValidateTokenResponse, error) {
 	ctx := context.Background()
 
 	// 首先尝试 Session Service 验证
 	sessionResp, err := h.sessionService.ValidateToken(ctx, req.Token)
 	if err == nil && sessionResp.Valid {
 		// 转换为 protobuf 格式
-		return &authpb.ValidateTokenResponse{
+		return &auth.ValidateTokenResponse{
 			Valid:  true,
 			UserId: sessionResp.UserId,
-			UserInfo: &authpb.KratosUserInfo{
+			UserInfo: &common.UserInfo{
 				Id:       sessionResp.UserId,
 				Email:    "user@example.com", // 需要从实际用户信息获取
 				Username: "username",         // 需要从实际用户信息获取
@@ -97,11 +99,11 @@ func (h *AuthRPCHandler) ValidateToken(req *authpb.ValidateTokenRequest) (*authp
 	}
 
 	// Session 验证失败，返回无效
-	return &authpb.ValidateTokenResponse{Valid: false}, nil
+	return &auth.ValidateTokenResponse{Valid: false}, nil
 }
 
 // Logout RPC 方法 - 使用 protobuf
-func (h *AuthRPCHandler) Logout(req *authpb.LogoutRequest) (*authpb.LogoutResponse, error) {
+func (h *AuthRPCHandler) Logout(req *auth.LogoutRequest) (*auth.LogoutResponse, error) {
 	ctx := context.Background()
 
 	h.logger.InfoContext(ctx, "RPC Logout 请求", log.String("user_id", req.UserId))
@@ -111,11 +113,11 @@ func (h *AuthRPCHandler) Logout(req *authpb.LogoutRequest) (*authpb.LogoutRespon
 		h.logger.WarnContext(ctx, "清理会话失败", log.Any("error", err))
 	}
 
-	return &authpb.LogoutResponse{Success: true}, nil
+	return &auth.LogoutResponse{Success: true}, nil
 }
 
 // CheckPermission RPC 方法 - 使用 protobuf
-func (h *AuthRPCHandler) CheckPermission(req *authpb.CheckPermissionRequest) (*authpb.CheckPermissionResponse, error) {
+func (h *AuthRPCHandler) CheckPermission(req *common.CheckPermissionRequest) (*common.CheckPermissionResponse, error) {
 	ctx := context.Background()
 
 	h.logger.DebugContext(ctx, "RPC CheckPermission 请求",
@@ -128,14 +130,14 @@ func (h *AuthRPCHandler) CheckPermission(req *authpb.CheckPermissionRequest) (*a
 	if err != nil {
 		h.logger.WarnContext(ctx, "Keto 权限检查失败", log.Any("error", err))
 		// 权限检查失败时默认拒绝访问
-		return &authpb.CheckPermissionResponse{Allowed: false}, nil
+		return &common.CheckPermissionResponse{Allowed: false}, nil
 	}
 
 	return response, nil
 }
 
 // GetUserInfo RPC 方法 - 使用 protobuf
-func (h *AuthRPCHandler) GetUserInfo(req *authpb.GetUserInfoRequest) (*authpb.GetUserInfoResponse, error) {
+func (h *AuthRPCHandler) GetUserInfo(req *user.GetUserInfoRequest) (*user.GetUserInfoResponse, error) {
 	ctx := context.Background()
 
 	// 调用 Kratos 获取用户信息
@@ -143,7 +145,7 @@ func (h *AuthRPCHandler) GetUserInfo(req *authpb.GetUserInfoRequest) (*authpb.Ge
 	if err != nil {
 		h.logger.ErrorContext(ctx, "Kratos 获取用户信息失败", log.Any("error", err))
 		// 返回空的用户信息而不是错误，让调用方处理
-		userInfo = &authpb.KratosUserInfo{
+		userInfo = &common.UserInfo{
 			Id:       req.UserId,
 			Email:    "",
 			Username: "",
@@ -153,28 +155,28 @@ func (h *AuthRPCHandler) GetUserInfo(req *authpb.GetUserInfoRequest) (*authpb.Ge
 		}
 	}
 
-	return &authpb.GetUserInfoResponse{
+	return &user.GetUserInfoResponse{
 		UserInfo: userInfo,
 	}, nil
 }
 
 // UpdateUserTraits RPC 方法 - 使用 protobuf
-func (h *AuthRPCHandler) UpdateUserTraits(req *authpb.UpdateUserTraitsRequest) (*authpb.UpdateUserTraitsResponse, error) {
+func (h *AuthRPCHandler) UpdateUserTraits(req *user.UpdateUserTraitsRequest) (*user.UpdateUserTraitsResponse, error) {
 	// 调用 Kratos 更新用户特征
 	// 实际实现中需要调用 Kratos API
 
-	return &authpb.UpdateUserTraitsResponse{Success: true}, nil
+	return &user.UpdateUserTraitsResponse{Success: true}, nil
 }
 
 // AssignRole RPC 方法 - 使用 protobuf
-func (h *AuthRPCHandler) AssignRole(req *authpb.AssignRoleRequest) (*authpb.AssignRoleResponse, error) {
+func (h *AuthRPCHandler) AssignRole(req *common.AssignRoleRequest) (*common.AssignRoleResponse, error) {
 	ctx := context.Background()
 
 	// 调用 Keto 分配角色
 	response, err := h.ketoService.AssignRole(ctx, req)
 	if err != nil {
 		h.logger.ErrorContext(ctx, "Keto 角色分配失败", log.Any("error", err))
-		return &authpb.AssignRoleResponse{Success: false}, nil
+		return &common.AssignRoleResponse{Success: false}, nil
 	}
 
 	// 发布权限变更事件
@@ -191,14 +193,14 @@ func (h *AuthRPCHandler) AssignRole(req *authpb.AssignRoleRequest) (*authpb.Assi
 }
 
 // RevokeRole RPC 方法 - 使用 protobuf
-func (h *AuthRPCHandler) RevokeRole(req *authpb.RevokeRoleRequest) (*authpb.RevokeRoleResponse, error) {
+func (h *AuthRPCHandler) RevokeRole(req *common.RevokeRoleRequest) (*common.RevokeRoleResponse, error) {
 	ctx := context.Background()
 
 	// 调用 Keto 撤销角色
 	response, err := h.ketoService.RevokeRole(ctx, req)
 	if err != nil {
 		h.logger.ErrorContext(ctx, "Keto 角色撤销失败", log.Any("error", err))
-		return &authpb.RevokeRoleResponse{Success: false}, nil
+		return &common.RevokeRoleResponse{Success: false}, nil
 	}
 
 	// 发布权限变更事件
@@ -215,14 +217,14 @@ func (h *AuthRPCHandler) RevokeRole(req *authpb.RevokeRoleRequest) (*authpb.Revo
 }
 
 // CreateRole RPC 方法 - 使用 protobuf
-func (h *AuthRPCHandler) CreateRole(req *authpb.CreateRoleRequest) (*authpb.CreateRoleResponse, error) {
+func (h *AuthRPCHandler) CreateRole(req *common.CreateRoleRequest) (*common.CreateRoleResponse, error) {
 	ctx := context.Background()
 
 	// 调用 Keto 创建角色
 	response, err := h.ketoService.CreateRole(ctx, req)
 	if err != nil {
 		h.logger.ErrorContext(ctx, "Keto 角色创建失败", log.Any("error", err))
-		return &authpb.CreateRoleResponse{Success: false}, nil
+		return &common.CreateRoleResponse{Success: false}, nil
 	}
 
 	return response, nil

@@ -5,7 +5,7 @@ import (
 	"context"
 	"database/sql"
 
-	"tsu-self/internal/model/authmodel"
+	"tsu-self/internal/repository/entity"
 	"tsu-self/internal/pkg/log"
 	"tsu-self/internal/pkg/xerrors"
 )
@@ -23,7 +23,7 @@ func NewSyncService(db *sql.DB, logger log.Logger) *SyncService {
 }
 
 // CreateBusinessUser 创建业务用户（注册时调用）
-func (s *SyncService) CreateBusinessUser(ctx context.Context, identityID, email, username string) (*authmodel.BusinessUserInfo, *xerrors.AppError) {
+func (s *SyncService) CreateBusinessUser(ctx context.Context, identityID, email, username string) (*entity.User, *xerrors.AppError) {
 	s.logger.InfoContext(ctx, "开始创建业务用户",
 		log.String("identity_id", identityID),
 		log.String("email", email),
@@ -43,7 +43,7 @@ func (s *SyncService) CreateBusinessUser(ctx context.Context, identityID, email,
 		RETURNING id, username, email, is_premium, diamond_count, created_at, updated_at
 	`
 
-	var userInfo authmodel.BusinessUserInfo
+	var userInfo entity.User
 	err = tx.QueryRowContext(ctx, query, identityID, username, email).Scan(
 		&userInfo.ID,
 		&userInfo.Username,
@@ -80,7 +80,7 @@ func (s *SyncService) CreateBusinessUser(ctx context.Context, identityID, email,
 }
 
 // SyncUserAfterLogin 登录后同步用户信息
-func (s *SyncService) SyncUserAfterLogin(ctx context.Context, sessionToken string) (*authmodel.BusinessUserInfo, *xerrors.AppError) {
+func (s *SyncService) SyncUserAfterLogin(ctx context.Context, sessionToken string) (*entity.User, *xerrors.AppError) {
 	// 这里需要调用 Kratos API 获取用户信息
 	// 由于需要 Kratos 客户端，这个方法应该在 KratosService 中实现
 	// 或者将 Kratos 客户端注入到 SyncService
@@ -90,14 +90,14 @@ func (s *SyncService) SyncUserAfterLogin(ctx context.Context, sessionToken strin
 }
 
 // GetUserByID 根据ID获取用户信息
-func (s *SyncService) GetUserByID(ctx context.Context, userID string) (*authmodel.BusinessUserInfo, *xerrors.AppError) {
+func (s *SyncService) GetUserByID(ctx context.Context, userID string) (*entity.User, *xerrors.AppError) {
 	query := `
 		SELECT id, username, email, is_premium, diamond_count, created_at, updated_at
 		FROM users 
 		WHERE id = $1 AND deleted_at IS NULL
 	`
 
-	var userInfo authmodel.BusinessUserInfo
+	var userInfo entity.User
 	err := s.db.QueryRowContext(ctx, query, userID).Scan(
 		&userInfo.ID,
 		&userInfo.Username,

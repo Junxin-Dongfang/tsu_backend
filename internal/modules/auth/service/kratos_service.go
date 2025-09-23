@@ -10,7 +10,9 @@ import (
 
 	"tsu-self/internal/pkg/log"
 	"tsu-self/internal/pkg/xerrors"
-	authpb "tsu-self/proto"
+	"tsu-self/internal/rpc/generated/auth"
+	"tsu-self/internal/rpc/generated/common"
+	"tsu-self/internal/rpc/generated/user"
 )
 
 type KratosService struct {
@@ -34,12 +36,12 @@ func NewKratosService(publicURL, adminURL string, logger log.Logger) (*KratosSer
 }
 
 // Login 纯 Kratos 登录，不操作主数据库
-func (s *KratosService) Login(ctx context.Context, req *authpb.LoginRequest) (*authpb.LoginResponse, *xerrors.AppError) {
+func (s *KratosService) Login(ctx context.Context, req *auth.LoginRequest) (*auth.LoginResponse, *xerrors.AppError) {
 	s.logger.InfoContext(ctx, "开始 Kratos 登录流程", log.String("identifier", req.Identifier))
 
 	// 基础验证
 	if req.Password == "" {
-		return &authpb.LoginResponse{
+		return &auth.LoginResponse{
 			Success:      false,
 			ErrorMessage: "密码不能为空",
 		}, xerrors.NewValidationError("password", "密码不能为空")
@@ -49,7 +51,7 @@ func (s *KratosService) Login(ctx context.Context, req *authpb.LoginRequest) (*a
 	loginFlow, _, err := s.publicClient.FrontendAPI.CreateNativeLoginFlow(ctx).Execute()
 	if err != nil {
 		s.logger.ErrorContext(ctx, "创建 Kratos 登录流程失败", log.Any("error", err))
-		return &authpb.LoginResponse{
+		return &auth.LoginResponse{
 			Success:      false,
 			ErrorMessage: "登录流程创建失败",
 		}, xerrors.NewExternalServiceError("kratos", err)
@@ -68,7 +70,7 @@ func (s *KratosService) Login(ctx context.Context, req *authpb.LoginRequest) (*a
 
 	if loginErr != nil {
 		s.logger.ErrorContext(ctx, "Kratos 登录验证失败", log.Any("error", loginErr))
-		return &authpb.LoginResponse{
+		return &auth.LoginResponse{
 			Success:      false,
 			ErrorMessage: "用户名或密码错误",
 		}, xerrors.NewAuthError("用户名或密码错误")
@@ -78,14 +80,14 @@ func (s *KratosService) Login(ctx context.Context, req *authpb.LoginRequest) (*a
 	session := loginResult.Session
 	if session.Identity == nil {
 		s.logger.ErrorContext(ctx, "Kratos 登录结果中没有身份信息")
-		return &authpb.LoginResponse{
+		return &auth.LoginResponse{
 			Success:      false,
 			ErrorMessage: "登录结果异常",
 		}, xerrors.NewExternalServiceError("kratos", nil)
 	}
 
 	identity := session.Identity
-	userInfo := &authpb.KratosUserInfo{
+	userInfo := &common.UserInfo{
 		Id:     identity.Id,
 		Traits: make(map[string]string),
 	}
@@ -132,7 +134,7 @@ func (s *KratosService) Login(ctx context.Context, req *authpb.LoginRequest) (*a
 		log.String("user_id", userInfo.Id),
 		log.String("email", userInfo.Email))
 
-	return &authpb.LoginResponse{
+	return &auth.LoginResponse{
 		Success:    true,
 		Token:      sessionToken,
 		IdentityId: userInfo.Id,
@@ -142,28 +144,28 @@ func (s *KratosService) Login(ctx context.Context, req *authpb.LoginRequest) (*a
 }
 
 // Register 纯 Kratos 注册，不操作主数据库
-func (s *KratosService) Register(ctx context.Context, req *authpb.RegisterRequest) (*authpb.RegisterResponse, *xerrors.AppError) {
+func (s *KratosService) Register(ctx context.Context, req *auth.RegisterRequest) (*auth.RegisterResponse, *xerrors.AppError) {
 	s.logger.InfoContext(ctx, "开始 Kratos 注册流程",
 		log.String("email", req.Email),
 		log.String("username", req.Username))
 
 	// 基础验证
 	if req.Email == "" {
-		return &authpb.RegisterResponse{
+		return &auth.RegisterResponse{
 			Success:      false,
 			ErrorMessage: "邮箱不能为空",
 		}, xerrors.NewValidationError("email", "邮箱不能为空")
 	}
 
 	if req.Username == "" {
-		return &authpb.RegisterResponse{
+		return &auth.RegisterResponse{
 			Success:      false,
 			ErrorMessage: "用户名不能为空",
 		}, xerrors.NewValidationError("username", "用户名不能为空")
 	}
 
 	if req.Password == "" {
-		return &authpb.RegisterResponse{
+		return &auth.RegisterResponse{
 			Success:      false,
 			ErrorMessage: "密码不能为空",
 		}, xerrors.NewValidationError("password", "密码不能为空")
@@ -173,7 +175,7 @@ func (s *KratosService) Register(ctx context.Context, req *authpb.RegisterReques
 	registerFlow, _, err := s.publicClient.FrontendAPI.CreateNativeRegistrationFlow(ctx).Execute()
 	if err != nil {
 		s.logger.ErrorContext(ctx, "创建 Kratos 注册流程失败", log.Any("error", err))
-		return &authpb.RegisterResponse{
+		return &auth.RegisterResponse{
 			Success:      false,
 			ErrorMessage: "注册流程创建失败",
 		}, xerrors.NewExternalServiceError("kratos", err)
@@ -198,7 +200,7 @@ func (s *KratosService) Register(ctx context.Context, req *authpb.RegisterReques
 
 	if registerErr != nil {
 		s.logger.ErrorContext(ctx, "Kratos 注册失败", log.Any("error", registerErr))
-		return &authpb.RegisterResponse{
+		return &auth.RegisterResponse{
 			Success:      false,
 			ErrorMessage: "注册失败，用户可能已存在",
 		}, xerrors.NewExternalServiceError("kratos", registerErr)
@@ -208,14 +210,14 @@ func (s *KratosService) Register(ctx context.Context, req *authpb.RegisterReques
 	session := registerResult.Session
 	if session.Identity == nil {
 		s.logger.ErrorContext(ctx, "Kratos 注册结果中没有身份信息")
-		return &authpb.RegisterResponse{
+		return &auth.RegisterResponse{
 			Success:      false,
 			ErrorMessage: "注册结果异常",
 		}, xerrors.NewExternalServiceError("kratos", nil)
 	}
 
 	identity := session.Identity
-	userInfo := &authpb.KratosUserInfo{
+	userInfo := &common.UserInfo{
 		Id:     identity.Id,
 		Traits: make(map[string]string),
 	}
@@ -260,7 +262,7 @@ func (s *KratosService) Register(ctx context.Context, req *authpb.RegisterReques
 
 	s.logger.InfoContext(ctx, "Kratos 注册成功", log.String("identity_id", userInfo.Id))
 
-	return &authpb.RegisterResponse{
+	return &auth.RegisterResponse{
 		Success:    true,
 		IdentityId: userInfo.Id,
 		Token:      sessionToken,
@@ -269,7 +271,7 @@ func (s *KratosService) Register(ctx context.Context, req *authpb.RegisterReques
 }
 
 // GetUserInfoByToken 通过 token 从 Kratos 获取用户信息
-func (s *KratosService) GetUserInfoByToken(ctx context.Context, token string) (*authpb.KratosUserInfo, *xerrors.AppError) {
+func (s *KratosService) GetUserInfoByToken(ctx context.Context, token string) (*common.UserInfo, *xerrors.AppError) {
 	s.logger.DebugContext(ctx, "从 Kratos 获取用户信息", log.String("token", token[:10]+"..."))
 
 	// 调用 Kratos whoami API (ToSession)
@@ -289,7 +291,7 @@ func (s *KratosService) GetUserInfoByToken(ctx context.Context, token string) (*
 	}
 
 	identity := session.Identity
-	userInfo := &authpb.KratosUserInfo{
+	userInfo := &common.UserInfo{
 		Id:     identity.Id,
 		Traits: make(map[string]string),
 	}
@@ -330,7 +332,7 @@ func (s *KratosService) GetUserInfoByToken(ctx context.Context, token string) (*
 }
 
 // GetUserInfo 通过用户ID从 Kratos 获取用户信息
-func (s *KratosService) GetUserInfo(ctx context.Context, userID string) (*authpb.KratosUserInfo, *xerrors.AppError) {
+func (s *KratosService) GetUserInfo(ctx context.Context, userID string) (*common.UserInfo, *xerrors.AppError) {
 	s.logger.DebugContext(ctx, "通过用户ID从 Kratos 获取用户信息", log.String("user_id", userID))
 
 	// 调用 Kratos Admin API 获取身份信息
@@ -340,7 +342,7 @@ func (s *KratosService) GetUserInfo(ctx context.Context, userID string) (*authpb
 		return nil, xerrors.NewExternalServiceError("kratos", err)
 	}
 
-	userInfo := &authpb.KratosUserInfo{
+	userInfo := &common.UserInfo{
 		Id:     identity.Id,
 		Traits: make(map[string]string),
 	}
@@ -381,17 +383,18 @@ func (s *KratosService) GetUserInfo(ctx context.Context, userID string) (*authpb
 }
 
 // UpdateUserTraits 更新用户特征
-func (s *KratosService) UpdateUserTraits(ctx context.Context, req *authpb.UpdateUserTraitsRequest) (*authpb.UpdateUserTraitsResponse, *xerrors.AppError) {
+func (s *KratosService) UpdateUserTraits(ctx context.Context, req *user.UpdateUserTraitsRequest) (*user.UpdateUserTraitsResponse, *xerrors.AppError) {
 	s.logger.InfoContext(ctx, "更新用户特征",
 		log.String("user_id", req.UserId),
-		log.String("email", req.Email),
-		log.String("username", req.Username))
+	//log.String("email", req.Email),
+	//log.String("username", req.Username)
+	)
 
 	// 调用 Kratos 更新身份 API
 	// 这里需要实现实际的 Kratos 客户端调用
 	// 暂时返回成功响应
 
-	return &authpb.UpdateUserTraitsResponse{
+	return &user.UpdateUserTraitsResponse{
 		Success: true,
 	}, nil
 }
@@ -408,14 +411,14 @@ func (s *KratosService) Logout(ctx context.Context, token string) *xerrors.AppEr
 }
 
 // ValidateSession 验证会话
-func (s *KratosService) ValidateSession(ctx context.Context, token string) (*authpb.KratosUserInfo, *xerrors.AppError) {
+func (s *KratosService) ValidateSession(ctx context.Context, token string) (*common.UserInfo, *xerrors.AppError) {
 	s.logger.DebugContext(ctx, "验证会话", log.String("token", token[:10]+"..."))
 
 	// 调用 Kratos 验证会话 API
 	// 这里需要实现实际的 Kratos 客户端调用
 	// 暂时返回模拟响应
 
-	userInfo := &authpb.KratosUserInfo{
+	userInfo := &common.UserInfo{
 		Id:        "validated-user-id",
 		Email:     "user@example.com",
 		Username:  "username",

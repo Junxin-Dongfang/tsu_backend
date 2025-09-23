@@ -16,12 +16,19 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-	"tsu-self/internal/model/authmodel"
-	"tsu-self/internal/pkg/log"
-	"tsu-self/internal/pkg/xerrors"
 
+	// 新的 API 层模型
+	apiAuthReq "tsu-self/internal/api/request/auth"
+
+	// 转换器
+	authConverter "tsu-self/internal/converter/auth"
+
+	// 新的 RPC 模型
+	"tsu-self/internal/rpc/generated/auth"
+
+	"tsu-self/internal/pkg/log"
 	"tsu-self/internal/pkg/response"
-	authpb "tsu-self/proto"
+	"tsu-self/internal/pkg/xerrors"
 
 	"github.com/labstack/echo/v4"
 	mqrpc "github.com/liangdas/mqant/rpc"
@@ -34,8 +41,8 @@ import (
 // @Tags 认证
 // @Accept json
 // @Produce json
-// @Param login body authmodel.LoginRequest true "登录请求参数"
-// @Success 200 {object} response.APIResponse[authmodel.LoginResult] "登录成功"
+// @Param login body apiAuthReq.LoginRequest true "登录请求参数"
+// @Success 200 {object} response.APIResponse[apiAuthResp.LoginResult] "登录成功"
 // @Failure 400 {object} response.APIResponse[any] "请求参数错误"
 // @Failure 401 {object} response.APIResponse[any] "认证失败"
 // @Failure 500 {object} response.APIResponse[any] "服务器错误"
@@ -43,19 +50,19 @@ import (
 func (m *AdminModule) Login(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	var req authmodel.LoginRequest
+	// 使用新的 API 请求模型
+	var req apiAuthReq.LoginRequest
 	if err := c.Bind(&req); err != nil {
 		appErr := xerrors.NewValidationError("request", "请求格式错误")
 		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
 	}
 
-	// 通过 mqant 调用 auth module 使用 protobuf
-	rpcReq := &authpb.LoginRequest{
-		Identifier: req.Identifier,
-		Password:   req.Password,
-		ClientIp:   c.RealIP(),
-		UserAgent:  c.Request().Header.Get("User-Agent"),
-	}
+	// 填充服务器端信息
+	req.ClientIP = c.RealIP()
+	req.UserAgent = c.Request().Header.Get("User-Agent")
+
+	// 使用转换器转换为 RPC 请求
+	rpcReq := authConverter.LoginRequestToRPC(&req)
 
 	// mqant RPC 调用
 	resp, err := m.Call(ctx, "auth", "Login", mqrpc.Param(rpcReq))
@@ -64,28 +71,29 @@ func (m *AdminModule) Login(c echo.Context) error {
 		return response.InternalServerError(ctx, c.Response().Writer, m.respWriter, "认证服务调用失败")
 	}
 
-	var loginResp *authpb.LoginResponse
+	// 处理 RPC 响应
+	var rpcResp *auth.LoginResponse
 	switch v := resp.(type) {
 	case []byte:
-		loginResp = &authpb.LoginResponse{}
-		if err := proto.Unmarshal(v, loginResp); err != nil {
+		rpcResp = &auth.LoginResponse{}
+		if err := proto.Unmarshal(v, rpcResp); err != nil {
 			log.ErrorContext(c.Request().Context(), "Login响应反序列化失败", log.Any("error", err))
 			return response.InternalServerError(ctx, c.Response().Writer, m.respWriter, "响应处理失败")
 		}
-	case *authpb.LoginResponse:
-		loginResp = v
+	case *auth.LoginResponse:
+		rpcResp = v
 	default:
 		log.ErrorContext(c.Request().Context(), "Login响应类型错误", log.Any("type", fmt.Sprintf("%T", v)))
 		return response.InternalServerError(ctx, c.Response().Writer, m.respWriter, "响应类型错误")
 	}
 
-	// 使用事务服务处理登录结果并同步到主数据库
-	result, syncErr := m.transactionService.LoginTransaction(ctx, loginResp, c.RealIP())
-	if syncErr != nil {
-		return m.respWriter.WriteError(ctx, c.Response().Writer, syncErr)
-	}
+	// 使用转换器转换为 API 响应
+	apiResult := authConverter.LoginResponseFromRPC(rpcResp)
 
-	return m.respWriter.WriteSuccess(ctx, c.Response().Writer, result)
+	// 如果需要同步到主数据库，可以在这里处理
+	// TODO: 实现事务协调逻辑
+
+	return m.respWriter.WriteSuccess(ctx, c.Response().Writer, apiResult)
 }
 
 // Register 用户注册
@@ -94,8 +102,8 @@ func (m *AdminModule) Login(c echo.Context) error {
 // @Tags 认证
 // @Accept json
 // @Produce json
-// @Param register body authmodel.RegisterRequest true "注册请求参数"
-// @Success 200 {object} response.APIResponse[authmodel.RegisterResult] "注册成功"
+// @Param register body apiAuthReq.RegisterRequest true "注册请求参数"
+// @Success 200 {object} response.APIResponse[apiAuthResp.RegisterResult] "注册成功"
 // @Failure 400 {object} response.APIResponse[any] "请求参数错误"
 // @Failure 409 {object} response.APIResponse[any] "用户已存在"
 // @Failure 500 {object} response.APIResponse[any] "服务器错误"
@@ -103,19 +111,19 @@ func (m *AdminModule) Login(c echo.Context) error {
 func (m *AdminModule) Register(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	var req authmodel.RegisterRequest
+	// 使用新的 API 请求模型
+	var req apiAuthReq.RegisterRequest
 	if err := c.Bind(&req); err != nil {
 		appErr := xerrors.NewValidationError("request", "请求格式错误")
 		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
 	}
 
-	rpcReq := &authpb.RegisterRequest{
-		Email:     req.Email,
-		Username:  req.Username,
-		Password:  req.Password,
-		ClientIp:  c.RealIP(),
-		UserAgent: c.Request().Header.Get("User-Agent"),
-	}
+	// 填充服务器端信息
+	req.ClientIP = c.RealIP()
+	req.UserAgent = c.Request().Header.Get("User-Agent")
+
+	// 使用转换器转换为 RPC 请求
+	rpcReq := authConverter.RegisterRequestToRPC(&req)
 
 	result, err := m.Call(ctx, "auth", "Register", mqrpc.Param(rpcReq))
 	if err != "" {
@@ -126,33 +134,32 @@ func (m *AdminModule) Register(c echo.Context) error {
 
 	m.logger.InfoContext(ctx, "Auth服务调用成功", log.Any("result_type", fmt.Sprintf("%T", result)))
 
-	// 处理 protobuf 响应
-	var registerResp *authpb.RegisterResponse
+	// 处理 RPC 响应
+	var rpcResp *auth.RegisterResponse
 	switch v := result.(type) {
 	case []byte:
-		registerResp = &authpb.RegisterResponse{}
-		if err := proto.Unmarshal(v, registerResp); err != nil {
+		rpcResp = &auth.RegisterResponse{}
+		if err := proto.Unmarshal(v, rpcResp); err != nil {
 			m.logger.ErrorContext(c.Request().Context(), "Protobuf反序列化失败", log.Any("error", err))
 			return m.respWriter.WriteError(c.Request().Context(), c.Response().Writer,
 				xerrors.FromCode(xerrors.CodeInternalError).WithMetadata("reason", "protobuf_unmarshal_failed"))
 		}
-	case *authpb.RegisterResponse:
-		registerResp = v
+	case *auth.RegisterResponse:
+		rpcResp = v
 	default:
 		m.logger.ErrorContext(c.Request().Context(), "类型断言失败",
-			log.Any("expected", "*authpb.RegisterResponse or []byte"),
+			log.Any("expected", "*auth.RegisterResponse or []byte"),
 			log.Any("actual", fmt.Sprintf("%T", result)))
 		return m.respWriter.WriteError(c.Request().Context(), c.Response().Writer,
 			xerrors.FromCode(xerrors.CodeInternalError).WithMetadata("reason", "invalid_response_type"))
 	}
 
-	// 使用事务服务处理注册结果并同步到主数据库
-	finalResult, syncErr := m.transactionService.RegisterTransaction(ctx, registerResp)
-	if syncErr != nil {
-		return m.respWriter.WriteError(ctx, c.Response().Writer, syncErr)
-	}
+	// 使用转换器转换为 API 响应
+	apiResult := authConverter.RegisterResponseFromRPC(rpcResp)
 
-	return m.respWriter.WriteSuccess(c.Request().Context(), c.Response().Writer, finalResult)
+	// TODO: 如果需要同步到主数据库，可以在这里处理事务协调逻辑
+
+	return m.respWriter.WriteSuccess(c.Request().Context(), c.Response().Writer, apiResult)
 }
 
 // // Logout 用户登出

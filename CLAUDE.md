@@ -61,25 +61,164 @@ make migrate-up
 make migrate-down
 ```
 
+### Protocol Buffer 生成
+```bash
+# 生成 protobuf Go 代码
+./scripts/generate_proto.sh
+
+# 安装 protoc 和 protoc-gen-go (如果尚未安装)
+go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+```
+
 ## 项目架构
+
+### 三层架构模式
+
+项目采用清晰的三层架构模式，实现了严格的关注点分离：
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        API Layer                            │
+│                   (HTTP 接口层)                              │
+├─────────────────────────────────────────────────────────────┤
+│                        RPC Layer                            │
+│                  (微服务通信层)                              │
+├─────────────────────────────────────────────────────────────┤
+│                     Database Layer                          │
+│                    (数据持久化层)                           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### 1. API Layer - HTTP 接口层
+```
+internal/api/
+├── request/     # HTTP 请求模型 (JSON)
+├── response/    # HTTP 响应模型 (JSON)
+└── ...
+```
+
+**职责**：
+- 定义对外 HTTP API 的输入输出格式
+- 包含验证标签和 Swagger 注释
+- 只在 HTTP Handler 中使用
+
+#### 2. RPC Layer - 微服务通信层
+```
+internal/rpc/
+├── proto/           # Protocol Buffer 定义文件
+├── generated/       # 生成的 Go 代码
+│   ├── auth/
+│   ├── common/
+│   └── user/
+└── ...
+```
+
+**职责**：
+- 定义微服务间的通信协议
+- 使用 Protocol Buffers 高效序列化
+- 只在 RPC Handler 和服务调用中使用
+
+#### 3. Database Layer - 数据持久化层
+```
+internal/repository/
+├── entity/          # 数据库实体模型
+├── query/           # 查询参数模型
+└── ...
+```
+
+**职责**：
+- 映射数据库表结构
+- 包含业务逻辑方法
+- **只在 Service 层使用**
+
+#### 4. Converter Layer - 转换层
+```
+internal/converter/
+├── auth/            # 认证相关转换
+├── common/          # 通用转换
+└── ...
+```
+
+**职责**：
+- 提供类型安全的数据转换
+- 处理不同层之间的数据映射
+- 可在任何需要类型转换的地方使用
+
+### 架构规则
+
+#### ✅ 允许的依赖关系
+- **HTTP Handler** → API models + Converters → Service
+- **Service Layer** → Entity models + RPC models
+- **Repository** → Entity models only
+- **Converters** → 可在任何需要转换的地方使用
+
+#### 🚫 禁止的依赖关系
+- ❌ HTTP Handler 不能直接使用 `entity.*`
+- ❌ HTTP Handler 不能直接使用 RPC models
+- ❌ Repository 不能使用 API models
 
 ### 核心模块结构
 - **cmd/**: 服务入口点
   - `admin-server/`: 管理后台服务
-  - `auth-server/`: 认证授权服务  
+  - `auth-server/`: 认证授权服务
   - `swagger-server/`: API 文档服务
-  
+
 - **internal/modules/**: 业务模块
   - `admin/`: 管理模块，提供用户管理、身份管理等功能
   - `auth/`: 认证模块，集成 Ory Kratos/Keto，提供认证授权服务
   - `swagger/`: API 文档模块
-  
+
 - **internal/middleware/**: 中间件层
   - 日志、鉴权、限流、错误处理、安全等中间件
 
 - **internal/pkg/**: 公共包
   - `log/`: 统一日志处理
   - `response/`: 统一响应处理
+
+### 架构优势
+
+✅ **关注点分离**：每层专注于自己的职责，API/RPC/Database 各司其职
+
+✅ **类型安全**：通过转换器确保数据在不同层之间正确转换
+
+✅ **高性能**：RPC 层使用 Protocol Buffers 进行高效通信
+
+✅ **可维护性**：清晰的依赖关系和职责边界，便于团队协作
+
+✅ **可扩展性**：新功能可以在对应层独立开发，不影响其他层
+
+✅ **可测试性**：每层可以独立进行单元测试
+
+### 新功能开发
+
+详细的API开发流程请参考：📖 **[API开发流程指南](docs/API_DEVELOPMENT_GUIDE.md)**
+
+该指南涵盖了两种主要场景：
+- **仅操作数据库的API** (用户资料管理、本地数据查询等)
+- **需要RPC调用的API** (跨服务操作、复杂业务逻辑等)
+
+包含完整的代码示例、文件结构、开发检查清单和最佳实践。
+
+### 数据流示例
+
+#### 用户登录流程
+```
+1. HTTP Request (JSON)
+   ↓
+2. API Model (apiAuthReq.LoginRequest)
+   ↓
+3. Converter → RPC Model (auth.LoginRequest)
+   ↓
+4. RPC Call → Auth Service
+   ↓
+5. Service → Entity Model (entity.User)
+   ↓
+6. Database Operation
+   ↓
+7. Entity Model → Converter → API Model
+   ↓
+8. HTTP Response (JSON)
+```
 
 ### 服务发现和注册
 项目使用 Consul 进行服务发现，每个模块会自动注册 HTTP 服务到 Consul，包含健康检查。
