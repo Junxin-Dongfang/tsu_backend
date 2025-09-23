@@ -13,11 +13,11 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/redis/go-redis/v9"
 
-	"tsu-self/internal/model/authmodel"
 	"tsu-self/internal/pkg/contextkeys"
 	"tsu-self/internal/pkg/log"
 	"tsu-self/internal/pkg/response"
 	"tsu-self/internal/pkg/xerrors"
+	authpb "tsu-self/proto"
 )
 
 type AuthMiddleware struct {
@@ -63,16 +63,16 @@ func (m *AuthMiddleware) RequireAuth() echo.MiddlewareFunc {
 			}
 
 			// 调用 auth module 验证 token
-			validateReq := &authmodel.ValidateTokenRequest{Token: token}
+			validateReq := &authpb.ValidateTokenRequest{Token: token}
 
-			result, err := m.app.Call(context.Background(), "auth", "ValidateToken", mqrpc.Param(map[string]interface{}{"req": validateReq}))
+			result, err := m.app.Call(context.Background(), "auth", "ValidateToken", mqrpc.Param(validateReq))
 			if err != "" {
 				m.logger.ErrorContext(c.Request().Context(), "Token验证失败", log.Any("error", err))
 				return m.respHandler.WriteError(c.Request().Context(), c.Response().Writer,
 					xerrors.FromCode(xerrors.CodeInvalidToken))
 			}
 
-			validateResp, ok := result.(*authmodel.ValidateTokenResponse)
+			validateResp, ok := result.(*authpb.ValidateTokenResponse)
 			if !ok || !validateResp.Valid {
 				return m.respHandler.WriteError(c.Request().Context(), c.Response().Writer,
 					xerrors.FromCode(xerrors.CodeInvalidToken))
@@ -80,7 +80,7 @@ func (m *AuthMiddleware) RequireAuth() echo.MiddlewareFunc {
 
 			// 将用户信息添加到context
 			ctx := c.Request().Context()
-			ctx = context.WithValue(ctx, contextkeys.UserIDKey, validateResp.UserID)
+			ctx = context.WithValue(ctx, contextkeys.UserIDKey, validateResp.UserId)
 			c.SetRequest(c.Request().WithContext(ctx))
 
 			return next(c)
@@ -125,19 +125,19 @@ func (m *AuthMiddleware) checkPermission(ctx context.Context, userID, resource, 
 	}
 
 	// 2. 调用 auth module 检查权限
-	checkReq := &authmodel.CheckPermissionRequest{
-		UserID:   userID,
+	checkReq := &authpb.CheckPermissionRequest{
+		UserId:   userID,
 		Resource: resource,
 		Action:   action,
 	}
 
-	result, err := m.app.Call(context.Background(), "auth", "CheckPermission", mqrpc.Param(map[string]interface{}{"req": checkReq}))
+	result, err := m.app.Call(context.Background(), "auth", "CheckPermission", mqrpc.Param(checkReq))
 	if err != "" {
 		m.logger.ErrorContext(ctx, "权限检查调用失败", log.Any("error", err))
 		return false
 	}
 
-	checkResp, ok := result.(*authmodel.CheckPermissionResponse)
+	checkResp, ok := result.(*authpb.CheckPermissionResponse)
 	if !ok {
 		m.logger.ErrorContext(ctx, "权限检查响应类型错误")
 		return false

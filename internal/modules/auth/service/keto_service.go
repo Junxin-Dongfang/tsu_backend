@@ -9,9 +9,9 @@ import (
 	"net/http"
 	"strings"
 
-	"tsu-self/internal/model/authmodel"
 	"tsu-self/internal/pkg/log"
 	"tsu-self/internal/pkg/xerrors"
+	authpb "tsu-self/proto"
 )
 
 type KetoService struct {
@@ -47,9 +47,9 @@ func NewKetoService(readURL, writeURL string, logger log.Logger) *KetoService {
 }
 
 // CheckPermission 检查用户权限
-func (s *KetoService) CheckPermission(ctx context.Context, req *authmodel.CheckPermissionRequest) (*authmodel.CheckPermissionResponse, *xerrors.AppError) {
+func (s *KetoService) CheckPermission(ctx context.Context, req *authpb.CheckPermissionRequest) (*authpb.CheckPermissionResponse, *xerrors.AppError) {
 	s.logger.DebugContext(ctx, "检查用户权限",
-		log.String("user_id", req.UserID),
+		log.String("user_id", req.UserId),
 		log.String("resource", req.Resource),
 		log.String("action", req.Action))
 
@@ -59,7 +59,7 @@ func (s *KetoService) CheckPermission(ctx context.Context, req *authmodel.CheckP
 		Namespace: "tsu_game", // 使用你配置的 namespace
 		Object:    req.Resource,
 		Relation:  req.Action,
-		Subject:   fmt.Sprintf("user:%s", req.UserID),
+		Subject:   fmt.Sprintf("user:%s", req.UserId),
 	}
 
 	allowed, err := s.checkRelation(ctx, ketoReq)
@@ -67,19 +67,19 @@ func (s *KetoService) CheckPermission(ctx context.Context, req *authmodel.CheckP
 		return nil, err
 	}
 
-	return &authmodel.CheckPermissionResponse{
+	return &authpb.CheckPermissionResponse{
 		Allowed: allowed,
 	}, nil
 }
 
 // AssignRole 分配角色给用户
-func (s *KetoService) AssignRole(ctx context.Context, req *authmodel.AssignRoleRequest) (*authmodel.AssignRoleResponse, *xerrors.AppError) {
+func (s *KetoService) AssignRole(ctx context.Context, req *authpb.AssignRoleRequest) (*authpb.AssignRoleResponse, *xerrors.AppError) {
 	// 创建用户-角色关系: user:123 member role:admin
 	relation := &KetoRelation{
 		Namespace: "tsu_game",
 		Object:    fmt.Sprintf("role:%s", req.Role),
 		Relation:  "member",
-		Subject:   fmt.Sprintf("user:%s", req.UserID),
+		Subject:   fmt.Sprintf("user:%s", req.UserId),
 	}
 
 	if err := s.createRelation(ctx, relation); err != nil {
@@ -87,19 +87,19 @@ func (s *KetoService) AssignRole(ctx context.Context, req *authmodel.AssignRoleR
 	}
 
 	s.logger.InfoContext(ctx, "角色分配成功",
-		log.String("user_id", req.UserID),
+		log.String("user_id", req.UserId),
 		log.String("role", req.Role))
 
-	return &authmodel.AssignRoleResponse{Success: true}, nil
+	return &authpb.AssignRoleResponse{Success: true}, nil
 }
 
 // RevokeRole 撤销用户角色
-func (s *KetoService) RevokeRole(ctx context.Context, req *authmodel.RevokeRoleRequest) (*authmodel.RevokeRoleResponse, *xerrors.AppError) {
+func (s *KetoService) RevokeRole(ctx context.Context, req *authpb.RevokeRoleRequest) (*authpb.RevokeRoleResponse, *xerrors.AppError) {
 	relation := &KetoRelation{
 		Namespace: "tsu_game",
 		Object:    fmt.Sprintf("role:%s", req.Role),
 		Relation:  "member",
-		Subject:   fmt.Sprintf("user:%s", req.UserID),
+		Subject:   fmt.Sprintf("user:%s", req.UserId),
 	}
 
 	if err := s.deleteRelation(ctx, relation); err != nil {
@@ -107,14 +107,14 @@ func (s *KetoService) RevokeRole(ctx context.Context, req *authmodel.RevokeRoleR
 	}
 
 	s.logger.InfoContext(ctx, "角色撤销成功",
-		log.String("user_id", req.UserID),
+		log.String("user_id", req.UserId),
 		log.String("role", req.Role))
 
-	return &authmodel.RevokeRoleResponse{Success: true}, nil
+	return &authpb.RevokeRoleResponse{Success: true}, nil
 }
 
 // CreateRole 创建角色权限关系
-func (s *KetoService) CreateRole(ctx context.Context, req *authmodel.CreateRoleRequest) (*authmodel.CreateRoleResponse, *xerrors.AppError) {
+func (s *KetoService) CreateRole(ctx context.Context, req *authpb.CreateRoleRequest) (*authpb.CreateRoleResponse, *xerrors.AppError) {
 	// 为角色分配权限: role:admin can create admin_users
 	for _, permission := range req.Permissions {
 		parts := strings.Split(permission, ":")
@@ -140,7 +140,7 @@ func (s *KetoService) CreateRole(ctx context.Context, req *authmodel.CreateRoleR
 		log.String("role", req.RoleName),
 		log.Any("permissions", req.Permissions))
 
-	return &authmodel.CreateRoleResponse{Success: true}, nil
+	return &authpb.CreateRoleResponse{Success: true}, nil
 }
 
 // GetUserRoles 获取用户角色

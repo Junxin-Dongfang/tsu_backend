@@ -9,14 +9,18 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/module"
 	basemodule "github.com/liangdas/mqant/module/base"
+	_ "github.com/lib/pq" // PostgreSQL driver
 	echoSwagger "github.com/swaggo/echo-swagger"
 
 	_ "tsu-self/docs"
+	custommiddleware "tsu-self/internal/middleware"
+	"tsu-self/internal/modules/admin/service"
 	"tsu-self/internal/pkg/log"
 	"tsu-self/internal/pkg/response"
 )
@@ -28,10 +32,13 @@ var Module = func() module.Module {
 
 type AdminModule struct {
 	basemodule.BaseModule
-	app        module.App
-	echoServer *echo.Echo
-	respWriter response.Writer
-	logger     log.Logger
+	app               module.App
+	echoServer        *echo.Echo
+	respWriter        response.Writer
+	logger            log.Logger
+	db                *sqlx.DB
+	syncService       *service.SyncService
+	transactionService *service.TransactionService
 }
 
 func (m *AdminModule) GetType() string {
@@ -52,6 +59,11 @@ func (m *AdminModule) OnInit(app module.App, settings *conf.ModuleSettings) {
 
 	m.logger = log.GetLogger()
 	m.logger.Info("初始化 Admin 模块...")
+
+	// 初始化数据库连接
+	if err := m.initDatabase(); err != nil {
+		panic("初始化数据库失败: " + err.Error())
+	}
 
 	// 初始化服务
 	m.initServices()
@@ -97,8 +109,39 @@ func (m *AdminModule) OnDestroy() {
 		}
 	}
 
+	if m.db != nil {
+		m.db.Close()
+	}
+
 	m.BaseModule.OnDestroy()
 	m.logger.Info("Admin 模块已关闭")
+}
+
+func (m *AdminModule) initDatabase() error {
+	settings := m.GetModuleSettings().Settings
+	databaseURL := settings["database_url"].(string)
+	if databaseURL == "" {
+		return fmt.Errorf("database_url 配置缺失")
+	}
+
+	db, err := sqlx.Connect("postgres", databaseURL)
+	if err != nil {
+		return err
+	}
+
+	// 设置连接池
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(25)
+	db.SetConnMaxLifetime(5 * time.Minute)
+
+	// 测试连接
+	if err := db.Ping(); err != nil {
+		return err
+	}
+
+	m.db = db
+	m.logger.Info("数据库连接初始化成功")
+	return nil
 }
 
 func (m *AdminModule) initServices() {
@@ -110,6 +153,12 @@ func (m *AdminModule) initServices() {
 	// 初始化响应处理器
 	m.respWriter = response.NewResponseHandler(m.logger, environment)
 
+	// 初始化 SyncService
+	m.syncService = service.NewSyncService(m.db, m.logger)
+
+	// 初始化 TransactionService
+	m.transactionService = service.NewTransactionService(m.db, m.syncService, m.logger)
+
 	m.app = m.GetApp()
 }
 
@@ -117,8 +166,26 @@ func (m *AdminModule) setupMiddleware() {
 	// 恢复中间件
 	m.echoServer.Use(middleware.Recover())
 
-	// 日志中间件
-	m.echoServer.Use(middleware.Logger())
+	// 使用项目统一的日志中间件，过滤健康检查请求
+	m.echoServer.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		loggingMiddleware := custommiddleware.LoggingMiddleware(m.logger)
+		return func(c echo.Context) error {
+			// 跳过健康检查请求的日志
+			if c.Request().URL.Path == "/health" {
+				return next(c)
+			}
+
+			// 设置必要的context值，如果不存在的话
+			if c.Get("trace_id") == nil {
+				c.Set("trace_id", "")
+			}
+			if c.Get("request_id") == nil {
+				c.Set("request_id", "")
+			}
+
+			return loggingMiddleware(next)(c)
+		}
+	})
 
 	// CORS 中间件
 	m.echoServer.Use(middleware.CORSWithConfig(middleware.CORSConfig{

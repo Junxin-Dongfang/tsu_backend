@@ -12,6 +12,7 @@ import (
 	"tsu-self/internal/model/authmodel"
 	"tsu-self/internal/pkg/log"
 	"tsu-self/internal/pkg/xerrors"
+	authpb "tsu-self/proto"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/redis/go-redis/v9"
@@ -102,19 +103,19 @@ func (s *SessionService) CreateSession(ctx context.Context, userInfo *authmodel.
 	return tokenString, nil
 }
 
-func (s *SessionService) ValidateToken(ctx context.Context, tokenString string) (*authmodel.ValidateTokenResponse, *xerrors.AppError) {
+func (s *SessionService) ValidateToken(ctx context.Context, tokenString string) (*authpb.ValidateTokenResponse, *xerrors.AppError) {
 	// 1. 解析 JWT
 	token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return s.jwtSecret, nil
 	})
 
 	if err != nil || !token.Valid {
-		return &authmodel.ValidateTokenResponse{Valid: false}, nil
+		return &authpb.ValidateTokenResponse{Valid: false}, nil
 	}
 
 	claims, ok := token.Claims.(*JWTClaims)
 	if !ok {
-		return &authmodel.ValidateTokenResponse{Valid: false}, nil
+		return &authpb.ValidateTokenResponse{Valid: false}, nil
 	}
 
 	// 2. 检查 Redis 中的 Session
@@ -122,7 +123,7 @@ func (s *SessionService) ValidateToken(ctx context.Context, tokenString string) 
 	sessionJSON, err := s.redis.Get(ctx, key).Result()
 	if err != nil {
 		if err == redis.Nil {
-			return &authmodel.ValidateTokenResponse{Valid: false}, nil
+			return &authpb.ValidateTokenResponse{Valid: false}, nil
 		}
 		return nil, xerrors.NewExternalServiceError("redis", err)
 	}
@@ -135,9 +136,9 @@ func (s *SessionService) ValidateToken(ctx context.Context, tokenString string) 
 	updatedJSON, _ := json.Marshal(sessionData)
 	s.redis.Set(ctx, key, updatedJSON, s.tokenTTL)
 
-	return &authmodel.ValidateTokenResponse{
+	return &authpb.ValidateTokenResponse{
 		Valid:       true,
-		UserID:      claims.UserID,
+		UserId:      claims.UserID,
 		Permissions: sessionData.Permissions,
 	}, nil
 }

@@ -115,7 +115,6 @@ services:
     environment:
       - CONSUL_ADDRESS=consul:8500
       - NATS_ADDRESS=nats:4222
-      - POSTGRES_DSN=host=postgres user=tsu_user password=tsu_test dbname=tsu_db sslmode=disable
     volumes:
       - ../..:/app
     depends_on:

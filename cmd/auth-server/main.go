@@ -3,6 +3,7 @@ package main
 
 import (
 	"log/slog"
+	"os"
 	"time"
 
 	"github.com/liangdas/mqant"
@@ -19,20 +20,29 @@ func main() {
 	log.Init(slog.LevelDebug, "development")
 	log.Info("启动 Auth Server...")
 
-	// Consul & NATS 配置 (复用你的现有配置)
+	// Consul 注册
 	consulAddr := "127.0.0.1:8500"
-	natsAddr := "127.0.0.1:4222"
+	if envConsulAddr := os.Getenv("CONSUL_ADDRESS"); envConsulAddr != "" {
+		consulAddr = envConsulAddr
+	}
 
 	rs := consul.NewRegistry(func(options *registry.Options) {
 		options.Addrs = []string{consulAddr}
 	})
+	log.Info("Consul 地址: " + consulAddr)
+
+	//NATS地址
+	natsAddr := "127.0.0.1:4222"
+	if envNatsAddr := os.Getenv("NATS_ADDRESS"); envNatsAddr != "" {
+		natsAddr = envNatsAddr
+	}
 
 	nc, err := nats.Connect(natsAddr, nats.MaxReconnects(10000))
 	if err != nil {
 		log.Error("连接 NATS 失败", err)
 		return
 	}
-
+	log.Info("NATS 地址: " + natsAddr)
 	// 创建应用
 	app := mqant.CreateApp(
 		module.Configure("./configs/server/auth-server.json"),

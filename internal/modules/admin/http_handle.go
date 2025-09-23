@@ -13,6 +13,7 @@
 package admin
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 	"tsu-self/internal/model/authmodel"
@@ -20,9 +21,11 @@ import (
 	"tsu-self/internal/pkg/xerrors"
 
 	"tsu-self/internal/pkg/response"
+	authpb "tsu-self/proto"
 
 	"github.com/labstack/echo/v4"
 	mqrpc "github.com/liangdas/mqant/rpc"
+	"google.golang.org/protobuf/proto"
 )
 
 // Login 用户登录
@@ -46,27 +49,43 @@ func (m *AdminModule) Login(c echo.Context) error {
 		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
 	}
 
-	// 通过 mqant 调用 auth module
-	rpcReq := &authmodel.LoginRPCRequest{
+	// 通过 mqant 调用 auth module 使用 protobuf
+	rpcReq := &authpb.LoginRequest{
 		Identifier: req.Identifier,
 		Password:   req.Password,
-		ClientIP:   c.RealIP(),
+		ClientIp:   c.RealIP(),
 		UserAgent:  c.Request().Header.Get("User-Agent"),
 	}
 
 	// mqant RPC 调用
-	resp, err := m.app.Call(ctx, "auth", "Login", mqrpc.Param(rpcReq))
+	resp, err := m.Call(ctx, "auth", "Login", mqrpc.Param(rpcReq))
 	if err != "" {
 		log.ErrorContext(c.Request().Context(), "Auth服务调用失败.", log.Any("error", err))
 		return response.InternalServerError(ctx, c.Response().Writer, m.respWriter, "认证服务调用失败")
 	}
 
-	loginResp := resp.(*authmodel.LoginRPCResponse)
-	return m.respWriter.WriteSuccess(ctx, c.Response().Writer, &authmodel.LoginResult{
-		Success:       loginResp.Success,
-		SessionToken:  loginResp.Token,
-		SessionCookie: "",
-	})
+	var loginResp *authpb.LoginResponse
+	switch v := resp.(type) {
+	case []byte:
+		loginResp = &authpb.LoginResponse{}
+		if err := proto.Unmarshal(v, loginResp); err != nil {
+			log.ErrorContext(c.Request().Context(), "Login响应反序列化失败", log.Any("error", err))
+			return response.InternalServerError(ctx, c.Response().Writer, m.respWriter, "响应处理失败")
+		}
+	case *authpb.LoginResponse:
+		loginResp = v
+	default:
+		log.ErrorContext(c.Request().Context(), "Login响应类型错误", log.Any("type", fmt.Sprintf("%T", v)))
+		return response.InternalServerError(ctx, c.Response().Writer, m.respWriter, "响应类型错误")
+	}
+
+	// 使用事务服务处理登录结果并同步到主数据库
+	result, syncErr := m.transactionService.LoginTransaction(ctx, loginResp, c.RealIP())
+	if syncErr != nil {
+		return m.respWriter.WriteError(ctx, c.Response().Writer, syncErr)
+	}
+
+	return m.respWriter.WriteSuccess(ctx, c.Response().Writer, result)
 }
 
 // Register 用户注册
@@ -90,28 +109,50 @@ func (m *AdminModule) Register(c echo.Context) error {
 		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
 	}
 
-	rpcReq := &authmodel.RegisterRPCRequest{
+	rpcReq := &authpb.RegisterRequest{
 		Email:     req.Email,
 		Username:  req.Username,
 		Password:  req.Password,
-		ClientIP:  c.RealIP(),
+		ClientIp:  c.RealIP(),
 		UserAgent: c.Request().Header.Get("User-Agent"),
 	}
 
-	result, err := m.app.Call(ctx, "auth", "Register", mqrpc.Param(echo.Map{"req": rpcReq}))
+	result, err := m.Call(ctx, "auth", "Register", mqrpc.Param(rpcReq))
 	if err != "" {
 		m.logger.ErrorContext(c.Request().Context(), "Auth服务调用失败", log.Any("error", err))
 		return m.respWriter.WriteError(c.Request().Context(), c.Response().Writer,
 			xerrors.New(xerrors.CodeExternalServiceError, "认证服务调用失败"))
 	}
 
-	registerResp, ok := result.(*authmodel.RegisterRPCResponse)
-	if !ok {
+	m.logger.InfoContext(ctx, "Auth服务调用成功", log.Any("result_type", fmt.Sprintf("%T", result)))
+
+	// 处理 protobuf 响应
+	var registerResp *authpb.RegisterResponse
+	switch v := result.(type) {
+	case []byte:
+		registerResp = &authpb.RegisterResponse{}
+		if err := proto.Unmarshal(v, registerResp); err != nil {
+			m.logger.ErrorContext(c.Request().Context(), "Protobuf反序列化失败", log.Any("error", err))
+			return m.respWriter.WriteError(c.Request().Context(), c.Response().Writer,
+				xerrors.FromCode(xerrors.CodeInternalError).WithMetadata("reason", "protobuf_unmarshal_failed"))
+		}
+	case *authpb.RegisterResponse:
+		registerResp = v
+	default:
+		m.logger.ErrorContext(c.Request().Context(), "类型断言失败",
+			log.Any("expected", "*authpb.RegisterResponse or []byte"),
+			log.Any("actual", fmt.Sprintf("%T", result)))
 		return m.respWriter.WriteError(c.Request().Context(), c.Response().Writer,
 			xerrors.FromCode(xerrors.CodeInternalError).WithMetadata("reason", "invalid_response_type"))
 	}
 
-	return m.respWriter.WriteSuccess(c.Request().Context(), c.Response().Writer, registerResp)
+	// 使用事务服务处理注册结果并同步到主数据库
+	finalResult, syncErr := m.transactionService.RegisterTransaction(ctx, registerResp)
+	if syncErr != nil {
+		return m.respWriter.WriteError(ctx, c.Response().Writer, syncErr)
+	}
+
+	return m.respWriter.WriteSuccess(c.Request().Context(), c.Response().Writer, finalResult)
 }
 
 // // Logout 用户登出

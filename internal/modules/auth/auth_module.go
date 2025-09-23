@@ -3,16 +3,21 @@ package auth
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
+	"net"
+	"net/http"
+	"strconv"
 	"time"
 
+	"github.com/hashicorp/consul/api"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/module"
 	basemodule "github.com/liangdas/mqant/module/base"
-	_ "github.com/lib/pq" // PostgreSQL driver
 	"github.com/redis/go-redis/v9"
 
+	custommiddleware "tsu-self/internal/middleware"
 	"tsu-self/internal/modules/auth/service"
 	"tsu-self/internal/pkg/log"
 )
@@ -24,13 +29,12 @@ type AuthModule struct {
 	kratosService       *service.KratosService
 	ketoService         *service.KetoService
 	sessionService      *service.SessionService
-	syncService         *service.SyncService
 	notificationService *service.NotificationService
 
 	// Infrastructure
-	db     *sql.DB
-	redis  *redis.Client
-	logger log.Logger
+	redis      *redis.Client
+	logger     log.Logger
+	echoServer *echo.Echo
 }
 
 func (m *AuthModule) Version() string {
@@ -52,11 +56,6 @@ func (m *AuthModule) OnInit(app module.App, settings *conf.ModuleSettings) {
 	// 初始化日志
 	m.logger = log.GetLogger().WithGroup("auth-module")
 
-	// 初始化数据库连接
-	if err := m.initDatabase(); err != nil {
-		panic("初始化数据库失败: " + err.Error())
-	}
-
 	// 初始化 Redis
 	if err := m.initRedis(); err != nil {
 		panic("初始化 Redis 失败: " + err.Error())
@@ -64,6 +63,18 @@ func (m *AuthModule) OnInit(app module.App, settings *conf.ModuleSettings) {
 
 	// 初始化服务
 	m.initServices()
+
+	// 初始化 Echo 服务器
+	m.initEchoServer()
+
+	// 检查是否配置了HTTP端口，如果配置了就启动HTTP服务器
+	if httpPort, exists := m.GetModuleSettings().Settings["http_port"]; exists && httpPort != "" {
+		// 启动 HTTP 服务器
+		go m.startHTTPServer()
+
+		// 注册 HTTP 服务到 Consul
+		go m.registerHTTPService()
+	}
 
 	m.logger.Info("Auth Module 初始化完成")
 }
@@ -76,7 +87,6 @@ func (m *AuthModule) Run(closeSig chan bool) {
 		m.kratosService,
 		m.ketoService,
 		m.sessionService,
-		m.syncService,
 		m.notificationService,
 		m.logger,
 	)
@@ -105,39 +115,9 @@ func (m *AuthModule) OnDestroy() {
 		m.redis.Close()
 	}
 
-	if m.db != nil {
-		m.db.Close()
-	}
-
 	m.BaseModule.OnDestroy()
 }
 
-func (m *AuthModule) initDatabase() error {
-	settings := m.GetModuleSettings().Settings
-	databaseURL := settings["database_url"].(string)
-	if databaseURL == "" {
-		return fmt.Errorf("database_url 配置缺失")
-	}
-
-	db, err := sql.Open("postgres", databaseURL)
-	if err != nil {
-		return err
-	}
-
-	// 设置连接池
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(25)
-	db.SetConnMaxLifetime(5 * time.Minute)
-
-	// 测试连接
-	if err := db.Ping(); err != nil {
-		return err
-	}
-
-	m.db = db
-	m.logger.Info("数据库连接初始化成功")
-	return nil
-}
 
 func (m *AuthModule) initRedis() error {
 	settings := m.GetModuleSettings().Settings
@@ -164,15 +144,12 @@ func (m *AuthModule) initRedis() error {
 }
 
 func (m *AuthModule) initServices() {
-	// 初始化 SyncService
-	m.syncService = service.NewSyncService(m.db, m.logger)
-
 	// 初始化 KratosService
 	kratosPublicURL := m.GetModuleSettings().Settings["kratos_public_url"].(string)
 	kratosAdminURL := m.GetModuleSettings().Settings["kratos_admin_url"].(string)
 
 	var err error
-	m.kratosService, err = service.NewKratosService(kratosPublicURL, kratosAdminURL, m.syncService, m.logger)
+	m.kratosService, err = service.NewKratosService(kratosPublicURL, kratosAdminURL, m.logger)
 	if err != nil {
 		panic("初始化 Kratos Service 失败: " + err.Error())
 	}
@@ -192,4 +169,132 @@ func (m *AuthModule) initServices() {
 	m.notificationService = service.NewNotificationService(app.Options().Nats, m.logger)
 
 	m.logger.Info("所有服务初始化完成")
+}
+
+// 初始化 Echo 服务器
+func (m *AuthModule) initEchoServer() {
+	m.echoServer = echo.New()
+	m.echoServer.HideBanner = true
+	m.echoServer.HidePort = true
+
+	// 添加中间件
+	m.echoServer.Use(middleware.Recover())
+	m.echoServer.Use(middleware.CORS())
+
+	// 使用项目统一的日志中间件，过滤健康检查请求
+	m.echoServer.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		loggingMiddleware := custommiddleware.LoggingMiddleware(m.logger)
+		return func(c echo.Context) error {
+			// 跳过健康检查请求的日志
+			if c.Request().URL.Path == "/health" {
+				return next(c)
+			}
+
+			// 设置必要的context值，如果不存在的话
+			if c.Get("trace_id") == nil {
+				c.Set("trace_id", "")
+			}
+			if c.Get("request_id") == nil {
+				c.Set("request_id", "")
+			}
+
+			return loggingMiddleware(next)(c)
+		}
+	})
+
+	// 注册路由
+	m.setupHTTPRoutes()
+}
+
+// 设置 HTTP 路由
+func (m *AuthModule) setupHTTPRoutes() {
+	// 创建健康检查处理器
+	healthHandler := &HealthHandler{module: m}
+
+	// 注册路由
+	m.echoServer.GET("/health", healthHandler.Health)
+}
+
+// 启动 HTTP 服务器
+func (m *AuthModule) startHTTPServer() {
+	httpPort := m.GetModuleSettings().Settings["http_port"].(string)
+	m.logger.Info("启动 HTTP 服务器", log.String("port", httpPort))
+
+	if err := m.echoServer.Start(":" + httpPort); err != nil && err != http.ErrServerClosed {
+		m.logger.Error("HTTP 服务器启动失败", err)
+		panic(err)
+	}
+}
+
+// 注册 HTTP 服务到 Consul
+func (m *AuthModule) registerHTTPService() {
+	time.Sleep(2 * time.Second) // 等待 HTTP 服务器启动
+
+	// 创建 Consul 客户端
+	consulConfig := api.DefaultConfig()
+	consulConfig.Address = "consul:8500" // 使用容器名
+
+	consulClient, err := api.NewClient(consulConfig)
+	if err != nil {
+		m.logger.Error("创建 Consul 客户端失败", err)
+		return
+	}
+
+	// 获取容器 IP
+	containerIP := m.getContainerIP()
+	if containerIP == "" {
+		m.logger.Error("无法获取容器 IP", err)
+		return
+	}
+
+	// 获取HTTP端口
+	httpPortStr := m.GetModuleSettings().Settings["http_port"].(string)
+	portInt := 8082 // 默认端口
+	if port, err := strconv.Atoi(httpPortStr); err == nil {
+		portInt = port
+	}
+
+	// 注册 HTTP 服务
+	registration := &api.AgentServiceRegistration{
+		ID:      "auth-http",
+		Name:    "auth-http",
+		Port:    portInt,
+		Address: containerIP,
+		Tags:    []string{"http", "auth", "authentication"},
+		Check: &api.AgentServiceCheck{
+			HTTP:                           fmt.Sprintf("http://%s:%d/health", containerIP, portInt),
+			Interval:                       "10s",
+			Timeout:                        "5s",
+			DeregisterCriticalServiceAfter: "30s",
+		},
+	}
+
+	err = consulClient.Agent().ServiceRegister(registration)
+	if err != nil {
+		m.logger.Error("注册 HTTP 服务到 Consul 失败", err)
+		return
+	}
+
+	m.logger.Info("HTTP 服务已注册到 Consul",
+		log.String("address", containerIP),
+		log.Int("port", portInt))
+}
+
+// 获取容器 IP 地址
+func (m *AuthModule) getContainerIP() string {
+	// 通过网络接口获取
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return ""
+	}
+
+	for _, addr := range addrs {
+		if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil {
+				return ipnet.IP.String()
+			}
+		}
+	}
+
+	return ""
 }

@@ -33,16 +33,20 @@ type RecoveryRequest struct {
 // LoginResult 登录结果
 // @Description 用户登录结果
 type LoginResult struct {
-	Success       bool
-	SessionToken  string
-	SessionCookie string
+	Success       bool                 `json:"success"`
+	SessionToken  string               `json:"session_token"`
+	SessionCookie string               `json:"session_cookie"`
+	UserInfo      *BusinessUserInfo    `json:"user_info,omitempty"`
+	ErrorMessage  string               `json:"error_message,omitempty"`
 } // @name LoginResult
 
 // RegisterResult 注册结果
 // @Description 用户注册结果
 type RegisterResult struct {
-	Success       bool
-	IdentityID    string
-	SessionToken  string
-	SessionCookie string
+	Success       bool                 `json:"success"`
+	IdentityID    string               `json:"identity_id"`
+	SessionToken  string               `json:"session_token"`
+	SessionCookie string               `json:"session_cookie"`
+	UserInfo      *BusinessUserInfo    `json:"user_info,omitempty"`
+	ErrorMessage  string               `json:"error_message,omitempty"`
 } // @name RegisterResult

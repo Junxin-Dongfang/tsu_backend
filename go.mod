@@ -6,6 +6,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/consul/api v1.20.0
+	github.com/jmoiron/sqlx v1.4.0
 	github.com/labstack/echo/v4 v4.13.4
 	github.com/liangdas/mqant v1.5.3
 	github.com/lib/pq v1.10.9
@@ -14,6 +15,7 @@ require (
 	github.com/redis/go-redis/v9 v9.14.0
 	github.com/swaggo/echo-swagger v1.4.1
 	github.com/swaggo/swag v1.16.6
+	google.golang.org/protobuf v1.36.9
 )
 
 require (
@@ -72,7 +74,6 @@ require (
 	golang.org/x/text v0.29.0 // indirect
 	golang.org/x/time v0.11.0 // indirect
 	golang.org/x/tools v0.37.0 // indirect
-	google.golang.org/protobuf v1.26.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

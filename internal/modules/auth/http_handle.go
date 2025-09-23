@@ -9,7 +9,7 @@ import (
 )
 
 type HealthHandler struct {
-	_ *AuthModule
+	module *AuthModule
 }
 
 func (h *HealthHandler) Health(c echo.Context) error {

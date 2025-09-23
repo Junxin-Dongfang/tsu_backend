@@ -97,6 +97,7 @@ BEGIN
         CREATE TYPE login_method_enum AS ENUM ('password', 'oauth', 'sms', 'magic_link', 'biometric');
     END IF;
 END;
+$$;
 
 -- 登录结果枚举
 DO $$
@@ -105,6 +106,7 @@ BEGIN
         CREATE TYPE login_status_enum AS ENUM ('success', 'failed', 'blocked');
     END IF;
 END;
+$$;
 
 -- =============================================================================
 -- 用户登录历史表

@@ -9,10 +9,11 @@
                 "Id":"admin",
                 "ProcessID":"development",
                 "Settings": {
-                    "kratos_public_url": "http://kratos:4433",
-                    "kratos_admin_url": "http://kratos:4434",
+                    "kratos_public_url": "http://tsu_kratos_service:4433",
+                    "kratos_admin_url": "http://tsu_kratos_service:4434",
                     "environment": "development",
-                    "http_port": "8081"
+                    "http_port": "8081",
+                    "database_url": "postgres://tsu_user:tsu_test@tsu_postgres:5432/tsu_db?sslmode=disable"
                 }
             }
         ]
