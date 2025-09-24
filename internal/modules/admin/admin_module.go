@@ -3,6 +3,7 @@ package admin
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
@@ -17,6 +18,7 @@ import (
 	"github.com/liangdas/mqant/module"
 	basemodule "github.com/liangdas/mqant/module/base"
 	_ "github.com/lib/pq" // PostgreSQL driver
+	"github.com/nats-io/nats.go"
 	echoSwagger "github.com/swaggo/echo-swagger"
 
 	_ "tsu-self/docs"
@@ -40,6 +42,7 @@ type AdminModule struct {
 	db                 *sqlx.DB
 	syncService        *service.SyncService
 	transactionService *service.TransactionService
+	userService        *service.UserService
 }
 
 func (m *AdminModule) GetType() string {
@@ -160,7 +163,13 @@ func (m *AdminModule) initServices() {
 	// 初始化 TransactionService
 	m.transactionService = service.NewTransactionService(m.db, m.syncService, m.logger)
 
+	// 初始化 UserService
+	m.userService = service.NewUserService(m.db, m.logger)
+
 	m.app = m.GetApp()
+
+	// 启动事件监听器
+	go m.startEventListeners()
 }
 
 func (m *AdminModule) setupMiddleware() {
@@ -218,6 +227,11 @@ func (m *AdminModule) setupRoutes() {
 	{
 		auth.POST("/login", m.Login)
 		auth.POST("/register", m.Register)
+	}
+
+	user := api.Group("/user")
+	{
+		user.PUT("/:user_id/profile", m.UpdateUserProfile)
 	}
 }
 
@@ -308,4 +322,58 @@ func (m *AdminModule) getContainerIP() string {
 	}
 
 	return ""
+}
+
+// startEventListeners 启动事件监听器
+func (m *AdminModule) startEventListeners() {
+	time.Sleep(5 * time.Second) // 等待服务完全启动
+
+	// 获取NATS连接
+	natsConn := m.app.Options().Nats
+	if natsConn == nil {
+		m.logger.Error("NATS连接不可用，无法启动事件监听器", nil)
+		return
+	}
+
+	// 监听用户注册事件
+	_, err := natsConn.Subscribe("auth.user.registered", m.handleUserRegisteredEvent)
+	if err != nil {
+		m.logger.Error("订阅用户注册事件失败", err)
+		return
+	}
+
+	m.logger.Info("事件监听器已启动，正在监听用户注册事件")
+}
+
+// handleUserRegisteredEvent 处理用户注册事件
+func (m *AdminModule) handleUserRegisteredEvent(msg *nats.Msg) {
+	ctx := context.Background()
+
+	var event struct {
+		UserID   string                 `json:"user_id"`
+		Email    string                 `json:"email"`
+		Username string                 `json:"username"`
+		Metadata map[string]interface{} `json:"metadata"`
+	}
+
+	if err := json.Unmarshal(msg.Data, &event); err != nil {
+		m.logger.ErrorContext(ctx, "解析用户注册事件失败", log.Any("error", err))
+		return
+	}
+
+	m.logger.InfoContext(ctx, "收到用户注册事件",
+		log.String("user_id", event.UserID),
+		log.String("email", event.Email),
+		log.String("username", event.Username))
+
+	// 同步用户到主数据库
+	_, syncErr := m.syncService.CreateBusinessUser(ctx, event.UserID, event.Email, event.Username)
+	if syncErr != nil {
+		m.logger.ErrorContext(ctx, "同步用户到主数据库失败",
+			log.String("user_id", event.UserID),
+			log.Any("error", syncErr))
+		return
+	}
+
+	m.logger.InfoContext(ctx, "用户同步到主数据库成功", log.String("user_id", event.UserID))
 }

@@ -4,11 +4,13 @@ package service
 import (
 	"context"
 	"database/sql"
+	"strings"
 
-	"github.com/jmoiron/sqlx"
-	"tsu-self/internal/repository/entity"
 	"tsu-self/internal/pkg/log"
 	"tsu-self/internal/pkg/xerrors"
+	"tsu-self/internal/repository/entity"
+
+	"github.com/jmoiron/sqlx"
 )
 
 type SyncService struct {
@@ -57,7 +59,8 @@ func (s *SyncService) CreateBusinessUser(ctx context.Context, identityID, email,
 
 	if err != nil {
 		s.logger.ErrorContext(ctx, "创建业务用户失败", log.Any("error", err))
-		return nil, xerrors.NewDatabaseError("insert", "users", err)
+		// 解析数据库错误，提供用户友好的错误信息
+		return nil, s.parseDatabaseError(err, "创建用户")
 	}
 
 	// 创建用户设置记录
@@ -209,4 +212,59 @@ func (s *SyncService) SyncUserAfterLogin(ctx context.Context, userID, clientIP s
 	}()
 
 	return userInfo, nil
+}
+
+// parseDatabaseError 解析数据库错误，返回用户友好的错误信息
+func (s *SyncService) parseDatabaseError(err error, operation string) *xerrors.AppError {
+	errMsg := err.Error()
+
+	s.logger.WarnContext(context.Background(), "解析数据库错误",
+		log.String("operation", operation),
+		log.String("error", errMsg))
+
+	// PostgreSQL 约束错误解析
+	if strings.Contains(errMsg, "duplicate key value violates unique constraint") {
+		if strings.Contains(errMsg, "users_email_key") {
+			return xerrors.NewValidationError("email", "该邮箱已被使用")
+		}
+		if strings.Contains(errMsg, "users_username_key") {
+			return xerrors.NewValidationError("username", "该用户名已被使用")
+		}
+		if strings.Contains(errMsg, "users_phone_number_key") {
+			return xerrors.NewValidationError("phone_number", "该手机号已被使用")
+		}
+		if strings.Contains(errMsg, "users_pkey") {
+			return xerrors.NewValidationError("user", "用户ID冲突")
+		}
+		return xerrors.NewValidationError("data", "数据重复，请检查输入信息")
+	}
+
+	// 外键约束错误
+	if strings.Contains(errMsg, "violates foreign key constraint") {
+		return xerrors.NewValidationError("reference", "关联数据不存在")
+	}
+
+	// 非空约束错误
+	if strings.Contains(errMsg, "violates not-null constraint") {
+		return xerrors.NewValidationError("required", "必填字段不能为空")
+	}
+
+	// 检查约束错误
+	if strings.Contains(errMsg, "violates check constraint") {
+		if strings.Contains(errMsg, "diamond_count") {
+			return xerrors.NewValidationError("diamond_count", "钻石数量不能为负数")
+		}
+		if strings.Contains(errMsg, "login_count") {
+			return xerrors.NewValidationError("login_count", "登录次数不能为负数")
+		}
+		return xerrors.NewValidationError("constraint", "数据不符合约束条件")
+	}
+
+	// 连接错误
+	if strings.Contains(errMsg, "connection refused") || strings.Contains(errMsg, "no such host") {
+		return xerrors.NewDatabaseError("connection", "database", err)
+	}
+
+	// 默认数据库错误
+	return xerrors.NewDatabaseError(operation, "database", err)
 }

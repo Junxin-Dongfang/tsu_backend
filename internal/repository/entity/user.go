@@ -16,7 +16,7 @@ type User struct {
 
 	// 用户信息
 	Username    string         `db:"username" json:"username"`
-	Nickname    string         `db:"nickname" json:"nickname"`
+	Nickname    sql.NullString `db:"nickname" json:"nickname,omitempty"`
 	Email       string         `db:"email" json:"email"`
 	PhoneNumber sql.NullString `db:"phone_number" json:"phone_number,omitempty"`
 

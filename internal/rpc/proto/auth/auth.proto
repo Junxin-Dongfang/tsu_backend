@@ -29,8 +29,9 @@ message RegisterRequest {
   string email = 1;        // 邮箱
   string username = 2;     // 用户名
   string password = 3;     // 密码
-  string client_ip = 4;    // 客户端IP
-  string user_agent = 5;   // 用户代理
+  string phone = 4;        // 手机号
+  string client_ip = 5;    // 客户端IP
+  string user_agent = 6;   // 用户代理
 }
 
 message RegisterResponse {

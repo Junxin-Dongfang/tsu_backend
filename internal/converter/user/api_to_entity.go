@@ -16,8 +16,8 @@ func UpdateProfileRequestToEntity(req *apiUser.UpdateProfileRequest) map[string]
 	if req.Email != "" {
 		updates["email"] = req.Email
 	}
-	if req.Phone != "" {
-		updates["phone"] = req.Phone
+	if req.PhoneNumber != "" {
+		updates["phone_number"] = req.PhoneNumber
 	}
 
 	return updates
@@ -28,11 +28,22 @@ func EntityToProfileResponse(user *entity.User) *apiUserResp.Profile {
 	if user == nil {
 		return nil
 	}
+	// 处理可能为NULL的字段
+	nickname := ""
+	if user.Nickname.Valid {
+		nickname = user.Nickname.String
+	}
+
+	phone := ""
+	if user.PhoneNumber.Valid {
+		phone = user.PhoneNumber.String
+	}
+
 	return &apiUserResp.Profile{
 		ID:           user.ID,
 		Username:     user.Username,
-		Nickname:     user.Nickname,
-		Phone:        user.PhoneNumber.String,
+		Nickname:     nickname,
+		Phone:        phone,
 		Email:        user.Email,
 		IsPremium:    user.IsPremium,
 		DiamondCount: user.DiamondCount,

@@ -12,7 +12,7 @@ import (
 	"tsu-self/internal/pkg/log"
 	"tsu-self/internal/pkg/xerrors"
 	"tsu-self/internal/repository/entity"
-	authpb "tsu-self/proto"
+	authpb "tsu-self/internal/rpc/generated/auth"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/redis/go-redis/v9"
@@ -137,9 +137,8 @@ func (s *SessionService) ValidateToken(ctx context.Context, tokenString string) 
 	s.redis.Set(ctx, key, updatedJSON, s.tokenTTL)
 
 	return &authpb.ValidateTokenResponse{
-		Valid:       true,
-		UserId:      claims.UserID,
-		Permissions: sessionData.Permissions,
+		Valid:  true,
+		UserId: claims.UserID,
 	}, nil
 }
 

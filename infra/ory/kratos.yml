@@ -47,6 +47,8 @@ selfservice:
         min_password_length: 6
     profile:
       enabled: true
+    webauthn:
+      enabled: false
 
 log:
   level: debug

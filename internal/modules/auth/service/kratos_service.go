@@ -3,6 +3,9 @@ package service
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"strings"
 	"time"
 
 	client "github.com/ory/client-go"
@@ -70,10 +73,14 @@ func (s *KratosService) Login(ctx context.Context, req *auth.LoginRequest) (*aut
 
 	if loginErr != nil {
 		s.logger.ErrorContext(ctx, "Kratos 登录验证失败", log.Any("error", loginErr))
+
+		// 解析 Kratos 错误，提取具体的错误信息
+		errorMessage := s.parseKratosError(ctx, loginErr, "登录")
+
 		return &auth.LoginResponse{
 			Success:      false,
-			ErrorMessage: "用户名或密码错误",
-		}, xerrors.NewAuthError("用户名或密码错误")
+			ErrorMessage: errorMessage,
+		}, nil
 	}
 
 	// 3. 从登录结果中提取用户信息
@@ -188,11 +195,22 @@ func (s *KratosService) Register(ctx context.Context, req *auth.RegisterRequest)
 		"email":    req.Email,
 		"username": req.Username,
 	}
+	// 添加phone字段（如果提供）
+	if req.Phone != "" {
+		traits["phone"] = req.Phone
+	}
 
-	// 3. 提交注册信息
+	s.logger.DebugContext(ctx, "提交注册信息", log.Any("traits", traits))
+
+	// 3. 使用password方法直接注册（包括用户信息和密码）
 	passwordMethod := client.NewUpdateRegistrationFlowWithPasswordMethod("password", req.Password, traits)
 	updateBody := client.UpdateRegistrationFlowWithPasswordMethodAsUpdateRegistrationFlowBody(passwordMethod)
 
+	s.logger.DebugContext(ctx, "Kratos 注册请求详情",
+		log.String("method", passwordMethod.Method),
+		log.Any("traits", passwordMethod.Traits))
+
+	// 提交注册信息
 	registerResult, _, registerErr := s.publicClient.FrontendAPI.UpdateRegistrationFlow(ctx).
 		Flow(registerFlow.Id).
 		UpdateRegistrationFlowBody(updateBody).
@@ -200,10 +218,14 @@ func (s *KratosService) Register(ctx context.Context, req *auth.RegisterRequest)
 
 	if registerErr != nil {
 		s.logger.ErrorContext(ctx, "Kratos 注册失败", log.Any("error", registerErr))
+
+		// 解析 Kratos 错误，提取具体的错误信息
+		errorMessage := s.parseKratosError(ctx, registerErr, "注册")
+
 		return &auth.RegisterResponse{
 			Success:      false,
-			ErrorMessage: "注册失败，用户可能已存在",
-		}, xerrors.NewExternalServiceError("kratos", registerErr)
+			ErrorMessage: errorMessage,
+		}, nil
 	}
 
 	// 4. 从注册结果中提取用户信息
@@ -454,4 +476,149 @@ type KratosRegisterResult struct {
 	SessionToken  string `json:"session_token"`
 	SessionCookie string `json:"session_cookie"`
 	ExpiresIn     int64  `json:"expires_in"`
+}
+
+// parseKratosError 解析Kratos错误，提取用户友好的错误信息
+func (s *KratosService) parseKratosError(ctx context.Context, err error, operation string) string {
+	// 记录原始错误到日志
+	s.logger.ErrorContext(ctx, "解析Kratos错误",
+		log.String("operation", operation),
+		log.Any("error", err))
+
+	// 尝试解析为GenericOpenAPIError
+	if apiErr, ok := err.(*client.GenericOpenAPIError); ok {
+		s.logger.DebugContext(ctx, "检测到GenericOpenAPIError",
+			log.String("error_body", string(apiErr.Body())))
+
+		// 尝试解析错误响应体
+		if flowErr := s.parseFlowError(ctx, apiErr.Body()); flowErr != "" {
+			return flowErr
+		}
+	}
+
+	// 根据操作类型返回默认错误信息
+	switch operation {
+	case "注册":
+		return "注册失败，请检查输入信息"
+	case "登录":
+		return "用户名或密码错误"
+	default:
+		return "操作失败，请稍后重试"
+	}
+}
+
+// parseFlowError 解析Flow错误响应体，提取具体错误信息
+func (s *KratosService) parseFlowError(ctx context.Context, body []byte) string {
+	var flowResponse struct {
+		UI struct {
+			Messages []struct {
+				ID   int    `json:"id"`
+				Text string `json:"text"`
+				Type string `json:"type"`
+			} `json:"messages"`
+			Nodes []struct {
+				Messages []struct {
+					ID   int    `json:"id"`
+					Text string `json:"text"`
+					Type string `json:"type"`
+				} `json:"messages"`
+				Attributes struct {
+					Name string `json:"name"`
+				} `json:"attributes"`
+			} `json:"nodes"`
+		} `json:"ui"`
+	}
+
+	if err := json.Unmarshal(body, &flowResponse); err != nil {
+		s.logger.WarnContext(ctx, "解析Flow错误响应失败", log.Any("error", err))
+		return ""
+	}
+
+	// 优先检查UI级别的错误消息
+	for _, msg := range flowResponse.UI.Messages {
+		if msg.Type == "error" {
+			translated := s.translateKratosMessage(msg.ID, msg.Text)
+			s.logger.InfoContext(ctx, "翻译Kratos错误消息",
+				log.Int("message_id", msg.ID),
+				log.String("original", msg.Text),
+				log.String("translated", translated))
+			return translated
+		}
+	}
+
+	// 检查字段级别的错误消息
+	for _, node := range flowResponse.UI.Nodes {
+		for _, msg := range node.Messages {
+			if msg.Type == "error" {
+				fieldName := s.translateFieldName(node.Attributes.Name)
+				return fmt.Sprintf("%s：%s", fieldName, s.translateKratosMessage(msg.ID, msg.Text))
+			}
+		}
+	}
+
+	return ""
+}
+
+// translateKratosMessage 将Kratos错误消息翻译为中文
+func (s *KratosService) translateKratosMessage(messageID int, originalText string) string {
+	// 根据Kratos的错误ID进行翻译
+	switch messageID {
+	case 4000007:
+		return "该邮箱、用户名或手机号已被使用"
+	case 4000006:
+		return "用户名或密码错误"
+	case 4000001:
+		return "输入的信息格式不正确"
+	case 4000002:
+		return "必填字段不能为空"
+	case 4000003:
+		return "邮箱格式不正确"
+	case 4000004:
+		return "密码不符合要求"
+	case 4000005:
+		return "用户名格式不正确"
+	default:
+		// 如果没有对应的翻译，尝试根据英文内容进行简单翻译
+		return s.translateEnglishMessage(originalText)
+	}
+}
+
+// translateEnglishMessage 简单的英文错误信息翻译
+func (s *KratosService) translateEnglishMessage(text string) string {
+	text = strings.ToLower(text)
+
+	if strings.Contains(text, "already exists") || strings.Contains(text, "same identifier") {
+		return "该邮箱、用户名或手机号已被使用"
+	}
+	if strings.Contains(text, "invalid credentials") || strings.Contains(text, "password") {
+		return "用户名或密码错误"
+	}
+	if strings.Contains(text, "email") && strings.Contains(text, "invalid") {
+		return "邮箱格式不正确"
+	}
+	if strings.Contains(text, "username") && strings.Contains(text, "invalid") {
+		return "用户名格式不正确"
+	}
+	if strings.Contains(text, "required") {
+		return "必填字段不能为空"
+	}
+
+	// 如果无法翻译，返回原文
+	return text
+}
+
+// translateFieldName 翻译字段名称
+func (s *KratosService) translateFieldName(fieldName string) string {
+	switch fieldName {
+	case "traits.email":
+		return "邮箱"
+	case "traits.username":
+		return "用户名"
+	case "traits.phone":
+		return "手机号"
+	case "password":
+		return "密码"
+	default:
+		return fieldName
+	}
 }

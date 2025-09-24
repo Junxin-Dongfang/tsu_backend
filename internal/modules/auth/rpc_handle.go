@@ -57,7 +57,7 @@ func (h *AuthRPCHandler) Login(req *auth.LoginRequest) (*auth.LoginResponse, err
 	return resp, nil
 }
 
-// Register RPC 方法 - 使用 protobuf
+// Register RPC 方法 - 纯Kratos认证，不操作主数据库
 func (h *AuthRPCHandler) Register(req *auth.RegisterRequest) (*auth.RegisterResponse, error) {
 	ctx := context.Background()
 
@@ -65,7 +65,7 @@ func (h *AuthRPCHandler) Register(req *auth.RegisterRequest) (*auth.RegisterResp
 		log.String("email", req.Email),
 		log.String("username", req.Username))
 
-	// 调用真正的 Kratos 注册
+	// 调用 Kratos 注册（auth服务只负责身份认证）
 	resp, appErr := h.kratosService.Register(ctx, req)
 	if appErr != nil {
 		h.logger.ErrorContext(ctx, "Kratos 注册失败", log.Any("error", appErr))
@@ -73,6 +73,26 @@ func (h *AuthRPCHandler) Register(req *auth.RegisterRequest) (*auth.RegisterResp
 			Success:      false,
 			ErrorMessage: appErr.Error(),
 		}, nil
+	}
+
+	// 如果注册成功，发布事件通知其他服务（可选）
+	if resp.Success && resp.IdentityId != "" {
+		h.logger.InfoContext(ctx, "Kratos 注册成功",
+			log.String("identity_id", resp.IdentityId))
+
+		// 发布用户注册事件，让admin服务监听并同步到主数据库
+		if h.notificationService != nil {
+			metadata := map[string]interface{}{
+				"identity_id": resp.IdentityId,
+				"email":       req.Email,
+				"username":    req.Username,
+				"phone":       req.Phone,
+			}
+
+			if notifyErr := h.notificationService.PublishUserRegistered(ctx, resp.IdentityId, metadata); notifyErr != nil {
+				h.logger.WarnContext(ctx, "发布用户注册事件失败", log.Any("error", notifyErr))
+			}
+		}
 	}
 
 	return resp, nil
@@ -146,12 +166,12 @@ func (h *AuthRPCHandler) GetUserInfo(req *user.GetUserInfoRequest) (*user.GetUse
 		h.logger.ErrorContext(ctx, "Kratos 获取用户信息失败", log.Any("error", err))
 		// 返回空的用户信息而不是错误，让调用方处理
 		userInfo = &common.UserInfo{
-			Id:       req.UserId,
-			Email:    "",
-			Username: "",
+			Id:        req.UserId,
+			Email:     "",
+			Username:  "",
 			CreatedAt: timestamppb.New(time.Now()),
 			UpdatedAt: timestamppb.New(time.Now()),
-			Traits:   make(map[string]string),
+			Traits:    make(map[string]string),
 		}
 	}
 

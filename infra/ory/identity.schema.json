@@ -38,6 +38,11 @@
               }
             }
           }
+        },
+        "phone": {
+          "type": "string",
+          "title": "Phone Number",
+          "pattern": "^\\+[1-9]\\d{1,14}$"
         }
       },
       "required": [

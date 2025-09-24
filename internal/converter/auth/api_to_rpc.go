@@ -21,6 +21,7 @@ func RegisterRequestToRPC(req *apiAuth.RegisterRequest) *auth.RegisterRequest {
 		Email:     req.Email,
 		Username:  req.Username,
 		Password:  req.Password,
+		Phone:     req.Phone,
 		ClientIp:  req.ClientIP,
 		UserAgent: req.UserAgent,
 	}

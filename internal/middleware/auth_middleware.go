@@ -17,7 +17,8 @@ import (
 	"tsu-self/internal/pkg/log"
 	"tsu-self/internal/pkg/response"
 	"tsu-self/internal/pkg/xerrors"
-	authpb "tsu-self/proto"
+	authpb "tsu-self/internal/rpc/generated/auth"
+	commonpb "tsu-self/internal/rpc/generated/common"
 )
 
 type AuthMiddleware struct {
@@ -125,7 +126,7 @@ func (m *AuthMiddleware) checkPermission(ctx context.Context, userID, resource, 
 	}
 
 	// 2. 调用 auth module 检查权限
-	checkReq := &authpb.CheckPermissionRequest{
+	checkReq := &commonpb.CheckPermissionRequest{
 		UserId:   userID,
 		Resource: resource,
 		Action:   action,
@@ -137,7 +138,7 @@ func (m *AuthMiddleware) checkPermission(ctx context.Context, userID, resource, 
 		return false
 	}
 
-	checkResp, ok := result.(*authpb.CheckPermissionResponse)
+	checkResp, ok := result.(*commonpb.CheckPermissionResponse)
 	if !ok {
 		m.logger.ErrorContext(ctx, "权限检查响应类型错误")
 		return false

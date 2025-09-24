@@ -68,6 +68,30 @@ services:
     networks:
       - tsu_network
 
+  # admin_ui:
+  #   image: ghcr.io/dfoxg/kratos-admin-ui:v2.5.0
+  #   container_name: tsu_kratos_admin_ui
+  #   ports:
+  #     - '8079:8080'
+  #   restart: unless-stopped
+  #   environment:
+  #     - KRATOS_ADMIN_URL=http://kratos:4434
+  #     - KRATOS_PUBLIC_URL=http://kratos:4433
+  #   networks:
+  #     - tsu_network
+
+  kratos-admin-ui:
+    image: dhiagharsallaoui/kratos-admin-ui:latest
+    ports:
+      - '3000:3000'
+    environment:
+      - KRATOS_PUBLIC_URL=http://kratos:4433
+      - KRATOS_ADMIN_URL=http://kratos:4434
+    depends_on:
+      - kratos
+    networks:
+      - tsu_network
+
   # ----------------------------------------------------------------
   # 4. ORY Keto 数据库迁移任务
   # ----------------------------------------------------------------

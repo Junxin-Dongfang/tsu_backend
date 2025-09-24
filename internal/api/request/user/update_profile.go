@@ -8,5 +8,5 @@ type UpdateProfileRequest struct {
 	// 新邮箱
 	Email string `json:"email" binding:"omitempty,email" validate:"omitempty,email" example:"newemail@example.com"`
 	// 新手机号
-	Phone string `json:"phone" binding:"omitempty,e164" validate:"omitempty,e164" example:"11234567890"`
+	PhoneNumber string `json:"phone_number" binding:"omitempty,e164" validate:"omitempty,e164" example:"+11234567890"`
 }
