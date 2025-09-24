@@ -3,7 +3,6 @@ package admin
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
@@ -18,7 +17,6 @@ import (
 	"github.com/liangdas/mqant/module"
 	basemodule "github.com/liangdas/mqant/module/base"
 	_ "github.com/lib/pq" // PostgreSQL driver
-	"github.com/nats-io/nats.go"
 	echoSwagger "github.com/swaggo/echo-swagger"
 
 	_ "tsu-self/docs"
@@ -231,12 +229,14 @@ func (m *AdminModule) setupRoutes() {
 
 	user := api.Group("/user")
 	{
+		user.GET("/:user_id/profile", m.GetUserProfile)
 		user.PUT("/:user_id/profile", m.UpdateUserProfile)
 	}
 }
 
 func (m *AdminModule) setupRPCMethods() {
 	// 注册 RPC 方法供其他模块调用
+	m.GetServer().RegisterGO("HandleUserRegistered", m.handleUserRegisteredRPC)
 	// m.GetServer().RegisterGO("ValidateSession", m.rpcValidateSession)
 	// m.GetServer().RegisterGO("GetUserInfo", m.rpcGetUserInfo)
 	// m.GetServer().RegisterGO("Login", m.rpcLogin)
@@ -324,56 +324,34 @@ func (m *AdminModule) getContainerIP() string {
 	return ""
 }
 
-// startEventListeners 启动事件监听器
+// startEventListeners 启动事件监听器 - 使用mqant框架推荐方式
 func (m *AdminModule) startEventListeners() {
-	time.Sleep(5 * time.Second) // 等待服务完全启动
+	// 使用mqant的RPC机制替代直接的NATS订阅
+	// 这避免了与框架内部订阅的冲突
 
-	// 获取NATS连接
-	natsConn := m.app.Options().Nats
-	if natsConn == nil {
-		m.logger.Error("NATS连接不可用，无法启动事件监听器", nil)
-		return
-	}
+	m.logger.Info("使用mqant RPC机制处理事件，无需手动NATS订阅")
 
-	// 监听用户注册事件
-	_, err := natsConn.Subscribe("auth.user.registered", m.handleUserRegisteredEvent)
-	if err != nil {
-		m.logger.Error("订阅用户注册事件失败", err)
-		return
-	}
-
-	m.logger.Info("事件监听器已启动，正在监听用户注册事件")
+	// 如果需要监听其他服务的事件，应该通过RPC调用
+	// 而不是直接创建NATS订阅，这样可以避免订阅冲突
 }
 
-// handleUserRegisteredEvent 处理用户注册事件
-func (m *AdminModule) handleUserRegisteredEvent(msg *nats.Msg) {
-	ctx := context.Background()
-
-	var event struct {
-		UserID   string                 `json:"user_id"`
-		Email    string                 `json:"email"`
-		Username string                 `json:"username"`
-		Metadata map[string]interface{} `json:"metadata"`
-	}
-
-	if err := json.Unmarshal(msg.Data, &event); err != nil {
-		m.logger.ErrorContext(ctx, "解析用户注册事件失败", log.Any("error", err))
-		return
-	}
-
-	m.logger.InfoContext(ctx, "收到用户注册事件",
-		log.String("user_id", event.UserID),
-		log.String("email", event.Email),
-		log.String("username", event.Username))
+// handleUserRegisteredRPC 通过RPC处理用户注册事件 - 使用mqant推荐方式
+// 当其他服务需要通知用户注册事件时，可以通过RPC调用这个方法
+func (m *AdminModule) handleUserRegisteredRPC(ctx context.Context, userID, email, username string) error {
+	m.logger.InfoContext(ctx, "通过RPC收到用户注册事件",
+		log.String("user_id", userID),
+		log.String("email", email),
+		log.String("username", username))
 
 	// 同步用户到主数据库
-	_, syncErr := m.syncService.CreateBusinessUser(ctx, event.UserID, event.Email, event.Username)
+	_, syncErr := m.syncService.CreateBusinessUser(ctx, userID, email, username)
 	if syncErr != nil {
 		m.logger.ErrorContext(ctx, "同步用户到主数据库失败",
-			log.String("user_id", event.UserID),
+			log.String("user_id", userID),
 			log.Any("error", syncErr))
-		return
+		return syncErr
 	}
 
-	m.logger.InfoContext(ctx, "用户同步到主数据库成功", log.String("user_id", event.UserID))
+	m.logger.InfoContext(ctx, "用户同步到主数据库成功", log.String("user_id", userID))
+	return nil
 }

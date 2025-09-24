@@ -3,14 +3,12 @@ package middleware
 
 import (
 	"context"
-	"encoding/json"
 	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/liangdas/mqant/module"
 	mqrpc "github.com/liangdas/mqant/rpc"
-	"github.com/nats-io/nats.go"
 	"github.com/redis/go-redis/v9"
 
 	"tsu-self/internal/pkg/contextkeys"
@@ -24,7 +22,6 @@ import (
 type AuthMiddleware struct {
 	app         module.App // mqant app用于RPC调用
 	redis       *redis.Client
-	nc          *nats.Conn
 	logger      log.Logger
 	respHandler response.Writer
 
@@ -37,18 +34,14 @@ type CachedPermissions struct {
 	CachedAt    time.Time `json:"cached_at"`
 }
 
-func NewAuthMiddleware(app module.App, redis *redis.Client, nc *nats.Conn, logger log.Logger) *AuthMiddleware {
+func NewAuthMiddleware(app module.App, redis *redis.Client, logger log.Logger) *AuthMiddleware {
 	middleware := &AuthMiddleware{
 		app:             app,
 		redis:           redis,
-		nc:              nc,
 		logger:          logger,
 		respHandler:     response.DefaultResponseHandler(),
 		permissionCache: make(map[string]*CachedPermissions),
 	}
-
-	// 订阅权限变更事件
-	middleware.subscribePermissionChanges()
 
 	return middleware
 }
@@ -147,27 +140,11 @@ func (m *AuthMiddleware) checkPermission(ctx context.Context, userID, resource, 
 	return checkResp.Allowed
 }
 
-func (m *AuthMiddleware) subscribePermissionChanges() {
-	subject := "auth.permission.changed"
-
-	m.nc.Subscribe(subject, func(msg *nats.Msg) {
-		var event struct {
-			UserID    string `json:"user_id"`
-			EventType string `json:"event_type"`
-		}
-
-		if err := json.Unmarshal(msg.Data, &event); err != nil {
-			m.logger.Error("解析权限变更事件失败", err)
-			return
-		}
-
-		// 清理用户权限缓存
-		delete(m.permissionCache, event.UserID)
-
-		m.logger.InfoContext(context.Background(), "清理用户权限缓存",
-			log.String("user_id", event.UserID),
-			log.String("event_type", event.EventType))
-	})
+// ClearUserPermissionCache 清理指定用户的权限缓存 - 通过RPC调用
+func (m *AuthMiddleware) ClearUserPermissionCache(userID string) {
+	delete(m.permissionCache, userID)
+	m.logger.InfoContext(context.Background(), "清理用户权限缓存",
+		log.String("user_id", userID))
 }
 
 func (m *AuthMiddleware) extractToken(c echo.Context) string {

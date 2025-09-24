@@ -44,7 +44,7 @@ func main() {
 	log.Info("启动 TSU Admin Server...")
 
 	// Consul 注册
-	consulAddr := "127.0.0.1:8500"
+	consulAddr := "consul:8500"
 	if envConsulAddr := os.Getenv("CONSUL_ADDRESS"); envConsulAddr != "" {
 		consulAddr = envConsulAddr
 	}
@@ -55,12 +55,26 @@ func main() {
 	log.Info("Consul 地址: " + consulAddr)
 
 	//NATS地址
-	natsAddr := "127.0.0.1:4222"
+	natsAddr := "nats:4222"
 	if envNatsAddr := os.Getenv("NATS_ADDRESS"); envNatsAddr != "" {
 		natsAddr = envNatsAddr
 	}
 
-	nc, err := nats.Connect(natsAddr, nats.MaxReconnects(10000))
+	nc, err := nats.Connect(natsAddr,
+		nats.MaxReconnects(10000),
+		nats.ReconnectWait(1*time.Second), // 重连等待时间
+		nats.PingInterval(30*time.Second), // 心跳间隔
+		nats.MaxPingsOutstanding(3),       // 最大未响应心跳数
+		nats.DisconnectErrHandler(func(nc *nats.Conn, err error) {
+			log.Info("NATS 连接断开: " + err.Error())
+		}),
+		nats.ReconnectHandler(func(nc *nats.Conn) {
+			log.Info("NATS 重新连接成功")
+		}),
+		nats.ClosedHandler(func(nc *nats.Conn) {
+			log.Info("NATS 连接关闭")
+		}),
+	)
 	if err != nil {
 		log.Error("连接 NATS 失败", err)
 		return

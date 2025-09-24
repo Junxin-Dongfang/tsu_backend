@@ -28,11 +28,40 @@ func NewUserService(db *sqlx.DB, logger log.Logger) *UserService {
 	}
 }
 
+// GetUserByID 根据ID获取用户信息
+func (s *UserService) GetUserByID(ctx context.Context, userID string) (*entity.User, *xerrors.AppError) {
+	s.logger.InfoContext(ctx, "获取用户信息", log.String("user_id", userID))
+
+	query := `
+		SELECT id, email, username, nickname, phone_number, is_premium, diamond_count, created_at, updated_at
+		FROM users
+		WHERE id = $1 AND deleted_at IS NULL
+	`
+
+	var user entity.User
+	err := s.db.GetContext(ctx, &user, query, userID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, xerrors.New(xerrors.CodeUserNotFound, "用户不存在")
+		}
+		s.logger.ErrorContext(ctx, "查询用户失败", log.Any("error", err))
+		return nil, s.parseDatabaseError(err, "查询用户")
+	}
+
+	s.logger.InfoContext(ctx, "用户信息获取成功", log.String("user_id", userID))
+	return &user, nil
+}
+
 func (s *UserService) UpdateUserProfile(ctx context.Context, userID string, profile map[string]interface{}) (*entity.User, *xerrors.AppError) {
 	s.logger.InfoContext(ctx, "更新用户资料",
 		log.String("user_id", userID),
 		log.Any("profile", profile),
 	)
+
+	// 如果没有字段要更新，直接返回当前用户信息
+	if len(profile) == 0 {
+		return s.GetUserByID(ctx, userID)
+	}
 
 	setParts := make([]string, 0, len(profile))
 	args := make([]interface{}, 0, len(profile)+1)
@@ -48,7 +77,7 @@ func (s *UserService) UpdateUserProfile(ctx context.Context, userID string, prof
 		UPDATE users
 		SET %s
 		WHERE id = $1 AND deleted_at IS NULL
-		RETURNING id, nickname, email, phone_number, updated_at
+		RETURNING id, username, nickname, email, phone_number, is_premium, diamond_count, created_at, updated_at
 		`, strings.Join(setParts, ", "))
 
 	args = append([]interface{}{userID}, args...)

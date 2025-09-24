@@ -1,7 +1,7 @@
 {
     "Settings": {
-        "ConsulAddr":"127.0.0.1:8500",
-        "NatsAddr":"127.0.0.1:4222"
+        "ConsulAddr":"consul:8500",
+        "NatsAddr":"nats:4222"
     },
     "Module": {
         "admin":[

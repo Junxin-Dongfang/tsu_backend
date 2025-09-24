@@ -70,9 +70,9 @@ func (m *AdminModule) Login(c echo.Context) error {
 		log.String("identifier", req.Identifier),
 		log.String("client_ip", req.ClientIP))
 
-	// 1. 调用Auth服务进行Kratos登录验证
+	// 1. 调用Auth服务进行Kratos登录验证（带重试机制）
 	rpcReq := authConverter.LoginRequestToRPC(&req)
-	resp, err := m.Call(ctx, "auth", "Login", mqrpc.Param(rpcReq))
+	resp, err := m.callWithRetry(ctx, "auth", "Login", mqrpc.Param(rpcReq), 3)
 	if err != "" {
 		m.logger.ErrorContext(ctx, "Auth服务调用失败", log.Any("error", err))
 		return response.InternalServerError(ctx, c.Response().Writer, m.respWriter, "认证服务调用失败")
@@ -147,6 +147,147 @@ func (m *AdminModule) Login(c echo.Context) error {
 	return m.respWriter.WriteSuccess(ctx, c.Response().Writer, apiResult)
 }
 
+// callWithRetry 带重试机制的RPC调用
+func (m *AdminModule) callWithRetry(ctx context.Context, serviceName, methodName string, param mqrpc.ParamOption, maxRetries int) (interface{}, string) {
+	var result interface{}
+	var err string
+
+	// 可重试的错误类型
+	retryableErrors := map[string]bool{
+		"none available":        true,  // 没有可用服务
+		"deadline exceeded":     true,  // 超时
+		"client closed":         true,  // 客户端关闭
+		"connection refused":    true,  // 连接被拒绝
+		"connection reset":      true,  // 连接重置
+		"temporary failure":     true,  // 临时失败
+		"认证服务调用失败":         true,  // 我们的自定义错误
+	}
+
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		// 在重试前检查上下文是否已取消
+		if ctx != nil {
+			select {
+			case <-ctx.Done():
+				return nil, "context canceled"
+			default:
+			}
+		}
+
+		result, err = m.Call(ctx, serviceName, methodName, param)
+		if err == "" {
+			// 成功，返回结果
+			return result, ""
+		}
+
+		// 检查是否为可重试的错误
+		isRetryable := false
+		for retryableErr := range retryableErrors {
+			if strings.Contains(err, retryableErr) {
+				isRetryable = true
+				break
+			}
+		}
+
+		// 如果不是可重试错误，直接返回
+		if !isRetryable {
+			return result, err
+		}
+
+		// 记录重试信息
+		m.logger.WarnContext(ctx, "RPC调用失败，准备重试",
+			log.String("service", serviceName),
+			log.String("method", methodName),
+			log.Int("attempt", attempt),
+			log.Int("max_retries", maxRetries),
+			log.String("error", err))
+
+		// 如果不是最后一次尝试，等待一段时间再重试
+		if attempt < maxRetries {
+			// 根据错误类型调整延迟策略
+			var delay time.Duration
+			switch {
+			case strings.Contains(err, "none available"):
+				// 服务不可用，使用较长的延迟让服务有时间恢复
+				delay = time.Duration(attempt*attempt) * 500 * time.Millisecond
+			case strings.Contains(err, "deadline exceeded"):
+				// 超时错误，使用较短的延迟
+				delay = time.Duration(attempt) * 300 * time.Millisecond
+			case strings.Contains(err, "认证服务调用失败"):
+				// 自定义错误，可能是临时性问题
+				delay = time.Duration(attempt) * 200 * time.Millisecond
+			default:
+				// 默认指数退避
+				delay = time.Duration(attempt) * 250 * time.Millisecond
+			}
+
+			// 限制最大延迟时间
+			maxDelay := 3 * time.Second
+			if delay > maxDelay {
+				delay = maxDelay
+			}
+
+			// 检查NATS连接状态和服务健康状况
+			if nc := m.GetApp().Transport(); nc != nil {
+				if !nc.IsConnected() {
+					m.logger.WarnContext(ctx, "NATS连接断开，等待重连",
+						log.String("status", nc.Status().String()))
+
+					// 等待连接恢复，但不超过delay时间
+					waitCtx, cancel := context.WithTimeout(ctx, delay)
+					ticker := time.NewTicker(100 * time.Millisecond) // 增加检查间隔
+
+					reconnected := false
+					for {
+						select {
+						case <-waitCtx.Done():
+							cancel()
+							ticker.Stop()
+							goto nextAttempt
+						case <-ticker.C:
+							if nc.IsConnected() {
+								m.logger.InfoContext(ctx, "NATS连接已恢复")
+								reconnected = true
+								cancel()
+								ticker.Stop()
+								goto nextAttempt
+							}
+						}
+					}
+
+					// 如果重连成功，减少等待时间
+					if reconnected && delay > 500*time.Millisecond {
+						delay = delay / 2
+					}
+				}
+			}
+
+			m.logger.DebugContext(ctx, "等待重试",
+				log.String("delay", delay.String()),
+				log.Int("attempt", attempt),
+				log.String("error_type", err))
+
+			// 使用context控制的sleep，支持提前取消
+			select {
+			case <-ctx.Done():
+				return nil, "context canceled during retry delay"
+			case <-time.After(delay):
+				// 继续重试
+			}
+		}
+
+	nextAttempt:
+	}
+
+	// 所有重试都失败了
+	m.logger.ErrorContext(ctx, "RPC调用重试失败",
+		log.String("service", serviceName),
+		log.String("method", methodName),
+		log.Int("attempts", maxRetries),
+		log.String("final_error", err))
+
+	return result, err
+}
+
 // Register 用户注册 - 协调Auth服务和主数据库
 // @Summary 用户注册
 // @Description 通过邮箱、用户名和密码注册新用户，确保Kratos和主数据库数据一致
@@ -177,9 +318,9 @@ func (m *AdminModule) Register(c echo.Context) error {
 		log.String("email", req.Email),
 		log.String("username", req.Username))
 
-	// 1. 调用Auth服务进行Kratos注册
+	// 1. 调用Auth服务进行Kratos注册（带重试机制）
 	rpcReq := authConverter.RegisterRequestToRPC(&req)
-	result, err := m.Call(ctx, "auth", "Register", mqrpc.Param(rpcReq))
+	result, err := m.callWithRetry(ctx, "auth", "Register", mqrpc.Param(rpcReq), 3)
 	if err != "" {
 		m.logger.ErrorContext(ctx, "Auth服务调用失败", log.Any("error", err))
 		return m.respWriter.WriteError(ctx, c.Response().Writer,
@@ -246,6 +387,48 @@ func (m *AdminModule) Register(c echo.Context) error {
 	apiResult := authConverter.RegisterResponseFromRPC(rpcResp)
 
 	return m.respWriter.WriteSuccess(ctx, c.Response().Writer, apiResult)
+}
+
+// GetUserProfile 获取用户资料
+// @Summary 获取用户资料
+// @Description 获取指定用户的详细资料信息
+// @Tags 用户管理
+// @Accept json
+// @Produce json
+// @Param user_id path string true "用户ID"
+// @Success 200 {object} response.APIResponse[apiUserResp.UserProfile] "获取成功"
+// @Failure 400 {object} response.APIResponse[any] "请求参数错误"
+// @Failure 404 {object} response.APIResponse[any] "用户不存在"
+// @Failure 500 {object} response.APIResponse[any] "服务器错误"
+// @Router /user/{user_id}/profile [get]
+func (m *AdminModule) GetUserProfile(c echo.Context) error {
+	ctx := c.Request().Context()
+	userID := c.Param("user_id")
+
+	m.logger.InfoContext(ctx, "开始获取用户资料", log.String("user_id", userID))
+
+	// 验证用户ID格式
+	if userID == "" {
+		return m.respWriter.WriteError(ctx, c.Response().Writer,
+			xerrors.New(xerrors.CodeInvalidParams, "用户ID不能为空"))
+	}
+
+	// 从数据库获取用户信息
+	user, appErr := m.userService.GetUserByID(ctx, userID)
+	if appErr != nil {
+		if appErr.Code == xerrors.CodeUserNotFound {
+			return m.respWriter.WriteError(ctx, c.Response().Writer,
+				xerrors.New(xerrors.CodeUserNotFound, "用户不存在"))
+		}
+		m.logger.ErrorContext(ctx, "获取用户资料失败", log.Any("error", appErr))
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	// 转换为API响应格式
+	profile := userConverter.EntityToProfileResponse(user)
+
+	m.logger.InfoContext(ctx, "用户资料获取成功", log.String("user_id", userID))
+	return m.respWriter.WriteSuccess(ctx, c.Response().Writer, profile)
 }
 
 // UpdateUserProfile 更新用户资料
