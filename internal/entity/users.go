@@ -509,7 +509,7 @@ func (q userQuery) One(ctx context.Context, exec boil.ContextExecutor) (*User, e
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "entity: failed to execute a one query for users")
+		return nil, errors.Wrap(err, "models: failed to execute a one query for users")
 	}
 
 	if err := o.doAfterSelectHooks(ctx, exec); err != nil {
@@ -525,7 +525,7 @@ func (q userQuery) All(ctx context.Context, exec boil.ContextExecutor) (UserSlic
 
 	err := q.Bind(ctx, exec, &o)
 	if err != nil {
-		return nil, errors.Wrap(err, "entity: failed to assign all query results to User slice")
+		return nil, errors.Wrap(err, "models: failed to assign all query results to User slice")
 	}
 
 	if len(userAfterSelectHooks) != 0 {
@@ -548,7 +548,7 @@ func (q userQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64,
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to count users rows")
+		return 0, errors.Wrap(err, "models: failed to count users rows")
 	}
 
 	return count, nil
@@ -564,7 +564,7 @@ func (q userQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (bool,
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return false, errors.Wrap(err, "entity: failed to check if users exists")
+		return false, errors.Wrap(err, "models: failed to check if users exists")
 	}
 
 	return count > 0, nil
@@ -1139,7 +1139,7 @@ func FindUser(ctx context.Context, exec boil.ContextExecutor, iD string, selectC
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "entity: unable to select from users")
+		return nil, errors.Wrap(err, "models: unable to select from users")
 	}
 
 	if err = userObj.doAfterSelectHooks(ctx, exec); err != nil {
@@ -1153,7 +1153,7 @@ func FindUser(ctx context.Context, exec boil.ContextExecutor, iD string, selectC
 // See boil.Columns.InsertColumnSet documentation to understand column list inference for inserts.
 func (o *User) Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error {
 	if o == nil {
-		return errors.New("entity: no users provided for insertion")
+		return errors.New("models: no users provided for insertion")
 	}
 
 	var err error
@@ -1226,7 +1226,7 @@ func (o *User) Insert(ctx context.Context, exec boil.ContextExecutor, columns bo
 	}
 
 	if err != nil {
-		return errors.Wrap(err, "entity: unable to insert into users")
+		return errors.Wrap(err, "models: unable to insert into users")
 	}
 
 	if !cached {
@@ -1267,7 +1267,7 @@ func (o *User) Update(ctx context.Context, exec boil.ContextExecutor, columns bo
 			wl = strmangle.SetComplement(wl, []string{"created_at"})
 		}
 		if len(wl) == 0 {
-			return 0, errors.New("entity: unable to update users, could not build whitelist")
+			return 0, errors.New("models: unable to update users, could not build whitelist")
 		}
 
 		cache.query = fmt.Sprintf("UPDATE \"users\" SET %s WHERE %s",
@@ -1290,12 +1290,12 @@ func (o *User) Update(ctx context.Context, exec boil.ContextExecutor, columns bo
 	var result sql.Result
 	result, err = exec.ExecContext(ctx, cache.query, values...)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to update users row")
+		return 0, errors.Wrap(err, "models: unable to update users row")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to get rows affected by update for users")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by update for users")
 	}
 
 	if !cached {
@@ -1313,12 +1313,12 @@ func (q userQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor, col
 
 	result, err := q.Query.ExecContext(ctx, exec)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to update all for users")
+		return 0, errors.Wrap(err, "models: unable to update all for users")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to retrieve rows affected for users")
+		return 0, errors.Wrap(err, "models: unable to retrieve rows affected for users")
 	}
 
 	return rowsAff, nil
@@ -1332,7 +1332,7 @@ func (o UserSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, col
 	}
 
 	if len(cols) == 0 {
-		return 0, errors.New("entity: update all requires at least one column argument")
+		return 0, errors.New("models: update all requires at least one column argument")
 	}
 
 	colNames := make([]string, len(cols))
@@ -1362,12 +1362,12 @@ func (o UserSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, col
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to update all in user slice")
+		return 0, errors.Wrap(err, "models: unable to update all in user slice")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to retrieve rows affected all in update all user")
+		return 0, errors.Wrap(err, "models: unable to retrieve rows affected all in update all user")
 	}
 	return rowsAff, nil
 }
@@ -1376,7 +1376,7 @@ func (o UserSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, col
 // See boil.Columns documentation for how to properly use updateColumns and insertColumns.
 func (o *User) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) error {
 	if o == nil {
-		return errors.New("entity: no users provided for upsert")
+		return errors.New("models: no users provided for upsert")
 	}
 	if !boil.TimestampsAreSkipped(ctx) {
 		currTime := time.Now().In(boil.GetLocation())
@@ -1441,7 +1441,7 @@ func (o *User) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnCo
 		)
 
 		if updateOnConflict && len(update) == 0 {
-			return errors.New("entity: unable to upsert users, could not build update column list")
+			return errors.New("models: unable to upsert users, could not build update column list")
 		}
 
 		ret := strmangle.SetComplement(userAllColumns, strmangle.SetIntersect(insert, update))
@@ -1449,7 +1449,7 @@ func (o *User) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnCo
 		conflict := conflictColumns
 		if len(conflict) == 0 && updateOnConflict && len(update) != 0 {
 			if len(userPrimaryKeyColumns) == 0 {
-				return errors.New("entity: unable to upsert users, could not build conflict column list")
+				return errors.New("models: unable to upsert users, could not build conflict column list")
 			}
 
 			conflict = make([]string, len(userPrimaryKeyColumns))
@@ -1490,7 +1490,7 @@ func (o *User) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnCo
 		_, err = exec.ExecContext(ctx, cache.query, vals...)
 	}
 	if err != nil {
-		return errors.Wrap(err, "entity: unable to upsert users")
+		return errors.Wrap(err, "models: unable to upsert users")
 	}
 
 	if !cached {
@@ -1506,7 +1506,7 @@ func (o *User) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnCo
 // Delete will match against the primary key column to find the record to delete.
 func (o *User) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if o == nil {
-		return 0, errors.New("entity: no User provided for delete")
+		return 0, errors.New("models: no User provided for delete")
 	}
 
 	if err := o.doBeforeDeleteHooks(ctx, exec); err != nil {
@@ -1523,12 +1523,12 @@ func (o *User) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, er
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to delete from users")
+		return 0, errors.Wrap(err, "models: unable to delete from users")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to get rows affected by delete for users")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by delete for users")
 	}
 
 	if err := o.doAfterDeleteHooks(ctx, exec); err != nil {
@@ -1541,19 +1541,19 @@ func (o *User) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, er
 // DeleteAll deletes all matching rows.
 func (q userQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if q.Query == nil {
-		return 0, errors.New("entity: no userQuery provided for delete all")
+		return 0, errors.New("models: no userQuery provided for delete all")
 	}
 
 	queries.SetDelete(q.Query)
 
 	result, err := q.Query.ExecContext(ctx, exec)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to delete all from users")
+		return 0, errors.Wrap(err, "models: unable to delete all from users")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to get rows affected by deleteall for users")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by deleteall for users")
 	}
 
 	return rowsAff, nil
@@ -1589,12 +1589,12 @@ func (o UserSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (in
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to delete all from user slice")
+		return 0, errors.Wrap(err, "models: unable to delete all from user slice")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to get rows affected by deleteall for users")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by deleteall for users")
 	}
 
 	if len(userAfterDeleteHooks) != 0 {
@@ -1641,7 +1641,7 @@ func (o *UserSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor) er
 
 	err := q.Bind(ctx, exec, &slice)
 	if err != nil {
-		return errors.Wrap(err, "entity: unable to reload all in UserSlice")
+		return errors.Wrap(err, "models: unable to reload all in UserSlice")
 	}
 
 	*o = slice
@@ -1663,7 +1663,7 @@ func UserExists(ctx context.Context, exec boil.ContextExecutor, iD string) (bool
 
 	err := row.Scan(&exists)
 	if err != nil {
-		return false, errors.Wrap(err, "entity: unable to check if users exists")
+		return false, errors.Wrap(err, "models: unable to check if users exists")
 	}
 
 	return exists, nil

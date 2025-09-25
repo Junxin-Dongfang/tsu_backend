@@ -356,7 +356,7 @@ func (q schemaMigrationQuery) One(ctx context.Context, exec boil.ContextExecutor
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "entity: failed to execute a one query for schema_migrations")
+		return nil, errors.Wrap(err, "models: failed to execute a one query for schema_migrations")
 	}
 
 	if err := o.doAfterSelectHooks(ctx, exec); err != nil {
@@ -372,7 +372,7 @@ func (q schemaMigrationQuery) All(ctx context.Context, exec boil.ContextExecutor
 
 	err := q.Bind(ctx, exec, &o)
 	if err != nil {
-		return nil, errors.Wrap(err, "entity: failed to assign all query results to SchemaMigration slice")
+		return nil, errors.Wrap(err, "models: failed to assign all query results to SchemaMigration slice")
 	}
 
 	if len(schemaMigrationAfterSelectHooks) != 0 {
@@ -395,7 +395,7 @@ func (q schemaMigrationQuery) Count(ctx context.Context, exec boil.ContextExecut
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to count schema_migrations rows")
+		return 0, errors.Wrap(err, "models: failed to count schema_migrations rows")
 	}
 
 	return count, nil
@@ -411,7 +411,7 @@ func (q schemaMigrationQuery) Exists(ctx context.Context, exec boil.ContextExecu
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return false, errors.Wrap(err, "entity: failed to check if schema_migrations exists")
+		return false, errors.Wrap(err, "models: failed to check if schema_migrations exists")
 	}
 
 	return count > 0, nil
@@ -448,7 +448,7 @@ func FindSchemaMigration(ctx context.Context, exec boil.ContextExecutor, version
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "entity: unable to select from schema_migrations")
+		return nil, errors.Wrap(err, "models: unable to select from schema_migrations")
 	}
 
 	if err = schemaMigrationObj.doAfterSelectHooks(ctx, exec); err != nil {
@@ -462,7 +462,7 @@ func FindSchemaMigration(ctx context.Context, exec boil.ContextExecutor, version
 // See boil.Columns.InsertColumnSet documentation to understand column list inference for inserts.
 func (o *SchemaMigration) Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error {
 	if o == nil {
-		return errors.New("entity: no schema_migrations provided for insertion")
+		return errors.New("models: no schema_migrations provided for insertion")
 	}
 
 	var err error
@@ -525,7 +525,7 @@ func (o *SchemaMigration) Insert(ctx context.Context, exec boil.ContextExecutor,
 	}
 
 	if err != nil {
-		return errors.Wrap(err, "entity: unable to insert into schema_migrations")
+		return errors.Wrap(err, "models: unable to insert into schema_migrations")
 	}
 
 	if !cached {
@@ -560,7 +560,7 @@ func (o *SchemaMigration) Update(ctx context.Context, exec boil.ContextExecutor,
 			wl = strmangle.SetComplement(wl, []string{"created_at"})
 		}
 		if len(wl) == 0 {
-			return 0, errors.New("entity: unable to update schema_migrations, could not build whitelist")
+			return 0, errors.New("models: unable to update schema_migrations, could not build whitelist")
 		}
 
 		cache.query = fmt.Sprintf("UPDATE \"schema_migrations\" SET %s WHERE %s",
@@ -583,12 +583,12 @@ func (o *SchemaMigration) Update(ctx context.Context, exec boil.ContextExecutor,
 	var result sql.Result
 	result, err = exec.ExecContext(ctx, cache.query, values...)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to update schema_migrations row")
+		return 0, errors.Wrap(err, "models: unable to update schema_migrations row")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to get rows affected by update for schema_migrations")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by update for schema_migrations")
 	}
 
 	if !cached {
@@ -606,12 +606,12 @@ func (q schemaMigrationQuery) UpdateAll(ctx context.Context, exec boil.ContextEx
 
 	result, err := q.Query.ExecContext(ctx, exec)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to update all for schema_migrations")
+		return 0, errors.Wrap(err, "models: unable to update all for schema_migrations")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to retrieve rows affected for schema_migrations")
+		return 0, errors.Wrap(err, "models: unable to retrieve rows affected for schema_migrations")
 	}
 
 	return rowsAff, nil
@@ -625,7 +625,7 @@ func (o SchemaMigrationSlice) UpdateAll(ctx context.Context, exec boil.ContextEx
 	}
 
 	if len(cols) == 0 {
-		return 0, errors.New("entity: update all requires at least one column argument")
+		return 0, errors.New("models: update all requires at least one column argument")
 	}
 
 	colNames := make([]string, len(cols))
@@ -655,12 +655,12 @@ func (o SchemaMigrationSlice) UpdateAll(ctx context.Context, exec boil.ContextEx
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to update all in schemaMigration slice")
+		return 0, errors.Wrap(err, "models: unable to update all in schemaMigration slice")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to retrieve rows affected all in update all schemaMigration")
+		return 0, errors.Wrap(err, "models: unable to retrieve rows affected all in update all schemaMigration")
 	}
 	return rowsAff, nil
 }
@@ -669,7 +669,7 @@ func (o SchemaMigrationSlice) UpdateAll(ctx context.Context, exec boil.ContextEx
 // See boil.Columns documentation for how to properly use updateColumns and insertColumns.
 func (o *SchemaMigration) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) error {
 	if o == nil {
-		return errors.New("entity: no schema_migrations provided for upsert")
+		return errors.New("models: no schema_migrations provided for upsert")
 	}
 
 	if err := o.doBeforeUpsertHooks(ctx, exec); err != nil {
@@ -726,7 +726,7 @@ func (o *SchemaMigration) Upsert(ctx context.Context, exec boil.ContextExecutor,
 		)
 
 		if updateOnConflict && len(update) == 0 {
-			return errors.New("entity: unable to upsert schema_migrations, could not build update column list")
+			return errors.New("models: unable to upsert schema_migrations, could not build update column list")
 		}
 
 		ret := strmangle.SetComplement(schemaMigrationAllColumns, strmangle.SetIntersect(insert, update))
@@ -734,7 +734,7 @@ func (o *SchemaMigration) Upsert(ctx context.Context, exec boil.ContextExecutor,
 		conflict := conflictColumns
 		if len(conflict) == 0 && updateOnConflict && len(update) != 0 {
 			if len(schemaMigrationPrimaryKeyColumns) == 0 {
-				return errors.New("entity: unable to upsert schema_migrations, could not build conflict column list")
+				return errors.New("models: unable to upsert schema_migrations, could not build conflict column list")
 			}
 
 			conflict = make([]string, len(schemaMigrationPrimaryKeyColumns))
@@ -775,7 +775,7 @@ func (o *SchemaMigration) Upsert(ctx context.Context, exec boil.ContextExecutor,
 		_, err = exec.ExecContext(ctx, cache.query, vals...)
 	}
 	if err != nil {
-		return errors.Wrap(err, "entity: unable to upsert schema_migrations")
+		return errors.Wrap(err, "models: unable to upsert schema_migrations")
 	}
 
 	if !cached {
@@ -791,7 +791,7 @@ func (o *SchemaMigration) Upsert(ctx context.Context, exec boil.ContextExecutor,
 // Delete will match against the primary key column to find the record to delete.
 func (o *SchemaMigration) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if o == nil {
-		return 0, errors.New("entity: no SchemaMigration provided for delete")
+		return 0, errors.New("models: no SchemaMigration provided for delete")
 	}
 
 	if err := o.doBeforeDeleteHooks(ctx, exec); err != nil {
@@ -808,12 +808,12 @@ func (o *SchemaMigration) Delete(ctx context.Context, exec boil.ContextExecutor)
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to delete from schema_migrations")
+		return 0, errors.Wrap(err, "models: unable to delete from schema_migrations")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to get rows affected by delete for schema_migrations")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by delete for schema_migrations")
 	}
 
 	if err := o.doAfterDeleteHooks(ctx, exec); err != nil {
@@ -826,19 +826,19 @@ func (o *SchemaMigration) Delete(ctx context.Context, exec boil.ContextExecutor)
 // DeleteAll deletes all matching rows.
 func (q schemaMigrationQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if q.Query == nil {
-		return 0, errors.New("entity: no schemaMigrationQuery provided for delete all")
+		return 0, errors.New("models: no schemaMigrationQuery provided for delete all")
 	}
 
 	queries.SetDelete(q.Query)
 
 	result, err := q.Query.ExecContext(ctx, exec)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to delete all from schema_migrations")
+		return 0, errors.Wrap(err, "models: unable to delete all from schema_migrations")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to get rows affected by deleteall for schema_migrations")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by deleteall for schema_migrations")
 	}
 
 	return rowsAff, nil
@@ -874,12 +874,12 @@ func (o SchemaMigrationSlice) DeleteAll(ctx context.Context, exec boil.ContextEx
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to delete all from schemaMigration slice")
+		return 0, errors.Wrap(err, "models: unable to delete all from schemaMigration slice")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to get rows affected by deleteall for schema_migrations")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by deleteall for schema_migrations")
 	}
 
 	if len(schemaMigrationAfterDeleteHooks) != 0 {
@@ -926,7 +926,7 @@ func (o *SchemaMigrationSlice) ReloadAll(ctx context.Context, exec boil.ContextE
 
 	err := q.Bind(ctx, exec, &slice)
 	if err != nil {
-		return errors.Wrap(err, "entity: unable to reload all in SchemaMigrationSlice")
+		return errors.Wrap(err, "models: unable to reload all in SchemaMigrationSlice")
 	}
 
 	*o = slice
@@ -948,7 +948,7 @@ func SchemaMigrationExists(ctx context.Context, exec boil.ContextExecutor, versi
 
 	err := row.Scan(&exists)
 	if err != nil {
-		return false, errors.Wrap(err, "entity: unable to check if schema_migrations exists")
+		return false, errors.Wrap(err, "models: unable to check if schema_migrations exists")
 	}
 
 	return exists, nil

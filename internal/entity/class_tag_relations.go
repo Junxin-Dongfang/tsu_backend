@@ -385,7 +385,7 @@ func (q classTagRelationQuery) One(ctx context.Context, exec boil.ContextExecuto
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "entity: failed to execute a one query for class_tag_relations")
+		return nil, errors.Wrap(err, "models: failed to execute a one query for class_tag_relations")
 	}
 
 	if err := o.doAfterSelectHooks(ctx, exec); err != nil {
@@ -401,7 +401,7 @@ func (q classTagRelationQuery) All(ctx context.Context, exec boil.ContextExecuto
 
 	err := q.Bind(ctx, exec, &o)
 	if err != nil {
-		return nil, errors.Wrap(err, "entity: failed to assign all query results to ClassTagRelation slice")
+		return nil, errors.Wrap(err, "models: failed to assign all query results to ClassTagRelation slice")
 	}
 
 	if len(classTagRelationAfterSelectHooks) != 0 {
@@ -424,7 +424,7 @@ func (q classTagRelationQuery) Count(ctx context.Context, exec boil.ContextExecu
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to count class_tag_relations rows")
+		return 0, errors.Wrap(err, "models: failed to count class_tag_relations rows")
 	}
 
 	return count, nil
@@ -440,7 +440,7 @@ func (q classTagRelationQuery) Exists(ctx context.Context, exec boil.ContextExec
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return false, errors.Wrap(err, "entity: failed to check if class_tag_relations exists")
+		return false, errors.Wrap(err, "models: failed to check if class_tag_relations exists")
 	}
 
 	return count > 0, nil
@@ -833,7 +833,7 @@ func FindClassTagRelation(ctx context.Context, exec boil.ContextExecutor, iD str
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "entity: unable to select from class_tag_relations")
+		return nil, errors.Wrap(err, "models: unable to select from class_tag_relations")
 	}
 
 	if err = classTagRelationObj.doAfterSelectHooks(ctx, exec); err != nil {
@@ -847,7 +847,7 @@ func FindClassTagRelation(ctx context.Context, exec boil.ContextExecutor, iD str
 // See boil.Columns.InsertColumnSet documentation to understand column list inference for inserts.
 func (o *ClassTagRelation) Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error {
 	if o == nil {
-		return errors.New("entity: no class_tag_relations provided for insertion")
+		return errors.New("models: no class_tag_relations provided for insertion")
 	}
 
 	var err error
@@ -920,7 +920,7 @@ func (o *ClassTagRelation) Insert(ctx context.Context, exec boil.ContextExecutor
 	}
 
 	if err != nil {
-		return errors.Wrap(err, "entity: unable to insert into class_tag_relations")
+		return errors.Wrap(err, "models: unable to insert into class_tag_relations")
 	}
 
 	if !cached {
@@ -961,7 +961,7 @@ func (o *ClassTagRelation) Update(ctx context.Context, exec boil.ContextExecutor
 			wl = strmangle.SetComplement(wl, []string{"created_at"})
 		}
 		if len(wl) == 0 {
-			return 0, errors.New("entity: unable to update class_tag_relations, could not build whitelist")
+			return 0, errors.New("models: unable to update class_tag_relations, could not build whitelist")
 		}
 
 		cache.query = fmt.Sprintf("UPDATE \"class_tag_relations\" SET %s WHERE %s",
@@ -984,12 +984,12 @@ func (o *ClassTagRelation) Update(ctx context.Context, exec boil.ContextExecutor
 	var result sql.Result
 	result, err = exec.ExecContext(ctx, cache.query, values...)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to update class_tag_relations row")
+		return 0, errors.Wrap(err, "models: unable to update class_tag_relations row")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to get rows affected by update for class_tag_relations")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by update for class_tag_relations")
 	}
 
 	if !cached {
@@ -1007,12 +1007,12 @@ func (q classTagRelationQuery) UpdateAll(ctx context.Context, exec boil.ContextE
 
 	result, err := q.Query.ExecContext(ctx, exec)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to update all for class_tag_relations")
+		return 0, errors.Wrap(err, "models: unable to update all for class_tag_relations")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to retrieve rows affected for class_tag_relations")
+		return 0, errors.Wrap(err, "models: unable to retrieve rows affected for class_tag_relations")
 	}
 
 	return rowsAff, nil
@@ -1026,7 +1026,7 @@ func (o ClassTagRelationSlice) UpdateAll(ctx context.Context, exec boil.ContextE
 	}
 
 	if len(cols) == 0 {
-		return 0, errors.New("entity: update all requires at least one column argument")
+		return 0, errors.New("models: update all requires at least one column argument")
 	}
 
 	colNames := make([]string, len(cols))
@@ -1056,12 +1056,12 @@ func (o ClassTagRelationSlice) UpdateAll(ctx context.Context, exec boil.ContextE
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to update all in classTagRelation slice")
+		return 0, errors.Wrap(err, "models: unable to update all in classTagRelation slice")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to retrieve rows affected all in update all classTagRelation")
+		return 0, errors.Wrap(err, "models: unable to retrieve rows affected all in update all classTagRelation")
 	}
 	return rowsAff, nil
 }
@@ -1070,7 +1070,7 @@ func (o ClassTagRelationSlice) UpdateAll(ctx context.Context, exec boil.ContextE
 // See boil.Columns documentation for how to properly use updateColumns and insertColumns.
 func (o *ClassTagRelation) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) error {
 	if o == nil {
-		return errors.New("entity: no class_tag_relations provided for upsert")
+		return errors.New("models: no class_tag_relations provided for upsert")
 	}
 	if !boil.TimestampsAreSkipped(ctx) {
 		currTime := time.Now().In(boil.GetLocation())
@@ -1135,7 +1135,7 @@ func (o *ClassTagRelation) Upsert(ctx context.Context, exec boil.ContextExecutor
 		)
 
 		if updateOnConflict && len(update) == 0 {
-			return errors.New("entity: unable to upsert class_tag_relations, could not build update column list")
+			return errors.New("models: unable to upsert class_tag_relations, could not build update column list")
 		}
 
 		ret := strmangle.SetComplement(classTagRelationAllColumns, strmangle.SetIntersect(insert, update))
@@ -1143,7 +1143,7 @@ func (o *ClassTagRelation) Upsert(ctx context.Context, exec boil.ContextExecutor
 		conflict := conflictColumns
 		if len(conflict) == 0 && updateOnConflict && len(update) != 0 {
 			if len(classTagRelationPrimaryKeyColumns) == 0 {
-				return errors.New("entity: unable to upsert class_tag_relations, could not build conflict column list")
+				return errors.New("models: unable to upsert class_tag_relations, could not build conflict column list")
 			}
 
 			conflict = make([]string, len(classTagRelationPrimaryKeyColumns))
@@ -1184,7 +1184,7 @@ func (o *ClassTagRelation) Upsert(ctx context.Context, exec boil.ContextExecutor
 		_, err = exec.ExecContext(ctx, cache.query, vals...)
 	}
 	if err != nil {
-		return errors.Wrap(err, "entity: unable to upsert class_tag_relations")
+		return errors.Wrap(err, "models: unable to upsert class_tag_relations")
 	}
 
 	if !cached {
@@ -1200,7 +1200,7 @@ func (o *ClassTagRelation) Upsert(ctx context.Context, exec boil.ContextExecutor
 // Delete will match against the primary key column to find the record to delete.
 func (o *ClassTagRelation) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if o == nil {
-		return 0, errors.New("entity: no ClassTagRelation provided for delete")
+		return 0, errors.New("models: no ClassTagRelation provided for delete")
 	}
 
 	if err := o.doBeforeDeleteHooks(ctx, exec); err != nil {
@@ -1217,12 +1217,12 @@ func (o *ClassTagRelation) Delete(ctx context.Context, exec boil.ContextExecutor
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to delete from class_tag_relations")
+		return 0, errors.Wrap(err, "models: unable to delete from class_tag_relations")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to get rows affected by delete for class_tag_relations")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by delete for class_tag_relations")
 	}
 
 	if err := o.doAfterDeleteHooks(ctx, exec); err != nil {
@@ -1235,19 +1235,19 @@ func (o *ClassTagRelation) Delete(ctx context.Context, exec boil.ContextExecutor
 // DeleteAll deletes all matching rows.
 func (q classTagRelationQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if q.Query == nil {
-		return 0, errors.New("entity: no classTagRelationQuery provided for delete all")
+		return 0, errors.New("models: no classTagRelationQuery provided for delete all")
 	}
 
 	queries.SetDelete(q.Query)
 
 	result, err := q.Query.ExecContext(ctx, exec)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to delete all from class_tag_relations")
+		return 0, errors.Wrap(err, "models: unable to delete all from class_tag_relations")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to get rows affected by deleteall for class_tag_relations")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by deleteall for class_tag_relations")
 	}
 
 	return rowsAff, nil
@@ -1283,12 +1283,12 @@ func (o ClassTagRelationSlice) DeleteAll(ctx context.Context, exec boil.ContextE
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to delete all from classTagRelation slice")
+		return 0, errors.Wrap(err, "models: unable to delete all from classTagRelation slice")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to get rows affected by deleteall for class_tag_relations")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by deleteall for class_tag_relations")
 	}
 
 	if len(classTagRelationAfterDeleteHooks) != 0 {
@@ -1335,7 +1335,7 @@ func (o *ClassTagRelationSlice) ReloadAll(ctx context.Context, exec boil.Context
 
 	err := q.Bind(ctx, exec, &slice)
 	if err != nil {
-		return errors.Wrap(err, "entity: unable to reload all in ClassTagRelationSlice")
+		return errors.Wrap(err, "models: unable to reload all in ClassTagRelationSlice")
 	}
 
 	*o = slice
@@ -1357,7 +1357,7 @@ func ClassTagRelationExists(ctx context.Context, exec boil.ContextExecutor, iD s
 
 	err := row.Scan(&exists)
 	if err != nil {
-		return false, errors.Wrap(err, "entity: unable to check if class_tag_relations exists")
+		return false, errors.Wrap(err, "models: unable to check if class_tag_relations exists")
 	}
 
 	return exists, nil

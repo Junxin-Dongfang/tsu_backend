@@ -421,7 +421,7 @@ func (q classAttributeBonuseQuery) One(ctx context.Context, exec boil.ContextExe
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "entity: failed to execute a one query for class_attribute_bonuses")
+		return nil, errors.Wrap(err, "models: failed to execute a one query for class_attribute_bonuses")
 	}
 
 	if err := o.doAfterSelectHooks(ctx, exec); err != nil {
@@ -437,7 +437,7 @@ func (q classAttributeBonuseQuery) All(ctx context.Context, exec boil.ContextExe
 
 	err := q.Bind(ctx, exec, &o)
 	if err != nil {
-		return nil, errors.Wrap(err, "entity: failed to assign all query results to ClassAttributeBonuse slice")
+		return nil, errors.Wrap(err, "models: failed to assign all query results to ClassAttributeBonuse slice")
 	}
 
 	if len(classAttributeBonuseAfterSelectHooks) != 0 {
@@ -460,7 +460,7 @@ func (q classAttributeBonuseQuery) Count(ctx context.Context, exec boil.ContextE
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to count class_attribute_bonuses rows")
+		return 0, errors.Wrap(err, "models: failed to count class_attribute_bonuses rows")
 	}
 
 	return count, nil
@@ -476,7 +476,7 @@ func (q classAttributeBonuseQuery) Exists(ctx context.Context, exec boil.Context
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return false, errors.Wrap(err, "entity: failed to check if class_attribute_bonuses exists")
+		return false, errors.Wrap(err, "models: failed to check if class_attribute_bonuses exists")
 	}
 
 	return count > 0, nil
@@ -869,7 +869,7 @@ func FindClassAttributeBonuse(ctx context.Context, exec boil.ContextExecutor, iD
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "entity: unable to select from class_attribute_bonuses")
+		return nil, errors.Wrap(err, "models: unable to select from class_attribute_bonuses")
 	}
 
 	if err = classAttributeBonuseObj.doAfterSelectHooks(ctx, exec); err != nil {
@@ -883,7 +883,7 @@ func FindClassAttributeBonuse(ctx context.Context, exec boil.ContextExecutor, iD
 // See boil.Columns.InsertColumnSet documentation to understand column list inference for inserts.
 func (o *ClassAttributeBonuse) Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error {
 	if o == nil {
-		return errors.New("entity: no class_attribute_bonuses provided for insertion")
+		return errors.New("models: no class_attribute_bonuses provided for insertion")
 	}
 
 	var err error
@@ -956,7 +956,7 @@ func (o *ClassAttributeBonuse) Insert(ctx context.Context, exec boil.ContextExec
 	}
 
 	if err != nil {
-		return errors.Wrap(err, "entity: unable to insert into class_attribute_bonuses")
+		return errors.Wrap(err, "models: unable to insert into class_attribute_bonuses")
 	}
 
 	if !cached {
@@ -997,7 +997,7 @@ func (o *ClassAttributeBonuse) Update(ctx context.Context, exec boil.ContextExec
 			wl = strmangle.SetComplement(wl, []string{"created_at"})
 		}
 		if len(wl) == 0 {
-			return 0, errors.New("entity: unable to update class_attribute_bonuses, could not build whitelist")
+			return 0, errors.New("models: unable to update class_attribute_bonuses, could not build whitelist")
 		}
 
 		cache.query = fmt.Sprintf("UPDATE \"class_attribute_bonuses\" SET %s WHERE %s",
@@ -1020,12 +1020,12 @@ func (o *ClassAttributeBonuse) Update(ctx context.Context, exec boil.ContextExec
 	var result sql.Result
 	result, err = exec.ExecContext(ctx, cache.query, values...)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to update class_attribute_bonuses row")
+		return 0, errors.Wrap(err, "models: unable to update class_attribute_bonuses row")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to get rows affected by update for class_attribute_bonuses")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by update for class_attribute_bonuses")
 	}
 
 	if !cached {
@@ -1043,12 +1043,12 @@ func (q classAttributeBonuseQuery) UpdateAll(ctx context.Context, exec boil.Cont
 
 	result, err := q.Query.ExecContext(ctx, exec)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to update all for class_attribute_bonuses")
+		return 0, errors.Wrap(err, "models: unable to update all for class_attribute_bonuses")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to retrieve rows affected for class_attribute_bonuses")
+		return 0, errors.Wrap(err, "models: unable to retrieve rows affected for class_attribute_bonuses")
 	}
 
 	return rowsAff, nil
@@ -1062,7 +1062,7 @@ func (o ClassAttributeBonuseSlice) UpdateAll(ctx context.Context, exec boil.Cont
 	}
 
 	if len(cols) == 0 {
-		return 0, errors.New("entity: update all requires at least one column argument")
+		return 0, errors.New("models: update all requires at least one column argument")
 	}
 
 	colNames := make([]string, len(cols))
@@ -1092,12 +1092,12 @@ func (o ClassAttributeBonuseSlice) UpdateAll(ctx context.Context, exec boil.Cont
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to update all in classAttributeBonuse slice")
+		return 0, errors.Wrap(err, "models: unable to update all in classAttributeBonuse slice")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to retrieve rows affected all in update all classAttributeBonuse")
+		return 0, errors.Wrap(err, "models: unable to retrieve rows affected all in update all classAttributeBonuse")
 	}
 	return rowsAff, nil
 }
@@ -1106,7 +1106,7 @@ func (o ClassAttributeBonuseSlice) UpdateAll(ctx context.Context, exec boil.Cont
 // See boil.Columns documentation for how to properly use updateColumns and insertColumns.
 func (o *ClassAttributeBonuse) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) error {
 	if o == nil {
-		return errors.New("entity: no class_attribute_bonuses provided for upsert")
+		return errors.New("models: no class_attribute_bonuses provided for upsert")
 	}
 	if !boil.TimestampsAreSkipped(ctx) {
 		currTime := time.Now().In(boil.GetLocation())
@@ -1171,7 +1171,7 @@ func (o *ClassAttributeBonuse) Upsert(ctx context.Context, exec boil.ContextExec
 		)
 
 		if updateOnConflict && len(update) == 0 {
-			return errors.New("entity: unable to upsert class_attribute_bonuses, could not build update column list")
+			return errors.New("models: unable to upsert class_attribute_bonuses, could not build update column list")
 		}
 
 		ret := strmangle.SetComplement(classAttributeBonuseAllColumns, strmangle.SetIntersect(insert, update))
@@ -1179,7 +1179,7 @@ func (o *ClassAttributeBonuse) Upsert(ctx context.Context, exec boil.ContextExec
 		conflict := conflictColumns
 		if len(conflict) == 0 && updateOnConflict && len(update) != 0 {
 			if len(classAttributeBonusePrimaryKeyColumns) == 0 {
-				return errors.New("entity: unable to upsert class_attribute_bonuses, could not build conflict column list")
+				return errors.New("models: unable to upsert class_attribute_bonuses, could not build conflict column list")
 			}
 
 			conflict = make([]string, len(classAttributeBonusePrimaryKeyColumns))
@@ -1220,7 +1220,7 @@ func (o *ClassAttributeBonuse) Upsert(ctx context.Context, exec boil.ContextExec
 		_, err = exec.ExecContext(ctx, cache.query, vals...)
 	}
 	if err != nil {
-		return errors.Wrap(err, "entity: unable to upsert class_attribute_bonuses")
+		return errors.Wrap(err, "models: unable to upsert class_attribute_bonuses")
 	}
 
 	if !cached {
@@ -1236,7 +1236,7 @@ func (o *ClassAttributeBonuse) Upsert(ctx context.Context, exec boil.ContextExec
 // Delete will match against the primary key column to find the record to delete.
 func (o *ClassAttributeBonuse) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if o == nil {
-		return 0, errors.New("entity: no ClassAttributeBonuse provided for delete")
+		return 0, errors.New("models: no ClassAttributeBonuse provided for delete")
 	}
 
 	if err := o.doBeforeDeleteHooks(ctx, exec); err != nil {
@@ -1253,12 +1253,12 @@ func (o *ClassAttributeBonuse) Delete(ctx context.Context, exec boil.ContextExec
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to delete from class_attribute_bonuses")
+		return 0, errors.Wrap(err, "models: unable to delete from class_attribute_bonuses")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to get rows affected by delete for class_attribute_bonuses")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by delete for class_attribute_bonuses")
 	}
 
 	if err := o.doAfterDeleteHooks(ctx, exec); err != nil {
@@ -1271,19 +1271,19 @@ func (o *ClassAttributeBonuse) Delete(ctx context.Context, exec boil.ContextExec
 // DeleteAll deletes all matching rows.
 func (q classAttributeBonuseQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if q.Query == nil {
-		return 0, errors.New("entity: no classAttributeBonuseQuery provided for delete all")
+		return 0, errors.New("models: no classAttributeBonuseQuery provided for delete all")
 	}
 
 	queries.SetDelete(q.Query)
 
 	result, err := q.Query.ExecContext(ctx, exec)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to delete all from class_attribute_bonuses")
+		return 0, errors.Wrap(err, "models: unable to delete all from class_attribute_bonuses")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to get rows affected by deleteall for class_attribute_bonuses")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by deleteall for class_attribute_bonuses")
 	}
 
 	return rowsAff, nil
@@ -1319,12 +1319,12 @@ func (o ClassAttributeBonuseSlice) DeleteAll(ctx context.Context, exec boil.Cont
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to delete all from classAttributeBonuse slice")
+		return 0, errors.Wrap(err, "models: unable to delete all from classAttributeBonuse slice")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to get rows affected by deleteall for class_attribute_bonuses")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by deleteall for class_attribute_bonuses")
 	}
 
 	if len(classAttributeBonuseAfterDeleteHooks) != 0 {
@@ -1371,7 +1371,7 @@ func (o *ClassAttributeBonuseSlice) ReloadAll(ctx context.Context, exec boil.Con
 
 	err := q.Bind(ctx, exec, &slice)
 	if err != nil {
-		return errors.Wrap(err, "entity: unable to reload all in ClassAttributeBonuseSlice")
+		return errors.Wrap(err, "models: unable to reload all in ClassAttributeBonuseSlice")
 	}
 
 	*o = slice
@@ -1393,7 +1393,7 @@ func ClassAttributeBonuseExists(ctx context.Context, exec boil.ContextExecutor, 
 
 	err := row.Scan(&exists)
 	if err != nil {
-		return false, errors.Wrap(err, "entity: unable to check if class_attribute_bonuses exists")
+		return false, errors.Wrap(err, "models: unable to check if class_attribute_bonuses exists")
 	}
 
 	return exists, nil

@@ -4,7 +4,7 @@
 // @contact.name Tsu Team
 // @contact.email support@tsu.com
 // @host localhost
-// @BasePath /
+// @BasePath /api/admin
 // @securityDefinitions.apikey BearerAuth
 // @in header
 // @name Authorization
@@ -31,7 +31,7 @@ import (
 // @contact.name Tsu Team
 // @contact.email tsu@tsu.com
 // @host localhost
-// @BasePath /admin/api/v1
+// @BasePath /api/admin
 // @schemes http
 // @securityDefinitions.apikey BearerAuth
 // @in header

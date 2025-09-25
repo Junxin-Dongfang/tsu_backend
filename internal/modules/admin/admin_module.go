@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/hashicorp/consul/api"
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
@@ -20,11 +21,22 @@ import (
 	echoSwagger "github.com/swaggo/echo-swagger"
 
 	_ "tsu-self/docs"
+	customvalidator "tsu-self/internal/api/model/validator"
 	custommiddleware "tsu-self/internal/middleware"
 	"tsu-self/internal/modules/admin/service"
 	"tsu-self/internal/pkg/log"
 	"tsu-self/internal/pkg/response"
+	"tsu-self/internal/repository/impl"
 )
+
+// CustomValidator 自定义验证器
+type CustomValidator struct {
+	validator *validator.Validate
+}
+
+func (cv *CustomValidator) Validate(i interface{}) error {
+	return cv.validator.Struct(i)
+}
 
 var Module = func() module.Module {
 	this := new(AdminModule)
@@ -41,6 +53,7 @@ type AdminModule struct {
 	syncService        *service.SyncService
 	transactionService *service.TransactionService
 	userService        *service.UserService
+	classService       *service.ClassService
 }
 
 func (m *AdminModule) GetType() string {
@@ -74,6 +87,19 @@ func (m *AdminModule) OnInit(app module.App, settings *conf.ModuleSettings) {
 	m.echoServer = echo.New()
 	m.echoServer.HideBanner = true
 	m.echoServer.HidePort = true
+
+	// 设置验证器
+	v := validator.New()
+	customvalidator.RegisterAuthValidators(v)
+	m.echoServer.Validator = &CustomValidator{validator: v}
+
+	// 设置HTTP响应头中间件（支持UTF-8）
+	m.echoServer.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			c.Response().Header().Set("Content-Type", "application/json; charset=utf-8")
+			return next(c)
+		}
+	})
 
 	// 设置中间件
 	m.setupMiddleware()
@@ -164,6 +190,10 @@ func (m *AdminModule) initServices() {
 	// 初始化 UserService
 	m.userService = service.NewUserService(m.db, m.logger)
 
+	// 初始化 ClassService
+	classRepo := impl.NewClassRepository(m.db.DB)
+	m.classService = service.NewClassService(classRepo)
+
 	m.app = m.GetApp()
 
 	// 启动事件监听器
@@ -198,8 +228,30 @@ func (m *AdminModule) setupMiddleware() {
 	// CORS 中间件
 	m.echoServer.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"*"},
-		AllowMethods: []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete},
-		AllowHeaders: []string{"*"},
+		AllowMethods: []string{
+			http.MethodGet,
+			http.MethodPost,
+			http.MethodPut,
+			http.MethodDelete,
+			http.MethodPatch,
+			http.MethodOptions, // 重要：支持预检请求
+		},
+		AllowHeaders: []string{
+			"*",
+			"Origin",
+			"Content-Type",
+			"Accept",
+			"Authorization",
+			"X-Requested-With",
+			"X-Session-Token",
+			"X-User-ID",
+		},
+		ExposeHeaders: []string{
+			"Content-Length",
+			"Content-Type",
+		},
+		AllowCredentials: true,  // 允许携带认证信息
+		MaxAge:           86400, // 预检请求缓存时间
 	}))
 }
 
@@ -231,6 +283,30 @@ func (m *AdminModule) setupRoutes() {
 	{
 		user.GET("/:user_id/profile", m.GetUserProfile)
 		user.PUT("/:user_id/profile", m.UpdateUserProfile)
+	}
+
+	// 职业管理路由
+	admin := api.Group("/admin")
+	{
+		// 职业基础管理
+		classes := admin.Group("/classes")
+		{
+			classes.GET("", m.ListClasses)             // 获取职业列表
+			classes.POST("", m.CreateClass)            // 创建职业
+			classes.GET("/:id", m.GetClass)            // 获取职业详情
+			classes.PUT("/:id", m.UpdateClass)         // 更新职业
+			classes.DELETE("/:id", m.DeleteClass)      // 删除职业
+			classes.GET("/:id/basic", m.GetClassBasic) // 获取职业基本信息
+			classes.GET("/:id/stats", m.GetClassStats) // 获取职业统计信息
+
+			// 职业属性加成管理
+			classes.GET("/:id/attribute-bonuses", m.GetClassAttributeBonuses)                // 获取属性加成列表
+			classes.POST("/:id/attribute-bonuses", m.CreateClassAttributeBonus)              // 创建属性加成
+			classes.POST("/:id/attribute-bonuses/batch", m.BatchCreateClassAttributeBonuses) // 批量创建属性加成
+		}
+
+		// 标签管理
+		admin.GET("/classes/tags", m.GetAllClassTags) // 获取所有职业标签
 	}
 }
 

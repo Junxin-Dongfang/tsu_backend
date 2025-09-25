@@ -11,8 +11,12 @@
     <script src="https://unpkg.com/swagger-ui-dist@4.15.5/swagger-ui-bundle.js" crossorigin></script>
     <script>
         window.onload = () => {
+            // 确保使用正确的协议和主机
+            const apiDocUrl = window.location.protocol + '//' + window.location.host + '/swagger/admin/doc.json';
+            console.log('Loading Swagger from:', apiDocUrl);
+            
             window.ui = SwaggerUIBundle({
-                url: '/api/swagger.json',
+                url: apiDocUrl,
                 dom_id: '#swagger-ui',
                 deepLinking: true,
                 presets: [
@@ -22,11 +26,40 @@
                 plugins: [
                     SwaggerUIBundle.plugins.DownloadUrl
                 ],
-                // 移除 layout 配置，使用默认布局
                 docExpansion: "list",
                 showRequestHeaders: true,
                 showCommonExtensions: true,
                 persistAuthorization: true,
+                // 添加请求拦截器来处理CORS
+                requestInterceptor: (request) => {
+                    console.log('Request:', request);
+                    return request;
+                },
+                responseInterceptor: (response) => {
+                    console.log('Response:', response);
+                    return response;
+                },
+                onComplete: function() {
+                    // 添加服务器切换说明
+                    setTimeout(() => {
+                        const infoContainer = document.querySelector('.info');
+                        if (infoContainer && !document.querySelector('#server-info')) {
+                            const serverInfo = document.createElement('div');
+                            serverInfo.id = 'server-info';
+                            serverInfo.innerHTML = `
+                                <div style="margin: 15px 0; padding: 15px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px;">
+                                    <h4 style="margin: 0 0 10px 0;">🌐 服务器配置</h4>
+                                    <p style="margin: 5px 0;"><strong>当前使用：</strong> localhost (nginx代理)</p>
+                                    <p style="margin: 5px 0;"><strong>API基础路径：</strong> /api/admin</p>
+                                    <p style="margin: 5px 0; font-size: 12px; color: #666;">
+                                        💡 所有API测试将通过nginx代理到后端服务
+                                    </p>
+                                </div>
+                            `;
+                            infoContainer.appendChild(serverInfo);
+                        }
+                    }, 1000);
+                }
             });
         };
     </script>

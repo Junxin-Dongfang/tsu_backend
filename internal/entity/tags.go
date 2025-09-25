@@ -415,7 +415,7 @@ func (q tagQuery) One(ctx context.Context, exec boil.ContextExecutor) (*Tag, err
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "entity: failed to execute a one query for tags")
+		return nil, errors.Wrap(err, "models: failed to execute a one query for tags")
 	}
 
 	if err := o.doAfterSelectHooks(ctx, exec); err != nil {
@@ -431,7 +431,7 @@ func (q tagQuery) All(ctx context.Context, exec boil.ContextExecutor) (TagSlice,
 
 	err := q.Bind(ctx, exec, &o)
 	if err != nil {
-		return nil, errors.Wrap(err, "entity: failed to assign all query results to Tag slice")
+		return nil, errors.Wrap(err, "models: failed to assign all query results to Tag slice")
 	}
 
 	if len(tagAfterSelectHooks) != 0 {
@@ -454,7 +454,7 @@ func (q tagQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64, 
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to count tags rows")
+		return 0, errors.Wrap(err, "models: failed to count tags rows")
 	}
 
 	return count, nil
@@ -470,7 +470,7 @@ func (q tagQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (bool, 
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return false, errors.Wrap(err, "entity: failed to check if tags exists")
+		return false, errors.Wrap(err, "models: failed to check if tags exists")
 	}
 
 	return count > 0, nil
@@ -687,7 +687,7 @@ func FindTag(ctx context.Context, exec boil.ContextExecutor, iD string, selectCo
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "entity: unable to select from tags")
+		return nil, errors.Wrap(err, "models: unable to select from tags")
 	}
 
 	if err = tagObj.doAfterSelectHooks(ctx, exec); err != nil {
@@ -701,7 +701,7 @@ func FindTag(ctx context.Context, exec boil.ContextExecutor, iD string, selectCo
 // See boil.Columns.InsertColumnSet documentation to understand column list inference for inserts.
 func (o *Tag) Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error {
 	if o == nil {
-		return errors.New("entity: no tags provided for insertion")
+		return errors.New("models: no tags provided for insertion")
 	}
 
 	var err error
@@ -774,7 +774,7 @@ func (o *Tag) Insert(ctx context.Context, exec boil.ContextExecutor, columns boi
 	}
 
 	if err != nil {
-		return errors.Wrap(err, "entity: unable to insert into tags")
+		return errors.Wrap(err, "models: unable to insert into tags")
 	}
 
 	if !cached {
@@ -815,7 +815,7 @@ func (o *Tag) Update(ctx context.Context, exec boil.ContextExecutor, columns boi
 			wl = strmangle.SetComplement(wl, []string{"created_at"})
 		}
 		if len(wl) == 0 {
-			return 0, errors.New("entity: unable to update tags, could not build whitelist")
+			return 0, errors.New("models: unable to update tags, could not build whitelist")
 		}
 
 		cache.query = fmt.Sprintf("UPDATE \"tags\" SET %s WHERE %s",
@@ -838,12 +838,12 @@ func (o *Tag) Update(ctx context.Context, exec boil.ContextExecutor, columns boi
 	var result sql.Result
 	result, err = exec.ExecContext(ctx, cache.query, values...)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to update tags row")
+		return 0, errors.Wrap(err, "models: unable to update tags row")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to get rows affected by update for tags")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by update for tags")
 	}
 
 	if !cached {
@@ -861,12 +861,12 @@ func (q tagQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols
 
 	result, err := q.Query.ExecContext(ctx, exec)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to update all for tags")
+		return 0, errors.Wrap(err, "models: unable to update all for tags")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to retrieve rows affected for tags")
+		return 0, errors.Wrap(err, "models: unable to retrieve rows affected for tags")
 	}
 
 	return rowsAff, nil
@@ -880,7 +880,7 @@ func (o TagSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols
 	}
 
 	if len(cols) == 0 {
-		return 0, errors.New("entity: update all requires at least one column argument")
+		return 0, errors.New("models: update all requires at least one column argument")
 	}
 
 	colNames := make([]string, len(cols))
@@ -910,12 +910,12 @@ func (o TagSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to update all in tag slice")
+		return 0, errors.Wrap(err, "models: unable to update all in tag slice")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to retrieve rows affected all in update all tag")
+		return 0, errors.Wrap(err, "models: unable to retrieve rows affected all in update all tag")
 	}
 	return rowsAff, nil
 }
@@ -924,7 +924,7 @@ func (o TagSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols
 // See boil.Columns documentation for how to properly use updateColumns and insertColumns.
 func (o *Tag) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) error {
 	if o == nil {
-		return errors.New("entity: no tags provided for upsert")
+		return errors.New("models: no tags provided for upsert")
 	}
 	if !boil.TimestampsAreSkipped(ctx) {
 		currTime := time.Now().In(boil.GetLocation())
@@ -989,7 +989,7 @@ func (o *Tag) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnCon
 		)
 
 		if updateOnConflict && len(update) == 0 {
-			return errors.New("entity: unable to upsert tags, could not build update column list")
+			return errors.New("models: unable to upsert tags, could not build update column list")
 		}
 
 		ret := strmangle.SetComplement(tagAllColumns, strmangle.SetIntersect(insert, update))
@@ -997,7 +997,7 @@ func (o *Tag) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnCon
 		conflict := conflictColumns
 		if len(conflict) == 0 && updateOnConflict && len(update) != 0 {
 			if len(tagPrimaryKeyColumns) == 0 {
-				return errors.New("entity: unable to upsert tags, could not build conflict column list")
+				return errors.New("models: unable to upsert tags, could not build conflict column list")
 			}
 
 			conflict = make([]string, len(tagPrimaryKeyColumns))
@@ -1038,7 +1038,7 @@ func (o *Tag) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnCon
 		_, err = exec.ExecContext(ctx, cache.query, vals...)
 	}
 	if err != nil {
-		return errors.Wrap(err, "entity: unable to upsert tags")
+		return errors.Wrap(err, "models: unable to upsert tags")
 	}
 
 	if !cached {
@@ -1054,7 +1054,7 @@ func (o *Tag) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnCon
 // Delete will match against the primary key column to find the record to delete.
 func (o *Tag) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if o == nil {
-		return 0, errors.New("entity: no Tag provided for delete")
+		return 0, errors.New("models: no Tag provided for delete")
 	}
 
 	if err := o.doBeforeDeleteHooks(ctx, exec); err != nil {
@@ -1071,12 +1071,12 @@ func (o *Tag) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, err
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to delete from tags")
+		return 0, errors.Wrap(err, "models: unable to delete from tags")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to get rows affected by delete for tags")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by delete for tags")
 	}
 
 	if err := o.doAfterDeleteHooks(ctx, exec); err != nil {
@@ -1089,19 +1089,19 @@ func (o *Tag) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, err
 // DeleteAll deletes all matching rows.
 func (q tagQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if q.Query == nil {
-		return 0, errors.New("entity: no tagQuery provided for delete all")
+		return 0, errors.New("models: no tagQuery provided for delete all")
 	}
 
 	queries.SetDelete(q.Query)
 
 	result, err := q.Query.ExecContext(ctx, exec)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to delete all from tags")
+		return 0, errors.Wrap(err, "models: unable to delete all from tags")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to get rows affected by deleteall for tags")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by deleteall for tags")
 	}
 
 	return rowsAff, nil
@@ -1137,12 +1137,12 @@ func (o TagSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to delete all from tag slice")
+		return 0, errors.Wrap(err, "models: unable to delete all from tag slice")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to get rows affected by deleteall for tags")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by deleteall for tags")
 	}
 
 	if len(tagAfterDeleteHooks) != 0 {
@@ -1189,7 +1189,7 @@ func (o *TagSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor) err
 
 	err := q.Bind(ctx, exec, &slice)
 	if err != nil {
-		return errors.Wrap(err, "entity: unable to reload all in TagSlice")
+		return errors.Wrap(err, "models: unable to reload all in TagSlice")
 	}
 
 	*o = slice
@@ -1211,7 +1211,7 @@ func TagExists(ctx context.Context, exec boil.ContextExecutor, iD string) (bool,
 
 	err := row.Scan(&exists)
 	if err != nil {
-		return false, errors.Wrap(err, "entity: unable to check if tags exists")
+		return false, errors.Wrap(err, "models: unable to check if tags exists")
 	}
 
 	return exists, nil

@@ -498,7 +498,7 @@ func (q heroAttributeTypeQuery) One(ctx context.Context, exec boil.ContextExecut
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "entity: failed to execute a one query for hero_attribute_type")
+		return nil, errors.Wrap(err, "models: failed to execute a one query for hero_attribute_type")
 	}
 
 	if err := o.doAfterSelectHooks(ctx, exec); err != nil {
@@ -514,7 +514,7 @@ func (q heroAttributeTypeQuery) All(ctx context.Context, exec boil.ContextExecut
 
 	err := q.Bind(ctx, exec, &o)
 	if err != nil {
-		return nil, errors.Wrap(err, "entity: failed to assign all query results to HeroAttributeType slice")
+		return nil, errors.Wrap(err, "models: failed to assign all query results to HeroAttributeType slice")
 	}
 
 	if len(heroAttributeTypeAfterSelectHooks) != 0 {
@@ -537,7 +537,7 @@ func (q heroAttributeTypeQuery) Count(ctx context.Context, exec boil.ContextExec
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to count hero_attribute_type rows")
+		return 0, errors.Wrap(err, "models: failed to count hero_attribute_type rows")
 	}
 
 	return count, nil
@@ -553,7 +553,7 @@ func (q heroAttributeTypeQuery) Exists(ctx context.Context, exec boil.ContextExe
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return false, errors.Wrap(err, "entity: failed to check if hero_attribute_type exists")
+		return false, errors.Wrap(err, "models: failed to check if hero_attribute_type exists")
 	}
 
 	return count > 0, nil
@@ -770,7 +770,7 @@ func FindHeroAttributeType(ctx context.Context, exec boil.ContextExecutor, iD st
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "entity: unable to select from hero_attribute_type")
+		return nil, errors.Wrap(err, "models: unable to select from hero_attribute_type")
 	}
 
 	if err = heroAttributeTypeObj.doAfterSelectHooks(ctx, exec); err != nil {
@@ -784,7 +784,7 @@ func FindHeroAttributeType(ctx context.Context, exec boil.ContextExecutor, iD st
 // See boil.Columns.InsertColumnSet documentation to understand column list inference for inserts.
 func (o *HeroAttributeType) Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error {
 	if o == nil {
-		return errors.New("entity: no hero_attribute_type provided for insertion")
+		return errors.New("models: no hero_attribute_type provided for insertion")
 	}
 
 	var err error
@@ -857,7 +857,7 @@ func (o *HeroAttributeType) Insert(ctx context.Context, exec boil.ContextExecuto
 	}
 
 	if err != nil {
-		return errors.Wrap(err, "entity: unable to insert into hero_attribute_type")
+		return errors.Wrap(err, "models: unable to insert into hero_attribute_type")
 	}
 
 	if !cached {
@@ -898,7 +898,7 @@ func (o *HeroAttributeType) Update(ctx context.Context, exec boil.ContextExecuto
 			wl = strmangle.SetComplement(wl, []string{"created_at"})
 		}
 		if len(wl) == 0 {
-			return 0, errors.New("entity: unable to update hero_attribute_type, could not build whitelist")
+			return 0, errors.New("models: unable to update hero_attribute_type, could not build whitelist")
 		}
 
 		cache.query = fmt.Sprintf("UPDATE \"hero_attribute_type\" SET %s WHERE %s",
@@ -921,12 +921,12 @@ func (o *HeroAttributeType) Update(ctx context.Context, exec boil.ContextExecuto
 	var result sql.Result
 	result, err = exec.ExecContext(ctx, cache.query, values...)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to update hero_attribute_type row")
+		return 0, errors.Wrap(err, "models: unable to update hero_attribute_type row")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to get rows affected by update for hero_attribute_type")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by update for hero_attribute_type")
 	}
 
 	if !cached {
@@ -944,12 +944,12 @@ func (q heroAttributeTypeQuery) UpdateAll(ctx context.Context, exec boil.Context
 
 	result, err := q.Query.ExecContext(ctx, exec)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to update all for hero_attribute_type")
+		return 0, errors.Wrap(err, "models: unable to update all for hero_attribute_type")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to retrieve rows affected for hero_attribute_type")
+		return 0, errors.Wrap(err, "models: unable to retrieve rows affected for hero_attribute_type")
 	}
 
 	return rowsAff, nil
@@ -963,7 +963,7 @@ func (o HeroAttributeTypeSlice) UpdateAll(ctx context.Context, exec boil.Context
 	}
 
 	if len(cols) == 0 {
-		return 0, errors.New("entity: update all requires at least one column argument")
+		return 0, errors.New("models: update all requires at least one column argument")
 	}
 
 	colNames := make([]string, len(cols))
@@ -993,12 +993,12 @@ func (o HeroAttributeTypeSlice) UpdateAll(ctx context.Context, exec boil.Context
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to update all in heroAttributeType slice")
+		return 0, errors.Wrap(err, "models: unable to update all in heroAttributeType slice")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to retrieve rows affected all in update all heroAttributeType")
+		return 0, errors.Wrap(err, "models: unable to retrieve rows affected all in update all heroAttributeType")
 	}
 	return rowsAff, nil
 }
@@ -1007,7 +1007,7 @@ func (o HeroAttributeTypeSlice) UpdateAll(ctx context.Context, exec boil.Context
 // See boil.Columns documentation for how to properly use updateColumns and insertColumns.
 func (o *HeroAttributeType) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) error {
 	if o == nil {
-		return errors.New("entity: no hero_attribute_type provided for upsert")
+		return errors.New("models: no hero_attribute_type provided for upsert")
 	}
 	if !boil.TimestampsAreSkipped(ctx) {
 		currTime := time.Now().In(boil.GetLocation())
@@ -1072,7 +1072,7 @@ func (o *HeroAttributeType) Upsert(ctx context.Context, exec boil.ContextExecuto
 		)
 
 		if updateOnConflict && len(update) == 0 {
-			return errors.New("entity: unable to upsert hero_attribute_type, could not build update column list")
+			return errors.New("models: unable to upsert hero_attribute_type, could not build update column list")
 		}
 
 		ret := strmangle.SetComplement(heroAttributeTypeAllColumns, strmangle.SetIntersect(insert, update))
@@ -1080,7 +1080,7 @@ func (o *HeroAttributeType) Upsert(ctx context.Context, exec boil.ContextExecuto
 		conflict := conflictColumns
 		if len(conflict) == 0 && updateOnConflict && len(update) != 0 {
 			if len(heroAttributeTypePrimaryKeyColumns) == 0 {
-				return errors.New("entity: unable to upsert hero_attribute_type, could not build conflict column list")
+				return errors.New("models: unable to upsert hero_attribute_type, could not build conflict column list")
 			}
 
 			conflict = make([]string, len(heroAttributeTypePrimaryKeyColumns))
@@ -1121,7 +1121,7 @@ func (o *HeroAttributeType) Upsert(ctx context.Context, exec boil.ContextExecuto
 		_, err = exec.ExecContext(ctx, cache.query, vals...)
 	}
 	if err != nil {
-		return errors.Wrap(err, "entity: unable to upsert hero_attribute_type")
+		return errors.Wrap(err, "models: unable to upsert hero_attribute_type")
 	}
 
 	if !cached {
@@ -1137,7 +1137,7 @@ func (o *HeroAttributeType) Upsert(ctx context.Context, exec boil.ContextExecuto
 // Delete will match against the primary key column to find the record to delete.
 func (o *HeroAttributeType) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if o == nil {
-		return 0, errors.New("entity: no HeroAttributeType provided for delete")
+		return 0, errors.New("models: no HeroAttributeType provided for delete")
 	}
 
 	if err := o.doBeforeDeleteHooks(ctx, exec); err != nil {
@@ -1154,12 +1154,12 @@ func (o *HeroAttributeType) Delete(ctx context.Context, exec boil.ContextExecuto
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to delete from hero_attribute_type")
+		return 0, errors.Wrap(err, "models: unable to delete from hero_attribute_type")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to get rows affected by delete for hero_attribute_type")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by delete for hero_attribute_type")
 	}
 
 	if err := o.doAfterDeleteHooks(ctx, exec); err != nil {
@@ -1172,19 +1172,19 @@ func (o *HeroAttributeType) Delete(ctx context.Context, exec boil.ContextExecuto
 // DeleteAll deletes all matching rows.
 func (q heroAttributeTypeQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if q.Query == nil {
-		return 0, errors.New("entity: no heroAttributeTypeQuery provided for delete all")
+		return 0, errors.New("models: no heroAttributeTypeQuery provided for delete all")
 	}
 
 	queries.SetDelete(q.Query)
 
 	result, err := q.Query.ExecContext(ctx, exec)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to delete all from hero_attribute_type")
+		return 0, errors.Wrap(err, "models: unable to delete all from hero_attribute_type")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to get rows affected by deleteall for hero_attribute_type")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by deleteall for hero_attribute_type")
 	}
 
 	return rowsAff, nil
@@ -1220,12 +1220,12 @@ func (o HeroAttributeTypeSlice) DeleteAll(ctx context.Context, exec boil.Context
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to delete all from heroAttributeType slice")
+		return 0, errors.Wrap(err, "models: unable to delete all from heroAttributeType slice")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to get rows affected by deleteall for hero_attribute_type")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by deleteall for hero_attribute_type")
 	}
 
 	if len(heroAttributeTypeAfterDeleteHooks) != 0 {
@@ -1272,7 +1272,7 @@ func (o *HeroAttributeTypeSlice) ReloadAll(ctx context.Context, exec boil.Contex
 
 	err := q.Bind(ctx, exec, &slice)
 	if err != nil {
-		return errors.Wrap(err, "entity: unable to reload all in HeroAttributeTypeSlice")
+		return errors.Wrap(err, "models: unable to reload all in HeroAttributeTypeSlice")
 	}
 
 	*o = slice
@@ -1294,7 +1294,7 @@ func HeroAttributeTypeExists(ctx context.Context, exec boil.ContextExecutor, iD 
 
 	err := row.Scan(&exists)
 	if err != nil {
-		return false, errors.Wrap(err, "entity: unable to check if hero_attribute_type exists")
+		return false, errors.Wrap(err, "models: unable to check if hero_attribute_type exists")
 	}
 
 	return exists, nil

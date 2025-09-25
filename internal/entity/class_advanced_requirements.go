@@ -605,7 +605,7 @@ func (q classAdvancedRequirementQuery) One(ctx context.Context, exec boil.Contex
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "entity: failed to execute a one query for class_advanced_requirements")
+		return nil, errors.Wrap(err, "models: failed to execute a one query for class_advanced_requirements")
 	}
 
 	if err := o.doAfterSelectHooks(ctx, exec); err != nil {
@@ -621,7 +621,7 @@ func (q classAdvancedRequirementQuery) All(ctx context.Context, exec boil.Contex
 
 	err := q.Bind(ctx, exec, &o)
 	if err != nil {
-		return nil, errors.Wrap(err, "entity: failed to assign all query results to ClassAdvancedRequirement slice")
+		return nil, errors.Wrap(err, "models: failed to assign all query results to ClassAdvancedRequirement slice")
 	}
 
 	if len(classAdvancedRequirementAfterSelectHooks) != 0 {
@@ -644,7 +644,7 @@ func (q classAdvancedRequirementQuery) Count(ctx context.Context, exec boil.Cont
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to count class_advanced_requirements rows")
+		return 0, errors.Wrap(err, "models: failed to count class_advanced_requirements rows")
 	}
 
 	return count, nil
@@ -660,7 +660,7 @@ func (q classAdvancedRequirementQuery) Exists(ctx context.Context, exec boil.Con
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return false, errors.Wrap(err, "entity: failed to check if class_advanced_requirements exists")
+		return false, errors.Wrap(err, "models: failed to check if class_advanced_requirements exists")
 	}
 
 	return count > 0, nil
@@ -1053,7 +1053,7 @@ func FindClassAdvancedRequirement(ctx context.Context, exec boil.ContextExecutor
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "entity: unable to select from class_advanced_requirements")
+		return nil, errors.Wrap(err, "models: unable to select from class_advanced_requirements")
 	}
 
 	if err = classAdvancedRequirementObj.doAfterSelectHooks(ctx, exec); err != nil {
@@ -1067,7 +1067,7 @@ func FindClassAdvancedRequirement(ctx context.Context, exec boil.ContextExecutor
 // See boil.Columns.InsertColumnSet documentation to understand column list inference for inserts.
 func (o *ClassAdvancedRequirement) Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error {
 	if o == nil {
-		return errors.New("entity: no class_advanced_requirements provided for insertion")
+		return errors.New("models: no class_advanced_requirements provided for insertion")
 	}
 
 	var err error
@@ -1140,7 +1140,7 @@ func (o *ClassAdvancedRequirement) Insert(ctx context.Context, exec boil.Context
 	}
 
 	if err != nil {
-		return errors.Wrap(err, "entity: unable to insert into class_advanced_requirements")
+		return errors.Wrap(err, "models: unable to insert into class_advanced_requirements")
 	}
 
 	if !cached {
@@ -1181,7 +1181,7 @@ func (o *ClassAdvancedRequirement) Update(ctx context.Context, exec boil.Context
 			wl = strmangle.SetComplement(wl, []string{"created_at"})
 		}
 		if len(wl) == 0 {
-			return 0, errors.New("entity: unable to update class_advanced_requirements, could not build whitelist")
+			return 0, errors.New("models: unable to update class_advanced_requirements, could not build whitelist")
 		}
 
 		cache.query = fmt.Sprintf("UPDATE \"class_advanced_requirements\" SET %s WHERE %s",
@@ -1204,12 +1204,12 @@ func (o *ClassAdvancedRequirement) Update(ctx context.Context, exec boil.Context
 	var result sql.Result
 	result, err = exec.ExecContext(ctx, cache.query, values...)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to update class_advanced_requirements row")
+		return 0, errors.Wrap(err, "models: unable to update class_advanced_requirements row")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to get rows affected by update for class_advanced_requirements")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by update for class_advanced_requirements")
 	}
 
 	if !cached {
@@ -1227,12 +1227,12 @@ func (q classAdvancedRequirementQuery) UpdateAll(ctx context.Context, exec boil.
 
 	result, err := q.Query.ExecContext(ctx, exec)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to update all for class_advanced_requirements")
+		return 0, errors.Wrap(err, "models: unable to update all for class_advanced_requirements")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to retrieve rows affected for class_advanced_requirements")
+		return 0, errors.Wrap(err, "models: unable to retrieve rows affected for class_advanced_requirements")
 	}
 
 	return rowsAff, nil
@@ -1246,7 +1246,7 @@ func (o ClassAdvancedRequirementSlice) UpdateAll(ctx context.Context, exec boil.
 	}
 
 	if len(cols) == 0 {
-		return 0, errors.New("entity: update all requires at least one column argument")
+		return 0, errors.New("models: update all requires at least one column argument")
 	}
 
 	colNames := make([]string, len(cols))
@@ -1276,12 +1276,12 @@ func (o ClassAdvancedRequirementSlice) UpdateAll(ctx context.Context, exec boil.
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to update all in classAdvancedRequirement slice")
+		return 0, errors.Wrap(err, "models: unable to update all in classAdvancedRequirement slice")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to retrieve rows affected all in update all classAdvancedRequirement")
+		return 0, errors.Wrap(err, "models: unable to retrieve rows affected all in update all classAdvancedRequirement")
 	}
 	return rowsAff, nil
 }
@@ -1290,7 +1290,7 @@ func (o ClassAdvancedRequirementSlice) UpdateAll(ctx context.Context, exec boil.
 // See boil.Columns documentation for how to properly use updateColumns and insertColumns.
 func (o *ClassAdvancedRequirement) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) error {
 	if o == nil {
-		return errors.New("entity: no class_advanced_requirements provided for upsert")
+		return errors.New("models: no class_advanced_requirements provided for upsert")
 	}
 	if !boil.TimestampsAreSkipped(ctx) {
 		currTime := time.Now().In(boil.GetLocation())
@@ -1355,7 +1355,7 @@ func (o *ClassAdvancedRequirement) Upsert(ctx context.Context, exec boil.Context
 		)
 
 		if updateOnConflict && len(update) == 0 {
-			return errors.New("entity: unable to upsert class_advanced_requirements, could not build update column list")
+			return errors.New("models: unable to upsert class_advanced_requirements, could not build update column list")
 		}
 
 		ret := strmangle.SetComplement(classAdvancedRequirementAllColumns, strmangle.SetIntersect(insert, update))
@@ -1363,7 +1363,7 @@ func (o *ClassAdvancedRequirement) Upsert(ctx context.Context, exec boil.Context
 		conflict := conflictColumns
 		if len(conflict) == 0 && updateOnConflict && len(update) != 0 {
 			if len(classAdvancedRequirementPrimaryKeyColumns) == 0 {
-				return errors.New("entity: unable to upsert class_advanced_requirements, could not build conflict column list")
+				return errors.New("models: unable to upsert class_advanced_requirements, could not build conflict column list")
 			}
 
 			conflict = make([]string, len(classAdvancedRequirementPrimaryKeyColumns))
@@ -1404,7 +1404,7 @@ func (o *ClassAdvancedRequirement) Upsert(ctx context.Context, exec boil.Context
 		_, err = exec.ExecContext(ctx, cache.query, vals...)
 	}
 	if err != nil {
-		return errors.Wrap(err, "entity: unable to upsert class_advanced_requirements")
+		return errors.Wrap(err, "models: unable to upsert class_advanced_requirements")
 	}
 
 	if !cached {
@@ -1420,7 +1420,7 @@ func (o *ClassAdvancedRequirement) Upsert(ctx context.Context, exec boil.Context
 // Delete will match against the primary key column to find the record to delete.
 func (o *ClassAdvancedRequirement) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if o == nil {
-		return 0, errors.New("entity: no ClassAdvancedRequirement provided for delete")
+		return 0, errors.New("models: no ClassAdvancedRequirement provided for delete")
 	}
 
 	if err := o.doBeforeDeleteHooks(ctx, exec); err != nil {
@@ -1437,12 +1437,12 @@ func (o *ClassAdvancedRequirement) Delete(ctx context.Context, exec boil.Context
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to delete from class_advanced_requirements")
+		return 0, errors.Wrap(err, "models: unable to delete from class_advanced_requirements")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to get rows affected by delete for class_advanced_requirements")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by delete for class_advanced_requirements")
 	}
 
 	if err := o.doAfterDeleteHooks(ctx, exec); err != nil {
@@ -1455,19 +1455,19 @@ func (o *ClassAdvancedRequirement) Delete(ctx context.Context, exec boil.Context
 // DeleteAll deletes all matching rows.
 func (q classAdvancedRequirementQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if q.Query == nil {
-		return 0, errors.New("entity: no classAdvancedRequirementQuery provided for delete all")
+		return 0, errors.New("models: no classAdvancedRequirementQuery provided for delete all")
 	}
 
 	queries.SetDelete(q.Query)
 
 	result, err := q.Query.ExecContext(ctx, exec)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to delete all from class_advanced_requirements")
+		return 0, errors.Wrap(err, "models: unable to delete all from class_advanced_requirements")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to get rows affected by deleteall for class_advanced_requirements")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by deleteall for class_advanced_requirements")
 	}
 
 	return rowsAff, nil
@@ -1503,12 +1503,12 @@ func (o ClassAdvancedRequirementSlice) DeleteAll(ctx context.Context, exec boil.
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to delete all from classAdvancedRequirement slice")
+		return 0, errors.Wrap(err, "models: unable to delete all from classAdvancedRequirement slice")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to get rows affected by deleteall for class_advanced_requirements")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by deleteall for class_advanced_requirements")
 	}
 
 	if len(classAdvancedRequirementAfterDeleteHooks) != 0 {
@@ -1555,7 +1555,7 @@ func (o *ClassAdvancedRequirementSlice) ReloadAll(ctx context.Context, exec boil
 
 	err := q.Bind(ctx, exec, &slice)
 	if err != nil {
-		return errors.Wrap(err, "entity: unable to reload all in ClassAdvancedRequirementSlice")
+		return errors.Wrap(err, "models: unable to reload all in ClassAdvancedRequirementSlice")
 	}
 
 	*o = slice
@@ -1577,7 +1577,7 @@ func ClassAdvancedRequirementExists(ctx context.Context, exec boil.ContextExecut
 
 	err := row.Scan(&exists)
 	if err != nil {
-		return false, errors.Wrap(err, "entity: unable to check if class_advanced_requirements exists")
+		return false, errors.Wrap(err, "models: unable to check if class_advanced_requirements exists")
 	}
 
 	return exists, nil

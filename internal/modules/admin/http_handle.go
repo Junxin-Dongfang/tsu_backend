@@ -4,7 +4,7 @@
 // @contact.name Tsu Team
 // @contact.email support@tsu.com
 // @host localhost
-// @BasePath /
+// @BasePath /api/admin
 // @securityDefinitions.apikey BearerAuth
 // @in header
 // @name Authorization
@@ -20,9 +20,15 @@ import (
 	"strings"
 	"time"
 
-	// 新的 API 层模型
+	// API 层模型
+	apiAdminReq "tsu-self/internal/api/model/request/admin"
 	apiAuthReq "tsu-self/internal/api/model/request/auth"
 	apiUserReq "tsu-self/internal/api/model/request/user"
+
+	// API 响应模型
+	apiAdminResp "tsu-self/internal/api/model/response/admin"
+	apiAuthResp "tsu-self/internal/api/model/response/auth"
+	apiUserResp "tsu-self/internal/api/model/response/user"
 
 	// 转换器
 	authConverter "tsu-self/internal/converter/auth"
@@ -35,6 +41,7 @@ import (
 	"tsu-self/internal/pkg/response"
 	"tsu-self/internal/pkg/xerrors"
 
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	mqrpc "github.com/liangdas/mqant/rpc"
 	"google.golang.org/protobuf/proto"
@@ -143,6 +150,24 @@ func (m *AdminModule) Login(c echo.Context) error {
 
 	// 使用转换器转换为 API 响应
 	apiResult := authConverter.LoginResponseFromRPC(rpcResp)
+
+	// 如果登录成功，设置session cookie
+	if apiResult.Success && apiResult.SessionToken != "" {
+		cookie := &http.Cookie{
+			Name:     "ory_kratos_session",
+			Value:    apiResult.SessionToken,
+			Path:     "/",
+			HttpOnly: false, // 允许JavaScript访问，便于调试
+			Secure:   false, // 开发环境使用HTTP
+			SameSite: http.SameSiteLaxMode,
+			MaxAge:   3600, // 1小时
+		}
+		c.SetCookie(cookie)
+
+		m.logger.InfoContext(ctx, "已设置session cookie",
+			log.String("cookie_name", cookie.Name),
+			log.String("cookie_path", cookie.Path))
+	}
 
 	return m.respWriter.WriteSuccess(ctx, c.Response().Writer, apiResult)
 }
@@ -386,6 +411,24 @@ func (m *AdminModule) Register(c echo.Context) error {
 	// 使用转换器转换为 API 响应
 	apiResult := authConverter.RegisterResponseFromRPC(rpcResp)
 
+	// 如果注册成功，设置session cookie
+	if apiResult.Success && apiResult.SessionToken != "" {
+		cookie := &http.Cookie{
+			Name:     "ory_kratos_session",
+			Value:    apiResult.SessionToken,
+			Path:     "/",
+			HttpOnly: false, // 允许JavaScript访问，便于调试
+			Secure:   false, // 开发环境使用HTTP
+			SameSite: http.SameSiteLaxMode,
+			MaxAge:   3600, // 1小时
+		}
+		c.SetCookie(cookie)
+
+		m.logger.InfoContext(ctx, "已设置注册session cookie",
+			log.String("cookie_name", cookie.Name),
+			log.String("cookie_path", cookie.Path))
+	}
+
 	return m.respWriter.WriteSuccess(ctx, c.Response().Writer, apiResult)
 }
 
@@ -396,7 +439,7 @@ func (m *AdminModule) Register(c echo.Context) error {
 // @Accept json
 // @Produce json
 // @Param user_id path string true "用户ID"
-// @Success 200 {object} response.APIResponse[apiUserResp.UserProfile] "获取成功"
+// @Success 200 {object} response.APIResponse[apiUserResp.Profile] "获取成功"
 // @Failure 400 {object} response.APIResponse[any] "请求参数错误"
 // @Failure 404 {object} response.APIResponse[any] "用户不存在"
 // @Failure 500 {object} response.APIResponse[any] "服务器错误"
@@ -437,8 +480,8 @@ func (m *AdminModule) GetUserProfile(c echo.Context) error {
 // @Tags 用户
 // @Accept json
 // @Produce json
-// @Param profile body apiUserReq.UpdateUserProfileRequest true "用户资料更新请求"
-// @Success 200 {object} response.APIResponse[apiUserResp.UserProfile] "更新成功"
+// @Param profile body apiUserReq.UpdateProfileRequest true "用户资料更新请求"
+// @Success 200 {object} response.APIResponse[apiUserResp.Profile] "更新成功"
 // @Failure 400 {object} response.APIResponse[any] "请求参数错误"
 // @Failure 401 {object} response.APIResponse[any] "未授权"
 // @Failure 404 {object} response.APIResponse[any] "用户不存在"
@@ -534,3 +577,436 @@ func (m *AdminModule) validateUpdateProfileRequest(req *apiUserReq.UpdateProfile
 
 	return nil
 }
+
+// ============================================================================
+// 职业管理 API 处理函数
+// ============================================================================
+
+// ListClasses 获取职业列表
+// @Summary 获取职业列表
+// @Description 获取系统中的职业列表，支持多维度筛选、分页和排序。可按职业层级、状态、标签等条件筛选，支持灵活的排序方式
+// @Tags 职业管理
+// @Accept json
+// @Produce json
+// @Param tier query int false "职业层级筛选"
+// @Param is_active query bool false "是否启用状态筛选"
+// @Param is_hidden query bool false "是否隐藏状态筛选"
+// @Param search query string false "关键词搜索（搜索名称、代码、描述）"
+// @Param sort_by query string false "排序字段" Enums(name, code, tier, display_order, created_at)
+// @Param sort_order query string false "排序方向" Enums(asc, desc)
+// @Param page query int false "页码，从1开始" default(1)
+// @Param page_size query int false "每页数量" default(20)
+// @Success 200 {object} response.APIResponse[apiAdminResp.ClassListResponse] "获取成功"
+// @Failure 400 {object} response.APIResponse[any] "请求参数错误"
+// @Failure 500 {object} response.APIResponse[any] "服务器内部错误"
+// @Security BearerAuth
+// @Router /admin/classes [get]
+func (m *AdminModule) ListClasses(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	var req apiAdminReq.ClassListRequest
+	if err := c.Bind(&req); err != nil {
+		appErr := xerrors.NewValidationError("", "参数绑定失败")
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	result, err := m.classService.ListClasses(ctx, &req)
+	if err != nil {
+		appErr := xerrors.New(xerrors.CodeInternalError, "获取职业列表失败: "+err.Error())
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	return m.respWriter.WriteSuccess(ctx, c.Response().Writer, result)
+}
+
+// CreateClass 创建职业
+// @Summary 创建职业
+// @Description 创建新的职业配置
+// @Tags 职业管理
+// @Accept json
+// @Produce json
+// @Param class body apiAdminReq.CreateClassRequest true "创建职业请求参数"
+// @Success 201 {object} response.APIResponse[apiAdminResp.Class] "创建成功"
+// @Failure 400 {object} response.APIResponse[any] "请求参数错误"
+// @Failure 409 {object} response.APIResponse[any] "职业代码已存在"
+// @Failure 500 {object} response.APIResponse[any] "服务器内部错误"
+// @Security BearerAuth
+// @Router /admin/classes [post]
+func (m *AdminModule) CreateClass(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	var req apiAdminReq.CreateClassRequest
+	if err := c.Bind(&req); err != nil {
+		appErr := xerrors.NewValidationError("", "参数绑定失败")
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	if err := c.Validate(&req); err != nil {
+		appErr := xerrors.NewValidationError("", "参数验证失败: "+err.Error())
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	result, err := m.classService.CreateClass(ctx, &req)
+	if err != nil {
+		if strings.Contains(err.Error(), "已存在") {
+			appErr := xerrors.NewConflictError("class", err.Error())
+			return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+		}
+		appErr := xerrors.New(xerrors.CodeInternalError, "创建职业失败: "+err.Error())
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	c.Response().WriteHeader(http.StatusCreated)
+	return m.respWriter.WriteSuccess(ctx, c.Response().Writer, result)
+}
+
+// GetClass 获取职业详情
+// @Summary 获取职业详情
+// @Description 获取指定职业的详细信息，包含关联数据
+// @Tags 职业管理
+// @Accept json
+// @Produce json
+// @Param id path string true "职业ID"
+// @Success 200 {object} response.APIResponse[apiAdminResp.Class] "获取成功"
+// @Failure 400 {object} response.APIResponse[any] "请求参数错误"
+// @Failure 404 {object} response.APIResponse[any] "职业不存在"
+// @Failure 500 {object} response.APIResponse[any] "服务器内部错误"
+// @Security BearerAuth
+// @Router /admin/classes/{id} [get]
+func (m *AdminModule) GetClass(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		appErr := xerrors.NewValidationError("id", "无效的职业ID格式")
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	result, err := m.classService.GetClass(ctx, id)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			appErr := xerrors.NewNotFoundError("class", "职业不存在")
+			return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+		}
+		appErr := xerrors.New(xerrors.CodeInternalError, "获取职业失败: "+err.Error())
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	return m.respWriter.WriteSuccess(ctx, c.Response().Writer, result)
+}
+
+// UpdateClass 更新职业
+// @Summary 更新职业
+// @Description 更新指定职业的信息
+// @Tags 职业管理
+// @Accept json
+// @Produce json
+// @Param id path string true "职业ID"
+// @Param class body apiAdminReq.UpdateClassRequest true "更新职业请求参数"
+// @Success 200 {object} response.APIResponse[apiAdminResp.Class] "更新成功"
+// @Failure 400 {object} response.APIResponse[any] "请求参数错误"
+// @Failure 404 {object} response.APIResponse[any] "职业不存在"
+// @Failure 409 {object} response.APIResponse[any] "职业代码已存在"
+// @Failure 500 {object} response.APIResponse[any] "服务器内部错误"
+// @Security BearerAuth
+// @Router /admin/classes/{id} [put]
+func (m *AdminModule) UpdateClass(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		appErr := xerrors.NewValidationError("id", "无效的职业ID格式")
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	var req apiAdminReq.UpdateClassRequest
+	if err := c.Bind(&req); err != nil {
+		appErr := xerrors.NewValidationError("", "参数绑定失败")
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	if err := c.Validate(&req); err != nil {
+		appErr := xerrors.NewValidationError("", "参数验证失败: "+err.Error())
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	result, err := m.classService.UpdateClass(ctx, id, &req)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			appErr := xerrors.NewNotFoundError("class", "职业不存在")
+			return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+		}
+		if strings.Contains(err.Error(), "已存在") {
+			appErr := xerrors.NewConflictError("class", err.Error())
+			return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+		}
+		appErr := xerrors.New(xerrors.CodeInternalError, "更新职业失败: "+err.Error())
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	return m.respWriter.WriteSuccess(ctx, c.Response().Writer, result)
+}
+
+// DeleteClass 删除职业
+// @Summary 删除职业
+// @Description 删除指定职业（软删除）
+// @Tags 职业管理
+// @Accept json
+// @Produce json
+// @Param id path string true "职业ID"
+// @Success 204 "删除成功"
+// @Failure 400 {object} response.APIResponse[any] "请求参数错误"
+// @Failure 404 {object} response.APIResponse[any] "职业不存在"
+// @Failure 500 {object} response.APIResponse[any] "服务器内部错误"
+// @Security BearerAuth
+// @Router /admin/classes/{id} [delete]
+func (m *AdminModule) DeleteClass(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		appErr := xerrors.NewValidationError("id", "无效的职业ID格式")
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	if err := m.classService.DeleteClass(ctx, id); err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			appErr := xerrors.NewNotFoundError("class", "职业不存在")
+			return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+		}
+		appErr := xerrors.New(xerrors.CodeInternalError, "删除职业失败: "+err.Error())
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	return c.NoContent(http.StatusNoContent)
+}
+
+// GetClassBasic 获取职业基本信息
+// @Summary 获取职业基本信息
+// @Description 获取指定职业的基本信息，不包含关联数据
+// @Tags 职业管理
+// @Accept json
+// @Produce json
+// @Param id path string true "职业ID"
+// @Success 200 {object} response.APIResponse[apiAdminResp.Class] "获取成功"
+// @Failure 400 {object} response.APIResponse[any] "请求参数错误"
+// @Failure 404 {object} response.APIResponse[any] "职业不存在"
+// @Failure 500 {object} response.APIResponse[any] "服务器内部错误"
+// @Security BearerAuth
+// @Router /admin/classes/{id}/basic [get]
+func (m *AdminModule) GetClassBasic(c echo.Context) error {
+	// 基本信息和详情信息现在是相同的，因为不需要跨服务调用
+	return m.GetClass(c)
+}
+
+// GetClassStats 获取职业统计信息
+// @Summary 获取职业统计信息
+// @Description 获取指定职业的英雄数量统计信息
+// @Tags 职业管理
+// @Accept json
+// @Produce json
+// @Param id path string true "职业ID"
+// @Success 200 {object} response.APIResponse[apiAdminResp.ClassHeroStats] "获取成功"
+// @Failure 400 {object} response.APIResponse[any] "请求参数错误"
+// @Failure 404 {object} response.APIResponse[any] "职业不存在"
+// @Failure 500 {object} response.APIResponse[any] "服务器内部错误"
+// @Security BearerAuth
+// @Router /admin/classes/{id}/stats [get]
+func (m *AdminModule) GetClassStats(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		appErr := xerrors.NewValidationError("id", "无效的职业ID格式")
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	result, err := m.classService.GetClassHeroStats(ctx, id)
+	if err != nil {
+		appErr := xerrors.New(xerrors.CodeInternalError, "获取职业统计失败: "+err.Error())
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	return m.respWriter.WriteSuccess(ctx, c.Response().Writer, result)
+}
+
+// ============================================================================
+// 职业属性加成管理
+// ============================================================================
+
+// GetClassAttributeBonuses 获取职业属性加成列表
+// @Summary 获取职业属性加成列表
+// @Description 获取指定职业的所有属性加成配置。属性加成定义了职业对各种属性（力量、敏捷、智力等）的加成效果，包括基础值、每级加成、最大值限制等详细配置
+// @Tags 职业管理
+// @Accept json
+// @Produce json
+// @Param id path string true "职业ID"
+// @Success 200 {object} response.APIResponse[[]apiAdminResp.ClassAttributeBonus] "获取成功"
+// @Failure 400 {object} response.APIResponse[any] "请求参数错误"
+// @Failure 404 {object} response.APIResponse[any] "职业不存在"
+// @Failure 500 {object} response.APIResponse[any] "服务器内部错误"
+// @Security BearerAuth
+// @Router /admin/classes/{id}/attribute-bonuses [get]
+func (m *AdminModule) GetClassAttributeBonuses(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		appErr := xerrors.NewValidationError("id", "无效的职业ID格式")
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	result, err := m.classService.GetClassAttributeBonuses(ctx, id)
+	if err != nil {
+		appErr := xerrors.New(xerrors.CodeInternalError, "获取属性加成失败: "+err.Error())
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	return m.respWriter.WriteSuccess(ctx, c.Response().Writer, result)
+}
+
+// CreateClassAttributeBonus 创建职业属性加成
+// @Summary 创建职业属性加成
+// @Description 为指定职业创建属性加成配置
+// @Tags 职业管理
+// @Accept json
+// @Produce json
+// @Param id path string true "职业ID"
+// @Param bonus body apiAdminReq.CreateClassAttributeBonusRequest true "创建属性加成请求参数"
+// @Success 201 {object} response.APIResponse[apiAdminResp.ClassAttributeBonus] "创建成功"
+// @Failure 400 {object} response.APIResponse[any] "请求参数错误"
+// @Failure 404 {object} response.APIResponse[any] "职业不存在"
+// @Failure 409 {object} response.APIResponse[any] "属性加成已存在"
+// @Failure 500 {object} response.APIResponse[any] "服务器内部错误"
+// @Security BearerAuth
+// @Router /admin/classes/{id}/attribute-bonuses [post]
+func (m *AdminModule) CreateClassAttributeBonus(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		appErr := xerrors.NewValidationError("id", "无效的职业ID格式")
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	var req apiAdminReq.CreateClassAttributeBonusRequest
+	if err := c.Bind(&req); err != nil {
+		appErr := xerrors.NewValidationError("", "参数绑定失败")
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	if err := c.Validate(&req); err != nil {
+		appErr := xerrors.NewValidationError("", "参数验证失败: "+err.Error())
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	result, err := m.classService.CreateClassAttributeBonus(ctx, id, &req)
+	if err != nil {
+		if strings.Contains(err.Error(), "已存在") {
+			appErr := xerrors.NewConflictError("class", err.Error())
+			return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+		}
+		if strings.Contains(err.Error(), "不存在") {
+			appErr := xerrors.NewNotFoundError("class", err.Error())
+			return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+		}
+		appErr := xerrors.New(xerrors.CodeInternalError, "创建属性加成失败: "+err.Error())
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	c.Response().WriteHeader(http.StatusCreated)
+	return m.respWriter.WriteSuccess(ctx, c.Response().Writer, result)
+}
+
+// BatchCreateClassAttributeBonuses 批量创建职业属性加成
+// @Summary 批量创建职业属性加成
+// @Description 为指定职业批量创建多个属性加成配置
+// @Tags 职业管理
+// @Accept json
+// @Produce json
+// @Param id path string true "职业ID"
+// @Param bonuses body apiAdminReq.BatchCreateClassAttributeBonusRequest true "批量创建属性加成请求参数"
+// @Success 201 {object} response.APIResponse[[]apiAdminResp.ClassAttributeBonus] "创建成功"
+// @Failure 400 {object} response.APIResponse[any] "请求参数错误"
+// @Failure 404 {object} response.APIResponse[any] "职业不存在"
+// @Failure 500 {object} response.APIResponse[any] "服务器内部错误"
+// @Security BearerAuth
+// @Router /admin/classes/{id}/attribute-bonuses/batch [post]
+func (m *AdminModule) BatchCreateClassAttributeBonuses(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		appErr := xerrors.NewValidationError("id", "无效的职业ID格式")
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	var req apiAdminReq.BatchCreateClassAttributeBonusRequest
+	if err := c.Bind(&req); err != nil {
+		appErr := xerrors.NewValidationError("", "参数绑定失败")
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	if err := c.Validate(&req); err != nil {
+		appErr := xerrors.NewValidationError("", "参数验证失败: "+err.Error())
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	result, err := m.classService.BatchCreateClassAttributeBonuses(ctx, id, &req)
+	if err != nil {
+		if strings.Contains(err.Error(), "不存在") {
+			appErr := xerrors.NewNotFoundError("class", err.Error())
+			return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+		}
+		appErr := xerrors.New(xerrors.CodeInternalError, "批量创建属性加成失败: "+err.Error())
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	c.Response().WriteHeader(http.StatusCreated)
+	return m.respWriter.WriteSuccess(ctx, c.Response().Writer, result)
+}
+
+// ============================================================================
+// 职业标签管理
+// ============================================================================
+
+// GetAllClassTags 获取所有职业标签
+// @Summary 获取所有职业标签
+// @Description 获取系统中所有可用的职业标签列表
+// @Tags 职业管理
+// @Accept json
+// @Produce json
+// @Success 200 {object} response.APIResponse[[]apiAdminResp.ClassTag] "获取成功"
+// @Failure 500 {object} response.APIResponse[any] "服务器内部错误"
+// @Security BearerAuth
+// @Router /admin/classes/tags [get]
+func (m *AdminModule) GetAllClassTags(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	result, err := m.classService.GetAllTags(ctx)
+	if err != nil {
+		appErr := xerrors.New(xerrors.CodeInternalError, "获取职业标签列表失败: "+err.Error())
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	return m.respWriter.WriteSuccess(ctx, c.Response().Writer, result)
+}
+
+// 用于避免unused import错误的变量声明 (仅在编译时使用)
+var (
+	_ apiAdminResp.Class
+	_ apiAdminResp.ClassListResponse
+	_ apiAdminResp.ClassHeroStats
+	_ apiAdminResp.ClassAttributeBonus
+	_ apiAdminResp.ClassTag
+	_ apiAuthResp.LoginResult
+	_ apiAuthResp.RegisterResult
+	_ apiUserResp.Profile
+)

@@ -549,7 +549,7 @@ func (q classQuery) One(ctx context.Context, exec boil.ContextExecutor) (*Class,
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "entity: failed to execute a one query for classes")
+		return nil, errors.Wrap(err, "models: failed to execute a one query for classes")
 	}
 
 	if err := o.doAfterSelectHooks(ctx, exec); err != nil {
@@ -565,7 +565,7 @@ func (q classQuery) All(ctx context.Context, exec boil.ContextExecutor) (ClassSl
 
 	err := q.Bind(ctx, exec, &o)
 	if err != nil {
-		return nil, errors.Wrap(err, "entity: failed to assign all query results to Class slice")
+		return nil, errors.Wrap(err, "models: failed to assign all query results to Class slice")
 	}
 
 	if len(classAfterSelectHooks) != 0 {
@@ -588,7 +588,7 @@ func (q classQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to count classes rows")
+		return 0, errors.Wrap(err, "models: failed to count classes rows")
 	}
 
 	return count, nil
@@ -604,7 +604,7 @@ func (q classQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (bool
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return false, errors.Wrap(err, "entity: failed to check if classes exists")
+		return false, errors.Wrap(err, "models: failed to check if classes exists")
 	}
 
 	return count > 0, nil
@@ -1361,7 +1361,7 @@ func FindClass(ctx context.Context, exec boil.ContextExecutor, iD string, select
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "entity: unable to select from classes")
+		return nil, errors.Wrap(err, "models: unable to select from classes")
 	}
 
 	if err = classObj.doAfterSelectHooks(ctx, exec); err != nil {
@@ -1375,7 +1375,7 @@ func FindClass(ctx context.Context, exec boil.ContextExecutor, iD string, select
 // See boil.Columns.InsertColumnSet documentation to understand column list inference for inserts.
 func (o *Class) Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error {
 	if o == nil {
-		return errors.New("entity: no classes provided for insertion")
+		return errors.New("models: no classes provided for insertion")
 	}
 
 	var err error
@@ -1448,7 +1448,7 @@ func (o *Class) Insert(ctx context.Context, exec boil.ContextExecutor, columns b
 	}
 
 	if err != nil {
-		return errors.Wrap(err, "entity: unable to insert into classes")
+		return errors.Wrap(err, "models: unable to insert into classes")
 	}
 
 	if !cached {
@@ -1489,7 +1489,7 @@ func (o *Class) Update(ctx context.Context, exec boil.ContextExecutor, columns b
 			wl = strmangle.SetComplement(wl, []string{"created_at"})
 		}
 		if len(wl) == 0 {
-			return 0, errors.New("entity: unable to update classes, could not build whitelist")
+			return 0, errors.New("models: unable to update classes, could not build whitelist")
 		}
 
 		cache.query = fmt.Sprintf("UPDATE \"classes\" SET %s WHERE %s",
@@ -1512,12 +1512,12 @@ func (o *Class) Update(ctx context.Context, exec boil.ContextExecutor, columns b
 	var result sql.Result
 	result, err = exec.ExecContext(ctx, cache.query, values...)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to update classes row")
+		return 0, errors.Wrap(err, "models: unable to update classes row")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to get rows affected by update for classes")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by update for classes")
 	}
 
 	if !cached {
@@ -1535,12 +1535,12 @@ func (q classQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor, co
 
 	result, err := q.Query.ExecContext(ctx, exec)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to update all for classes")
+		return 0, errors.Wrap(err, "models: unable to update all for classes")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to retrieve rows affected for classes")
+		return 0, errors.Wrap(err, "models: unable to retrieve rows affected for classes")
 	}
 
 	return rowsAff, nil
@@ -1554,7 +1554,7 @@ func (o ClassSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, co
 	}
 
 	if len(cols) == 0 {
-		return 0, errors.New("entity: update all requires at least one column argument")
+		return 0, errors.New("models: update all requires at least one column argument")
 	}
 
 	colNames := make([]string, len(cols))
@@ -1584,12 +1584,12 @@ func (o ClassSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, co
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to update all in class slice")
+		return 0, errors.Wrap(err, "models: unable to update all in class slice")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to retrieve rows affected all in update all class")
+		return 0, errors.Wrap(err, "models: unable to retrieve rows affected all in update all class")
 	}
 	return rowsAff, nil
 }
@@ -1598,7 +1598,7 @@ func (o ClassSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, co
 // See boil.Columns documentation for how to properly use updateColumns and insertColumns.
 func (o *Class) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) error {
 	if o == nil {
-		return errors.New("entity: no classes provided for upsert")
+		return errors.New("models: no classes provided for upsert")
 	}
 	if !boil.TimestampsAreSkipped(ctx) {
 		currTime := time.Now().In(boil.GetLocation())
@@ -1663,7 +1663,7 @@ func (o *Class) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnC
 		)
 
 		if updateOnConflict && len(update) == 0 {
-			return errors.New("entity: unable to upsert classes, could not build update column list")
+			return errors.New("models: unable to upsert classes, could not build update column list")
 		}
 
 		ret := strmangle.SetComplement(classAllColumns, strmangle.SetIntersect(insert, update))
@@ -1671,7 +1671,7 @@ func (o *Class) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnC
 		conflict := conflictColumns
 		if len(conflict) == 0 && updateOnConflict && len(update) != 0 {
 			if len(classPrimaryKeyColumns) == 0 {
-				return errors.New("entity: unable to upsert classes, could not build conflict column list")
+				return errors.New("models: unable to upsert classes, could not build conflict column list")
 			}
 
 			conflict = make([]string, len(classPrimaryKeyColumns))
@@ -1712,7 +1712,7 @@ func (o *Class) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnC
 		_, err = exec.ExecContext(ctx, cache.query, vals...)
 	}
 	if err != nil {
-		return errors.Wrap(err, "entity: unable to upsert classes")
+		return errors.Wrap(err, "models: unable to upsert classes")
 	}
 
 	if !cached {
@@ -1728,7 +1728,7 @@ func (o *Class) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnC
 // Delete will match against the primary key column to find the record to delete.
 func (o *Class) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if o == nil {
-		return 0, errors.New("entity: no Class provided for delete")
+		return 0, errors.New("models: no Class provided for delete")
 	}
 
 	if err := o.doBeforeDeleteHooks(ctx, exec); err != nil {
@@ -1745,12 +1745,12 @@ func (o *Class) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, e
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to delete from classes")
+		return 0, errors.Wrap(err, "models: unable to delete from classes")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to get rows affected by delete for classes")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by delete for classes")
 	}
 
 	if err := o.doAfterDeleteHooks(ctx, exec); err != nil {
@@ -1763,19 +1763,19 @@ func (o *Class) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, e
 // DeleteAll deletes all matching rows.
 func (q classQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if q.Query == nil {
-		return 0, errors.New("entity: no classQuery provided for delete all")
+		return 0, errors.New("models: no classQuery provided for delete all")
 	}
 
 	queries.SetDelete(q.Query)
 
 	result, err := q.Query.ExecContext(ctx, exec)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to delete all from classes")
+		return 0, errors.Wrap(err, "models: unable to delete all from classes")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to get rows affected by deleteall for classes")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by deleteall for classes")
 	}
 
 	return rowsAff, nil
@@ -1811,12 +1811,12 @@ func (o ClassSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (i
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to delete all from class slice")
+		return 0, errors.Wrap(err, "models: unable to delete all from class slice")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to get rows affected by deleteall for classes")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by deleteall for classes")
 	}
 
 	if len(classAfterDeleteHooks) != 0 {
@@ -1863,7 +1863,7 @@ func (o *ClassSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor) e
 
 	err := q.Bind(ctx, exec, &slice)
 	if err != nil {
-		return errors.Wrap(err, "entity: unable to reload all in ClassSlice")
+		return errors.Wrap(err, "models: unable to reload all in ClassSlice")
 	}
 
 	*o = slice
@@ -1885,7 +1885,7 @@ func ClassExists(ctx context.Context, exec boil.ContextExecutor, iD string) (boo
 
 	err := row.Scan(&exists)
 	if err != nil {
-		return false, errors.Wrap(err, "entity: unable to check if classes exists")
+		return false, errors.Wrap(err, "models: unable to check if classes exists")
 	}
 
 	return exists, nil

@@ -29,15 +29,28 @@ authenticators:
   cookie_session:
     enabled: true
     config:
-      check_session_url: http://kratos:4434/sessions/whoami
+      check_session_url: http://tsu_kratos_service:4433/sessions/whoami
+      preserve_query: true
+      preserve_path: true
+  bearer_token:
+    enabled: true
+    config:
+      check_session_url: http://tsu_kratos_service:4433/sessions/whoami
+      preserve_query: true
+      preserve_path: true
+  noop:
+    enabled: true
 
 authorizers:
   allow:
     enabled: true
 
 mutators:
+  noop:
+    enabled: true
   header:
     enabled: true
     config:
       headers:
-        X-Userinfo: '{{ print .Subject }}'
+        X-Session-Token: '{{ print .Extra.ory_kratos_session }}'
+        X-User-ID: '{{ print .Subject }}'

@@ -5,7 +5,7 @@ version: v1.3.1
 
 serve:
   public:
-    base_url: http://127.0.0.1:4433/
+    base_url: http://kratos:4433/
     host: 0.0.0.0
     port: 4433
     cors:
@@ -50,6 +50,15 @@ selfservice:
     webauthn:
       enabled: false
 
+session:
+  cookie:
+    name: ory_kratos_session
+    path: /
+    same_site: Lax
+    persistent: false
+  lifespan: 24h
+  earliest_possible_extend: 1h
+  
 log:
   level: debug
   format: text

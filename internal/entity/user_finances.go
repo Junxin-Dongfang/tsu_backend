@@ -409,7 +409,7 @@ func (q userFinanceQuery) One(ctx context.Context, exec boil.ContextExecutor) (*
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "entity: failed to execute a one query for user_finances")
+		return nil, errors.Wrap(err, "models: failed to execute a one query for user_finances")
 	}
 
 	if err := o.doAfterSelectHooks(ctx, exec); err != nil {
@@ -425,7 +425,7 @@ func (q userFinanceQuery) All(ctx context.Context, exec boil.ContextExecutor) (U
 
 	err := q.Bind(ctx, exec, &o)
 	if err != nil {
-		return nil, errors.Wrap(err, "entity: failed to assign all query results to UserFinance slice")
+		return nil, errors.Wrap(err, "models: failed to assign all query results to UserFinance slice")
 	}
 
 	if len(userFinanceAfterSelectHooks) != 0 {
@@ -448,7 +448,7 @@ func (q userFinanceQuery) Count(ctx context.Context, exec boil.ContextExecutor) 
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to count user_finances rows")
+		return 0, errors.Wrap(err, "models: failed to count user_finances rows")
 	}
 
 	return count, nil
@@ -464,7 +464,7 @@ func (q userFinanceQuery) Exists(ctx context.Context, exec boil.ContextExecutor)
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return false, errors.Wrap(err, "entity: failed to check if user_finances exists")
+		return false, errors.Wrap(err, "models: failed to check if user_finances exists")
 	}
 
 	return count > 0, nil
@@ -679,7 +679,7 @@ func FindUserFinance(ctx context.Context, exec boil.ContextExecutor, iD int64, s
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "entity: unable to select from user_finances")
+		return nil, errors.Wrap(err, "models: unable to select from user_finances")
 	}
 
 	if err = userFinanceObj.doAfterSelectHooks(ctx, exec); err != nil {
@@ -693,7 +693,7 @@ func FindUserFinance(ctx context.Context, exec boil.ContextExecutor, iD int64, s
 // See boil.Columns.InsertColumnSet documentation to understand column list inference for inserts.
 func (o *UserFinance) Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error {
 	if o == nil {
-		return errors.New("entity: no user_finances provided for insertion")
+		return errors.New("models: no user_finances provided for insertion")
 	}
 
 	var err error
@@ -766,7 +766,7 @@ func (o *UserFinance) Insert(ctx context.Context, exec boil.ContextExecutor, col
 	}
 
 	if err != nil {
-		return errors.Wrap(err, "entity: unable to insert into user_finances")
+		return errors.Wrap(err, "models: unable to insert into user_finances")
 	}
 
 	if !cached {
@@ -807,7 +807,7 @@ func (o *UserFinance) Update(ctx context.Context, exec boil.ContextExecutor, col
 			wl = strmangle.SetComplement(wl, []string{"created_at"})
 		}
 		if len(wl) == 0 {
-			return 0, errors.New("entity: unable to update user_finances, could not build whitelist")
+			return 0, errors.New("models: unable to update user_finances, could not build whitelist")
 		}
 
 		cache.query = fmt.Sprintf("UPDATE \"user_finances\" SET %s WHERE %s",
@@ -830,12 +830,12 @@ func (o *UserFinance) Update(ctx context.Context, exec boil.ContextExecutor, col
 	var result sql.Result
 	result, err = exec.ExecContext(ctx, cache.query, values...)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to update user_finances row")
+		return 0, errors.Wrap(err, "models: unable to update user_finances row")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to get rows affected by update for user_finances")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by update for user_finances")
 	}
 
 	if !cached {
@@ -853,12 +853,12 @@ func (q userFinanceQuery) UpdateAll(ctx context.Context, exec boil.ContextExecut
 
 	result, err := q.Query.ExecContext(ctx, exec)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to update all for user_finances")
+		return 0, errors.Wrap(err, "models: unable to update all for user_finances")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to retrieve rows affected for user_finances")
+		return 0, errors.Wrap(err, "models: unable to retrieve rows affected for user_finances")
 	}
 
 	return rowsAff, nil
@@ -872,7 +872,7 @@ func (o UserFinanceSlice) UpdateAll(ctx context.Context, exec boil.ContextExecut
 	}
 
 	if len(cols) == 0 {
-		return 0, errors.New("entity: update all requires at least one column argument")
+		return 0, errors.New("models: update all requires at least one column argument")
 	}
 
 	colNames := make([]string, len(cols))
@@ -902,12 +902,12 @@ func (o UserFinanceSlice) UpdateAll(ctx context.Context, exec boil.ContextExecut
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to update all in userFinance slice")
+		return 0, errors.Wrap(err, "models: unable to update all in userFinance slice")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to retrieve rows affected all in update all userFinance")
+		return 0, errors.Wrap(err, "models: unable to retrieve rows affected all in update all userFinance")
 	}
 	return rowsAff, nil
 }
@@ -916,7 +916,7 @@ func (o UserFinanceSlice) UpdateAll(ctx context.Context, exec boil.ContextExecut
 // See boil.Columns documentation for how to properly use updateColumns and insertColumns.
 func (o *UserFinance) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) error {
 	if o == nil {
-		return errors.New("entity: no user_finances provided for upsert")
+		return errors.New("models: no user_finances provided for upsert")
 	}
 	if !boil.TimestampsAreSkipped(ctx) {
 		currTime := time.Now().In(boil.GetLocation())
@@ -981,7 +981,7 @@ func (o *UserFinance) Upsert(ctx context.Context, exec boil.ContextExecutor, upd
 		)
 
 		if updateOnConflict && len(update) == 0 {
-			return errors.New("entity: unable to upsert user_finances, could not build update column list")
+			return errors.New("models: unable to upsert user_finances, could not build update column list")
 		}
 
 		ret := strmangle.SetComplement(userFinanceAllColumns, strmangle.SetIntersect(insert, update))
@@ -989,7 +989,7 @@ func (o *UserFinance) Upsert(ctx context.Context, exec boil.ContextExecutor, upd
 		conflict := conflictColumns
 		if len(conflict) == 0 && updateOnConflict && len(update) != 0 {
 			if len(userFinancePrimaryKeyColumns) == 0 {
-				return errors.New("entity: unable to upsert user_finances, could not build conflict column list")
+				return errors.New("models: unable to upsert user_finances, could not build conflict column list")
 			}
 
 			conflict = make([]string, len(userFinancePrimaryKeyColumns))
@@ -1030,7 +1030,7 @@ func (o *UserFinance) Upsert(ctx context.Context, exec boil.ContextExecutor, upd
 		_, err = exec.ExecContext(ctx, cache.query, vals...)
 	}
 	if err != nil {
-		return errors.Wrap(err, "entity: unable to upsert user_finances")
+		return errors.Wrap(err, "models: unable to upsert user_finances")
 	}
 
 	if !cached {
@@ -1046,7 +1046,7 @@ func (o *UserFinance) Upsert(ctx context.Context, exec boil.ContextExecutor, upd
 // Delete will match against the primary key column to find the record to delete.
 func (o *UserFinance) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if o == nil {
-		return 0, errors.New("entity: no UserFinance provided for delete")
+		return 0, errors.New("models: no UserFinance provided for delete")
 	}
 
 	if err := o.doBeforeDeleteHooks(ctx, exec); err != nil {
@@ -1063,12 +1063,12 @@ func (o *UserFinance) Delete(ctx context.Context, exec boil.ContextExecutor) (in
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to delete from user_finances")
+		return 0, errors.Wrap(err, "models: unable to delete from user_finances")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to get rows affected by delete for user_finances")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by delete for user_finances")
 	}
 
 	if err := o.doAfterDeleteHooks(ctx, exec); err != nil {
@@ -1081,19 +1081,19 @@ func (o *UserFinance) Delete(ctx context.Context, exec boil.ContextExecutor) (in
 // DeleteAll deletes all matching rows.
 func (q userFinanceQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if q.Query == nil {
-		return 0, errors.New("entity: no userFinanceQuery provided for delete all")
+		return 0, errors.New("models: no userFinanceQuery provided for delete all")
 	}
 
 	queries.SetDelete(q.Query)
 
 	result, err := q.Query.ExecContext(ctx, exec)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to delete all from user_finances")
+		return 0, errors.Wrap(err, "models: unable to delete all from user_finances")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to get rows affected by deleteall for user_finances")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by deleteall for user_finances")
 	}
 
 	return rowsAff, nil
@@ -1129,12 +1129,12 @@ func (o UserFinanceSlice) DeleteAll(ctx context.Context, exec boil.ContextExecut
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: unable to delete all from userFinance slice")
+		return 0, errors.Wrap(err, "models: unable to delete all from userFinance slice")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "entity: failed to get rows affected by deleteall for user_finances")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by deleteall for user_finances")
 	}
 
 	if len(userFinanceAfterDeleteHooks) != 0 {
@@ -1181,7 +1181,7 @@ func (o *UserFinanceSlice) ReloadAll(ctx context.Context, exec boil.ContextExecu
 
 	err := q.Bind(ctx, exec, &slice)
 	if err != nil {
-		return errors.Wrap(err, "entity: unable to reload all in UserFinanceSlice")
+		return errors.Wrap(err, "models: unable to reload all in UserFinanceSlice")
 	}
 
 	*o = slice
@@ -1203,7 +1203,7 @@ func UserFinanceExists(ctx context.Context, exec boil.ContextExecutor, iD int64)
 
 	err := row.Scan(&exists)
 	if err != nil {
-		return false, errors.Wrap(err, "entity: unable to check if user_finances exists")
+		return false, errors.Wrap(err, "models: unable to check if user_finances exists")
 	}
 
 	return exists, nil
