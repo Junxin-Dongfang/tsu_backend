@@ -29,29 +29,29 @@ CREATE TABLE IF NOT EXISTS users (
     -- 主键：与 Kratos identity ID 对应
     id                 UUID PRIMARY KEY,
 
-    --用户信息
-    username          VARCHAR(50) UNIQUE NOT NULL COMMENT '用户名，唯一且不可更改',
-    nickname          VARCHAR(50) COMMENT '昵称，可更改',
-    email             VARCHAR(255) UNIQUE NOT NULL COMMENT '邮箱',
-    phone_number      VARCHAR(20) UNIQUE COMMENT '手机号码',
+    --用户信息（用户名，唯一且不可更改）
+    username          VARCHAR(50) UNIQUE NOT NULL,
+    nickname          VARCHAR(50), -- 昵称，可更改
+    email             VARCHAR(255) UNIQUE NOT NULL, -- 邮箱
+    phone_number      VARCHAR(20) UNIQUE, -- 手机号码
 
-    -- 用户状态管理
-    is_banned          BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否被封禁',
-    ban_until          TIMESTAMPTZ COMMENT '封禁截止时间',
-    ban_reason         TEXT COMMENT '封禁原因',
+    -- 用户状态管理（是否被封禁）
+    is_banned          BOOLEAN NOT NULL DEFAULT FALSE,
+    ban_until          TIMESTAMPTZ, -- 封禁截止时间
+    ban_reason         TEXT, -- 封禁原因
 
-    -- 个人资料
-    avatar_url         VARCHAR(500) COMMENT '头像URL',
-    bio                TEXT COMMENT '个人简介',
-    birth_date         DATE COMMENT '出生日期',
-    gender             gender_enum COMMENT '性别',
-    timezone           VARCHAR(50) DEFAULT 'UTC' COMMENT '时区',
-    language           VARCHAR(10) DEFAULT 'zh-CN' COMMENT '语言偏好',
+    -- 个人资料（头像URL）
+    avatar_url         VARCHAR(500),
+    bio                TEXT, -- 个人简介
+    birth_date         DATE, -- 出生日期
+    gender             gender_enum, -- 性别
+    timezone           VARCHAR(50) DEFAULT 'UTC', -- 时区
+    language           VARCHAR(10) DEFAULT 'zh-CN', -- 语言偏好
 
-    --登录追踪
-    last_login_at      TIMESTAMPTZ COMMENT '上次登录时间',
-    last_login_ip      VARCHAR(45) COMMENT '上次登录IP',
-    login_count        INTEGER NOT NULL DEFAULT 0 CHECK (login_count >= 0) COMMENT '登录次数',
+    --登录追踪（上次登录时间）
+    last_login_at      TIMESTAMPTZ,
+    last_login_ip      VARCHAR(45), -- 上次登录IP
+    login_count        INTEGER NOT NULL DEFAULT 0 CHECK (login_count >= 0), -- 登录次数
 
     -- 时间戳
     created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -60,11 +60,9 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 -- 用户表索引
-CREATE UNIQUE INDEX idx_users_referral_code ON users(referral_code) WHERE referral_code IS NOT NULL AND deleted_at IS NULL;
 --为被封禁的用户创建索引，优化查询
 CREATE INDEX idx_users_is_banned_true ON users(is_banned) WHERE is_banned = TRUE AND deleted_at IS NULL;
 CREATE INDEX idx_users_created_at ON users(created_at) WHERE deleted_at IS NULL;
-CREATE INDEX idx_users_referred_by ON users(referred_by) WHERE deleted_at IS NULL;
 
 -- 用户表触发器
 CREATE TRIGGER update_users_updated_at 
@@ -104,37 +102,37 @@ $$;
 
 CREATE TABLE IF NOT EXISTS user_login_history (
     id             BIGSERIAL PRIMARY KEY,
-    user_id        UUID NOT NULL REFERENCES users(id) COMMENT '用户ID' ON DELETE CASCADE,
+    user_id        UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- 用户ID
     
-    -- 登录信息
-    login_time     TIMESTAMPTZ NOT NULL COMMENT '登录时间' DEFAULT NOW(),
-    logout_time    TIMESTAMPTZ COMMENT '登出时间',
-    session_duration INTEGER COMMENT '会话时长（秒）',
+    -- 登录信息（登录时间）
+    login_time     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    logout_time    TIMESTAMPTZ, -- 登出时间
+    session_duration INTEGER, -- 会话时长（秒）
 
-    -- 客户端信息
-    ip_address     VARCHAR(45) NOT NULL COMMENT 'IP地址',
-    user_agent     TEXT COMMENT '用户代理',
-    device_type    device_type_enum COMMENT '设备类型',
-    browser_name   VARCHAR(100) COMMENT '浏览器名称',
-    browser_version VARCHAR(50) COMMENT '浏览器版本',
-    os_name        VARCHAR(100) COMMENT '操作系统名称',
-    os_version     VARCHAR(50) COMMENT '操作系统版本',
+    -- 客户端信息（IP地址）
+    ip_address     VARCHAR(45) NOT NULL,
+    user_agent     TEXT, -- 用户代理
+    device_type    device_type_enum, -- 设备类型
+    browser_name   VARCHAR(100), -- 浏览器名称
+    browser_version VARCHAR(50), -- 浏览器版本
+    os_name        VARCHAR(100), -- 操作系统名称
+    os_version     VARCHAR(50), -- 操作系统版本
 
-    -- 地理位置
-    country        VARCHAR(100) COMMENT '国家',
-    region         VARCHAR(100) COMMENT '地区',
-    city           VARCHAR(100) COMMENT '城市',
+    -- 地理位置（国家）
+    country        VARCHAR(100),
+    region         VARCHAR(100), -- 地区
+    city           VARCHAR(100), -- 城市
 
     -- 登录方式
-    login_method   login_method_enum NOT NULL DEFAULT 'password' COMMENT '登录方式',
-    oauth_provider VARCHAR(50) COMMENT 'OAuth提供商',
+    login_method   login_method_enum NOT NULL DEFAULT 'password',
+    oauth_provider VARCHAR(50), -- OAuth提供商
     
-    -- 安全信息
-    is_suspicious  BOOLEAN NOT NULL COMMENT '是否可疑' DEFAULT FALSE,
-    risk_score     INTEGER CHECK (risk_score >= 0 AND risk_score <= 100) COMMENT '风险评分',
+    -- 安全信息（是否可疑）
+    is_suspicious  BOOLEAN NOT NULL DEFAULT FALSE,
+    risk_score     INTEGER CHECK (risk_score >= 0 AND risk_score <= 100), -- 风险评分
 
-    -- 状态
-    status         login_status_enum NOT NULL COMMENT '登录状态' DEFAULT 'success'
+    -- 状态（登录状态）
+    status         login_status_enum NOT NULL DEFAULT 'success'
 );
 
 -- 登录历史索引
@@ -143,36 +141,3 @@ CREATE INDEX idx_login_history_login_time ON user_login_history(login_time);
 CREATE INDEX idx_login_history_ip_address ON user_login_history(ip_address);
 CREATE INDEX idx_login_history_status ON user_login_history(status);
 CREATE INDEX idx_login_history_suspicious ON user_login_history(is_suspicious) WHERE is_suspicious = TRUE;
-
--- =============================================================================
--- 用户设置表
--- =============================================================================
-
-CREATE TABLE IF NOT EXISTS user_settings (
-    id               BIGSERIAL PRIMARY KEY,
-    user_id          UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    
-    -- 通知设置
-    email_notifications BOOLEAN NOT NULL DEFAULT TRUE,-- 是否启用邮件通知
-    sms_notifications   BOOLEAN NOT NULL DEFAULT FALSE,-- 是否启用短信通知
-    push_notifications  BOOLEAN NOT NULL DEFAULT TRUE,-- 是否启用推送通知
-    marketing_emails    BOOLEAN NOT NULL DEFAULT FALSE,-- 是否接收营销邮件
-
-    -- 隐私设置
-    profile_visibility  VARCHAR(20) NOT NULL DEFAULT 'public' CHECK (profile_visibility IN ('public', 'friends', 'private')),
-    show_online_status  BOOLEAN NOT NULL DEFAULT TRUE,-- 是否显示在线状态
-    allow_friend_requests BOOLEAN NOT NULL DEFAULT TRUE,-- 是否允许好友请求
-    
-    -- 安全设置
-    two_factor_enabled  BOOLEAN NOT NULL DEFAULT FALSE,-- 是否启用双因素认证
-    login_alerts        BOOLEAN NOT NULL DEFAULT TRUE,-- 是否启用登录提醒
-    
-    created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    
-    UNIQUE(user_id)
-);
-
-CREATE TRIGGER update_user_settings_updated_at 
-    BEFORE UPDATE ON user_settings 
-    FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();

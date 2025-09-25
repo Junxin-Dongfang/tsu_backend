@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS user_finances (
     --当前钻石数
     current_diamonds BIGINT DEFAULT 0 CHECK (current_diamonds >= 0),
     --累计消耗钻石数
-    total_diamonds_spent BIGINT DEFAULT 0 CHECK (total_diamonds_spent >= 0)
+    total_diamonds_spent BIGINT DEFAULT 0 CHECK (total_diamonds_spent >= 0),
 
     --高级用户信息
     premium_start      TIMESTAMPTZ, --高级用户开始时间
@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS user_finances (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_at TIMESTAMPTZ -- 软删除
-)
+);
 
 -- 用户财务表索引
 CREATE UNIQUE INDEX idx_user_finances_user_id_unique ON user_finances(user_id) WHERE deleted_at IS NULL;
@@ -114,6 +114,12 @@ CREATE INDEX idx_financial_transactions_transaction_type ON financial_transactio
 CREATE INDEX idx_financial_transactions_payment_provider ON financial_transactions(payment_provider) WHERE deleted_at IS NULL;
 
 -- 财务交易记录表触发器
-CREATE TRIGGER update_financial_transactions_updated_at 
-    BEFORE UPDATE ON financial_transactions 
-    FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_financial_transactions_updated_at') THEN
+        CREATE TRIGGER update_financial_transactions_updated_at 
+        BEFORE UPDATE ON financial_transactions 
+        FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+    END IF;
+END;
+$$ LANGUAGE plpgsql;

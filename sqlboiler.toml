@@ -1,0 +1,42 @@
+# SQLBoiler 配置文件
+# 数据库连接配置
+[psql]
+  dbname  = "tsu_db"
+  host    = "localhost"
+  port    = 5432
+  user    = "tsu_user"
+  pass    = "tsu_test"
+  sslmode = "disable"
+
+# 生成配置
+output          = "internal/repository/models"
+pkgname         = "models"
+wipe            = true
+add-global-variants = true
+add-panic-variants  = true
+add-soft-deletes    = true
+
+# 模板配置
+templates = [
+  "models"
+]
+
+# 导入配置
+[psql.imports]
+  third_party = [
+    "github.com/volatiletech/null/v8",
+    "github.com/volatiletech/sqlboiler/v4/boil",
+    "github.com/volatiletech/sqlboiler/v4/queries/qm"
+  ]
+
+# 类型替换配置
+[psql.replacements]
+
+# 表名替换配置 (如果需要)
+[psql.aliases]
+
+# 忽略表配置 (如果需要忽略某些表)
+[psql.blacklist]
+
+# 只生成指定表 (如果需要)
+# [psql.whitelist]
