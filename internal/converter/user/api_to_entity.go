@@ -1,8 +1,8 @@
 package user
 
 import (
-	apiUser "tsu-self/internal/api/request/user"
-	apiUserResp "tsu-self/internal/api/response/user"
+	apiUser "tsu-self/internal/api_models/request/user"
+	apiUserResp "tsu-self/internal/api_models/response/user"
 	"tsu-self/internal/repository/entity"
 )
 

@@ -21,8 +21,8 @@ import (
 	"time"
 
 	// 新的 API 层模型
-	apiAuthReq "tsu-self/internal/api/request/auth"
-	apiUserReq "tsu-self/internal/api/request/user"
+	apiAuthReq "tsu-self/internal/api_models/request/auth"
+	apiUserReq "tsu-self/internal/api_models/request/user"
 
 	// 转换器
 	authConverter "tsu-self/internal/converter/auth"
@@ -154,13 +154,13 @@ func (m *AdminModule) callWithRetry(ctx context.Context, serviceName, methodName
 
 	// 可重试的错误类型
 	retryableErrors := map[string]bool{
-		"none available":        true,  // 没有可用服务
-		"deadline exceeded":     true,  // 超时
-		"client closed":         true,  // 客户端关闭
-		"connection refused":    true,  // 连接被拒绝
-		"connection reset":      true,  // 连接重置
-		"temporary failure":     true,  // 临时失败
-		"认证服务调用失败":         true,  // 我们的自定义错误
+		"none available":     true, // 没有可用服务
+		"deadline exceeded":  true, // 超时
+		"client closed":      true, // 客户端关闭
+		"connection refused": true, // 连接被拒绝
+		"connection reset":   true, // 连接重置
+		"temporary failure":  true, // 临时失败
+		"认证服务调用失败":           true, // 我们的自定义错误
 	}
 
 	for attempt := 1; attempt <= maxRetries; attempt++ {

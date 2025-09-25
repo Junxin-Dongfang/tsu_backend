@@ -3,7 +3,7 @@ package common
 import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"tsu-self/internal/api/response/user"
+	"tsu-self/internal/api_models/response/user"
 	"tsu-self/internal/repository/entity"
 	"tsu-self/internal/rpc/generated/common"
 )

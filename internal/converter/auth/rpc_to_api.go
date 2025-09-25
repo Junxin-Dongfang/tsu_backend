@@ -1,7 +1,7 @@
 package auth
 
 import (
-	apiAuth "tsu-self/internal/api/response/auth"
+	apiAuth "tsu-self/internal/api_models/response/auth"
 	"tsu-self/internal/converter/common"
 	"tsu-self/internal/rpc/generated/auth"
 )

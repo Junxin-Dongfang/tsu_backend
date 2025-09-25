@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 
-	"tsu-self/internal/api/response/auth"
+	"tsu-self/internal/api_models/response/auth"
 	"tsu-self/internal/converter/common"
 	"tsu-self/internal/pkg/log"
 	"tsu-self/internal/pkg/xerrors"
