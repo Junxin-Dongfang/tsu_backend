@@ -173,8 +173,8 @@ internal/converter/
 ### 架构规则
 
 #### ✅ 允许的依赖关系
-- **HTTP Handler** → `internal/api/model/*` + Converters → Service
-- **Service Layer** → `internal/entity/*` + `internal/rpc/generated/*`
+- **HTTP Handler** → `internal/api/model/*`
+- **Service Layer** → `internal/entity/*` + `internal/rpc/generated/*`+ HTTP request → Converters → Service + Service → Converters → HTTP response
 - **Repository** → `internal/entity/*` only
 - **Converters** → 可在任何需要转换的地方使用
 
