@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 
-	"tsu-self/internal/api_models/response/auth"
+	"tsu-self/internal/api/model/response/auth"
 	"tsu-self/internal/converter/common"
 	"tsu-self/internal/pkg/log"
 	"tsu-self/internal/pkg/xerrors"
@@ -84,7 +84,7 @@ func (t *TransactionService) LoginTransaction(ctx context.Context, authResp *aut
 		Success:       true,
 		SessionToken:  authResp.Token,
 		SessionCookie: "", // 根据需要设置
-		UserInfo:      common.UserInfoFromEntity(userInfo),
+		UserInfo:      common.UserInfoFromBasicModel(userInfo),
 	}, nil
 }
 
@@ -128,7 +128,7 @@ func (t *TransactionService) RegisterTransaction(ctx context.Context, authResp *
 		Success:      true,
 		IdentityID:   authResp.IdentityId,
 		SessionToken: authResp.Token,
-		UserInfo:     common.UserInfoFromEntity(userInfo),
+		UserInfo:     common.UserInfoFromBasicModel(userInfo),
 	}, nil
 }
 

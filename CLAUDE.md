@@ -70,6 +70,26 @@ make migrate-down
 go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 ```
 
+### 数据库模型生成
+项目使用 SQLBoiler 自动生成数据库实体模型：
+
+```bash
+# 生成数据库实体模型
+make generate-models
+
+# 安装 SQLBoiler 工具（自动执行）
+make install-sqlboiler
+
+# 重新生成所有模型（清理后生成）
+make generate-models
+```
+
+**SQLBoiler 配置** (`sqlboiler.toml`):
+- **输出目录**: `internal/entity/`
+- **包名**: `entity`
+- **数据库**: PostgreSQL
+- **扩展模式**: 使用 `*_extension.go` 文件添加业务逻辑
+
 ## 项目架构
 
 ### 三层架构模式
@@ -91,10 +111,10 @@ go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 
 #### 1. API Layer - HTTP 接口层
 ```
-internal/api/
+internal/api/model/
 ├── request/     # HTTP 请求模型 (JSON)
 ├── response/    # HTTP 响应模型 (JSON)
-└── ...
+└── validator/   # API 验证器
 ```
 
 **职责**：
@@ -120,15 +140,21 @@ internal/rpc/
 
 #### 3. Database Layer - 数据持久化层
 ```
-internal/repository/
-├── entity/          # 数据库实体模型
-├── query/           # 查询参数模型
+internal/entity/               # 数据库实体模型
+├── *.go                      # SQLBoiler 生成的基础实体
+├── *_extension.go            # 手动扩展的聚合根和业务逻辑
 └── ...
+
+internal/repository/          # 仓储模式
+├── interfaces/              # 仓储接口定义
+├── impl/                    # 仓储实现
+└── query/                   # 查询参数模型
 ```
 
 **职责**：
-- 映射数据库表结构
-- 包含业务逻辑方法
+- **Entity**: 映射数据库表结构，通过 SQLBoiler 自动生成
+- **Extension**: 业务聚合根和领域逻辑扩展
+- **Repository**: 数据访问抽象和实现
 - **只在 Service 层使用**
 
 #### 4. Converter Layer - 转换层
@@ -147,15 +173,42 @@ internal/converter/
 ### 架构规则
 
 #### ✅ 允许的依赖关系
-- **HTTP Handler** → API models + Converters → Service
-- **Service Layer** → Entity models + RPC models
-- **Repository** → Entity models only
+- **HTTP Handler** → `internal/api/model/*` + Converters → Service
+- **Service Layer** → `internal/entity/*` + `internal/rpc/generated/*`
+- **Repository** → `internal/entity/*` only
 - **Converters** → 可在任何需要转换的地方使用
 
 #### 🚫 禁止的依赖关系
-- ❌ HTTP Handler 不能直接使用 `entity.*`
+- ❌ HTTP Handler 不能直接使用 `internal/entity/*`
 - ❌ HTTP Handler 不能直接使用 RPC models
 - ❌ Repository 不能使用 API models
+
+### 命名规范
+
+#### 核心原则
+- **Entity**: `internal/entity/` - 数据库实体，SQLBoiler 自动生成
+- **Model**: `internal/api/model/` - API 请求/响应模型
+- **Proto**: `internal/rpc/proto/` - Protocol Buffer 定义
+- **Extension**: `*_extension.go` - 实体功能扩展文件
+
+#### 文件命名规范
+```
+internal/entity/
+├── users.go              # SQLBoiler 生成的基础实体
+├── user_finances.go      # SQLBoiler 生成的基础实体
+├── user_extension.go     # 手动扩展：UserAggregate + 业务方法
+└── ...
+
+internal/api/model/
+├── request/user/         # 用户相关请求模型
+├── response/user/        # 用户相关响应模型
+└── ...
+
+internal/rpc/proto/
+├── auth.proto           # 认证服务协议定义
+├── user.proto           # 用户服务协议定义
+└── generated/           # 自动生成的 Go 代码
+```
 
 ### 核心模块结构
 - **cmd/**: 服务入口点

@@ -3,8 +3,8 @@ package common
 import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"tsu-self/internal/api_models/response/user"
-	"tsu-self/internal/repository/entity"
+	"tsu-self/internal/api/model/response/user"
+	"tsu-self/internal/entity"
 	"tsu-self/internal/rpc/generated/common"
 )
 
@@ -51,8 +51,8 @@ func UserInfoToRPC(profile *user.Profile) *common.UserInfo {
 	}
 }
 
-// UserInfoFromEntity 从数据库实体转换为 API UserProfile
-func UserInfoFromEntity(userEntity *entity.User) *user.Profile {
+// UserInfoFromEntity 从数据库聚合实体转换为 API UserProfile
+func UserInfoFromEntity(userEntity *entity.UserAggregate) *user.Profile {
 	if userEntity == nil {
 		return nil
 	}
@@ -61,35 +61,49 @@ func UserInfoFromEntity(userEntity *entity.User) *user.Profile {
 		ID:           userEntity.ID,
 		Username:     userEntity.Username,
 		Email:        userEntity.Email,
-		IsPremium:    userEntity.IsPremium,
-		DiamondCount: userEntity.DiamondCount,
+		IsPremium:    userEntity.IsPremium(),
+		DiamondCount: userEntity.GetDiamondCount(),
 		CreatedAt:    userEntity.CreatedAt,
 		UpdatedAt:    userEntity.UpdatedAt,
 	}
 }
 
+// UserInfoFromBasicModel 从基础User模型转换为 API UserProfile
+func UserInfoFromBasicModel(userModel *entity.User) *user.Profile {
+	if userModel == nil {
+		return nil
+	}
+
+	return &user.Profile{
+		ID:           userModel.ID,
+		Username:     userModel.Username,
+		Email:        userModel.Email,
+		IsPremium:    false, // 基础模型没有财务信息，默认false
+		DiamondCount: 0,     // 基础模型没有财务信息，默认0
+		CreatedAt:    userModel.CreatedAt,
+		UpdatedAt:    userModel.UpdatedAt,
+	}
+}
+
 // UserInfoToEntity 从 API UserProfile 转换为数据库实体（部分字段）
+// UserInfoToEntity 从 API UserProfile 转换为数据库模型（仅用户基础信息）
 func UserInfoToEntity(profile *user.Profile) *entity.User {
 	if profile == nil {
 		return nil
 	}
 
 	return &entity.User{
-		ID:           profile.ID,
-		Username:     profile.Username,
-		Email:        profile.Email,
-		IsPremium:    profile.IsPremium,
-		DiamondCount: profile.DiamondCount,
-		CreatedAt:    profile.CreatedAt,
-		UpdatedAt:    profile.UpdatedAt,
+		ID:       profile.ID,
+		Username: profile.Username,
+		Email:    profile.Email,
+		CreatedAt: profile.CreatedAt,
+		UpdatedAt: profile.UpdatedAt,
 		// 其他字段需要单独设置
-		Timezone: "UTC",
-		Language: "zh-CN",
 	}
 }
 
 // EntityToRPCUserInfo 从数据库实体转换为 RPC UserInfo
-func EntityToRPCUserInfo(userEntity *entity.User) *common.UserInfo {
+func EntityToRPCUserInfo(userEntity *entity.UserAggregate) *common.UserInfo {
 	if userEntity == nil {
 		return nil
 	}
@@ -98,8 +112,8 @@ func EntityToRPCUserInfo(userEntity *entity.User) *common.UserInfo {
 		Id:           userEntity.ID,
 		Username:     userEntity.Username,
 		Email:        userEntity.Email,
-		IsPremium:    userEntity.IsPremium,
-		DiamondCount: int32(userEntity.DiamondCount),
+		IsPremium:    userEntity.IsPremium(),
+		DiamondCount: int32(userEntity.GetDiamondCount()),
 		CreatedAt:    timestamppb.New(userEntity.CreatedAt),
 		UpdatedAt:    timestamppb.New(userEntity.UpdatedAt),
 		Traits:       make(map[string]string),

@@ -21,8 +21,8 @@ import (
 	"time"
 
 	// 新的 API 层模型
-	apiAuthReq "tsu-self/internal/api_models/request/auth"
-	apiUserReq "tsu-self/internal/api_models/request/user"
+	apiAuthReq "tsu-self/internal/api/model/request/auth"
+	apiUserReq "tsu-self/internal/api/model/request/user"
 
 	// 转换器
 	authConverter "tsu-self/internal/converter/auth"
@@ -425,7 +425,7 @@ func (m *AdminModule) GetUserProfile(c echo.Context) error {
 	}
 
 	// 转换为API响应格式
-	profile := userConverter.EntityToProfileResponse(user)
+	profile := userConverter.BasicUserToProfileResponse(user)
 
 	m.logger.InfoContext(ctx, "用户资料获取成功", log.String("user_id", userID))
 	return m.respWriter.WriteSuccess(ctx, c.Response().Writer, profile)
@@ -473,7 +473,7 @@ func (m *AdminModule) UpdateUserProfile(c echo.Context) error {
 		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
 	}
 
-	profile := userConverter.EntityToProfileResponse(updatedUser)
+	profile := userConverter.BasicUserToProfileResponse(updatedUser)
 
 	return m.respWriter.WriteSuccess(ctx, c.Response().Writer, profile)
 }

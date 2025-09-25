@@ -11,7 +11,7 @@ import (
 
 	"tsu-self/internal/pkg/log"
 	"tsu-self/internal/pkg/xerrors"
-	"tsu-self/internal/repository/entity"
+	"tsu-self/internal/entity"
 	authpb "tsu-self/internal/rpc/generated/auth"
 
 	"github.com/golang-jwt/jwt/v5"

@@ -9,17 +9,20 @@
   sslmode = "disable"
 
 # 生成配置
-output          = "internal/repository/models"
-pkgname         = "models"
+output          = "internal/entity"
+pkgname         = "entity"
 wipe            = true
 add-global-variants = true
 add-panic-variants  = true
 add-soft-deletes    = true
 
-# 模板配置
+# 模板配置 - 只生成模型，不生成测试文件
 templates = [
   "models"
 ]
+
+# 测试配置 - 禁用测试文件生成
+no-tests = true
 
 # 导入配置
 [psql.imports]

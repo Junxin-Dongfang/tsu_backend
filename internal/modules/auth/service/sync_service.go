@@ -5,7 +5,7 @@ import (
 	"context"
 	"database/sql"
 
-	"tsu-self/internal/repository/entity"
+	"tsu-self/internal/entity"
 	"tsu-self/internal/pkg/log"
 	"tsu-self/internal/pkg/xerrors"
 )
@@ -40,7 +40,7 @@ func (s *SyncService) CreateBusinessUser(ctx context.Context, identityID, email,
 	query := `
 		INSERT INTO users (id, username, email, created_at, updated_at)
 		VALUES ($1, $2, $3, NOW(), NOW())
-		RETURNING id, username, email, is_premium, diamond_count, created_at, updated_at
+		RETURNING id, username, email, created_at, updated_at
 	`
 
 	var userInfo entity.User
@@ -48,8 +48,6 @@ func (s *SyncService) CreateBusinessUser(ctx context.Context, identityID, email,
 		&userInfo.ID,
 		&userInfo.Username,
 		&userInfo.Email,
-		&userInfo.IsPremium,
-		&userInfo.DiamondCount,
 		&userInfo.CreatedAt,
 		&userInfo.UpdatedAt,
 	)
@@ -92,8 +90,8 @@ func (s *SyncService) SyncUserAfterLogin(ctx context.Context, sessionToken strin
 // GetUserByID 根据ID获取用户信息
 func (s *SyncService) GetUserByID(ctx context.Context, userID string) (*entity.User, *xerrors.AppError) {
 	query := `
-		SELECT id, username, email, is_premium, diamond_count, created_at, updated_at
-		FROM users 
+		SELECT id, username, email, created_at, updated_at
+		FROM users
 		WHERE id = $1 AND deleted_at IS NULL
 	`
 
@@ -102,8 +100,6 @@ func (s *SyncService) GetUserByID(ctx context.Context, userID string) (*entity.U
 		&userInfo.ID,
 		&userInfo.Username,
 		&userInfo.Email,
-		&userInfo.IsPremium,
-		&userInfo.DiamondCount,
 		&userInfo.CreatedAt,
 		&userInfo.UpdatedAt,
 	)

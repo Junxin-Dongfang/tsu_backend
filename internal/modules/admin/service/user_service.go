@@ -9,7 +9,7 @@ import (
 
 	"tsu-self/internal/pkg/log"
 	"tsu-self/internal/pkg/xerrors"
-	"tsu-self/internal/repository/entity"
+	"tsu-self/internal/entity"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -33,7 +33,7 @@ func (s *UserService) GetUserByID(ctx context.Context, userID string) (*entity.U
 	s.logger.InfoContext(ctx, "获取用户信息", log.String("user_id", userID))
 
 	query := `
-		SELECT id, email, username, nickname, phone_number, is_premium, diamond_count, created_at, updated_at
+		SELECT id, email, username, nickname, phone_number, created_at, updated_at
 		FROM users
 		WHERE id = $1 AND deleted_at IS NULL
 	`
@@ -77,7 +77,7 @@ func (s *UserService) UpdateUserProfile(ctx context.Context, userID string, prof
 		UPDATE users
 		SET %s
 		WHERE id = $1 AND deleted_at IS NULL
-		RETURNING id, username, nickname, email, phone_number, is_premium, diamond_count, created_at, updated_at
+		RETURNING id, username, nickname, email, phone_number, created_at, updated_at
 		`, strings.Join(setParts, ", "))
 
 	args = append([]interface{}{userID}, args...)

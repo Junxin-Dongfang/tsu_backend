@@ -1,6 +1,6 @@
 package auth
 
-import "tsu-self/internal/api_models/response/user"
+import "tsu-self/internal/api/model/response/user"
 
 // LoginResult HTTP API 登录响应
 // @Description 用户登录结果

@@ -15,19 +15,36 @@ migrate-up:
 migrate-down:
 	migrate -database $(MAIN_DB_URL) -path ./migrations down 1
 
-.PHONY: help swagger-gen swagger-admin dev-up dev-down dev-logs
+.PHONY: help swagger-gen swagger-admin dev-up dev-down dev-logs generate-models install-sqlboiler
 
 help:
 	@echo "Available commands:"
-	@echo "  swagger-gen     - Generate admin service swagger docs"
-	@echo "  dev-up         - Start development environment"
-	@echo "  dev-down       - Stop development environment"
-	@echo "  dev-logs       - Show logs from all services"
-	@echo "  dev-rebuild    - Rebuild and restart development environment"
+	@echo "  swagger-gen      - Generate admin service swagger docs"
+	@echo "  generate-models  - Generate database models using SQLBoiler"
+	@echo "  dev-up          - Start development environment"
+	@echo "  dev-down        - Stop development environment"
+	@echo "  dev-logs        - Show logs from all services"
+	@echo "  dev-rebuild     - Rebuild and restart development environment"
 
 # 安装 swag 工具
 install-swag:
 	go install github.com/swaggo/swag/cmd/swag@latest
+
+# 安装 SQLBoiler 工具
+install-sqlboiler:
+	go install github.com/aarondl/sqlboiler/v4@latest
+	go install github.com/aarondl/sqlboiler/v4/drivers/sqlboiler-psql@latest
+
+# 生成数据库模型
+generate-models: install-sqlboiler
+	PATH="$(shell go env GOPATH)/bin:$$PATH" sqlboiler psql --config sqlboiler.toml
+	@if [ -d "models" ]; then \
+		mkdir -p internal/entity && \
+		cp models/*.go internal/entity/ && \
+		cd internal/entity && rm -f *_test.go boil_*_test.go && \
+		cd ../.. && rm -rf models/ && \
+		echo "✅ 实体模型生成完成，已清理测试文件"; \
+	fi
 
 # 生成 admin 服务的 swagger 文档
 swagger-admin: install-swag
