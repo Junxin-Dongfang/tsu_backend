@@ -410,6 +410,31 @@ func AddClassAttributeBonuseHook(hookPoint boil.HookPoint, classAttributeBonuseH
 	}
 }
 
+// OneG returns a single classAttributeBonuse record from the query using the global executor.
+func (q classAttributeBonuseQuery) OneG(ctx context.Context) (*ClassAttributeBonuse, error) {
+	return q.One(ctx, boil.GetContextDB())
+}
+
+// OneGP returns a single classAttributeBonuse record from the query using the global executor, and panics on error.
+func (q classAttributeBonuseQuery) OneGP(ctx context.Context) *ClassAttributeBonuse {
+	o, err := q.One(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
+// OneP returns a single classAttributeBonuse record from the query, and panics on error.
+func (q classAttributeBonuseQuery) OneP(ctx context.Context, exec boil.ContextExecutor) *ClassAttributeBonuse {
+	o, err := q.One(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
 // One returns a single classAttributeBonuse record from the query.
 func (q classAttributeBonuseQuery) One(ctx context.Context, exec boil.ContextExecutor) (*ClassAttributeBonuse, error) {
 	o := &ClassAttributeBonuse{}
@@ -421,7 +446,7 @@ func (q classAttributeBonuseQuery) One(ctx context.Context, exec boil.ContextExe
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "models: failed to execute a one query for class_attribute_bonuses")
+		return nil, errors.Wrap(err, "entity: failed to execute a one query for class_attribute_bonuses")
 	}
 
 	if err := o.doAfterSelectHooks(ctx, exec); err != nil {
@@ -431,13 +456,38 @@ func (q classAttributeBonuseQuery) One(ctx context.Context, exec boil.ContextExe
 	return o, nil
 }
 
+// AllG returns all ClassAttributeBonuse records from the query using the global executor.
+func (q classAttributeBonuseQuery) AllG(ctx context.Context) (ClassAttributeBonuseSlice, error) {
+	return q.All(ctx, boil.GetContextDB())
+}
+
+// AllGP returns all ClassAttributeBonuse records from the query using the global executor, and panics on error.
+func (q classAttributeBonuseQuery) AllGP(ctx context.Context) ClassAttributeBonuseSlice {
+	o, err := q.All(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
+// AllP returns all ClassAttributeBonuse records from the query, and panics on error.
+func (q classAttributeBonuseQuery) AllP(ctx context.Context, exec boil.ContextExecutor) ClassAttributeBonuseSlice {
+	o, err := q.All(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
 // All returns all ClassAttributeBonuse records from the query.
 func (q classAttributeBonuseQuery) All(ctx context.Context, exec boil.ContextExecutor) (ClassAttributeBonuseSlice, error) {
 	var o []*ClassAttributeBonuse
 
 	err := q.Bind(ctx, exec, &o)
 	if err != nil {
-		return nil, errors.Wrap(err, "models: failed to assign all query results to ClassAttributeBonuse slice")
+		return nil, errors.Wrap(err, "entity: failed to assign all query results to ClassAttributeBonuse slice")
 	}
 
 	if len(classAttributeBonuseAfterSelectHooks) != 0 {
@@ -451,6 +501,31 @@ func (q classAttributeBonuseQuery) All(ctx context.Context, exec boil.ContextExe
 	return o, nil
 }
 
+// CountG returns the count of all ClassAttributeBonuse records in the query using the global executor
+func (q classAttributeBonuseQuery) CountG(ctx context.Context) (int64, error) {
+	return q.Count(ctx, boil.GetContextDB())
+}
+
+// CountGP returns the count of all ClassAttributeBonuse records in the query using the global executor, and panics on error.
+func (q classAttributeBonuseQuery) CountGP(ctx context.Context) int64 {
+	c, err := q.Count(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return c
+}
+
+// CountP returns the count of all ClassAttributeBonuse records in the query, and panics on error.
+func (q classAttributeBonuseQuery) CountP(ctx context.Context, exec boil.ContextExecutor) int64 {
+	c, err := q.Count(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return c
+}
+
 // Count returns the count of all ClassAttributeBonuse records in the query.
 func (q classAttributeBonuseQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	var count int64
@@ -460,10 +535,35 @@ func (q classAttributeBonuseQuery) Count(ctx context.Context, exec boil.ContextE
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: failed to count class_attribute_bonuses rows")
+		return 0, errors.Wrap(err, "entity: failed to count class_attribute_bonuses rows")
 	}
 
 	return count, nil
+}
+
+// ExistsG checks if the row exists in the table using the global executor.
+func (q classAttributeBonuseQuery) ExistsG(ctx context.Context) (bool, error) {
+	return q.Exists(ctx, boil.GetContextDB())
+}
+
+// ExistsGP checks if the row exists in the table using the global executor, and panics on error.
+func (q classAttributeBonuseQuery) ExistsGP(ctx context.Context) bool {
+	e, err := q.Exists(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return e
+}
+
+// ExistsP checks if the row exists in the table, and panics on error.
+func (q classAttributeBonuseQuery) ExistsP(ctx context.Context, exec boil.ContextExecutor) bool {
+	e, err := q.Exists(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return e
 }
 
 // Exists checks if the row exists in the table.
@@ -476,7 +576,7 @@ func (q classAttributeBonuseQuery) Exists(ctx context.Context, exec boil.Context
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return false, errors.Wrap(err, "models: failed to check if class_attribute_bonuses exists")
+		return false, errors.Wrap(err, "entity: failed to check if class_attribute_bonuses exists")
 	}
 
 	return count > 0, nil
@@ -564,6 +664,7 @@ func (classAttributeBonuseL) LoadAttribute(ctx context.Context, e boil.ContextEx
 	query := NewQuery(
 		qm.From(`hero_attribute_type`),
 		qm.WhereIn(`hero_attribute_type.id in ?`, argsSlice...),
+		qmhelper.WhereIsNull(`hero_attribute_type.deleted_at`),
 	)
 	if mods != nil {
 		mods.Apply(query)
@@ -684,6 +785,7 @@ func (classAttributeBonuseL) LoadClass(ctx context.Context, e boil.ContextExecut
 	query := NewQuery(
 		qm.From(`classes`),
 		qm.WhereIn(`classes.id in ?`, argsSlice...),
+		qmhelper.WhereIsNull(`classes.deleted_at`),
 	)
 	if mods != nil {
 		mods.Apply(query)
@@ -744,6 +846,34 @@ func (classAttributeBonuseL) LoadClass(ctx context.Context, e boil.ContextExecut
 	return nil
 }
 
+// SetAttributeG of the classAttributeBonuse to the related item.
+// Sets o.R.Attribute to related.
+// Adds o to related.R.AttributeClassAttributeBonuses.
+// Uses the global database handle.
+func (o *ClassAttributeBonuse) SetAttributeG(ctx context.Context, insert bool, related *HeroAttributeType) error {
+	return o.SetAttribute(ctx, boil.GetContextDB(), insert, related)
+}
+
+// SetAttributeP of the classAttributeBonuse to the related item.
+// Sets o.R.Attribute to related.
+// Adds o to related.R.AttributeClassAttributeBonuses.
+// Panics on error.
+func (o *ClassAttributeBonuse) SetAttributeP(ctx context.Context, exec boil.ContextExecutor, insert bool, related *HeroAttributeType) {
+	if err := o.SetAttribute(ctx, exec, insert, related); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// SetAttributeGP of the classAttributeBonuse to the related item.
+// Sets o.R.Attribute to related.
+// Adds o to related.R.AttributeClassAttributeBonuses.
+// Uses the global database handle and panics on error.
+func (o *ClassAttributeBonuse) SetAttributeGP(ctx context.Context, insert bool, related *HeroAttributeType) {
+	if err := o.SetAttribute(ctx, boil.GetContextDB(), insert, related); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
 // SetAttribute of the classAttributeBonuse to the related item.
 // Sets o.R.Attribute to related.
 // Adds o to related.R.AttributeClassAttributeBonuses.
@@ -789,6 +919,34 @@ func (o *ClassAttributeBonuse) SetAttribute(ctx context.Context, exec boil.Conte
 	}
 
 	return nil
+}
+
+// SetClassG of the classAttributeBonuse to the related item.
+// Sets o.R.Class to related.
+// Adds o to related.R.ClassAttributeBonuses.
+// Uses the global database handle.
+func (o *ClassAttributeBonuse) SetClassG(ctx context.Context, insert bool, related *Class) error {
+	return o.SetClass(ctx, boil.GetContextDB(), insert, related)
+}
+
+// SetClassP of the classAttributeBonuse to the related item.
+// Sets o.R.Class to related.
+// Adds o to related.R.ClassAttributeBonuses.
+// Panics on error.
+func (o *ClassAttributeBonuse) SetClassP(ctx context.Context, exec boil.ContextExecutor, insert bool, related *Class) {
+	if err := o.SetClass(ctx, exec, insert, related); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// SetClassGP of the classAttributeBonuse to the related item.
+// Sets o.R.Class to related.
+// Adds o to related.R.ClassAttributeBonuses.
+// Uses the global database handle and panics on error.
+func (o *ClassAttributeBonuse) SetClassGP(ctx context.Context, insert bool, related *Class) {
+	if err := o.SetClass(ctx, boil.GetContextDB(), insert, related); err != nil {
+		panic(boil.WrapErr(err))
+	}
 }
 
 // SetClass of the classAttributeBonuse to the related item.
@@ -849,6 +1007,31 @@ func ClassAttributeBonuses(mods ...qm.QueryMod) classAttributeBonuseQuery {
 	return classAttributeBonuseQuery{q}
 }
 
+// FindClassAttributeBonuseG retrieves a single record by ID.
+func FindClassAttributeBonuseG(ctx context.Context, iD string, selectCols ...string) (*ClassAttributeBonuse, error) {
+	return FindClassAttributeBonuse(ctx, boil.GetContextDB(), iD, selectCols...)
+}
+
+// FindClassAttributeBonuseP retrieves a single record by ID with an executor, and panics on error.
+func FindClassAttributeBonuseP(ctx context.Context, exec boil.ContextExecutor, iD string, selectCols ...string) *ClassAttributeBonuse {
+	retobj, err := FindClassAttributeBonuse(ctx, exec, iD, selectCols...)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return retobj
+}
+
+// FindClassAttributeBonuseGP retrieves a single record by ID, and panics on error.
+func FindClassAttributeBonuseGP(ctx context.Context, iD string, selectCols ...string) *ClassAttributeBonuse {
+	retobj, err := FindClassAttributeBonuse(ctx, boil.GetContextDB(), iD, selectCols...)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return retobj
+}
+
 // FindClassAttributeBonuse retrieves a single record by ID with an executor.
 // If selectCols is empty Find will return all columns.
 func FindClassAttributeBonuse(ctx context.Context, exec boil.ContextExecutor, iD string, selectCols ...string) (*ClassAttributeBonuse, error) {
@@ -869,7 +1052,7 @@ func FindClassAttributeBonuse(ctx context.Context, exec boil.ContextExecutor, iD
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "models: unable to select from class_attribute_bonuses")
+		return nil, errors.Wrap(err, "entity: unable to select from class_attribute_bonuses")
 	}
 
 	if err = classAttributeBonuseObj.doAfterSelectHooks(ctx, exec); err != nil {
@@ -879,11 +1062,32 @@ func FindClassAttributeBonuse(ctx context.Context, exec boil.ContextExecutor, iD
 	return classAttributeBonuseObj, nil
 }
 
+// InsertG a single record. See Insert for whitelist behavior description.
+func (o *ClassAttributeBonuse) InsertG(ctx context.Context, columns boil.Columns) error {
+	return o.Insert(ctx, boil.GetContextDB(), columns)
+}
+
+// InsertP a single record using an executor, and panics on error. See Insert
+// for whitelist behavior description.
+func (o *ClassAttributeBonuse) InsertP(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) {
+	if err := o.Insert(ctx, exec, columns); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// InsertGP a single record, and panics on error. See Insert for whitelist
+// behavior description.
+func (o *ClassAttributeBonuse) InsertGP(ctx context.Context, columns boil.Columns) {
+	if err := o.Insert(ctx, boil.GetContextDB(), columns); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
 // Insert a single record using an executor.
 // See boil.Columns.InsertColumnSet documentation to understand column list inference for inserts.
 func (o *ClassAttributeBonuse) Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error {
 	if o == nil {
-		return errors.New("models: no class_attribute_bonuses provided for insertion")
+		return errors.New("entity: no class_attribute_bonuses provided for insertion")
 	}
 
 	var err error
@@ -956,7 +1160,7 @@ func (o *ClassAttributeBonuse) Insert(ctx context.Context, exec boil.ContextExec
 	}
 
 	if err != nil {
-		return errors.Wrap(err, "models: unable to insert into class_attribute_bonuses")
+		return errors.Wrap(err, "entity: unable to insert into class_attribute_bonuses")
 	}
 
 	if !cached {
@@ -966,6 +1170,34 @@ func (o *ClassAttributeBonuse) Insert(ctx context.Context, exec boil.ContextExec
 	}
 
 	return o.doAfterInsertHooks(ctx, exec)
+}
+
+// UpdateG a single ClassAttributeBonuse record using the global executor.
+// See Update for more documentation.
+func (o *ClassAttributeBonuse) UpdateG(ctx context.Context, columns boil.Columns) (int64, error) {
+	return o.Update(ctx, boil.GetContextDB(), columns)
+}
+
+// UpdateP uses an executor to update the ClassAttributeBonuse, and panics on error.
+// See Update for more documentation.
+func (o *ClassAttributeBonuse) UpdateP(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) int64 {
+	rowsAff, err := o.Update(ctx, exec, columns)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
+// UpdateGP a single ClassAttributeBonuse record using the global executor. Panics on error.
+// See Update for more documentation.
+func (o *ClassAttributeBonuse) UpdateGP(ctx context.Context, columns boil.Columns) int64 {
+	rowsAff, err := o.Update(ctx, boil.GetContextDB(), columns)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
 }
 
 // Update uses an executor to update the ClassAttributeBonuse.
@@ -997,7 +1229,7 @@ func (o *ClassAttributeBonuse) Update(ctx context.Context, exec boil.ContextExec
 			wl = strmangle.SetComplement(wl, []string{"created_at"})
 		}
 		if len(wl) == 0 {
-			return 0, errors.New("models: unable to update class_attribute_bonuses, could not build whitelist")
+			return 0, errors.New("entity: unable to update class_attribute_bonuses, could not build whitelist")
 		}
 
 		cache.query = fmt.Sprintf("UPDATE \"class_attribute_bonuses\" SET %s WHERE %s",
@@ -1020,12 +1252,12 @@ func (o *ClassAttributeBonuse) Update(ctx context.Context, exec boil.ContextExec
 	var result sql.Result
 	result, err = exec.ExecContext(ctx, cache.query, values...)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to update class_attribute_bonuses row")
+		return 0, errors.Wrap(err, "entity: unable to update class_attribute_bonuses row")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "models: failed to get rows affected by update for class_attribute_bonuses")
+		return 0, errors.Wrap(err, "entity: failed to get rows affected by update for class_attribute_bonuses")
 	}
 
 	if !cached {
@@ -1037,21 +1269,71 @@ func (o *ClassAttributeBonuse) Update(ctx context.Context, exec boil.ContextExec
 	return rowsAff, o.doAfterUpdateHooks(ctx, exec)
 }
 
+// UpdateAllP updates all rows with matching column names, and panics on error.
+func (q classAttributeBonuseQuery) UpdateAllP(ctx context.Context, exec boil.ContextExecutor, cols M) int64 {
+	rowsAff, err := q.UpdateAll(ctx, exec, cols)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
+// UpdateAllG updates all rows with the specified column values.
+func (q classAttributeBonuseQuery) UpdateAllG(ctx context.Context, cols M) (int64, error) {
+	return q.UpdateAll(ctx, boil.GetContextDB(), cols)
+}
+
+// UpdateAllGP updates all rows with the specified column values, and panics on error.
+func (q classAttributeBonuseQuery) UpdateAllGP(ctx context.Context, cols M) int64 {
+	rowsAff, err := q.UpdateAll(ctx, boil.GetContextDB(), cols)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
 // UpdateAll updates all rows with the specified column values.
 func (q classAttributeBonuseQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
 	queries.SetUpdate(q.Query, cols)
 
 	result, err := q.Query.ExecContext(ctx, exec)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to update all for class_attribute_bonuses")
+		return 0, errors.Wrap(err, "entity: unable to update all for class_attribute_bonuses")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to retrieve rows affected for class_attribute_bonuses")
+		return 0, errors.Wrap(err, "entity: unable to retrieve rows affected for class_attribute_bonuses")
 	}
 
 	return rowsAff, nil
+}
+
+// UpdateAllG updates all rows with the specified column values.
+func (o ClassAttributeBonuseSlice) UpdateAllG(ctx context.Context, cols M) (int64, error) {
+	return o.UpdateAll(ctx, boil.GetContextDB(), cols)
+}
+
+// UpdateAllGP updates all rows with the specified column values, and panics on error.
+func (o ClassAttributeBonuseSlice) UpdateAllGP(ctx context.Context, cols M) int64 {
+	rowsAff, err := o.UpdateAll(ctx, boil.GetContextDB(), cols)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
+// UpdateAllP updates all rows with the specified column values, and panics on error.
+func (o ClassAttributeBonuseSlice) UpdateAllP(ctx context.Context, exec boil.ContextExecutor, cols M) int64 {
+	rowsAff, err := o.UpdateAll(ctx, exec, cols)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
 }
 
 // UpdateAll updates all rows with the specified column values, using an executor.
@@ -1062,7 +1344,7 @@ func (o ClassAttributeBonuseSlice) UpdateAll(ctx context.Context, exec boil.Cont
 	}
 
 	if len(cols) == 0 {
-		return 0, errors.New("models: update all requires at least one column argument")
+		return 0, errors.New("entity: update all requires at least one column argument")
 	}
 
 	colNames := make([]string, len(cols))
@@ -1092,21 +1374,41 @@ func (o ClassAttributeBonuseSlice) UpdateAll(ctx context.Context, exec boil.Cont
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to update all in classAttributeBonuse slice")
+		return 0, errors.Wrap(err, "entity: unable to update all in classAttributeBonuse slice")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to retrieve rows affected all in update all classAttributeBonuse")
+		return 0, errors.Wrap(err, "entity: unable to retrieve rows affected all in update all classAttributeBonuse")
 	}
 	return rowsAff, nil
+}
+
+// UpsertG attempts an insert, and does an update or ignore on conflict.
+func (o *ClassAttributeBonuse) UpsertG(ctx context.Context, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) error {
+	return o.Upsert(ctx, boil.GetContextDB(), updateOnConflict, conflictColumns, updateColumns, insertColumns, opts...)
+}
+
+// UpsertGP attempts an insert, and does an update or ignore on conflict. Panics on error.
+func (o *ClassAttributeBonuse) UpsertGP(ctx context.Context, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) {
+	if err := o.Upsert(ctx, boil.GetContextDB(), updateOnConflict, conflictColumns, updateColumns, insertColumns, opts...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// UpsertP attempts an insert using an executor, and does an update or ignore on conflict.
+// UpsertP panics on error.
+func (o *ClassAttributeBonuse) UpsertP(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) {
+	if err := o.Upsert(ctx, exec, updateOnConflict, conflictColumns, updateColumns, insertColumns, opts...); err != nil {
+		panic(boil.WrapErr(err))
+	}
 }
 
 // Upsert attempts an insert using an executor, and does an update or ignore on conflict.
 // See boil.Columns documentation for how to properly use updateColumns and insertColumns.
 func (o *ClassAttributeBonuse) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) error {
 	if o == nil {
-		return errors.New("models: no class_attribute_bonuses provided for upsert")
+		return errors.New("entity: no class_attribute_bonuses provided for upsert")
 	}
 	if !boil.TimestampsAreSkipped(ctx) {
 		currTime := time.Now().In(boil.GetLocation())
@@ -1171,7 +1473,7 @@ func (o *ClassAttributeBonuse) Upsert(ctx context.Context, exec boil.ContextExec
 		)
 
 		if updateOnConflict && len(update) == 0 {
-			return errors.New("models: unable to upsert class_attribute_bonuses, could not build update column list")
+			return errors.New("entity: unable to upsert class_attribute_bonuses, could not build update column list")
 		}
 
 		ret := strmangle.SetComplement(classAttributeBonuseAllColumns, strmangle.SetIntersect(insert, update))
@@ -1179,7 +1481,7 @@ func (o *ClassAttributeBonuse) Upsert(ctx context.Context, exec boil.ContextExec
 		conflict := conflictColumns
 		if len(conflict) == 0 && updateOnConflict && len(update) != 0 {
 			if len(classAttributeBonusePrimaryKeyColumns) == 0 {
-				return errors.New("models: unable to upsert class_attribute_bonuses, could not build conflict column list")
+				return errors.New("entity: unable to upsert class_attribute_bonuses, could not build conflict column list")
 			}
 
 			conflict = make([]string, len(classAttributeBonusePrimaryKeyColumns))
@@ -1220,7 +1522,7 @@ func (o *ClassAttributeBonuse) Upsert(ctx context.Context, exec boil.ContextExec
 		_, err = exec.ExecContext(ctx, cache.query, vals...)
 	}
 	if err != nil {
-		return errors.Wrap(err, "models: unable to upsert class_attribute_bonuses")
+		return errors.Wrap(err, "entity: unable to upsert class_attribute_bonuses")
 	}
 
 	if !cached {
@@ -1232,11 +1534,41 @@ func (o *ClassAttributeBonuse) Upsert(ctx context.Context, exec boil.ContextExec
 	return o.doAfterUpsertHooks(ctx, exec)
 }
 
+// DeleteG deletes a single ClassAttributeBonuse record.
+// DeleteG will match against the primary key column to find the record to delete.
+func (o *ClassAttributeBonuse) DeleteG(ctx context.Context) (int64, error) {
+	return o.Delete(ctx, boil.GetContextDB())
+}
+
+// DeleteP deletes a single ClassAttributeBonuse record with an executor.
+// DeleteP will match against the primary key column to find the record to delete.
+// Panics on error.
+func (o *ClassAttributeBonuse) DeleteP(ctx context.Context, exec boil.ContextExecutor) int64 {
+	rowsAff, err := o.Delete(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
+// DeleteGP deletes a single ClassAttributeBonuse record.
+// DeleteGP will match against the primary key column to find the record to delete.
+// Panics on error.
+func (o *ClassAttributeBonuse) DeleteGP(ctx context.Context) int64 {
+	rowsAff, err := o.Delete(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
 // Delete deletes a single ClassAttributeBonuse record with an executor.
 // Delete will match against the primary key column to find the record to delete.
 func (o *ClassAttributeBonuse) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if o == nil {
-		return 0, errors.New("models: no ClassAttributeBonuse provided for delete")
+		return 0, errors.New("entity: no ClassAttributeBonuse provided for delete")
 	}
 
 	if err := o.doBeforeDeleteHooks(ctx, exec); err != nil {
@@ -1253,12 +1585,12 @@ func (o *ClassAttributeBonuse) Delete(ctx context.Context, exec boil.ContextExec
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to delete from class_attribute_bonuses")
+		return 0, errors.Wrap(err, "entity: unable to delete from class_attribute_bonuses")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "models: failed to get rows affected by delete for class_attribute_bonuses")
+		return 0, errors.Wrap(err, "entity: failed to get rows affected by delete for class_attribute_bonuses")
 	}
 
 	if err := o.doAfterDeleteHooks(ctx, exec); err != nil {
@@ -1268,25 +1600,74 @@ func (o *ClassAttributeBonuse) Delete(ctx context.Context, exec boil.ContextExec
 	return rowsAff, nil
 }
 
+func (q classAttributeBonuseQuery) DeleteAllG(ctx context.Context) (int64, error) {
+	return q.DeleteAll(ctx, boil.GetContextDB())
+}
+
+// DeleteAllP deletes all rows, and panics on error.
+func (q classAttributeBonuseQuery) DeleteAllP(ctx context.Context, exec boil.ContextExecutor) int64 {
+	rowsAff, err := q.DeleteAll(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
+// DeleteAllGP deletes all rows, and panics on error.
+func (q classAttributeBonuseQuery) DeleteAllGP(ctx context.Context) int64 {
+	rowsAff, err := q.DeleteAll(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
 // DeleteAll deletes all matching rows.
 func (q classAttributeBonuseQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if q.Query == nil {
-		return 0, errors.New("models: no classAttributeBonuseQuery provided for delete all")
+		return 0, errors.New("entity: no classAttributeBonuseQuery provided for delete all")
 	}
 
 	queries.SetDelete(q.Query)
 
 	result, err := q.Query.ExecContext(ctx, exec)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to delete all from class_attribute_bonuses")
+		return 0, errors.Wrap(err, "entity: unable to delete all from class_attribute_bonuses")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "models: failed to get rows affected by deleteall for class_attribute_bonuses")
+		return 0, errors.Wrap(err, "entity: failed to get rows affected by deleteall for class_attribute_bonuses")
 	}
 
 	return rowsAff, nil
+}
+
+// DeleteAllG deletes all rows in the slice.
+func (o ClassAttributeBonuseSlice) DeleteAllG(ctx context.Context) (int64, error) {
+	return o.DeleteAll(ctx, boil.GetContextDB())
+}
+
+// DeleteAllP deletes all rows in the slice, using an executor, and panics on error.
+func (o ClassAttributeBonuseSlice) DeleteAllP(ctx context.Context, exec boil.ContextExecutor) int64 {
+	rowsAff, err := o.DeleteAll(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
+// DeleteAllGP deletes all rows in the slice, and panics on error.
+func (o ClassAttributeBonuseSlice) DeleteAllGP(ctx context.Context) int64 {
+	rowsAff, err := o.DeleteAll(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
 }
 
 // DeleteAll deletes all rows in the slice, using an executor.
@@ -1319,12 +1700,12 @@ func (o ClassAttributeBonuseSlice) DeleteAll(ctx context.Context, exec boil.Cont
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to delete all from classAttributeBonuse slice")
+		return 0, errors.Wrap(err, "entity: unable to delete all from classAttributeBonuse slice")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "models: failed to get rows affected by deleteall for class_attribute_bonuses")
+		return 0, errors.Wrap(err, "entity: failed to get rows affected by deleteall for class_attribute_bonuses")
 	}
 
 	if len(classAttributeBonuseAfterDeleteHooks) != 0 {
@@ -1338,6 +1719,29 @@ func (o ClassAttributeBonuseSlice) DeleteAll(ctx context.Context, exec boil.Cont
 	return rowsAff, nil
 }
 
+// ReloadG refetches the object from the database using the primary keys.
+func (o *ClassAttributeBonuse) ReloadG(ctx context.Context) error {
+	if o == nil {
+		return errors.New("entity: no ClassAttributeBonuse provided for reload")
+	}
+
+	return o.Reload(ctx, boil.GetContextDB())
+}
+
+// ReloadP refetches the object from the database with an executor. Panics on error.
+func (o *ClassAttributeBonuse) ReloadP(ctx context.Context, exec boil.ContextExecutor) {
+	if err := o.Reload(ctx, exec); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// ReloadGP refetches the object from the database and panics on error.
+func (o *ClassAttributeBonuse) ReloadGP(ctx context.Context) {
+	if err := o.Reload(ctx, boil.GetContextDB()); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
 // Reload refetches the object from the database
 // using the primary keys with an executor.
 func (o *ClassAttributeBonuse) Reload(ctx context.Context, exec boil.ContextExecutor) error {
@@ -1348,6 +1752,34 @@ func (o *ClassAttributeBonuse) Reload(ctx context.Context, exec boil.ContextExec
 
 	*o = *ret
 	return nil
+}
+
+// ReloadAllG refetches every row with matching primary key column values
+// and overwrites the original object slice with the newly updated slice.
+func (o *ClassAttributeBonuseSlice) ReloadAllG(ctx context.Context) error {
+	if o == nil {
+		return errors.New("entity: empty ClassAttributeBonuseSlice provided for reload all")
+	}
+
+	return o.ReloadAll(ctx, boil.GetContextDB())
+}
+
+// ReloadAllP refetches every row with matching primary key column values
+// and overwrites the original object slice with the newly updated slice.
+// Panics on error.
+func (o *ClassAttributeBonuseSlice) ReloadAllP(ctx context.Context, exec boil.ContextExecutor) {
+	if err := o.ReloadAll(ctx, exec); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// ReloadAllGP refetches every row with matching primary key column values
+// and overwrites the original object slice with the newly updated slice.
+// Panics on error.
+func (o *ClassAttributeBonuseSlice) ReloadAllGP(ctx context.Context) {
+	if err := o.ReloadAll(ctx, boil.GetContextDB()); err != nil {
+		panic(boil.WrapErr(err))
+	}
 }
 
 // ReloadAll refetches every row with matching primary key column values
@@ -1371,12 +1803,37 @@ func (o *ClassAttributeBonuseSlice) ReloadAll(ctx context.Context, exec boil.Con
 
 	err := q.Bind(ctx, exec, &slice)
 	if err != nil {
-		return errors.Wrap(err, "models: unable to reload all in ClassAttributeBonuseSlice")
+		return errors.Wrap(err, "entity: unable to reload all in ClassAttributeBonuseSlice")
 	}
 
 	*o = slice
 
 	return nil
+}
+
+// ClassAttributeBonuseExistsG checks if the ClassAttributeBonuse row exists.
+func ClassAttributeBonuseExistsG(ctx context.Context, iD string) (bool, error) {
+	return ClassAttributeBonuseExists(ctx, boil.GetContextDB(), iD)
+}
+
+// ClassAttributeBonuseExistsP checks if the ClassAttributeBonuse row exists. Panics on error.
+func ClassAttributeBonuseExistsP(ctx context.Context, exec boil.ContextExecutor, iD string) bool {
+	e, err := ClassAttributeBonuseExists(ctx, exec, iD)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return e
+}
+
+// ClassAttributeBonuseExistsGP checks if the ClassAttributeBonuse row exists. Panics on error.
+func ClassAttributeBonuseExistsGP(ctx context.Context, iD string) bool {
+	e, err := ClassAttributeBonuseExists(ctx, boil.GetContextDB(), iD)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return e
 }
 
 // ClassAttributeBonuseExists checks if the ClassAttributeBonuse row exists.
@@ -1393,7 +1850,7 @@ func ClassAttributeBonuseExists(ctx context.Context, exec boil.ContextExecutor, 
 
 	err := row.Scan(&exists)
 	if err != nil {
-		return false, errors.Wrap(err, "models: unable to check if class_attribute_bonuses exists")
+		return false, errors.Wrap(err, "entity: unable to check if class_attribute_bonuses exists")
 	}
 
 	return exists, nil

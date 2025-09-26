@@ -1,0 +1,30 @@
+-- =============================================================================
+-- Drop Classes System
+-- 删除职业系统相关表和函数（按相反顺序）
+-- =============================================================================
+
+-- --------------------------------------------------------------------------------
+-- 删除函数
+-- --------------------------------------------------------------------------------
+DROP FUNCTION IF EXISTS check_class_advancement_requirements(UUID, UUID, INT, JSONB);
+DROP FUNCTION IF EXISTS get_class_advancement_paths(UUID);
+
+-- --------------------------------------------------------------------------------
+-- 删除表（按依赖关系逆序）
+-- --------------------------------------------------------------------------------
+DROP TABLE IF EXISTS class_advancement_paths;
+DROP TABLE IF EXISTS class_advanced_requirements;
+DROP TABLE IF EXISTS class_attribute_bonuses;
+DROP TABLE IF EXISTS class_tag_relations;
+DROP TABLE IF EXISTS classes;
+DROP TABLE IF EXISTS tags;
+
+-- --------------------------------------------------------------------------------
+-- 完成消息
+-- --------------------------------------------------------------------------------
+DO $$
+BEGIN
+    RAISE NOTICE '============================================';
+    RAISE NOTICE 'Classes System 删除完成';
+    RAISE NOTICE '============================================';
+END $$;

@@ -237,6 +237,31 @@ func AddClassHeroStatHook(hookPoint boil.HookPoint, classHeroStatHook ClassHeroS
 	}
 }
 
+// OneG returns a single classHeroStat record from the query using the global executor.
+func (q classHeroStatQuery) OneG(ctx context.Context) (*ClassHeroStat, error) {
+	return q.One(ctx, boil.GetContextDB())
+}
+
+// OneGP returns a single classHeroStat record from the query using the global executor, and panics on error.
+func (q classHeroStatQuery) OneGP(ctx context.Context) *ClassHeroStat {
+	o, err := q.One(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
+// OneP returns a single classHeroStat record from the query, and panics on error.
+func (q classHeroStatQuery) OneP(ctx context.Context, exec boil.ContextExecutor) *ClassHeroStat {
+	o, err := q.One(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
 // One returns a single classHeroStat record from the query.
 func (q classHeroStatQuery) One(ctx context.Context, exec boil.ContextExecutor) (*ClassHeroStat, error) {
 	o := &ClassHeroStat{}
@@ -248,7 +273,7 @@ func (q classHeroStatQuery) One(ctx context.Context, exec boil.ContextExecutor) 
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "models: failed to execute a one query for class_hero_stats")
+		return nil, errors.Wrap(err, "entity: failed to execute a one query for class_hero_stats")
 	}
 
 	if err := o.doAfterSelectHooks(ctx, exec); err != nil {
@@ -258,13 +283,38 @@ func (q classHeroStatQuery) One(ctx context.Context, exec boil.ContextExecutor) 
 	return o, nil
 }
 
+// AllG returns all ClassHeroStat records from the query using the global executor.
+func (q classHeroStatQuery) AllG(ctx context.Context) (ClassHeroStatSlice, error) {
+	return q.All(ctx, boil.GetContextDB())
+}
+
+// AllGP returns all ClassHeroStat records from the query using the global executor, and panics on error.
+func (q classHeroStatQuery) AllGP(ctx context.Context) ClassHeroStatSlice {
+	o, err := q.All(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
+// AllP returns all ClassHeroStat records from the query, and panics on error.
+func (q classHeroStatQuery) AllP(ctx context.Context, exec boil.ContextExecutor) ClassHeroStatSlice {
+	o, err := q.All(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
 // All returns all ClassHeroStat records from the query.
 func (q classHeroStatQuery) All(ctx context.Context, exec boil.ContextExecutor) (ClassHeroStatSlice, error) {
 	var o []*ClassHeroStat
 
 	err := q.Bind(ctx, exec, &o)
 	if err != nil {
-		return nil, errors.Wrap(err, "models: failed to assign all query results to ClassHeroStat slice")
+		return nil, errors.Wrap(err, "entity: failed to assign all query results to ClassHeroStat slice")
 	}
 
 	if len(classHeroStatAfterSelectHooks) != 0 {
@@ -278,6 +328,31 @@ func (q classHeroStatQuery) All(ctx context.Context, exec boil.ContextExecutor) 
 	return o, nil
 }
 
+// CountG returns the count of all ClassHeroStat records in the query using the global executor
+func (q classHeroStatQuery) CountG(ctx context.Context) (int64, error) {
+	return q.Count(ctx, boil.GetContextDB())
+}
+
+// CountGP returns the count of all ClassHeroStat records in the query using the global executor, and panics on error.
+func (q classHeroStatQuery) CountGP(ctx context.Context) int64 {
+	c, err := q.Count(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return c
+}
+
+// CountP returns the count of all ClassHeroStat records in the query, and panics on error.
+func (q classHeroStatQuery) CountP(ctx context.Context, exec boil.ContextExecutor) int64 {
+	c, err := q.Count(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return c
+}
+
 // Count returns the count of all ClassHeroStat records in the query.
 func (q classHeroStatQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	var count int64
@@ -287,10 +362,35 @@ func (q classHeroStatQuery) Count(ctx context.Context, exec boil.ContextExecutor
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: failed to count class_hero_stats rows")
+		return 0, errors.Wrap(err, "entity: failed to count class_hero_stats rows")
 	}
 
 	return count, nil
+}
+
+// ExistsG checks if the row exists in the table using the global executor.
+func (q classHeroStatQuery) ExistsG(ctx context.Context) (bool, error) {
+	return q.Exists(ctx, boil.GetContextDB())
+}
+
+// ExistsGP checks if the row exists in the table using the global executor, and panics on error.
+func (q classHeroStatQuery) ExistsGP(ctx context.Context) bool {
+	e, err := q.Exists(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return e
+}
+
+// ExistsP checks if the row exists in the table, and panics on error.
+func (q classHeroStatQuery) ExistsP(ctx context.Context, exec boil.ContextExecutor) bool {
+	e, err := q.Exists(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return e
 }
 
 // Exists checks if the row exists in the table.
@@ -303,7 +403,7 @@ func (q classHeroStatQuery) Exists(ctx context.Context, exec boil.ContextExecuto
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return false, errors.Wrap(err, "models: failed to check if class_hero_stats exists")
+		return false, errors.Wrap(err, "entity: failed to check if class_hero_stats exists")
 	}
 
 	return count > 0, nil
@@ -320,11 +420,32 @@ func ClassHeroStats(mods ...qm.QueryMod) classHeroStatQuery {
 	return classHeroStatQuery{q}
 }
 
+// InsertG a single record. See Insert for whitelist behavior description.
+func (o *ClassHeroStat) InsertG(ctx context.Context, columns boil.Columns) error {
+	return o.Insert(ctx, boil.GetContextDB(), columns)
+}
+
+// InsertP a single record using an executor, and panics on error. See Insert
+// for whitelist behavior description.
+func (o *ClassHeroStat) InsertP(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) {
+	if err := o.Insert(ctx, exec, columns); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// InsertGP a single record, and panics on error. See Insert for whitelist
+// behavior description.
+func (o *ClassHeroStat) InsertGP(ctx context.Context, columns boil.Columns) {
+	if err := o.Insert(ctx, boil.GetContextDB(), columns); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
 // Insert a single record using an executor.
 // See boil.Columns.InsertColumnSet documentation to understand column list inference for inserts.
 func (o *ClassHeroStat) Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error {
 	if o == nil {
-		return errors.New("models: no class_hero_stats provided for insertion")
+		return errors.New("entity: no class_hero_stats provided for insertion")
 	}
 
 	var err error
@@ -387,7 +508,7 @@ func (o *ClassHeroStat) Insert(ctx context.Context, exec boil.ContextExecutor, c
 	}
 
 	if err != nil {
-		return errors.Wrap(err, "models: unable to insert into class_hero_stats")
+		return errors.Wrap(err, "entity: unable to insert into class_hero_stats")
 	}
 
 	if !cached {
@@ -399,11 +520,31 @@ func (o *ClassHeroStat) Insert(ctx context.Context, exec boil.ContextExecutor, c
 	return o.doAfterInsertHooks(ctx, exec)
 }
 
+// UpsertG attempts an insert, and does an update or ignore on conflict.
+func (o *ClassHeroStat) UpsertG(ctx context.Context, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) error {
+	return o.Upsert(ctx, boil.GetContextDB(), updateOnConflict, conflictColumns, updateColumns, insertColumns, opts...)
+}
+
+// UpsertGP attempts an insert, and does an update or ignore on conflict. Panics on error.
+func (o *ClassHeroStat) UpsertGP(ctx context.Context, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) {
+	if err := o.Upsert(ctx, boil.GetContextDB(), updateOnConflict, conflictColumns, updateColumns, insertColumns, opts...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// UpsertP attempts an insert using an executor, and does an update or ignore on conflict.
+// UpsertP panics on error.
+func (o *ClassHeroStat) UpsertP(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) {
+	if err := o.Upsert(ctx, exec, updateOnConflict, conflictColumns, updateColumns, insertColumns, opts...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
 // Upsert attempts an insert using an executor, and does an update or ignore on conflict.
 // See boil.Columns documentation for how to properly use updateColumns and insertColumns.
 func (o *ClassHeroStat) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) error {
 	if o == nil {
-		return errors.New("models: no class_hero_stats provided for upsert")
+		return errors.New("entity: no class_hero_stats provided for upsert")
 	}
 
 	if err := o.doBeforeUpsertHooks(ctx, exec); err != nil {
@@ -460,7 +601,7 @@ func (o *ClassHeroStat) Upsert(ctx context.Context, exec boil.ContextExecutor, u
 		)
 
 		if updateOnConflict && len(update) == 0 {
-			return errors.New("models: unable to upsert class_hero_stats, could not build update column list")
+			return errors.New("entity: unable to upsert class_hero_stats, could not build update column list")
 		}
 
 		ret := strmangle.SetComplement(classHeroStatAllColumns, strmangle.SetIntersect(insert, update))
@@ -468,7 +609,7 @@ func (o *ClassHeroStat) Upsert(ctx context.Context, exec boil.ContextExecutor, u
 		conflict := conflictColumns
 		if len(conflict) == 0 && updateOnConflict && len(update) != 0 {
 			if len(classHeroStatPrimaryKeyColumns) == 0 {
-				return errors.New("models: unable to upsert class_hero_stats, could not build conflict column list")
+				return errors.New("entity: unable to upsert class_hero_stats, could not build conflict column list")
 			}
 
 			conflict = make([]string, len(classHeroStatPrimaryKeyColumns))
@@ -509,7 +650,7 @@ func (o *ClassHeroStat) Upsert(ctx context.Context, exec boil.ContextExecutor, u
 		_, err = exec.ExecContext(ctx, cache.query, vals...)
 	}
 	if err != nil {
-		return errors.Wrap(err, "models: unable to upsert class_hero_stats")
+		return errors.Wrap(err, "entity: unable to upsert class_hero_stats")
 	}
 
 	if !cached {

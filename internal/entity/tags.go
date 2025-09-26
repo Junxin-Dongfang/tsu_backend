@@ -404,6 +404,31 @@ func AddTagHook(hookPoint boil.HookPoint, tagHook TagHook) {
 	}
 }
 
+// OneG returns a single tag record from the query using the global executor.
+func (q tagQuery) OneG(ctx context.Context) (*Tag, error) {
+	return q.One(ctx, boil.GetContextDB())
+}
+
+// OneGP returns a single tag record from the query using the global executor, and panics on error.
+func (q tagQuery) OneGP(ctx context.Context) *Tag {
+	o, err := q.One(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
+// OneP returns a single tag record from the query, and panics on error.
+func (q tagQuery) OneP(ctx context.Context, exec boil.ContextExecutor) *Tag {
+	o, err := q.One(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
 // One returns a single tag record from the query.
 func (q tagQuery) One(ctx context.Context, exec boil.ContextExecutor) (*Tag, error) {
 	o := &Tag{}
@@ -415,7 +440,7 @@ func (q tagQuery) One(ctx context.Context, exec boil.ContextExecutor) (*Tag, err
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "models: failed to execute a one query for tags")
+		return nil, errors.Wrap(err, "entity: failed to execute a one query for tags")
 	}
 
 	if err := o.doAfterSelectHooks(ctx, exec); err != nil {
@@ -425,13 +450,38 @@ func (q tagQuery) One(ctx context.Context, exec boil.ContextExecutor) (*Tag, err
 	return o, nil
 }
 
+// AllG returns all Tag records from the query using the global executor.
+func (q tagQuery) AllG(ctx context.Context) (TagSlice, error) {
+	return q.All(ctx, boil.GetContextDB())
+}
+
+// AllGP returns all Tag records from the query using the global executor, and panics on error.
+func (q tagQuery) AllGP(ctx context.Context) TagSlice {
+	o, err := q.All(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
+// AllP returns all Tag records from the query, and panics on error.
+func (q tagQuery) AllP(ctx context.Context, exec boil.ContextExecutor) TagSlice {
+	o, err := q.All(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
 // All returns all Tag records from the query.
 func (q tagQuery) All(ctx context.Context, exec boil.ContextExecutor) (TagSlice, error) {
 	var o []*Tag
 
 	err := q.Bind(ctx, exec, &o)
 	if err != nil {
-		return nil, errors.Wrap(err, "models: failed to assign all query results to Tag slice")
+		return nil, errors.Wrap(err, "entity: failed to assign all query results to Tag slice")
 	}
 
 	if len(tagAfterSelectHooks) != 0 {
@@ -445,6 +495,31 @@ func (q tagQuery) All(ctx context.Context, exec boil.ContextExecutor) (TagSlice,
 	return o, nil
 }
 
+// CountG returns the count of all Tag records in the query using the global executor
+func (q tagQuery) CountG(ctx context.Context) (int64, error) {
+	return q.Count(ctx, boil.GetContextDB())
+}
+
+// CountGP returns the count of all Tag records in the query using the global executor, and panics on error.
+func (q tagQuery) CountGP(ctx context.Context) int64 {
+	c, err := q.Count(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return c
+}
+
+// CountP returns the count of all Tag records in the query, and panics on error.
+func (q tagQuery) CountP(ctx context.Context, exec boil.ContextExecutor) int64 {
+	c, err := q.Count(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return c
+}
+
 // Count returns the count of all Tag records in the query.
 func (q tagQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	var count int64
@@ -454,10 +529,35 @@ func (q tagQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64, 
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: failed to count tags rows")
+		return 0, errors.Wrap(err, "entity: failed to count tags rows")
 	}
 
 	return count, nil
+}
+
+// ExistsG checks if the row exists in the table using the global executor.
+func (q tagQuery) ExistsG(ctx context.Context) (bool, error) {
+	return q.Exists(ctx, boil.GetContextDB())
+}
+
+// ExistsGP checks if the row exists in the table using the global executor, and panics on error.
+func (q tagQuery) ExistsGP(ctx context.Context) bool {
+	e, err := q.Exists(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return e
+}
+
+// ExistsP checks if the row exists in the table, and panics on error.
+func (q tagQuery) ExistsP(ctx context.Context, exec boil.ContextExecutor) bool {
+	e, err := q.Exists(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return e
 }
 
 // Exists checks if the row exists in the table.
@@ -470,7 +570,7 @@ func (q tagQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (bool, 
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return false, errors.Wrap(err, "models: failed to check if tags exists")
+		return false, errors.Wrap(err, "entity: failed to check if tags exists")
 	}
 
 	return count > 0, nil
@@ -603,6 +703,37 @@ func (tagL) LoadClassTagRelations(ctx context.Context, e boil.ContextExecutor, s
 	return nil
 }
 
+// AddClassTagRelationsG adds the given related objects to the existing relationships
+// of the tag, optionally inserting them as new records.
+// Appends related to o.R.ClassTagRelations.
+// Sets related.R.Tag appropriately.
+// Uses the global database handle.
+func (o *Tag) AddClassTagRelationsG(ctx context.Context, insert bool, related ...*ClassTagRelation) error {
+	return o.AddClassTagRelations(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// AddClassTagRelationsP adds the given related objects to the existing relationships
+// of the tag, optionally inserting them as new records.
+// Appends related to o.R.ClassTagRelations.
+// Sets related.R.Tag appropriately.
+// Panics on error.
+func (o *Tag) AddClassTagRelationsP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*ClassTagRelation) {
+	if err := o.AddClassTagRelations(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddClassTagRelationsGP adds the given related objects to the existing relationships
+// of the tag, optionally inserting them as new records.
+// Appends related to o.R.ClassTagRelations.
+// Sets related.R.Tag appropriately.
+// Uses the global database handle and panics on error.
+func (o *Tag) AddClassTagRelationsGP(ctx context.Context, insert bool, related ...*ClassTagRelation) {
+	if err := o.AddClassTagRelations(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
 // AddClassTagRelations adds the given related objects to the existing relationships
 // of the tag, optionally inserting them as new records.
 // Appends related to o.R.ClassTagRelations.
@@ -658,13 +789,38 @@ func (o *Tag) AddClassTagRelations(ctx context.Context, exec boil.ContextExecuto
 
 // Tags retrieves all the records using an executor.
 func Tags(mods ...qm.QueryMod) tagQuery {
-	mods = append(mods, qm.From("\"tags\""))
+	mods = append(mods, qm.From("\"tags\""), qmhelper.WhereIsNull("\"tags\".\"deleted_at\""))
 	q := NewQuery(mods...)
 	if len(queries.GetSelect(q)) == 0 {
 		queries.SetSelect(q, []string{"\"tags\".*"})
 	}
 
 	return tagQuery{q}
+}
+
+// FindTagG retrieves a single record by ID.
+func FindTagG(ctx context.Context, iD string, selectCols ...string) (*Tag, error) {
+	return FindTag(ctx, boil.GetContextDB(), iD, selectCols...)
+}
+
+// FindTagP retrieves a single record by ID with an executor, and panics on error.
+func FindTagP(ctx context.Context, exec boil.ContextExecutor, iD string, selectCols ...string) *Tag {
+	retobj, err := FindTag(ctx, exec, iD, selectCols...)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return retobj
+}
+
+// FindTagGP retrieves a single record by ID, and panics on error.
+func FindTagGP(ctx context.Context, iD string, selectCols ...string) *Tag {
+	retobj, err := FindTag(ctx, boil.GetContextDB(), iD, selectCols...)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return retobj
 }
 
 // FindTag retrieves a single record by ID with an executor.
@@ -677,7 +833,7 @@ func FindTag(ctx context.Context, exec boil.ContextExecutor, iD string, selectCo
 		sel = strings.Join(strmangle.IdentQuoteSlice(dialect.LQ, dialect.RQ, selectCols), ",")
 	}
 	query := fmt.Sprintf(
-		"select %s from \"tags\" where \"id\"=$1", sel,
+		"select %s from \"tags\" where \"id\"=$1 and \"deleted_at\" is null", sel,
 	)
 
 	q := queries.Raw(query, iD)
@@ -687,7 +843,7 @@ func FindTag(ctx context.Context, exec boil.ContextExecutor, iD string, selectCo
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "models: unable to select from tags")
+		return nil, errors.Wrap(err, "entity: unable to select from tags")
 	}
 
 	if err = tagObj.doAfterSelectHooks(ctx, exec); err != nil {
@@ -697,11 +853,32 @@ func FindTag(ctx context.Context, exec boil.ContextExecutor, iD string, selectCo
 	return tagObj, nil
 }
 
+// InsertG a single record. See Insert for whitelist behavior description.
+func (o *Tag) InsertG(ctx context.Context, columns boil.Columns) error {
+	return o.Insert(ctx, boil.GetContextDB(), columns)
+}
+
+// InsertP a single record using an executor, and panics on error. See Insert
+// for whitelist behavior description.
+func (o *Tag) InsertP(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) {
+	if err := o.Insert(ctx, exec, columns); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// InsertGP a single record, and panics on error. See Insert for whitelist
+// behavior description.
+func (o *Tag) InsertGP(ctx context.Context, columns boil.Columns) {
+	if err := o.Insert(ctx, boil.GetContextDB(), columns); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
 // Insert a single record using an executor.
 // See boil.Columns.InsertColumnSet documentation to understand column list inference for inserts.
 func (o *Tag) Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error {
 	if o == nil {
-		return errors.New("models: no tags provided for insertion")
+		return errors.New("entity: no tags provided for insertion")
 	}
 
 	var err error
@@ -774,7 +951,7 @@ func (o *Tag) Insert(ctx context.Context, exec boil.ContextExecutor, columns boi
 	}
 
 	if err != nil {
-		return errors.Wrap(err, "models: unable to insert into tags")
+		return errors.Wrap(err, "entity: unable to insert into tags")
 	}
 
 	if !cached {
@@ -784,6 +961,34 @@ func (o *Tag) Insert(ctx context.Context, exec boil.ContextExecutor, columns boi
 	}
 
 	return o.doAfterInsertHooks(ctx, exec)
+}
+
+// UpdateG a single Tag record using the global executor.
+// See Update for more documentation.
+func (o *Tag) UpdateG(ctx context.Context, columns boil.Columns) (int64, error) {
+	return o.Update(ctx, boil.GetContextDB(), columns)
+}
+
+// UpdateP uses an executor to update the Tag, and panics on error.
+// See Update for more documentation.
+func (o *Tag) UpdateP(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) int64 {
+	rowsAff, err := o.Update(ctx, exec, columns)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
+// UpdateGP a single Tag record using the global executor. Panics on error.
+// See Update for more documentation.
+func (o *Tag) UpdateGP(ctx context.Context, columns boil.Columns) int64 {
+	rowsAff, err := o.Update(ctx, boil.GetContextDB(), columns)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
 }
 
 // Update uses an executor to update the Tag.
@@ -815,7 +1020,7 @@ func (o *Tag) Update(ctx context.Context, exec boil.ContextExecutor, columns boi
 			wl = strmangle.SetComplement(wl, []string{"created_at"})
 		}
 		if len(wl) == 0 {
-			return 0, errors.New("models: unable to update tags, could not build whitelist")
+			return 0, errors.New("entity: unable to update tags, could not build whitelist")
 		}
 
 		cache.query = fmt.Sprintf("UPDATE \"tags\" SET %s WHERE %s",
@@ -838,12 +1043,12 @@ func (o *Tag) Update(ctx context.Context, exec boil.ContextExecutor, columns boi
 	var result sql.Result
 	result, err = exec.ExecContext(ctx, cache.query, values...)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to update tags row")
+		return 0, errors.Wrap(err, "entity: unable to update tags row")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "models: failed to get rows affected by update for tags")
+		return 0, errors.Wrap(err, "entity: failed to get rows affected by update for tags")
 	}
 
 	if !cached {
@@ -855,21 +1060,71 @@ func (o *Tag) Update(ctx context.Context, exec boil.ContextExecutor, columns boi
 	return rowsAff, o.doAfterUpdateHooks(ctx, exec)
 }
 
+// UpdateAllP updates all rows with matching column names, and panics on error.
+func (q tagQuery) UpdateAllP(ctx context.Context, exec boil.ContextExecutor, cols M) int64 {
+	rowsAff, err := q.UpdateAll(ctx, exec, cols)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
+// UpdateAllG updates all rows with the specified column values.
+func (q tagQuery) UpdateAllG(ctx context.Context, cols M) (int64, error) {
+	return q.UpdateAll(ctx, boil.GetContextDB(), cols)
+}
+
+// UpdateAllGP updates all rows with the specified column values, and panics on error.
+func (q tagQuery) UpdateAllGP(ctx context.Context, cols M) int64 {
+	rowsAff, err := q.UpdateAll(ctx, boil.GetContextDB(), cols)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
 // UpdateAll updates all rows with the specified column values.
 func (q tagQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
 	queries.SetUpdate(q.Query, cols)
 
 	result, err := q.Query.ExecContext(ctx, exec)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to update all for tags")
+		return 0, errors.Wrap(err, "entity: unable to update all for tags")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to retrieve rows affected for tags")
+		return 0, errors.Wrap(err, "entity: unable to retrieve rows affected for tags")
 	}
 
 	return rowsAff, nil
+}
+
+// UpdateAllG updates all rows with the specified column values.
+func (o TagSlice) UpdateAllG(ctx context.Context, cols M) (int64, error) {
+	return o.UpdateAll(ctx, boil.GetContextDB(), cols)
+}
+
+// UpdateAllGP updates all rows with the specified column values, and panics on error.
+func (o TagSlice) UpdateAllGP(ctx context.Context, cols M) int64 {
+	rowsAff, err := o.UpdateAll(ctx, boil.GetContextDB(), cols)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
+// UpdateAllP updates all rows with the specified column values, and panics on error.
+func (o TagSlice) UpdateAllP(ctx context.Context, exec boil.ContextExecutor, cols M) int64 {
+	rowsAff, err := o.UpdateAll(ctx, exec, cols)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
 }
 
 // UpdateAll updates all rows with the specified column values, using an executor.
@@ -880,7 +1135,7 @@ func (o TagSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols
 	}
 
 	if len(cols) == 0 {
-		return 0, errors.New("models: update all requires at least one column argument")
+		return 0, errors.New("entity: update all requires at least one column argument")
 	}
 
 	colNames := make([]string, len(cols))
@@ -910,21 +1165,41 @@ func (o TagSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to update all in tag slice")
+		return 0, errors.Wrap(err, "entity: unable to update all in tag slice")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to retrieve rows affected all in update all tag")
+		return 0, errors.Wrap(err, "entity: unable to retrieve rows affected all in update all tag")
 	}
 	return rowsAff, nil
+}
+
+// UpsertG attempts an insert, and does an update or ignore on conflict.
+func (o *Tag) UpsertG(ctx context.Context, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) error {
+	return o.Upsert(ctx, boil.GetContextDB(), updateOnConflict, conflictColumns, updateColumns, insertColumns, opts...)
+}
+
+// UpsertGP attempts an insert, and does an update or ignore on conflict. Panics on error.
+func (o *Tag) UpsertGP(ctx context.Context, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) {
+	if err := o.Upsert(ctx, boil.GetContextDB(), updateOnConflict, conflictColumns, updateColumns, insertColumns, opts...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// UpsertP attempts an insert using an executor, and does an update or ignore on conflict.
+// UpsertP panics on error.
+func (o *Tag) UpsertP(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) {
+	if err := o.Upsert(ctx, exec, updateOnConflict, conflictColumns, updateColumns, insertColumns, opts...); err != nil {
+		panic(boil.WrapErr(err))
+	}
 }
 
 // Upsert attempts an insert using an executor, and does an update or ignore on conflict.
 // See boil.Columns documentation for how to properly use updateColumns and insertColumns.
 func (o *Tag) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) error {
 	if o == nil {
-		return errors.New("models: no tags provided for upsert")
+		return errors.New("entity: no tags provided for upsert")
 	}
 	if !boil.TimestampsAreSkipped(ctx) {
 		currTime := time.Now().In(boil.GetLocation())
@@ -989,7 +1264,7 @@ func (o *Tag) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnCon
 		)
 
 		if updateOnConflict && len(update) == 0 {
-			return errors.New("models: unable to upsert tags, could not build update column list")
+			return errors.New("entity: unable to upsert tags, could not build update column list")
 		}
 
 		ret := strmangle.SetComplement(tagAllColumns, strmangle.SetIntersect(insert, update))
@@ -997,7 +1272,7 @@ func (o *Tag) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnCon
 		conflict := conflictColumns
 		if len(conflict) == 0 && updateOnConflict && len(update) != 0 {
 			if len(tagPrimaryKeyColumns) == 0 {
-				return errors.New("models: unable to upsert tags, could not build conflict column list")
+				return errors.New("entity: unable to upsert tags, could not build conflict column list")
 			}
 
 			conflict = make([]string, len(tagPrimaryKeyColumns))
@@ -1038,7 +1313,7 @@ func (o *Tag) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnCon
 		_, err = exec.ExecContext(ctx, cache.query, vals...)
 	}
 	if err != nil {
-		return errors.Wrap(err, "models: unable to upsert tags")
+		return errors.Wrap(err, "entity: unable to upsert tags")
 	}
 
 	if !cached {
@@ -1050,19 +1325,67 @@ func (o *Tag) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnCon
 	return o.doAfterUpsertHooks(ctx, exec)
 }
 
+// DeleteG deletes a single Tag record.
+// DeleteG will match against the primary key column to find the record to delete.
+func (o *Tag) DeleteG(ctx context.Context, hardDelete bool) (int64, error) {
+	return o.Delete(ctx, boil.GetContextDB(), hardDelete)
+}
+
+// DeleteP deletes a single Tag record with an executor.
+// DeleteP will match against the primary key column to find the record to delete.
+// Panics on error.
+func (o *Tag) DeleteP(ctx context.Context, exec boil.ContextExecutor, hardDelete bool) int64 {
+	rowsAff, err := o.Delete(ctx, exec, hardDelete)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
+// DeleteGP deletes a single Tag record.
+// DeleteGP will match against the primary key column to find the record to delete.
+// Panics on error.
+func (o *Tag) DeleteGP(ctx context.Context, hardDelete bool) int64 {
+	rowsAff, err := o.Delete(ctx, boil.GetContextDB(), hardDelete)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
 // Delete deletes a single Tag record with an executor.
 // Delete will match against the primary key column to find the record to delete.
-func (o *Tag) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (o *Tag) Delete(ctx context.Context, exec boil.ContextExecutor, hardDelete bool) (int64, error) {
 	if o == nil {
-		return 0, errors.New("models: no Tag provided for delete")
+		return 0, errors.New("entity: no Tag provided for delete")
 	}
 
 	if err := o.doBeforeDeleteHooks(ctx, exec); err != nil {
 		return 0, err
 	}
 
-	args := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), tagPrimaryKeyMapping)
-	sql := "DELETE FROM \"tags\" WHERE \"id\"=$1"
+	var (
+		sql  string
+		args []interface{}
+	)
+	if hardDelete {
+		args = queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), tagPrimaryKeyMapping)
+		sql = "DELETE FROM \"tags\" WHERE \"id\"=$1"
+	} else {
+		currTime := time.Now().In(boil.GetLocation())
+		o.DeletedAt = null.TimeFrom(currTime)
+		wl := []string{"deleted_at"}
+		sql = fmt.Sprintf("UPDATE \"tags\" SET %s WHERE \"id\"=$2",
+			strmangle.SetParamNames("\"", "\"", 1, wl),
+		)
+		valueMapping, err := queries.BindMapping(tagType, tagMapping, append(wl, tagPrimaryKeyColumns...))
+		if err != nil {
+			return 0, err
+		}
+		args = queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), valueMapping)
+	}
 
 	if boil.IsDebug(ctx) {
 		writer := boil.DebugWriterFrom(ctx)
@@ -1071,12 +1394,12 @@ func (o *Tag) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, err
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to delete from tags")
+		return 0, errors.Wrap(err, "entity: unable to delete from tags")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "models: failed to get rows affected by delete for tags")
+		return 0, errors.Wrap(err, "entity: failed to get rows affected by delete for tags")
 	}
 
 	if err := o.doAfterDeleteHooks(ctx, exec); err != nil {
@@ -1086,29 +1409,83 @@ func (o *Tag) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, err
 	return rowsAff, nil
 }
 
-// DeleteAll deletes all matching rows.
-func (q tagQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
-	if q.Query == nil {
-		return 0, errors.New("models: no tagQuery provided for delete all")
+func (q tagQuery) DeleteAllG(ctx context.Context, hardDelete bool) (int64, error) {
+	return q.DeleteAll(ctx, boil.GetContextDB(), hardDelete)
+}
+
+// DeleteAllP deletes all rows, and panics on error.
+func (q tagQuery) DeleteAllP(ctx context.Context, exec boil.ContextExecutor, hardDelete bool) int64 {
+	rowsAff, err := q.DeleteAll(ctx, exec, hardDelete)
+	if err != nil {
+		panic(boil.WrapErr(err))
 	}
 
-	queries.SetDelete(q.Query)
+	return rowsAff
+}
+
+// DeleteAllGP deletes all rows, and panics on error.
+func (q tagQuery) DeleteAllGP(ctx context.Context, hardDelete bool) int64 {
+	rowsAff, err := q.DeleteAll(ctx, boil.GetContextDB(), hardDelete)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
+// DeleteAll deletes all matching rows.
+func (q tagQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor, hardDelete bool) (int64, error) {
+	if q.Query == nil {
+		return 0, errors.New("entity: no tagQuery provided for delete all")
+	}
+
+	if hardDelete {
+		queries.SetDelete(q.Query)
+	} else {
+		currTime := time.Now().In(boil.GetLocation())
+		queries.SetUpdate(q.Query, M{"deleted_at": currTime})
+	}
 
 	result, err := q.Query.ExecContext(ctx, exec)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to delete all from tags")
+		return 0, errors.Wrap(err, "entity: unable to delete all from tags")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "models: failed to get rows affected by deleteall for tags")
+		return 0, errors.Wrap(err, "entity: failed to get rows affected by deleteall for tags")
 	}
 
 	return rowsAff, nil
 }
 
+// DeleteAllG deletes all rows in the slice.
+func (o TagSlice) DeleteAllG(ctx context.Context, hardDelete bool) (int64, error) {
+	return o.DeleteAll(ctx, boil.GetContextDB(), hardDelete)
+}
+
+// DeleteAllP deletes all rows in the slice, using an executor, and panics on error.
+func (o TagSlice) DeleteAllP(ctx context.Context, exec boil.ContextExecutor, hardDelete bool) int64 {
+	rowsAff, err := o.DeleteAll(ctx, exec, hardDelete)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
+// DeleteAllGP deletes all rows in the slice, and panics on error.
+func (o TagSlice) DeleteAllGP(ctx context.Context, hardDelete bool) int64 {
+	rowsAff, err := o.DeleteAll(ctx, boil.GetContextDB(), hardDelete)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
 // DeleteAll deletes all rows in the slice, using an executor.
-func (o TagSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (o TagSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor, hardDelete bool) (int64, error) {
 	if len(o) == 0 {
 		return 0, nil
 	}
@@ -1121,14 +1498,31 @@ func (o TagSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int
 		}
 	}
 
-	var args []interface{}
-	for _, obj := range o {
-		pkeyArgs := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(obj)), tagPrimaryKeyMapping)
-		args = append(args, pkeyArgs...)
+	var (
+		sql  string
+		args []interface{}
+	)
+	if hardDelete {
+		for _, obj := range o {
+			pkeyArgs := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(obj)), tagPrimaryKeyMapping)
+			args = append(args, pkeyArgs...)
+		}
+		sql = "DELETE FROM \"tags\" WHERE " +
+			strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, tagPrimaryKeyColumns, len(o))
+	} else {
+		currTime := time.Now().In(boil.GetLocation())
+		for _, obj := range o {
+			pkeyArgs := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(obj)), tagPrimaryKeyMapping)
+			args = append(args, pkeyArgs...)
+			obj.DeletedAt = null.TimeFrom(currTime)
+		}
+		wl := []string{"deleted_at"}
+		sql = fmt.Sprintf("UPDATE \"tags\" SET %s WHERE "+
+			strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 2, tagPrimaryKeyColumns, len(o)),
+			strmangle.SetParamNames("\"", "\"", 1, wl),
+		)
+		args = append([]interface{}{currTime}, args...)
 	}
-
-	sql := "DELETE FROM \"tags\" WHERE " +
-		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, tagPrimaryKeyColumns, len(o))
 
 	if boil.IsDebug(ctx) {
 		writer := boil.DebugWriterFrom(ctx)
@@ -1137,12 +1531,12 @@ func (o TagSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to delete all from tag slice")
+		return 0, errors.Wrap(err, "entity: unable to delete all from tag slice")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "models: failed to get rows affected by deleteall for tags")
+		return 0, errors.Wrap(err, "entity: failed to get rows affected by deleteall for tags")
 	}
 
 	if len(tagAfterDeleteHooks) != 0 {
@@ -1156,6 +1550,29 @@ func (o TagSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int
 	return rowsAff, nil
 }
 
+// ReloadG refetches the object from the database using the primary keys.
+func (o *Tag) ReloadG(ctx context.Context) error {
+	if o == nil {
+		return errors.New("entity: no Tag provided for reload")
+	}
+
+	return o.Reload(ctx, boil.GetContextDB())
+}
+
+// ReloadP refetches the object from the database with an executor. Panics on error.
+func (o *Tag) ReloadP(ctx context.Context, exec boil.ContextExecutor) {
+	if err := o.Reload(ctx, exec); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// ReloadGP refetches the object from the database and panics on error.
+func (o *Tag) ReloadGP(ctx context.Context) {
+	if err := o.Reload(ctx, boil.GetContextDB()); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
 // Reload refetches the object from the database
 // using the primary keys with an executor.
 func (o *Tag) Reload(ctx context.Context, exec boil.ContextExecutor) error {
@@ -1166,6 +1583,34 @@ func (o *Tag) Reload(ctx context.Context, exec boil.ContextExecutor) error {
 
 	*o = *ret
 	return nil
+}
+
+// ReloadAllG refetches every row with matching primary key column values
+// and overwrites the original object slice with the newly updated slice.
+func (o *TagSlice) ReloadAllG(ctx context.Context) error {
+	if o == nil {
+		return errors.New("entity: empty TagSlice provided for reload all")
+	}
+
+	return o.ReloadAll(ctx, boil.GetContextDB())
+}
+
+// ReloadAllP refetches every row with matching primary key column values
+// and overwrites the original object slice with the newly updated slice.
+// Panics on error.
+func (o *TagSlice) ReloadAllP(ctx context.Context, exec boil.ContextExecutor) {
+	if err := o.ReloadAll(ctx, exec); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// ReloadAllGP refetches every row with matching primary key column values
+// and overwrites the original object slice with the newly updated slice.
+// Panics on error.
+func (o *TagSlice) ReloadAllGP(ctx context.Context) {
+	if err := o.ReloadAll(ctx, boil.GetContextDB()); err != nil {
+		panic(boil.WrapErr(err))
+	}
 }
 
 // ReloadAll refetches every row with matching primary key column values
@@ -1183,13 +1628,14 @@ func (o *TagSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor) err
 	}
 
 	sql := "SELECT \"tags\".* FROM \"tags\" WHERE " +
-		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, tagPrimaryKeyColumns, len(*o))
+		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, tagPrimaryKeyColumns, len(*o)) +
+		"and \"deleted_at\" is null"
 
 	q := queries.Raw(sql, args...)
 
 	err := q.Bind(ctx, exec, &slice)
 	if err != nil {
-		return errors.Wrap(err, "models: unable to reload all in TagSlice")
+		return errors.Wrap(err, "entity: unable to reload all in TagSlice")
 	}
 
 	*o = slice
@@ -1197,10 +1643,35 @@ func (o *TagSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor) err
 	return nil
 }
 
+// TagExistsG checks if the Tag row exists.
+func TagExistsG(ctx context.Context, iD string) (bool, error) {
+	return TagExists(ctx, boil.GetContextDB(), iD)
+}
+
+// TagExistsP checks if the Tag row exists. Panics on error.
+func TagExistsP(ctx context.Context, exec boil.ContextExecutor, iD string) bool {
+	e, err := TagExists(ctx, exec, iD)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return e
+}
+
+// TagExistsGP checks if the Tag row exists. Panics on error.
+func TagExistsGP(ctx context.Context, iD string) bool {
+	e, err := TagExists(ctx, boil.GetContextDB(), iD)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return e
+}
+
 // TagExists checks if the Tag row exists.
 func TagExists(ctx context.Context, exec boil.ContextExecutor, iD string) (bool, error) {
 	var exists bool
-	sql := "select exists(select 1 from \"tags\" where \"id\"=$1 limit 1)"
+	sql := "select exists(select 1 from \"tags\" where \"id\"=$1 and \"deleted_at\" is null limit 1)"
 
 	if boil.IsDebug(ctx) {
 		writer := boil.DebugWriterFrom(ctx)
@@ -1211,7 +1682,7 @@ func TagExists(ctx context.Context, exec boil.ContextExecutor, iD string) (bool,
 
 	err := row.Scan(&exists)
 	if err != nil {
-		return false, errors.Wrap(err, "models: unable to check if tags exists")
+		return false, errors.Wrap(err, "entity: unable to check if tags exists")
 	}
 
 	return exists, nil

@@ -14,6 +14,7 @@ package admin
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -999,6 +1000,239 @@ func (m *AdminModule) GetAllClassTags(c echo.Context) error {
 	return m.respWriter.WriteSuccess(ctx, c.Response().Writer, result)
 }
 
+// ==================== 属性类型管理 ====================
+
+// CreateAttributeType 创建属性类型
+// @Summary 创建属性类型
+// @Description 创建新的英雄属性类型
+// @Tags AttributeType
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body admin.CreateAttributeTypeRequest true "创建属性类型请求"
+// @Success 201 {object} response.Response{data=admin.AttributeType} "创建成功"
+// @Failure 400 {object} response.Response "请求参数错误"
+// @Failure 409 {object} response.Response "属性代码已存在"
+// @Failure 500 {object} response.Response "服务器内部错误"
+// @Router /admin/attribute-types [post]
+func (m *AdminModule) CreateAttributeType(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	var req apiAdminReq.CreateAttributeTypeRequest
+	if err := c.Bind(&req); err != nil {
+		appErr := xerrors.NewValidationError("request", "请求参数格式错误: "+err.Error())
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	// 验证请求参数 - 使用自定义业务验证器
+	if err := req.Validate(); err != nil {
+		appErr := xerrors.NewValidationError("validation", "请求参数验证失败: "+err.Error())
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	// 调用服务层
+	result, err := m.attributeTypeService.CreateAttributeType(ctx, &req)
+	if err != nil {
+		var appErr *xerrors.AppError
+		if errors.As(err, &appErr) {
+			return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+		}
+		appErr = xerrors.New(xerrors.CodeInternalError, "创建属性类型失败: "+err.Error())
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	return m.respWriter.WriteSuccess(ctx, c.Response().Writer, result)
+}
+
+// GetAttributeType 获取属性类型详情
+// @Summary 获取属性类型详情
+// @Description 根据ID获取属性类型详细信息
+// @Tags AttributeType
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "属性类型ID"
+// @Success 200 {object} response.Response{data=admin.AttributeType} "获取成功"
+// @Failure 400 {object} response.Response "ID格式错误"
+// @Failure 404 {object} response.Response "属性类型不存在"
+// @Failure 500 {object} response.Response "服务器内部错误"
+// @Router /admin/attribute-types/{id} [get]
+func (m *AdminModule) GetAttributeType(c echo.Context) error {
+	ctx := c.Request().Context()
+	id := c.Param("id")
+
+	result, err := m.attributeTypeService.GetAttributeType(ctx, id)
+	if err != nil {
+		var appErr *xerrors.AppError
+		if errors.As(err, &appErr) {
+			return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+		}
+		appErr = xerrors.New(xerrors.CodeInternalError, "获取属性类型失败: "+err.Error())
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	return m.respWriter.WriteSuccess(ctx, c.Response().Writer, result)
+}
+
+// GetAttributeTypes 获取属性类型列表
+// @Summary 获取属性类型列表
+// @Description 获取属性类型列表，支持分页、过滤和搜索
+// @Tags AttributeType
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param page query int false "页码" default(1)
+// @Param page_size query int false "每页数量" default(20)
+// @Param category query string false "属性分类" Enums(basic,combat,special)
+// @Param is_active query bool false "是否启用"
+// @Param is_visible query bool false "是否可见"
+// @Param keyword query string false "搜索关键词"
+// @Param sort_by query string false "排序字段" Enums(created_at,updated_at,display_order,attribute_name) default(display_order)
+// @Param sort_order query string false "排序方向" Enums(asc,desc) default(asc)
+// @Success 200 {object} response.Response{data=admin.AttributeTypeList} "获取成功"
+// @Failure 400 {object} response.Response "请求参数错误"
+// @Failure 500 {object} response.Response "服务器内部错误"
+// @Router /admin/attribute-types [get]
+func (m *AdminModule) GetAttributeTypes(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	var req apiAdminReq.GetAttributeTypesRequest
+	if err := c.Bind(&req); err != nil {
+		appErr := xerrors.NewValidationError("request", "请求参数格式错误: "+err.Error())
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	// 设置默认值
+	if req.Page < 1 {
+		req.Page = 1
+	}
+	if req.PageSize < 1 {
+		req.PageSize = 20
+	}
+
+	// 验证请求参数
+	if err := req.Validate(); err != nil {
+		appErr := xerrors.NewValidationError("request", "请求参数验证失败: "+err.Error())
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	// 调用服务层
+	result, err := m.attributeTypeService.GetAttributeTypes(ctx, &req)
+	if err != nil {
+		var appErr *xerrors.AppError
+		if errors.As(err, &appErr) {
+			return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+		}
+		appErr = xerrors.New(xerrors.CodeInternalError, "获取属性类型列表失败: "+err.Error())
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	return m.respWriter.WriteSuccess(ctx, c.Response().Writer, result)
+}
+
+// UpdateAttributeType 更新属性类型
+// @Summary 更新属性类型
+// @Description 更新指定ID的属性类型信息
+// @Tags AttributeType
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "属性类型ID"
+// @Param request body admin.UpdateAttributeTypeRequest true "更新属性类型请求"
+// @Success 200 {object} response.Response{data=admin.AttributeType} "更新成功"
+// @Failure 400 {object} response.Response "请求参数错误"
+// @Failure 404 {object} response.Response "属性类型不存在"
+// @Failure 409 {object} response.Response "属性代码已存在"
+// @Failure 500 {object} response.Response "服务器内部错误"
+// @Router /admin/attribute-types/{id} [put]
+func (m *AdminModule) UpdateAttributeType(c echo.Context) error {
+	ctx := c.Request().Context()
+	id := c.Param("id")
+
+	var req apiAdminReq.UpdateAttributeTypeRequest
+	if err := c.Bind(&req); err != nil {
+		appErr := xerrors.NewValidationError("request", "请求参数格式错误: "+err.Error())
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	// 验证请求参数
+	if err := req.Validate(); err != nil {
+		appErr := xerrors.NewValidationError("request", "请求参数验证失败: "+err.Error())
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	// 调用服务层
+	result, err := m.attributeTypeService.UpdateAttributeType(ctx, id, &req)
+	if err != nil {
+		var appErr *xerrors.AppError
+		if errors.As(err, &appErr) {
+			return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+		}
+		appErr = xerrors.New(xerrors.CodeInternalError, "更新属性类型失败: "+err.Error())
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	return m.respWriter.WriteSuccess(ctx, c.Response().Writer, result)
+}
+
+// DeleteAttributeType 删除属性类型
+// @Summary 删除属性类型
+// @Description 软删除指定ID的属性类型
+// @Tags AttributeType
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "属性类型ID"
+// @Success 200 {object} response.Response "删除成功"
+// @Failure 400 {object} response.Response "ID格式错误"
+// @Failure 404 {object} response.Response "属性类型不存在"
+// @Failure 500 {object} response.Response "服务器内部错误"
+// @Router /admin/attribute-types/{id} [delete]
+func (m *AdminModule) DeleteAttributeType(c echo.Context) error {
+	ctx := c.Request().Context()
+	id := c.Param("id")
+
+	err := m.attributeTypeService.DeleteAttributeType(ctx, id)
+	if err != nil {
+		var appErr *xerrors.AppError
+		if errors.As(err, &appErr) {
+			return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+		}
+		appErr = xerrors.New(xerrors.CodeInternalError, "删除属性类型失败: "+err.Error())
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	return m.respWriter.WriteSuccess(ctx, c.Response().Writer, nil)
+}
+
+// GetAttributeTypeOptions 获取属性类型选项
+// @Summary 获取属性类型选项
+// @Description 获取启用的属性类型选项列表，用于下拉选择
+// @Tags AttributeType
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param category query string false "属性分类" Enums(basic,combat,special)
+// @Success 200 {object} response.Response{data=admin.AttributeTypeOptions} "获取成功"
+// @Failure 500 {object} response.Response "服务器内部错误"
+// @Router /admin/attribute-types/options [get]
+func (m *AdminModule) GetAttributeTypeOptions(c echo.Context) error {
+	ctx := c.Request().Context()
+	category := c.QueryParam("category")
+
+	result, err := m.attributeTypeService.GetAttributeTypeOptions(ctx, category)
+	if err != nil {
+		var appErr *xerrors.AppError
+		if errors.As(err, &appErr) {
+			return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+		}
+		appErr = xerrors.New(xerrors.CodeInternalError, "获取属性类型选项失败: "+err.Error())
+		return m.respWriter.WriteError(ctx, c.Response().Writer, appErr)
+	}
+
+	return m.respWriter.WriteSuccess(ctx, c.Response().Writer, result)
+}
+
 // 用于避免unused import错误的变量声明 (仅在编译时使用)
 var (
 	_ apiAdminResp.Class
@@ -1006,6 +1240,9 @@ var (
 	_ apiAdminResp.ClassHeroStats
 	_ apiAdminResp.ClassAttributeBonus
 	_ apiAdminResp.ClassTag
+	_ apiAdminResp.AttributeType
+	_ apiAdminResp.AttributeTypeList
+	_ apiAdminResp.AttributeTypeOptions
 	_ apiAuthResp.LoginResult
 	_ apiAuthResp.RegisterResult
 	_ apiUserResp.Profile

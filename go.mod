@@ -6,7 +6,7 @@ require (
 	github.com/aarondl/null/v8 v8.1.3
 	github.com/aarondl/sqlboiler/v4 v4.19.5
 	github.com/aarondl/strmangle v0.0.9
-	github.com/ericlagergren/decimal v0.0.0-20240411145413-00de7ca16731
+	github.com/ericlagergren/decimal v0.0.0-20190420051523-6335edbaa640
 	github.com/friendsofgo/errors v0.9.2
 	github.com/go-playground/validator/v10 v10.27.0
 	github.com/golang-jwt/jwt/v5 v5.3.0

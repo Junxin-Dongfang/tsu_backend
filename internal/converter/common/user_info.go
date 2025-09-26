@@ -4,6 +4,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"tsu-self/internal/api/model/response/user"
+	userDomain "tsu-self/internal/domain/user"
 	"tsu-self/internal/entity"
 	"tsu-self/internal/rpc/generated/common"
 )
@@ -52,7 +53,7 @@ func UserInfoToRPC(profile *user.Profile) *common.UserInfo {
 }
 
 // UserInfoFromEntity 从数据库聚合实体转换为 API UserProfile
-func UserInfoFromEntity(userEntity *entity.UserAggregate) *user.Profile {
+func UserInfoFromEntity(userEntity *userDomain.UserAggregate) *user.Profile {
 	if userEntity == nil {
 		return nil
 	}
@@ -93,17 +94,17 @@ func UserInfoToEntity(profile *user.Profile) *entity.User {
 	}
 
 	return &entity.User{
-		ID:       profile.ID,
-		Username: profile.Username,
-		Email:    profile.Email,
+		ID:        profile.ID,
+		Username:  profile.Username,
+		Email:     profile.Email,
 		CreatedAt: profile.CreatedAt,
 		UpdatedAt: profile.UpdatedAt,
 		// 其他字段需要单独设置
 	}
 }
 
-// EntityToRPCUserInfo 从数据库实体转换为 RPC UserInfo
-func EntityToRPCUserInfo(userEntity *entity.UserAggregate) *common.UserInfo {
+// EntityToRPCUserInfo 从数据库聚合实体转换为 RPC UserInfo
+func EntityToRPCUserInfo(userEntity *userDomain.UserAggregate) *common.UserInfo {
 	if userEntity == nil {
 		return nil
 	}

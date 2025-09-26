@@ -43,7 +43,7 @@ func (r *userRepositoryImpl) Update(ctx context.Context, user *entity.User) erro
 
 func (r *userRepositoryImpl) Delete(ctx context.Context, id string) error {
 	user := &entity.User{ID: id}
-	_, err := user.Delete(ctx, r.db)
+	_, err := user.Delete(ctx, r.db, false)
 	return err
 }
 

@@ -178,6 +178,31 @@ func AddClassTagsViewHook(hookPoint boil.HookPoint, classTagsViewHook ClassTagsV
 	}
 }
 
+// OneG returns a single classTagsView record from the query using the global executor.
+func (q classTagsViewQuery) OneG(ctx context.Context) (*ClassTagsView, error) {
+	return q.One(ctx, boil.GetContextDB())
+}
+
+// OneGP returns a single classTagsView record from the query using the global executor, and panics on error.
+func (q classTagsViewQuery) OneGP(ctx context.Context) *ClassTagsView {
+	o, err := q.One(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
+// OneP returns a single classTagsView record from the query, and panics on error.
+func (q classTagsViewQuery) OneP(ctx context.Context, exec boil.ContextExecutor) *ClassTagsView {
+	o, err := q.One(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
 // One returns a single classTagsView record from the query.
 func (q classTagsViewQuery) One(ctx context.Context, exec boil.ContextExecutor) (*ClassTagsView, error) {
 	o := &ClassTagsView{}
@@ -189,7 +214,7 @@ func (q classTagsViewQuery) One(ctx context.Context, exec boil.ContextExecutor) 
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "models: failed to execute a one query for class_tags_view")
+		return nil, errors.Wrap(err, "entity: failed to execute a one query for class_tags_view")
 	}
 
 	if err := o.doAfterSelectHooks(ctx, exec); err != nil {
@@ -199,13 +224,38 @@ func (q classTagsViewQuery) One(ctx context.Context, exec boil.ContextExecutor) 
 	return o, nil
 }
 
+// AllG returns all ClassTagsView records from the query using the global executor.
+func (q classTagsViewQuery) AllG(ctx context.Context) (ClassTagsViewSlice, error) {
+	return q.All(ctx, boil.GetContextDB())
+}
+
+// AllGP returns all ClassTagsView records from the query using the global executor, and panics on error.
+func (q classTagsViewQuery) AllGP(ctx context.Context) ClassTagsViewSlice {
+	o, err := q.All(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
+// AllP returns all ClassTagsView records from the query, and panics on error.
+func (q classTagsViewQuery) AllP(ctx context.Context, exec boil.ContextExecutor) ClassTagsViewSlice {
+	o, err := q.All(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
 // All returns all ClassTagsView records from the query.
 func (q classTagsViewQuery) All(ctx context.Context, exec boil.ContextExecutor) (ClassTagsViewSlice, error) {
 	var o []*ClassTagsView
 
 	err := q.Bind(ctx, exec, &o)
 	if err != nil {
-		return nil, errors.Wrap(err, "models: failed to assign all query results to ClassTagsView slice")
+		return nil, errors.Wrap(err, "entity: failed to assign all query results to ClassTagsView slice")
 	}
 
 	if len(classTagsViewAfterSelectHooks) != 0 {
@@ -219,6 +269,31 @@ func (q classTagsViewQuery) All(ctx context.Context, exec boil.ContextExecutor) 
 	return o, nil
 }
 
+// CountG returns the count of all ClassTagsView records in the query using the global executor
+func (q classTagsViewQuery) CountG(ctx context.Context) (int64, error) {
+	return q.Count(ctx, boil.GetContextDB())
+}
+
+// CountGP returns the count of all ClassTagsView records in the query using the global executor, and panics on error.
+func (q classTagsViewQuery) CountGP(ctx context.Context) int64 {
+	c, err := q.Count(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return c
+}
+
+// CountP returns the count of all ClassTagsView records in the query, and panics on error.
+func (q classTagsViewQuery) CountP(ctx context.Context, exec boil.ContextExecutor) int64 {
+	c, err := q.Count(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return c
+}
+
 // Count returns the count of all ClassTagsView records in the query.
 func (q classTagsViewQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	var count int64
@@ -228,10 +303,35 @@ func (q classTagsViewQuery) Count(ctx context.Context, exec boil.ContextExecutor
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: failed to count class_tags_view rows")
+		return 0, errors.Wrap(err, "entity: failed to count class_tags_view rows")
 	}
 
 	return count, nil
+}
+
+// ExistsG checks if the row exists in the table using the global executor.
+func (q classTagsViewQuery) ExistsG(ctx context.Context) (bool, error) {
+	return q.Exists(ctx, boil.GetContextDB())
+}
+
+// ExistsGP checks if the row exists in the table using the global executor, and panics on error.
+func (q classTagsViewQuery) ExistsGP(ctx context.Context) bool {
+	e, err := q.Exists(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return e
+}
+
+// ExistsP checks if the row exists in the table, and panics on error.
+func (q classTagsViewQuery) ExistsP(ctx context.Context, exec boil.ContextExecutor) bool {
+	e, err := q.Exists(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return e
 }
 
 // Exists checks if the row exists in the table.
@@ -244,7 +344,7 @@ func (q classTagsViewQuery) Exists(ctx context.Context, exec boil.ContextExecuto
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return false, errors.Wrap(err, "models: failed to check if class_tags_view exists")
+		return false, errors.Wrap(err, "entity: failed to check if class_tags_view exists")
 	}
 
 	return count > 0, nil

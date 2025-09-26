@@ -50,10 +50,11 @@ type AdminModule struct {
 	respWriter         response.Writer
 	logger             log.Logger
 	db                 *sqlx.DB
-	syncService        *service.SyncService
-	transactionService *service.TransactionService
-	userService        *service.UserService
-	classService       *service.ClassService
+	syncService          *service.SyncService
+	transactionService   *service.TransactionService
+	userService          *service.UserService
+	classService         *service.ClassService
+	attributeTypeService *service.AttributeTypeService
 }
 
 func (m *AdminModule) GetType() string {
@@ -194,6 +195,10 @@ func (m *AdminModule) initServices() {
 	classRepo := impl.NewClassRepository(m.db.DB)
 	m.classService = service.NewClassService(classRepo)
 
+	// 初始化 AttributeTypeService
+	attributeTypeRepo := impl.NewAttributeTypeRepository(m.db.DB)
+	m.attributeTypeService = service.NewAttributeTypeService(attributeTypeRepo)
+
 	m.app = m.GetApp()
 
 	// 启动事件监听器
@@ -307,6 +312,17 @@ func (m *AdminModule) setupRoutes() {
 
 		// 标签管理
 		admin.GET("/classes/tags", m.GetAllClassTags) // 获取所有职业标签
+
+		// 属性类型管理
+		attributeTypes := admin.Group("/attribute-types")
+		{
+			attributeTypes.GET("", m.GetAttributeTypes)          // 获取属性类型列表
+			attributeTypes.POST("", m.CreateAttributeType)       // 创建属性类型
+			attributeTypes.GET("/options", m.GetAttributeTypeOptions) // 获取属性类型选项
+			attributeTypes.GET("/:id", m.GetAttributeType)       // 获取属性类型详情
+			attributeTypes.PUT("/:id", m.UpdateAttributeType)    // 更新属性类型
+			attributeTypes.DELETE("/:id", m.DeleteAttributeType) // 删除属性类型
+		}
 	}
 }
 

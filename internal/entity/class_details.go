@@ -248,6 +248,31 @@ func AddClassDetailHook(hookPoint boil.HookPoint, classDetailHook ClassDetailHoo
 	}
 }
 
+// OneG returns a single classDetail record from the query using the global executor.
+func (q classDetailQuery) OneG(ctx context.Context) (*ClassDetail, error) {
+	return q.One(ctx, boil.GetContextDB())
+}
+
+// OneGP returns a single classDetail record from the query using the global executor, and panics on error.
+func (q classDetailQuery) OneGP(ctx context.Context) *ClassDetail {
+	o, err := q.One(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
+// OneP returns a single classDetail record from the query, and panics on error.
+func (q classDetailQuery) OneP(ctx context.Context, exec boil.ContextExecutor) *ClassDetail {
+	o, err := q.One(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
 // One returns a single classDetail record from the query.
 func (q classDetailQuery) One(ctx context.Context, exec boil.ContextExecutor) (*ClassDetail, error) {
 	o := &ClassDetail{}
@@ -259,7 +284,7 @@ func (q classDetailQuery) One(ctx context.Context, exec boil.ContextExecutor) (*
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "models: failed to execute a one query for class_details")
+		return nil, errors.Wrap(err, "entity: failed to execute a one query for class_details")
 	}
 
 	if err := o.doAfterSelectHooks(ctx, exec); err != nil {
@@ -269,13 +294,38 @@ func (q classDetailQuery) One(ctx context.Context, exec boil.ContextExecutor) (*
 	return o, nil
 }
 
+// AllG returns all ClassDetail records from the query using the global executor.
+func (q classDetailQuery) AllG(ctx context.Context) (ClassDetailSlice, error) {
+	return q.All(ctx, boil.GetContextDB())
+}
+
+// AllGP returns all ClassDetail records from the query using the global executor, and panics on error.
+func (q classDetailQuery) AllGP(ctx context.Context) ClassDetailSlice {
+	o, err := q.All(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
+// AllP returns all ClassDetail records from the query, and panics on error.
+func (q classDetailQuery) AllP(ctx context.Context, exec boil.ContextExecutor) ClassDetailSlice {
+	o, err := q.All(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
 // All returns all ClassDetail records from the query.
 func (q classDetailQuery) All(ctx context.Context, exec boil.ContextExecutor) (ClassDetailSlice, error) {
 	var o []*ClassDetail
 
 	err := q.Bind(ctx, exec, &o)
 	if err != nil {
-		return nil, errors.Wrap(err, "models: failed to assign all query results to ClassDetail slice")
+		return nil, errors.Wrap(err, "entity: failed to assign all query results to ClassDetail slice")
 	}
 
 	if len(classDetailAfterSelectHooks) != 0 {
@@ -289,6 +339,31 @@ func (q classDetailQuery) All(ctx context.Context, exec boil.ContextExecutor) (C
 	return o, nil
 }
 
+// CountG returns the count of all ClassDetail records in the query using the global executor
+func (q classDetailQuery) CountG(ctx context.Context) (int64, error) {
+	return q.Count(ctx, boil.GetContextDB())
+}
+
+// CountGP returns the count of all ClassDetail records in the query using the global executor, and panics on error.
+func (q classDetailQuery) CountGP(ctx context.Context) int64 {
+	c, err := q.Count(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return c
+}
+
+// CountP returns the count of all ClassDetail records in the query, and panics on error.
+func (q classDetailQuery) CountP(ctx context.Context, exec boil.ContextExecutor) int64 {
+	c, err := q.Count(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return c
+}
+
 // Count returns the count of all ClassDetail records in the query.
 func (q classDetailQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	var count int64
@@ -298,10 +373,35 @@ func (q classDetailQuery) Count(ctx context.Context, exec boil.ContextExecutor) 
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: failed to count class_details rows")
+		return 0, errors.Wrap(err, "entity: failed to count class_details rows")
 	}
 
 	return count, nil
+}
+
+// ExistsG checks if the row exists in the table using the global executor.
+func (q classDetailQuery) ExistsG(ctx context.Context) (bool, error) {
+	return q.Exists(ctx, boil.GetContextDB())
+}
+
+// ExistsGP checks if the row exists in the table using the global executor, and panics on error.
+func (q classDetailQuery) ExistsGP(ctx context.Context) bool {
+	e, err := q.Exists(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return e
+}
+
+// ExistsP checks if the row exists in the table, and panics on error.
+func (q classDetailQuery) ExistsP(ctx context.Context, exec boil.ContextExecutor) bool {
+	e, err := q.Exists(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return e
 }
 
 // Exists checks if the row exists in the table.
@@ -314,7 +414,7 @@ func (q classDetailQuery) Exists(ctx context.Context, exec boil.ContextExecutor)
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return false, errors.Wrap(err, "models: failed to check if class_details exists")
+		return false, errors.Wrap(err, "entity: failed to check if class_details exists")
 	}
 
 	return count > 0, nil
@@ -322,7 +422,7 @@ func (q classDetailQuery) Exists(ctx context.Context, exec boil.ContextExecutor)
 
 // ClassDetails retrieves all the records using an executor.
 func ClassDetails(mods ...qm.QueryMod) classDetailQuery {
-	mods = append(mods, qm.From("\"class_details\""))
+	mods = append(mods, qm.From("\"class_details\""), qmhelper.WhereIsNull("\"class_details\".\"deleted_at\""))
 	q := NewQuery(mods...)
 	if len(queries.GetSelect(q)) == 0 {
 		queries.SetSelect(q, []string{"\"class_details\".*"})

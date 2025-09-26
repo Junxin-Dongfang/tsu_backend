@@ -1,4 +1,14 @@
 # SQLBoiler 配置文件
+
+# 全局生成配置 - 必须放在顶部
+output          = "internal/entity"
+pkgname         = "entity"
+wipe            = true
+add-global-variants = true
+add-panic-variants  = true
+add-soft-deletes    = true
+no-tests = true
+
 # 数据库连接配置
 [psql]
   dbname  = "tsu_db"
@@ -8,36 +18,19 @@
   pass    = "tsu_test"
   sslmode = "disable"
 
-# 生成配置
-output          = "internal/entity"
-pkgname         = "entity"
-wipe            = true
-add-global-variants = true
-add-panic-variants  = true
-add-soft-deletes    = true
-
-# 模板配置 - 只生成模型，不生成测试文件
-# templates = [
-#   "models"
-# ]
-
-# 测试配置 - 禁用测试文件生成
-no-tests = true
-
 # 导入配置
 [psql.imports]
   third_party = [
     "github.com/aarondl/null/v8",
     "github.com/aarondl/sqlboiler/v4/boil",
     "github.com/aarondl/sqlboiler/v4/queries/qm",
-    "github.com/aarondl/sqlboiler/v4/types"
+    "github.com/shopspring/decimal"
   ]
 
-# 类型替换配置
+# 类型替换配置 - 直接替换为字符串，避免编码问题
 [psql.replacements]
-  # 将 PostgreSQL 的 NUMERIC/DECIMAL 类型映射到 types.Decimal
-  "numeric" = "github.com/aarondl/sqlboiler/v4/types.Decimal"
-  "decimal" = "github.com/aarondl/sqlboiler/v4/types.Decimal"
+  "decimal" = "null.String"
+  "numeric" = "null.String"
 
 # 表名替换配置 (如果需要)
 [psql.aliases]

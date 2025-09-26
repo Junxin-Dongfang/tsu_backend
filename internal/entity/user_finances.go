@@ -398,6 +398,31 @@ func AddUserFinanceHook(hookPoint boil.HookPoint, userFinanceHook UserFinanceHoo
 	}
 }
 
+// OneG returns a single userFinance record from the query using the global executor.
+func (q userFinanceQuery) OneG(ctx context.Context) (*UserFinance, error) {
+	return q.One(ctx, boil.GetContextDB())
+}
+
+// OneGP returns a single userFinance record from the query using the global executor, and panics on error.
+func (q userFinanceQuery) OneGP(ctx context.Context) *UserFinance {
+	o, err := q.One(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
+// OneP returns a single userFinance record from the query, and panics on error.
+func (q userFinanceQuery) OneP(ctx context.Context, exec boil.ContextExecutor) *UserFinance {
+	o, err := q.One(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
 // One returns a single userFinance record from the query.
 func (q userFinanceQuery) One(ctx context.Context, exec boil.ContextExecutor) (*UserFinance, error) {
 	o := &UserFinance{}
@@ -409,7 +434,7 @@ func (q userFinanceQuery) One(ctx context.Context, exec boil.ContextExecutor) (*
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "models: failed to execute a one query for user_finances")
+		return nil, errors.Wrap(err, "entity: failed to execute a one query for user_finances")
 	}
 
 	if err := o.doAfterSelectHooks(ctx, exec); err != nil {
@@ -419,13 +444,38 @@ func (q userFinanceQuery) One(ctx context.Context, exec boil.ContextExecutor) (*
 	return o, nil
 }
 
+// AllG returns all UserFinance records from the query using the global executor.
+func (q userFinanceQuery) AllG(ctx context.Context) (UserFinanceSlice, error) {
+	return q.All(ctx, boil.GetContextDB())
+}
+
+// AllGP returns all UserFinance records from the query using the global executor, and panics on error.
+func (q userFinanceQuery) AllGP(ctx context.Context) UserFinanceSlice {
+	o, err := q.All(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
+// AllP returns all UserFinance records from the query, and panics on error.
+func (q userFinanceQuery) AllP(ctx context.Context, exec boil.ContextExecutor) UserFinanceSlice {
+	o, err := q.All(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
 // All returns all UserFinance records from the query.
 func (q userFinanceQuery) All(ctx context.Context, exec boil.ContextExecutor) (UserFinanceSlice, error) {
 	var o []*UserFinance
 
 	err := q.Bind(ctx, exec, &o)
 	if err != nil {
-		return nil, errors.Wrap(err, "models: failed to assign all query results to UserFinance slice")
+		return nil, errors.Wrap(err, "entity: failed to assign all query results to UserFinance slice")
 	}
 
 	if len(userFinanceAfterSelectHooks) != 0 {
@@ -439,6 +489,31 @@ func (q userFinanceQuery) All(ctx context.Context, exec boil.ContextExecutor) (U
 	return o, nil
 }
 
+// CountG returns the count of all UserFinance records in the query using the global executor
+func (q userFinanceQuery) CountG(ctx context.Context) (int64, error) {
+	return q.Count(ctx, boil.GetContextDB())
+}
+
+// CountGP returns the count of all UserFinance records in the query using the global executor, and panics on error.
+func (q userFinanceQuery) CountGP(ctx context.Context) int64 {
+	c, err := q.Count(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return c
+}
+
+// CountP returns the count of all UserFinance records in the query, and panics on error.
+func (q userFinanceQuery) CountP(ctx context.Context, exec boil.ContextExecutor) int64 {
+	c, err := q.Count(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return c
+}
+
 // Count returns the count of all UserFinance records in the query.
 func (q userFinanceQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	var count int64
@@ -448,10 +523,35 @@ func (q userFinanceQuery) Count(ctx context.Context, exec boil.ContextExecutor) 
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: failed to count user_finances rows")
+		return 0, errors.Wrap(err, "entity: failed to count user_finances rows")
 	}
 
 	return count, nil
+}
+
+// ExistsG checks if the row exists in the table using the global executor.
+func (q userFinanceQuery) ExistsG(ctx context.Context) (bool, error) {
+	return q.Exists(ctx, boil.GetContextDB())
+}
+
+// ExistsGP checks if the row exists in the table using the global executor, and panics on error.
+func (q userFinanceQuery) ExistsGP(ctx context.Context) bool {
+	e, err := q.Exists(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return e
+}
+
+// ExistsP checks if the row exists in the table, and panics on error.
+func (q userFinanceQuery) ExistsP(ctx context.Context, exec boil.ContextExecutor) bool {
+	e, err := q.Exists(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return e
 }
 
 // Exists checks if the row exists in the table.
@@ -464,7 +564,7 @@ func (q userFinanceQuery) Exists(ctx context.Context, exec boil.ContextExecutor)
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return false, errors.Wrap(err, "models: failed to check if user_finances exists")
+		return false, errors.Wrap(err, "entity: failed to check if user_finances exists")
 	}
 
 	return count > 0, nil
@@ -541,6 +641,7 @@ func (userFinanceL) LoadUser(ctx context.Context, e boil.ContextExecutor, singul
 	query := NewQuery(
 		qm.From(`users`),
 		qm.WhereIn(`users.id in ?`, argsSlice...),
+		qmhelper.WhereIsNull(`users.deleted_at`),
 	)
 	if mods != nil {
 		mods.Apply(query)
@@ -601,6 +702,34 @@ func (userFinanceL) LoadUser(ctx context.Context, e boil.ContextExecutor, singul
 	return nil
 }
 
+// SetUserG of the userFinance to the related item.
+// Sets o.R.User to related.
+// Adds o to related.R.UserFinance.
+// Uses the global database handle.
+func (o *UserFinance) SetUserG(ctx context.Context, insert bool, related *User) error {
+	return o.SetUser(ctx, boil.GetContextDB(), insert, related)
+}
+
+// SetUserP of the userFinance to the related item.
+// Sets o.R.User to related.
+// Adds o to related.R.UserFinance.
+// Panics on error.
+func (o *UserFinance) SetUserP(ctx context.Context, exec boil.ContextExecutor, insert bool, related *User) {
+	if err := o.SetUser(ctx, exec, insert, related); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// SetUserGP of the userFinance to the related item.
+// Sets o.R.User to related.
+// Adds o to related.R.UserFinance.
+// Uses the global database handle and panics on error.
+func (o *UserFinance) SetUserGP(ctx context.Context, insert bool, related *User) {
+	if err := o.SetUser(ctx, boil.GetContextDB(), insert, related); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
 // SetUser of the userFinance to the related item.
 // Sets o.R.User to related.
 // Adds o to related.R.UserFinance.
@@ -650,13 +779,38 @@ func (o *UserFinance) SetUser(ctx context.Context, exec boil.ContextExecutor, in
 
 // UserFinances retrieves all the records using an executor.
 func UserFinances(mods ...qm.QueryMod) userFinanceQuery {
-	mods = append(mods, qm.From("\"user_finances\""))
+	mods = append(mods, qm.From("\"user_finances\""), qmhelper.WhereIsNull("\"user_finances\".\"deleted_at\""))
 	q := NewQuery(mods...)
 	if len(queries.GetSelect(q)) == 0 {
 		queries.SetSelect(q, []string{"\"user_finances\".*"})
 	}
 
 	return userFinanceQuery{q}
+}
+
+// FindUserFinanceG retrieves a single record by ID.
+func FindUserFinanceG(ctx context.Context, iD int64, selectCols ...string) (*UserFinance, error) {
+	return FindUserFinance(ctx, boil.GetContextDB(), iD, selectCols...)
+}
+
+// FindUserFinanceP retrieves a single record by ID with an executor, and panics on error.
+func FindUserFinanceP(ctx context.Context, exec boil.ContextExecutor, iD int64, selectCols ...string) *UserFinance {
+	retobj, err := FindUserFinance(ctx, exec, iD, selectCols...)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return retobj
+}
+
+// FindUserFinanceGP retrieves a single record by ID, and panics on error.
+func FindUserFinanceGP(ctx context.Context, iD int64, selectCols ...string) *UserFinance {
+	retobj, err := FindUserFinance(ctx, boil.GetContextDB(), iD, selectCols...)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return retobj
 }
 
 // FindUserFinance retrieves a single record by ID with an executor.
@@ -669,7 +823,7 @@ func FindUserFinance(ctx context.Context, exec boil.ContextExecutor, iD int64, s
 		sel = strings.Join(strmangle.IdentQuoteSlice(dialect.LQ, dialect.RQ, selectCols), ",")
 	}
 	query := fmt.Sprintf(
-		"select %s from \"user_finances\" where \"id\"=$1", sel,
+		"select %s from \"user_finances\" where \"id\"=$1 and \"deleted_at\" is null", sel,
 	)
 
 	q := queries.Raw(query, iD)
@@ -679,7 +833,7 @@ func FindUserFinance(ctx context.Context, exec boil.ContextExecutor, iD int64, s
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "models: unable to select from user_finances")
+		return nil, errors.Wrap(err, "entity: unable to select from user_finances")
 	}
 
 	if err = userFinanceObj.doAfterSelectHooks(ctx, exec); err != nil {
@@ -689,11 +843,32 @@ func FindUserFinance(ctx context.Context, exec boil.ContextExecutor, iD int64, s
 	return userFinanceObj, nil
 }
 
+// InsertG a single record. See Insert for whitelist behavior description.
+func (o *UserFinance) InsertG(ctx context.Context, columns boil.Columns) error {
+	return o.Insert(ctx, boil.GetContextDB(), columns)
+}
+
+// InsertP a single record using an executor, and panics on error. See Insert
+// for whitelist behavior description.
+func (o *UserFinance) InsertP(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) {
+	if err := o.Insert(ctx, exec, columns); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// InsertGP a single record, and panics on error. See Insert for whitelist
+// behavior description.
+func (o *UserFinance) InsertGP(ctx context.Context, columns boil.Columns) {
+	if err := o.Insert(ctx, boil.GetContextDB(), columns); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
 // Insert a single record using an executor.
 // See boil.Columns.InsertColumnSet documentation to understand column list inference for inserts.
 func (o *UserFinance) Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error {
 	if o == nil {
-		return errors.New("models: no user_finances provided for insertion")
+		return errors.New("entity: no user_finances provided for insertion")
 	}
 
 	var err error
@@ -766,7 +941,7 @@ func (o *UserFinance) Insert(ctx context.Context, exec boil.ContextExecutor, col
 	}
 
 	if err != nil {
-		return errors.Wrap(err, "models: unable to insert into user_finances")
+		return errors.Wrap(err, "entity: unable to insert into user_finances")
 	}
 
 	if !cached {
@@ -776,6 +951,34 @@ func (o *UserFinance) Insert(ctx context.Context, exec boil.ContextExecutor, col
 	}
 
 	return o.doAfterInsertHooks(ctx, exec)
+}
+
+// UpdateG a single UserFinance record using the global executor.
+// See Update for more documentation.
+func (o *UserFinance) UpdateG(ctx context.Context, columns boil.Columns) (int64, error) {
+	return o.Update(ctx, boil.GetContextDB(), columns)
+}
+
+// UpdateP uses an executor to update the UserFinance, and panics on error.
+// See Update for more documentation.
+func (o *UserFinance) UpdateP(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) int64 {
+	rowsAff, err := o.Update(ctx, exec, columns)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
+// UpdateGP a single UserFinance record using the global executor. Panics on error.
+// See Update for more documentation.
+func (o *UserFinance) UpdateGP(ctx context.Context, columns boil.Columns) int64 {
+	rowsAff, err := o.Update(ctx, boil.GetContextDB(), columns)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
 }
 
 // Update uses an executor to update the UserFinance.
@@ -807,7 +1010,7 @@ func (o *UserFinance) Update(ctx context.Context, exec boil.ContextExecutor, col
 			wl = strmangle.SetComplement(wl, []string{"created_at"})
 		}
 		if len(wl) == 0 {
-			return 0, errors.New("models: unable to update user_finances, could not build whitelist")
+			return 0, errors.New("entity: unable to update user_finances, could not build whitelist")
 		}
 
 		cache.query = fmt.Sprintf("UPDATE \"user_finances\" SET %s WHERE %s",
@@ -830,12 +1033,12 @@ func (o *UserFinance) Update(ctx context.Context, exec boil.ContextExecutor, col
 	var result sql.Result
 	result, err = exec.ExecContext(ctx, cache.query, values...)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to update user_finances row")
+		return 0, errors.Wrap(err, "entity: unable to update user_finances row")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "models: failed to get rows affected by update for user_finances")
+		return 0, errors.Wrap(err, "entity: failed to get rows affected by update for user_finances")
 	}
 
 	if !cached {
@@ -847,21 +1050,71 @@ func (o *UserFinance) Update(ctx context.Context, exec boil.ContextExecutor, col
 	return rowsAff, o.doAfterUpdateHooks(ctx, exec)
 }
 
+// UpdateAllP updates all rows with matching column names, and panics on error.
+func (q userFinanceQuery) UpdateAllP(ctx context.Context, exec boil.ContextExecutor, cols M) int64 {
+	rowsAff, err := q.UpdateAll(ctx, exec, cols)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
+// UpdateAllG updates all rows with the specified column values.
+func (q userFinanceQuery) UpdateAllG(ctx context.Context, cols M) (int64, error) {
+	return q.UpdateAll(ctx, boil.GetContextDB(), cols)
+}
+
+// UpdateAllGP updates all rows with the specified column values, and panics on error.
+func (q userFinanceQuery) UpdateAllGP(ctx context.Context, cols M) int64 {
+	rowsAff, err := q.UpdateAll(ctx, boil.GetContextDB(), cols)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
 // UpdateAll updates all rows with the specified column values.
 func (q userFinanceQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
 	queries.SetUpdate(q.Query, cols)
 
 	result, err := q.Query.ExecContext(ctx, exec)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to update all for user_finances")
+		return 0, errors.Wrap(err, "entity: unable to update all for user_finances")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to retrieve rows affected for user_finances")
+		return 0, errors.Wrap(err, "entity: unable to retrieve rows affected for user_finances")
 	}
 
 	return rowsAff, nil
+}
+
+// UpdateAllG updates all rows with the specified column values.
+func (o UserFinanceSlice) UpdateAllG(ctx context.Context, cols M) (int64, error) {
+	return o.UpdateAll(ctx, boil.GetContextDB(), cols)
+}
+
+// UpdateAllGP updates all rows with the specified column values, and panics on error.
+func (o UserFinanceSlice) UpdateAllGP(ctx context.Context, cols M) int64 {
+	rowsAff, err := o.UpdateAll(ctx, boil.GetContextDB(), cols)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
+// UpdateAllP updates all rows with the specified column values, and panics on error.
+func (o UserFinanceSlice) UpdateAllP(ctx context.Context, exec boil.ContextExecutor, cols M) int64 {
+	rowsAff, err := o.UpdateAll(ctx, exec, cols)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
 }
 
 // UpdateAll updates all rows with the specified column values, using an executor.
@@ -872,7 +1125,7 @@ func (o UserFinanceSlice) UpdateAll(ctx context.Context, exec boil.ContextExecut
 	}
 
 	if len(cols) == 0 {
-		return 0, errors.New("models: update all requires at least one column argument")
+		return 0, errors.New("entity: update all requires at least one column argument")
 	}
 
 	colNames := make([]string, len(cols))
@@ -902,21 +1155,41 @@ func (o UserFinanceSlice) UpdateAll(ctx context.Context, exec boil.ContextExecut
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to update all in userFinance slice")
+		return 0, errors.Wrap(err, "entity: unable to update all in userFinance slice")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to retrieve rows affected all in update all userFinance")
+		return 0, errors.Wrap(err, "entity: unable to retrieve rows affected all in update all userFinance")
 	}
 	return rowsAff, nil
+}
+
+// UpsertG attempts an insert, and does an update or ignore on conflict.
+func (o *UserFinance) UpsertG(ctx context.Context, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) error {
+	return o.Upsert(ctx, boil.GetContextDB(), updateOnConflict, conflictColumns, updateColumns, insertColumns, opts...)
+}
+
+// UpsertGP attempts an insert, and does an update or ignore on conflict. Panics on error.
+func (o *UserFinance) UpsertGP(ctx context.Context, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) {
+	if err := o.Upsert(ctx, boil.GetContextDB(), updateOnConflict, conflictColumns, updateColumns, insertColumns, opts...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// UpsertP attempts an insert using an executor, and does an update or ignore on conflict.
+// UpsertP panics on error.
+func (o *UserFinance) UpsertP(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) {
+	if err := o.Upsert(ctx, exec, updateOnConflict, conflictColumns, updateColumns, insertColumns, opts...); err != nil {
+		panic(boil.WrapErr(err))
+	}
 }
 
 // Upsert attempts an insert using an executor, and does an update or ignore on conflict.
 // See boil.Columns documentation for how to properly use updateColumns and insertColumns.
 func (o *UserFinance) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) error {
 	if o == nil {
-		return errors.New("models: no user_finances provided for upsert")
+		return errors.New("entity: no user_finances provided for upsert")
 	}
 	if !boil.TimestampsAreSkipped(ctx) {
 		currTime := time.Now().In(boil.GetLocation())
@@ -981,7 +1254,7 @@ func (o *UserFinance) Upsert(ctx context.Context, exec boil.ContextExecutor, upd
 		)
 
 		if updateOnConflict && len(update) == 0 {
-			return errors.New("models: unable to upsert user_finances, could not build update column list")
+			return errors.New("entity: unable to upsert user_finances, could not build update column list")
 		}
 
 		ret := strmangle.SetComplement(userFinanceAllColumns, strmangle.SetIntersect(insert, update))
@@ -989,7 +1262,7 @@ func (o *UserFinance) Upsert(ctx context.Context, exec boil.ContextExecutor, upd
 		conflict := conflictColumns
 		if len(conflict) == 0 && updateOnConflict && len(update) != 0 {
 			if len(userFinancePrimaryKeyColumns) == 0 {
-				return errors.New("models: unable to upsert user_finances, could not build conflict column list")
+				return errors.New("entity: unable to upsert user_finances, could not build conflict column list")
 			}
 
 			conflict = make([]string, len(userFinancePrimaryKeyColumns))
@@ -1030,7 +1303,7 @@ func (o *UserFinance) Upsert(ctx context.Context, exec boil.ContextExecutor, upd
 		_, err = exec.ExecContext(ctx, cache.query, vals...)
 	}
 	if err != nil {
-		return errors.Wrap(err, "models: unable to upsert user_finances")
+		return errors.Wrap(err, "entity: unable to upsert user_finances")
 	}
 
 	if !cached {
@@ -1042,19 +1315,67 @@ func (o *UserFinance) Upsert(ctx context.Context, exec boil.ContextExecutor, upd
 	return o.doAfterUpsertHooks(ctx, exec)
 }
 
+// DeleteG deletes a single UserFinance record.
+// DeleteG will match against the primary key column to find the record to delete.
+func (o *UserFinance) DeleteG(ctx context.Context, hardDelete bool) (int64, error) {
+	return o.Delete(ctx, boil.GetContextDB(), hardDelete)
+}
+
+// DeleteP deletes a single UserFinance record with an executor.
+// DeleteP will match against the primary key column to find the record to delete.
+// Panics on error.
+func (o *UserFinance) DeleteP(ctx context.Context, exec boil.ContextExecutor, hardDelete bool) int64 {
+	rowsAff, err := o.Delete(ctx, exec, hardDelete)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
+// DeleteGP deletes a single UserFinance record.
+// DeleteGP will match against the primary key column to find the record to delete.
+// Panics on error.
+func (o *UserFinance) DeleteGP(ctx context.Context, hardDelete bool) int64 {
+	rowsAff, err := o.Delete(ctx, boil.GetContextDB(), hardDelete)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
 // Delete deletes a single UserFinance record with an executor.
 // Delete will match against the primary key column to find the record to delete.
-func (o *UserFinance) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (o *UserFinance) Delete(ctx context.Context, exec boil.ContextExecutor, hardDelete bool) (int64, error) {
 	if o == nil {
-		return 0, errors.New("models: no UserFinance provided for delete")
+		return 0, errors.New("entity: no UserFinance provided for delete")
 	}
 
 	if err := o.doBeforeDeleteHooks(ctx, exec); err != nil {
 		return 0, err
 	}
 
-	args := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), userFinancePrimaryKeyMapping)
-	sql := "DELETE FROM \"user_finances\" WHERE \"id\"=$1"
+	var (
+		sql  string
+		args []interface{}
+	)
+	if hardDelete {
+		args = queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), userFinancePrimaryKeyMapping)
+		sql = "DELETE FROM \"user_finances\" WHERE \"id\"=$1"
+	} else {
+		currTime := time.Now().In(boil.GetLocation())
+		o.DeletedAt = null.TimeFrom(currTime)
+		wl := []string{"deleted_at"}
+		sql = fmt.Sprintf("UPDATE \"user_finances\" SET %s WHERE \"id\"=$2",
+			strmangle.SetParamNames("\"", "\"", 1, wl),
+		)
+		valueMapping, err := queries.BindMapping(userFinanceType, userFinanceMapping, append(wl, userFinancePrimaryKeyColumns...))
+		if err != nil {
+			return 0, err
+		}
+		args = queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), valueMapping)
+	}
 
 	if boil.IsDebug(ctx) {
 		writer := boil.DebugWriterFrom(ctx)
@@ -1063,12 +1384,12 @@ func (o *UserFinance) Delete(ctx context.Context, exec boil.ContextExecutor) (in
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to delete from user_finances")
+		return 0, errors.Wrap(err, "entity: unable to delete from user_finances")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "models: failed to get rows affected by delete for user_finances")
+		return 0, errors.Wrap(err, "entity: failed to get rows affected by delete for user_finances")
 	}
 
 	if err := o.doAfterDeleteHooks(ctx, exec); err != nil {
@@ -1078,29 +1399,83 @@ func (o *UserFinance) Delete(ctx context.Context, exec boil.ContextExecutor) (in
 	return rowsAff, nil
 }
 
-// DeleteAll deletes all matching rows.
-func (q userFinanceQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
-	if q.Query == nil {
-		return 0, errors.New("models: no userFinanceQuery provided for delete all")
+func (q userFinanceQuery) DeleteAllG(ctx context.Context, hardDelete bool) (int64, error) {
+	return q.DeleteAll(ctx, boil.GetContextDB(), hardDelete)
+}
+
+// DeleteAllP deletes all rows, and panics on error.
+func (q userFinanceQuery) DeleteAllP(ctx context.Context, exec boil.ContextExecutor, hardDelete bool) int64 {
+	rowsAff, err := q.DeleteAll(ctx, exec, hardDelete)
+	if err != nil {
+		panic(boil.WrapErr(err))
 	}
 
-	queries.SetDelete(q.Query)
+	return rowsAff
+}
+
+// DeleteAllGP deletes all rows, and panics on error.
+func (q userFinanceQuery) DeleteAllGP(ctx context.Context, hardDelete bool) int64 {
+	rowsAff, err := q.DeleteAll(ctx, boil.GetContextDB(), hardDelete)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
+// DeleteAll deletes all matching rows.
+func (q userFinanceQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor, hardDelete bool) (int64, error) {
+	if q.Query == nil {
+		return 0, errors.New("entity: no userFinanceQuery provided for delete all")
+	}
+
+	if hardDelete {
+		queries.SetDelete(q.Query)
+	} else {
+		currTime := time.Now().In(boil.GetLocation())
+		queries.SetUpdate(q.Query, M{"deleted_at": currTime})
+	}
 
 	result, err := q.Query.ExecContext(ctx, exec)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to delete all from user_finances")
+		return 0, errors.Wrap(err, "entity: unable to delete all from user_finances")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "models: failed to get rows affected by deleteall for user_finances")
+		return 0, errors.Wrap(err, "entity: failed to get rows affected by deleteall for user_finances")
 	}
 
 	return rowsAff, nil
 }
 
+// DeleteAllG deletes all rows in the slice.
+func (o UserFinanceSlice) DeleteAllG(ctx context.Context, hardDelete bool) (int64, error) {
+	return o.DeleteAll(ctx, boil.GetContextDB(), hardDelete)
+}
+
+// DeleteAllP deletes all rows in the slice, using an executor, and panics on error.
+func (o UserFinanceSlice) DeleteAllP(ctx context.Context, exec boil.ContextExecutor, hardDelete bool) int64 {
+	rowsAff, err := o.DeleteAll(ctx, exec, hardDelete)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
+// DeleteAllGP deletes all rows in the slice, and panics on error.
+func (o UserFinanceSlice) DeleteAllGP(ctx context.Context, hardDelete bool) int64 {
+	rowsAff, err := o.DeleteAll(ctx, boil.GetContextDB(), hardDelete)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
 // DeleteAll deletes all rows in the slice, using an executor.
-func (o UserFinanceSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (o UserFinanceSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor, hardDelete bool) (int64, error) {
 	if len(o) == 0 {
 		return 0, nil
 	}
@@ -1113,14 +1488,31 @@ func (o UserFinanceSlice) DeleteAll(ctx context.Context, exec boil.ContextExecut
 		}
 	}
 
-	var args []interface{}
-	for _, obj := range o {
-		pkeyArgs := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(obj)), userFinancePrimaryKeyMapping)
-		args = append(args, pkeyArgs...)
+	var (
+		sql  string
+		args []interface{}
+	)
+	if hardDelete {
+		for _, obj := range o {
+			pkeyArgs := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(obj)), userFinancePrimaryKeyMapping)
+			args = append(args, pkeyArgs...)
+		}
+		sql = "DELETE FROM \"user_finances\" WHERE " +
+			strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, userFinancePrimaryKeyColumns, len(o))
+	} else {
+		currTime := time.Now().In(boil.GetLocation())
+		for _, obj := range o {
+			pkeyArgs := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(obj)), userFinancePrimaryKeyMapping)
+			args = append(args, pkeyArgs...)
+			obj.DeletedAt = null.TimeFrom(currTime)
+		}
+		wl := []string{"deleted_at"}
+		sql = fmt.Sprintf("UPDATE \"user_finances\" SET %s WHERE "+
+			strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 2, userFinancePrimaryKeyColumns, len(o)),
+			strmangle.SetParamNames("\"", "\"", 1, wl),
+		)
+		args = append([]interface{}{currTime}, args...)
 	}
-
-	sql := "DELETE FROM \"user_finances\" WHERE " +
-		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, userFinancePrimaryKeyColumns, len(o))
 
 	if boil.IsDebug(ctx) {
 		writer := boil.DebugWriterFrom(ctx)
@@ -1129,12 +1521,12 @@ func (o UserFinanceSlice) DeleteAll(ctx context.Context, exec boil.ContextExecut
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to delete all from userFinance slice")
+		return 0, errors.Wrap(err, "entity: unable to delete all from userFinance slice")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "models: failed to get rows affected by deleteall for user_finances")
+		return 0, errors.Wrap(err, "entity: failed to get rows affected by deleteall for user_finances")
 	}
 
 	if len(userFinanceAfterDeleteHooks) != 0 {
@@ -1148,6 +1540,29 @@ func (o UserFinanceSlice) DeleteAll(ctx context.Context, exec boil.ContextExecut
 	return rowsAff, nil
 }
 
+// ReloadG refetches the object from the database using the primary keys.
+func (o *UserFinance) ReloadG(ctx context.Context) error {
+	if o == nil {
+		return errors.New("entity: no UserFinance provided for reload")
+	}
+
+	return o.Reload(ctx, boil.GetContextDB())
+}
+
+// ReloadP refetches the object from the database with an executor. Panics on error.
+func (o *UserFinance) ReloadP(ctx context.Context, exec boil.ContextExecutor) {
+	if err := o.Reload(ctx, exec); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// ReloadGP refetches the object from the database and panics on error.
+func (o *UserFinance) ReloadGP(ctx context.Context) {
+	if err := o.Reload(ctx, boil.GetContextDB()); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
 // Reload refetches the object from the database
 // using the primary keys with an executor.
 func (o *UserFinance) Reload(ctx context.Context, exec boil.ContextExecutor) error {
@@ -1158,6 +1573,34 @@ func (o *UserFinance) Reload(ctx context.Context, exec boil.ContextExecutor) err
 
 	*o = *ret
 	return nil
+}
+
+// ReloadAllG refetches every row with matching primary key column values
+// and overwrites the original object slice with the newly updated slice.
+func (o *UserFinanceSlice) ReloadAllG(ctx context.Context) error {
+	if o == nil {
+		return errors.New("entity: empty UserFinanceSlice provided for reload all")
+	}
+
+	return o.ReloadAll(ctx, boil.GetContextDB())
+}
+
+// ReloadAllP refetches every row with matching primary key column values
+// and overwrites the original object slice with the newly updated slice.
+// Panics on error.
+func (o *UserFinanceSlice) ReloadAllP(ctx context.Context, exec boil.ContextExecutor) {
+	if err := o.ReloadAll(ctx, exec); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// ReloadAllGP refetches every row with matching primary key column values
+// and overwrites the original object slice with the newly updated slice.
+// Panics on error.
+func (o *UserFinanceSlice) ReloadAllGP(ctx context.Context) {
+	if err := o.ReloadAll(ctx, boil.GetContextDB()); err != nil {
+		panic(boil.WrapErr(err))
+	}
 }
 
 // ReloadAll refetches every row with matching primary key column values
@@ -1175,13 +1618,14 @@ func (o *UserFinanceSlice) ReloadAll(ctx context.Context, exec boil.ContextExecu
 	}
 
 	sql := "SELECT \"user_finances\".* FROM \"user_finances\" WHERE " +
-		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, userFinancePrimaryKeyColumns, len(*o))
+		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, userFinancePrimaryKeyColumns, len(*o)) +
+		"and \"deleted_at\" is null"
 
 	q := queries.Raw(sql, args...)
 
 	err := q.Bind(ctx, exec, &slice)
 	if err != nil {
-		return errors.Wrap(err, "models: unable to reload all in UserFinanceSlice")
+		return errors.Wrap(err, "entity: unable to reload all in UserFinanceSlice")
 	}
 
 	*o = slice
@@ -1189,10 +1633,35 @@ func (o *UserFinanceSlice) ReloadAll(ctx context.Context, exec boil.ContextExecu
 	return nil
 }
 
+// UserFinanceExistsG checks if the UserFinance row exists.
+func UserFinanceExistsG(ctx context.Context, iD int64) (bool, error) {
+	return UserFinanceExists(ctx, boil.GetContextDB(), iD)
+}
+
+// UserFinanceExistsP checks if the UserFinance row exists. Panics on error.
+func UserFinanceExistsP(ctx context.Context, exec boil.ContextExecutor, iD int64) bool {
+	e, err := UserFinanceExists(ctx, exec, iD)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return e
+}
+
+// UserFinanceExistsGP checks if the UserFinance row exists. Panics on error.
+func UserFinanceExistsGP(ctx context.Context, iD int64) bool {
+	e, err := UserFinanceExists(ctx, boil.GetContextDB(), iD)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return e
+}
+
 // UserFinanceExists checks if the UserFinance row exists.
 func UserFinanceExists(ctx context.Context, exec boil.ContextExecutor, iD int64) (bool, error) {
 	var exists bool
-	sql := "select exists(select 1 from \"user_finances\" where \"id\"=$1 limit 1)"
+	sql := "select exists(select 1 from \"user_finances\" where \"id\"=$1 and \"deleted_at\" is null limit 1)"
 
 	if boil.IsDebug(ctx) {
 		writer := boil.DebugWriterFrom(ctx)
@@ -1203,7 +1672,7 @@ func UserFinanceExists(ctx context.Context, exec boil.ContextExecutor, iD int64)
 
 	err := row.Scan(&exists)
 	if err != nil {
-		return false, errors.Wrap(err, "models: unable to check if user_finances exists")
+		return false, errors.Wrap(err, "entity: unable to check if user_finances exists")
 	}
 
 	return exists, nil

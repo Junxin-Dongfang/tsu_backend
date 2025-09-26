@@ -498,6 +498,31 @@ func AddUserLoginHistoryHook(hookPoint boil.HookPoint, userLoginHistoryHook User
 	}
 }
 
+// OneG returns a single userLoginHistory record from the query using the global executor.
+func (q userLoginHistoryQuery) OneG(ctx context.Context) (*UserLoginHistory, error) {
+	return q.One(ctx, boil.GetContextDB())
+}
+
+// OneGP returns a single userLoginHistory record from the query using the global executor, and panics on error.
+func (q userLoginHistoryQuery) OneGP(ctx context.Context) *UserLoginHistory {
+	o, err := q.One(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
+// OneP returns a single userLoginHistory record from the query, and panics on error.
+func (q userLoginHistoryQuery) OneP(ctx context.Context, exec boil.ContextExecutor) *UserLoginHistory {
+	o, err := q.One(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
 // One returns a single userLoginHistory record from the query.
 func (q userLoginHistoryQuery) One(ctx context.Context, exec boil.ContextExecutor) (*UserLoginHistory, error) {
 	o := &UserLoginHistory{}
@@ -509,7 +534,7 @@ func (q userLoginHistoryQuery) One(ctx context.Context, exec boil.ContextExecuto
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "models: failed to execute a one query for user_login_history")
+		return nil, errors.Wrap(err, "entity: failed to execute a one query for user_login_history")
 	}
 
 	if err := o.doAfterSelectHooks(ctx, exec); err != nil {
@@ -519,13 +544,38 @@ func (q userLoginHistoryQuery) One(ctx context.Context, exec boil.ContextExecuto
 	return o, nil
 }
 
+// AllG returns all UserLoginHistory records from the query using the global executor.
+func (q userLoginHistoryQuery) AllG(ctx context.Context) (UserLoginHistorySlice, error) {
+	return q.All(ctx, boil.GetContextDB())
+}
+
+// AllGP returns all UserLoginHistory records from the query using the global executor, and panics on error.
+func (q userLoginHistoryQuery) AllGP(ctx context.Context) UserLoginHistorySlice {
+	o, err := q.All(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
+// AllP returns all UserLoginHistory records from the query, and panics on error.
+func (q userLoginHistoryQuery) AllP(ctx context.Context, exec boil.ContextExecutor) UserLoginHistorySlice {
+	o, err := q.All(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
 // All returns all UserLoginHistory records from the query.
 func (q userLoginHistoryQuery) All(ctx context.Context, exec boil.ContextExecutor) (UserLoginHistorySlice, error) {
 	var o []*UserLoginHistory
 
 	err := q.Bind(ctx, exec, &o)
 	if err != nil {
-		return nil, errors.Wrap(err, "models: failed to assign all query results to UserLoginHistory slice")
+		return nil, errors.Wrap(err, "entity: failed to assign all query results to UserLoginHistory slice")
 	}
 
 	if len(userLoginHistoryAfterSelectHooks) != 0 {
@@ -539,6 +589,31 @@ func (q userLoginHistoryQuery) All(ctx context.Context, exec boil.ContextExecuto
 	return o, nil
 }
 
+// CountG returns the count of all UserLoginHistory records in the query using the global executor
+func (q userLoginHistoryQuery) CountG(ctx context.Context) (int64, error) {
+	return q.Count(ctx, boil.GetContextDB())
+}
+
+// CountGP returns the count of all UserLoginHistory records in the query using the global executor, and panics on error.
+func (q userLoginHistoryQuery) CountGP(ctx context.Context) int64 {
+	c, err := q.Count(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return c
+}
+
+// CountP returns the count of all UserLoginHistory records in the query, and panics on error.
+func (q userLoginHistoryQuery) CountP(ctx context.Context, exec boil.ContextExecutor) int64 {
+	c, err := q.Count(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return c
+}
+
 // Count returns the count of all UserLoginHistory records in the query.
 func (q userLoginHistoryQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	var count int64
@@ -548,10 +623,35 @@ func (q userLoginHistoryQuery) Count(ctx context.Context, exec boil.ContextExecu
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: failed to count user_login_history rows")
+		return 0, errors.Wrap(err, "entity: failed to count user_login_history rows")
 	}
 
 	return count, nil
+}
+
+// ExistsG checks if the row exists in the table using the global executor.
+func (q userLoginHistoryQuery) ExistsG(ctx context.Context) (bool, error) {
+	return q.Exists(ctx, boil.GetContextDB())
+}
+
+// ExistsGP checks if the row exists in the table using the global executor, and panics on error.
+func (q userLoginHistoryQuery) ExistsGP(ctx context.Context) bool {
+	e, err := q.Exists(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return e
+}
+
+// ExistsP checks if the row exists in the table, and panics on error.
+func (q userLoginHistoryQuery) ExistsP(ctx context.Context, exec boil.ContextExecutor) bool {
+	e, err := q.Exists(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return e
 }
 
 // Exists checks if the row exists in the table.
@@ -564,7 +664,7 @@ func (q userLoginHistoryQuery) Exists(ctx context.Context, exec boil.ContextExec
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return false, errors.Wrap(err, "models: failed to check if user_login_history exists")
+		return false, errors.Wrap(err, "entity: failed to check if user_login_history exists")
 	}
 
 	return count > 0, nil
@@ -641,6 +741,7 @@ func (userLoginHistoryL) LoadUser(ctx context.Context, e boil.ContextExecutor, s
 	query := NewQuery(
 		qm.From(`users`),
 		qm.WhereIn(`users.id in ?`, argsSlice...),
+		qmhelper.WhereIsNull(`users.deleted_at`),
 	)
 	if mods != nil {
 		mods.Apply(query)
@@ -701,6 +802,34 @@ func (userLoginHistoryL) LoadUser(ctx context.Context, e boil.ContextExecutor, s
 	return nil
 }
 
+// SetUserG of the userLoginHistory to the related item.
+// Sets o.R.User to related.
+// Adds o to related.R.UserLoginHistories.
+// Uses the global database handle.
+func (o *UserLoginHistory) SetUserG(ctx context.Context, insert bool, related *User) error {
+	return o.SetUser(ctx, boil.GetContextDB(), insert, related)
+}
+
+// SetUserP of the userLoginHistory to the related item.
+// Sets o.R.User to related.
+// Adds o to related.R.UserLoginHistories.
+// Panics on error.
+func (o *UserLoginHistory) SetUserP(ctx context.Context, exec boil.ContextExecutor, insert bool, related *User) {
+	if err := o.SetUser(ctx, exec, insert, related); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// SetUserGP of the userLoginHistory to the related item.
+// Sets o.R.User to related.
+// Adds o to related.R.UserLoginHistories.
+// Uses the global database handle and panics on error.
+func (o *UserLoginHistory) SetUserGP(ctx context.Context, insert bool, related *User) {
+	if err := o.SetUser(ctx, boil.GetContextDB(), insert, related); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
 // SetUser of the userLoginHistory to the related item.
 // Sets o.R.User to related.
 // Adds o to related.R.UserLoginHistories.
@@ -759,6 +888,31 @@ func UserLoginHistories(mods ...qm.QueryMod) userLoginHistoryQuery {
 	return userLoginHistoryQuery{q}
 }
 
+// FindUserLoginHistoryG retrieves a single record by ID.
+func FindUserLoginHistoryG(ctx context.Context, iD int64, selectCols ...string) (*UserLoginHistory, error) {
+	return FindUserLoginHistory(ctx, boil.GetContextDB(), iD, selectCols...)
+}
+
+// FindUserLoginHistoryP retrieves a single record by ID with an executor, and panics on error.
+func FindUserLoginHistoryP(ctx context.Context, exec boil.ContextExecutor, iD int64, selectCols ...string) *UserLoginHistory {
+	retobj, err := FindUserLoginHistory(ctx, exec, iD, selectCols...)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return retobj
+}
+
+// FindUserLoginHistoryGP retrieves a single record by ID, and panics on error.
+func FindUserLoginHistoryGP(ctx context.Context, iD int64, selectCols ...string) *UserLoginHistory {
+	retobj, err := FindUserLoginHistory(ctx, boil.GetContextDB(), iD, selectCols...)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return retobj
+}
+
 // FindUserLoginHistory retrieves a single record by ID with an executor.
 // If selectCols is empty Find will return all columns.
 func FindUserLoginHistory(ctx context.Context, exec boil.ContextExecutor, iD int64, selectCols ...string) (*UserLoginHistory, error) {
@@ -779,7 +933,7 @@ func FindUserLoginHistory(ctx context.Context, exec boil.ContextExecutor, iD int
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "models: unable to select from user_login_history")
+		return nil, errors.Wrap(err, "entity: unable to select from user_login_history")
 	}
 
 	if err = userLoginHistoryObj.doAfterSelectHooks(ctx, exec); err != nil {
@@ -789,11 +943,32 @@ func FindUserLoginHistory(ctx context.Context, exec boil.ContextExecutor, iD int
 	return userLoginHistoryObj, nil
 }
 
+// InsertG a single record. See Insert for whitelist behavior description.
+func (o *UserLoginHistory) InsertG(ctx context.Context, columns boil.Columns) error {
+	return o.Insert(ctx, boil.GetContextDB(), columns)
+}
+
+// InsertP a single record using an executor, and panics on error. See Insert
+// for whitelist behavior description.
+func (o *UserLoginHistory) InsertP(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) {
+	if err := o.Insert(ctx, exec, columns); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// InsertGP a single record, and panics on error. See Insert for whitelist
+// behavior description.
+func (o *UserLoginHistory) InsertGP(ctx context.Context, columns boil.Columns) {
+	if err := o.Insert(ctx, boil.GetContextDB(), columns); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
 // Insert a single record using an executor.
 // See boil.Columns.InsertColumnSet documentation to understand column list inference for inserts.
 func (o *UserLoginHistory) Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error {
 	if o == nil {
-		return errors.New("models: no user_login_history provided for insertion")
+		return errors.New("entity: no user_login_history provided for insertion")
 	}
 
 	var err error
@@ -856,7 +1031,7 @@ func (o *UserLoginHistory) Insert(ctx context.Context, exec boil.ContextExecutor
 	}
 
 	if err != nil {
-		return errors.Wrap(err, "models: unable to insert into user_login_history")
+		return errors.Wrap(err, "entity: unable to insert into user_login_history")
 	}
 
 	if !cached {
@@ -866,6 +1041,34 @@ func (o *UserLoginHistory) Insert(ctx context.Context, exec boil.ContextExecutor
 	}
 
 	return o.doAfterInsertHooks(ctx, exec)
+}
+
+// UpdateG a single UserLoginHistory record using the global executor.
+// See Update for more documentation.
+func (o *UserLoginHistory) UpdateG(ctx context.Context, columns boil.Columns) (int64, error) {
+	return o.Update(ctx, boil.GetContextDB(), columns)
+}
+
+// UpdateP uses an executor to update the UserLoginHistory, and panics on error.
+// See Update for more documentation.
+func (o *UserLoginHistory) UpdateP(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) int64 {
+	rowsAff, err := o.Update(ctx, exec, columns)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
+// UpdateGP a single UserLoginHistory record using the global executor. Panics on error.
+// See Update for more documentation.
+func (o *UserLoginHistory) UpdateGP(ctx context.Context, columns boil.Columns) int64 {
+	rowsAff, err := o.Update(ctx, boil.GetContextDB(), columns)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
 }
 
 // Update uses an executor to update the UserLoginHistory.
@@ -891,7 +1094,7 @@ func (o *UserLoginHistory) Update(ctx context.Context, exec boil.ContextExecutor
 			wl = strmangle.SetComplement(wl, []string{"created_at"})
 		}
 		if len(wl) == 0 {
-			return 0, errors.New("models: unable to update user_login_history, could not build whitelist")
+			return 0, errors.New("entity: unable to update user_login_history, could not build whitelist")
 		}
 
 		cache.query = fmt.Sprintf("UPDATE \"user_login_history\" SET %s WHERE %s",
@@ -914,12 +1117,12 @@ func (o *UserLoginHistory) Update(ctx context.Context, exec boil.ContextExecutor
 	var result sql.Result
 	result, err = exec.ExecContext(ctx, cache.query, values...)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to update user_login_history row")
+		return 0, errors.Wrap(err, "entity: unable to update user_login_history row")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "models: failed to get rows affected by update for user_login_history")
+		return 0, errors.Wrap(err, "entity: failed to get rows affected by update for user_login_history")
 	}
 
 	if !cached {
@@ -931,21 +1134,71 @@ func (o *UserLoginHistory) Update(ctx context.Context, exec boil.ContextExecutor
 	return rowsAff, o.doAfterUpdateHooks(ctx, exec)
 }
 
+// UpdateAllP updates all rows with matching column names, and panics on error.
+func (q userLoginHistoryQuery) UpdateAllP(ctx context.Context, exec boil.ContextExecutor, cols M) int64 {
+	rowsAff, err := q.UpdateAll(ctx, exec, cols)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
+// UpdateAllG updates all rows with the specified column values.
+func (q userLoginHistoryQuery) UpdateAllG(ctx context.Context, cols M) (int64, error) {
+	return q.UpdateAll(ctx, boil.GetContextDB(), cols)
+}
+
+// UpdateAllGP updates all rows with the specified column values, and panics on error.
+func (q userLoginHistoryQuery) UpdateAllGP(ctx context.Context, cols M) int64 {
+	rowsAff, err := q.UpdateAll(ctx, boil.GetContextDB(), cols)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
 // UpdateAll updates all rows with the specified column values.
 func (q userLoginHistoryQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
 	queries.SetUpdate(q.Query, cols)
 
 	result, err := q.Query.ExecContext(ctx, exec)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to update all for user_login_history")
+		return 0, errors.Wrap(err, "entity: unable to update all for user_login_history")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to retrieve rows affected for user_login_history")
+		return 0, errors.Wrap(err, "entity: unable to retrieve rows affected for user_login_history")
 	}
 
 	return rowsAff, nil
+}
+
+// UpdateAllG updates all rows with the specified column values.
+func (o UserLoginHistorySlice) UpdateAllG(ctx context.Context, cols M) (int64, error) {
+	return o.UpdateAll(ctx, boil.GetContextDB(), cols)
+}
+
+// UpdateAllGP updates all rows with the specified column values, and panics on error.
+func (o UserLoginHistorySlice) UpdateAllGP(ctx context.Context, cols M) int64 {
+	rowsAff, err := o.UpdateAll(ctx, boil.GetContextDB(), cols)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
+// UpdateAllP updates all rows with the specified column values, and panics on error.
+func (o UserLoginHistorySlice) UpdateAllP(ctx context.Context, exec boil.ContextExecutor, cols M) int64 {
+	rowsAff, err := o.UpdateAll(ctx, exec, cols)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
 }
 
 // UpdateAll updates all rows with the specified column values, using an executor.
@@ -956,7 +1209,7 @@ func (o UserLoginHistorySlice) UpdateAll(ctx context.Context, exec boil.ContextE
 	}
 
 	if len(cols) == 0 {
-		return 0, errors.New("models: update all requires at least one column argument")
+		return 0, errors.New("entity: update all requires at least one column argument")
 	}
 
 	colNames := make([]string, len(cols))
@@ -986,21 +1239,41 @@ func (o UserLoginHistorySlice) UpdateAll(ctx context.Context, exec boil.ContextE
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to update all in userLoginHistory slice")
+		return 0, errors.Wrap(err, "entity: unable to update all in userLoginHistory slice")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to retrieve rows affected all in update all userLoginHistory")
+		return 0, errors.Wrap(err, "entity: unable to retrieve rows affected all in update all userLoginHistory")
 	}
 	return rowsAff, nil
+}
+
+// UpsertG attempts an insert, and does an update or ignore on conflict.
+func (o *UserLoginHistory) UpsertG(ctx context.Context, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) error {
+	return o.Upsert(ctx, boil.GetContextDB(), updateOnConflict, conflictColumns, updateColumns, insertColumns, opts...)
+}
+
+// UpsertGP attempts an insert, and does an update or ignore on conflict. Panics on error.
+func (o *UserLoginHistory) UpsertGP(ctx context.Context, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) {
+	if err := o.Upsert(ctx, boil.GetContextDB(), updateOnConflict, conflictColumns, updateColumns, insertColumns, opts...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// UpsertP attempts an insert using an executor, and does an update or ignore on conflict.
+// UpsertP panics on error.
+func (o *UserLoginHistory) UpsertP(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) {
+	if err := o.Upsert(ctx, exec, updateOnConflict, conflictColumns, updateColumns, insertColumns, opts...); err != nil {
+		panic(boil.WrapErr(err))
+	}
 }
 
 // Upsert attempts an insert using an executor, and does an update or ignore on conflict.
 // See boil.Columns documentation for how to properly use updateColumns and insertColumns.
 func (o *UserLoginHistory) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) error {
 	if o == nil {
-		return errors.New("models: no user_login_history provided for upsert")
+		return errors.New("entity: no user_login_history provided for upsert")
 	}
 
 	if err := o.doBeforeUpsertHooks(ctx, exec); err != nil {
@@ -1057,7 +1330,7 @@ func (o *UserLoginHistory) Upsert(ctx context.Context, exec boil.ContextExecutor
 		)
 
 		if updateOnConflict && len(update) == 0 {
-			return errors.New("models: unable to upsert user_login_history, could not build update column list")
+			return errors.New("entity: unable to upsert user_login_history, could not build update column list")
 		}
 
 		ret := strmangle.SetComplement(userLoginHistoryAllColumns, strmangle.SetIntersect(insert, update))
@@ -1065,7 +1338,7 @@ func (o *UserLoginHistory) Upsert(ctx context.Context, exec boil.ContextExecutor
 		conflict := conflictColumns
 		if len(conflict) == 0 && updateOnConflict && len(update) != 0 {
 			if len(userLoginHistoryPrimaryKeyColumns) == 0 {
-				return errors.New("models: unable to upsert user_login_history, could not build conflict column list")
+				return errors.New("entity: unable to upsert user_login_history, could not build conflict column list")
 			}
 
 			conflict = make([]string, len(userLoginHistoryPrimaryKeyColumns))
@@ -1106,7 +1379,7 @@ func (o *UserLoginHistory) Upsert(ctx context.Context, exec boil.ContextExecutor
 		_, err = exec.ExecContext(ctx, cache.query, vals...)
 	}
 	if err != nil {
-		return errors.Wrap(err, "models: unable to upsert user_login_history")
+		return errors.Wrap(err, "entity: unable to upsert user_login_history")
 	}
 
 	if !cached {
@@ -1118,11 +1391,41 @@ func (o *UserLoginHistory) Upsert(ctx context.Context, exec boil.ContextExecutor
 	return o.doAfterUpsertHooks(ctx, exec)
 }
 
+// DeleteG deletes a single UserLoginHistory record.
+// DeleteG will match against the primary key column to find the record to delete.
+func (o *UserLoginHistory) DeleteG(ctx context.Context) (int64, error) {
+	return o.Delete(ctx, boil.GetContextDB())
+}
+
+// DeleteP deletes a single UserLoginHistory record with an executor.
+// DeleteP will match against the primary key column to find the record to delete.
+// Panics on error.
+func (o *UserLoginHistory) DeleteP(ctx context.Context, exec boil.ContextExecutor) int64 {
+	rowsAff, err := o.Delete(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
+// DeleteGP deletes a single UserLoginHistory record.
+// DeleteGP will match against the primary key column to find the record to delete.
+// Panics on error.
+func (o *UserLoginHistory) DeleteGP(ctx context.Context) int64 {
+	rowsAff, err := o.Delete(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
 // Delete deletes a single UserLoginHistory record with an executor.
 // Delete will match against the primary key column to find the record to delete.
 func (o *UserLoginHistory) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if o == nil {
-		return 0, errors.New("models: no UserLoginHistory provided for delete")
+		return 0, errors.New("entity: no UserLoginHistory provided for delete")
 	}
 
 	if err := o.doBeforeDeleteHooks(ctx, exec); err != nil {
@@ -1139,12 +1442,12 @@ func (o *UserLoginHistory) Delete(ctx context.Context, exec boil.ContextExecutor
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to delete from user_login_history")
+		return 0, errors.Wrap(err, "entity: unable to delete from user_login_history")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "models: failed to get rows affected by delete for user_login_history")
+		return 0, errors.Wrap(err, "entity: failed to get rows affected by delete for user_login_history")
 	}
 
 	if err := o.doAfterDeleteHooks(ctx, exec); err != nil {
@@ -1154,25 +1457,74 @@ func (o *UserLoginHistory) Delete(ctx context.Context, exec boil.ContextExecutor
 	return rowsAff, nil
 }
 
+func (q userLoginHistoryQuery) DeleteAllG(ctx context.Context) (int64, error) {
+	return q.DeleteAll(ctx, boil.GetContextDB())
+}
+
+// DeleteAllP deletes all rows, and panics on error.
+func (q userLoginHistoryQuery) DeleteAllP(ctx context.Context, exec boil.ContextExecutor) int64 {
+	rowsAff, err := q.DeleteAll(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
+// DeleteAllGP deletes all rows, and panics on error.
+func (q userLoginHistoryQuery) DeleteAllGP(ctx context.Context) int64 {
+	rowsAff, err := q.DeleteAll(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
 // DeleteAll deletes all matching rows.
 func (q userLoginHistoryQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if q.Query == nil {
-		return 0, errors.New("models: no userLoginHistoryQuery provided for delete all")
+		return 0, errors.New("entity: no userLoginHistoryQuery provided for delete all")
 	}
 
 	queries.SetDelete(q.Query)
 
 	result, err := q.Query.ExecContext(ctx, exec)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to delete all from user_login_history")
+		return 0, errors.Wrap(err, "entity: unable to delete all from user_login_history")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "models: failed to get rows affected by deleteall for user_login_history")
+		return 0, errors.Wrap(err, "entity: failed to get rows affected by deleteall for user_login_history")
 	}
 
 	return rowsAff, nil
+}
+
+// DeleteAllG deletes all rows in the slice.
+func (o UserLoginHistorySlice) DeleteAllG(ctx context.Context) (int64, error) {
+	return o.DeleteAll(ctx, boil.GetContextDB())
+}
+
+// DeleteAllP deletes all rows in the slice, using an executor, and panics on error.
+func (o UserLoginHistorySlice) DeleteAllP(ctx context.Context, exec boil.ContextExecutor) int64 {
+	rowsAff, err := o.DeleteAll(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
+// DeleteAllGP deletes all rows in the slice, and panics on error.
+func (o UserLoginHistorySlice) DeleteAllGP(ctx context.Context) int64 {
+	rowsAff, err := o.DeleteAll(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
 }
 
 // DeleteAll deletes all rows in the slice, using an executor.
@@ -1205,12 +1557,12 @@ func (o UserLoginHistorySlice) DeleteAll(ctx context.Context, exec boil.ContextE
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to delete all from userLoginHistory slice")
+		return 0, errors.Wrap(err, "entity: unable to delete all from userLoginHistory slice")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "models: failed to get rows affected by deleteall for user_login_history")
+		return 0, errors.Wrap(err, "entity: failed to get rows affected by deleteall for user_login_history")
 	}
 
 	if len(userLoginHistoryAfterDeleteHooks) != 0 {
@@ -1224,6 +1576,29 @@ func (o UserLoginHistorySlice) DeleteAll(ctx context.Context, exec boil.ContextE
 	return rowsAff, nil
 }
 
+// ReloadG refetches the object from the database using the primary keys.
+func (o *UserLoginHistory) ReloadG(ctx context.Context) error {
+	if o == nil {
+		return errors.New("entity: no UserLoginHistory provided for reload")
+	}
+
+	return o.Reload(ctx, boil.GetContextDB())
+}
+
+// ReloadP refetches the object from the database with an executor. Panics on error.
+func (o *UserLoginHistory) ReloadP(ctx context.Context, exec boil.ContextExecutor) {
+	if err := o.Reload(ctx, exec); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// ReloadGP refetches the object from the database and panics on error.
+func (o *UserLoginHistory) ReloadGP(ctx context.Context) {
+	if err := o.Reload(ctx, boil.GetContextDB()); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
 // Reload refetches the object from the database
 // using the primary keys with an executor.
 func (o *UserLoginHistory) Reload(ctx context.Context, exec boil.ContextExecutor) error {
@@ -1234,6 +1609,34 @@ func (o *UserLoginHistory) Reload(ctx context.Context, exec boil.ContextExecutor
 
 	*o = *ret
 	return nil
+}
+
+// ReloadAllG refetches every row with matching primary key column values
+// and overwrites the original object slice with the newly updated slice.
+func (o *UserLoginHistorySlice) ReloadAllG(ctx context.Context) error {
+	if o == nil {
+		return errors.New("entity: empty UserLoginHistorySlice provided for reload all")
+	}
+
+	return o.ReloadAll(ctx, boil.GetContextDB())
+}
+
+// ReloadAllP refetches every row with matching primary key column values
+// and overwrites the original object slice with the newly updated slice.
+// Panics on error.
+func (o *UserLoginHistorySlice) ReloadAllP(ctx context.Context, exec boil.ContextExecutor) {
+	if err := o.ReloadAll(ctx, exec); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// ReloadAllGP refetches every row with matching primary key column values
+// and overwrites the original object slice with the newly updated slice.
+// Panics on error.
+func (o *UserLoginHistorySlice) ReloadAllGP(ctx context.Context) {
+	if err := o.ReloadAll(ctx, boil.GetContextDB()); err != nil {
+		panic(boil.WrapErr(err))
+	}
 }
 
 // ReloadAll refetches every row with matching primary key column values
@@ -1257,12 +1660,37 @@ func (o *UserLoginHistorySlice) ReloadAll(ctx context.Context, exec boil.Context
 
 	err := q.Bind(ctx, exec, &slice)
 	if err != nil {
-		return errors.Wrap(err, "models: unable to reload all in UserLoginHistorySlice")
+		return errors.Wrap(err, "entity: unable to reload all in UserLoginHistorySlice")
 	}
 
 	*o = slice
 
 	return nil
+}
+
+// UserLoginHistoryExistsG checks if the UserLoginHistory row exists.
+func UserLoginHistoryExistsG(ctx context.Context, iD int64) (bool, error) {
+	return UserLoginHistoryExists(ctx, boil.GetContextDB(), iD)
+}
+
+// UserLoginHistoryExistsP checks if the UserLoginHistory row exists. Panics on error.
+func UserLoginHistoryExistsP(ctx context.Context, exec boil.ContextExecutor, iD int64) bool {
+	e, err := UserLoginHistoryExists(ctx, exec, iD)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return e
+}
+
+// UserLoginHistoryExistsGP checks if the UserLoginHistory row exists. Panics on error.
+func UserLoginHistoryExistsGP(ctx context.Context, iD int64) bool {
+	e, err := UserLoginHistoryExists(ctx, boil.GetContextDB(), iD)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return e
 }
 
 // UserLoginHistoryExists checks if the UserLoginHistory row exists.
@@ -1279,7 +1707,7 @@ func UserLoginHistoryExists(ctx context.Context, exec boil.ContextExecutor, iD i
 
 	err := row.Scan(&exists)
 	if err != nil {
-		return false, errors.Wrap(err, "models: unable to check if user_login_history exists")
+		return false, errors.Wrap(err, "entity: unable to check if user_login_history exists")
 	}
 
 	return exists, nil

@@ -173,28 +173,33 @@ func ConvertToClassWithStats(class *entity.Class, stats *query.ClassHeroStats) *
 
 // ConvertToAttributeBonusEntity 将请求转换为属性加成实体
 func ConvertToAttributeBonusEntity(classID string, req *apiReqAdmin.CreateClassAttributeBonusRequest) *entity.ClassAttributeBonuse {
-	// 创建持久的decimal对象
-	baseBonus := decimal.New(int64(req.BaseBonus*100), -2)  // 使用整数乘法避免浮点精度问题
-	perLevelBonus := decimal.New(int64(req.PerLevelBonus*100), -2)
+	// 使用 ericlagergren/decimal 创建 Big 值
+	var baseBonus decimal.Big
+	baseBonus.SetFloat64(req.BaseBonus)
+
+	var perLevelBonus decimal.Big
+	perLevelBonus.SetFloat64(req.PerLevelBonus)
 
 	return &entity.ClassAttributeBonuse{
 		ClassID:            classID,
 		AttributeID:        req.AttributeID.String(),
-		BaseBonusValue:     types.Decimal{Big: baseBonus},
-		PerLevelBonusValue: types.Decimal{Big: perLevelBonus},
+		BaseBonusValue:     types.NewDecimal(&baseBonus),
+		PerLevelBonusValue: types.NewDecimal(&perLevelBonus),
 	}
 }
 
 // UpdateAttributeBonusFromRequest 使用请求更新属性加成实体
 func UpdateAttributeBonusFromRequest(bonus *entity.ClassAttributeBonuse, req *apiReqAdmin.UpdateClassAttributeBonusRequest) {
 	if req.BaseBonus != nil {
-		baseBonus := decimal.New(int64(*req.BaseBonus*100), -2)
-		bonus.BaseBonusValue = types.Decimal{Big: baseBonus}
+		var big decimal.Big
+		big.SetFloat64(*req.BaseBonus)
+		bonus.BaseBonusValue = types.NewDecimal(&big)
 	}
 
 	if req.PerLevelBonus != nil {
-		perLevelBonus := decimal.New(int64(*req.PerLevelBonus*100), -2)
-		bonus.PerLevelBonusValue = types.Decimal{Big: perLevelBonus}
+		var big decimal.Big
+		big.SetFloat64(*req.PerLevelBonus)
+		bonus.PerLevelBonusValue = types.NewDecimal(&big)
 	}
 }
 

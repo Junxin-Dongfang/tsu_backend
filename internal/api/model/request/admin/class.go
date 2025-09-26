@@ -8,25 +8,25 @@ import (
 // @Description 创建新职业的请求参数
 type CreateClassRequest struct {
 	// 职业代码，必须唯一，用于系统内部识别
-	Code string `json:"code" binding:"required,min=2,max=50" example:"WARRIOR"`
+	Code string `json:"code" binding:"required,class_code" example:"WARRIOR"`
 	// 职业显示名称
-	Name string `json:"name" binding:"required,min=2,max=100" example:"战士"`
+	Name string `json:"name" binding:"required,chinese_name" example:"战士"`
 	// 职业描述信息
-	Description *string `json:"description,omitempty" binding:"omitempty,max=1000" example:"擅长近战与防御的强力职业"`
+	Description *string `json:"description,omitempty" binding:"omitempty,safe_description" example:"擅长近战与防御的强力职业"`
 	// 职业背景故事文本
-	LoreText *string `json:"lore_text,omitempty" binding:"omitempty,max=2000" example:"自古以来守护村庄的勇士"`
+	LoreText *string `json:"lore_text,omitempty" binding:"omitempty,safe_description" example:"自古以来守护村庄的勇士"`
 	// 职业层级，1为基础职业，2为进阶职业
-	Tier int `json:"tier" binding:"required,min=1,max=10" example:"1"`
+	Tier int `json:"tier" binding:"required,tier_range" example:"1"`
 	// 转职时获得的属性加成百分比
-	JobChangeBonus *int `json:"job_change_bonus,omitempty" binding:"omitempty,min=0" example:"5"`
+	JobChangeBonus *int `json:"job_change_bonus,omitempty" binding:"omitempty,min=0,max=1000" example:"5"`
 	// 职业图标URL
 	Icon *string `json:"icon,omitempty" example:"/assets/icons/warrior.png"`
 	// 职业主题色彩（十六进制颜色代码）
-	ColorTheme *string `json:"color_theme,omitempty" example:"#FFAA00"`
+	ColorTheme *string `json:"color_theme,omitempty" binding:"omitempty,color_hex" example:"#FFAA00"`
 	// 是否在列表中隐藏
 	IsHidden *bool `json:"is_hidden,omitempty" example:"false"`
 	// 显示排序顺序
-	DisplayOrder *int `json:"display_order,omitempty" binding:"omitempty,min=0" example:"10"`
+	DisplayOrder *int `json:"display_order,omitempty" binding:"omitempty,display_order" example:"10"`
 } // @name CreateClassRequest
 
 // UpdateClassRequest 更新职业请求

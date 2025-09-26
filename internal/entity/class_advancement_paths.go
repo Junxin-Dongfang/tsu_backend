@@ -227,6 +227,31 @@ func AddClassAdvancementPathHook(hookPoint boil.HookPoint, classAdvancementPathH
 	}
 }
 
+// OneG returns a single classAdvancementPath record from the query using the global executor.
+func (q classAdvancementPathQuery) OneG(ctx context.Context) (*ClassAdvancementPath, error) {
+	return q.One(ctx, boil.GetContextDB())
+}
+
+// OneGP returns a single classAdvancementPath record from the query using the global executor, and panics on error.
+func (q classAdvancementPathQuery) OneGP(ctx context.Context) *ClassAdvancementPath {
+	o, err := q.One(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
+// OneP returns a single classAdvancementPath record from the query, and panics on error.
+func (q classAdvancementPathQuery) OneP(ctx context.Context, exec boil.ContextExecutor) *ClassAdvancementPath {
+	o, err := q.One(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
 // One returns a single classAdvancementPath record from the query.
 func (q classAdvancementPathQuery) One(ctx context.Context, exec boil.ContextExecutor) (*ClassAdvancementPath, error) {
 	o := &ClassAdvancementPath{}
@@ -238,7 +263,7 @@ func (q classAdvancementPathQuery) One(ctx context.Context, exec boil.ContextExe
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "models: failed to execute a one query for class_advancement_paths")
+		return nil, errors.Wrap(err, "entity: failed to execute a one query for class_advancement_paths")
 	}
 
 	if err := o.doAfterSelectHooks(ctx, exec); err != nil {
@@ -248,13 +273,38 @@ func (q classAdvancementPathQuery) One(ctx context.Context, exec boil.ContextExe
 	return o, nil
 }
 
+// AllG returns all ClassAdvancementPath records from the query using the global executor.
+func (q classAdvancementPathQuery) AllG(ctx context.Context) (ClassAdvancementPathSlice, error) {
+	return q.All(ctx, boil.GetContextDB())
+}
+
+// AllGP returns all ClassAdvancementPath records from the query using the global executor, and panics on error.
+func (q classAdvancementPathQuery) AllGP(ctx context.Context) ClassAdvancementPathSlice {
+	o, err := q.All(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
+// AllP returns all ClassAdvancementPath records from the query, and panics on error.
+func (q classAdvancementPathQuery) AllP(ctx context.Context, exec boil.ContextExecutor) ClassAdvancementPathSlice {
+	o, err := q.All(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
 // All returns all ClassAdvancementPath records from the query.
 func (q classAdvancementPathQuery) All(ctx context.Context, exec boil.ContextExecutor) (ClassAdvancementPathSlice, error) {
 	var o []*ClassAdvancementPath
 
 	err := q.Bind(ctx, exec, &o)
 	if err != nil {
-		return nil, errors.Wrap(err, "models: failed to assign all query results to ClassAdvancementPath slice")
+		return nil, errors.Wrap(err, "entity: failed to assign all query results to ClassAdvancementPath slice")
 	}
 
 	if len(classAdvancementPathAfterSelectHooks) != 0 {
@@ -268,6 +318,31 @@ func (q classAdvancementPathQuery) All(ctx context.Context, exec boil.ContextExe
 	return o, nil
 }
 
+// CountG returns the count of all ClassAdvancementPath records in the query using the global executor
+func (q classAdvancementPathQuery) CountG(ctx context.Context) (int64, error) {
+	return q.Count(ctx, boil.GetContextDB())
+}
+
+// CountGP returns the count of all ClassAdvancementPath records in the query using the global executor, and panics on error.
+func (q classAdvancementPathQuery) CountGP(ctx context.Context) int64 {
+	c, err := q.Count(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return c
+}
+
+// CountP returns the count of all ClassAdvancementPath records in the query, and panics on error.
+func (q classAdvancementPathQuery) CountP(ctx context.Context, exec boil.ContextExecutor) int64 {
+	c, err := q.Count(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return c
+}
+
 // Count returns the count of all ClassAdvancementPath records in the query.
 func (q classAdvancementPathQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	var count int64
@@ -277,10 +352,35 @@ func (q classAdvancementPathQuery) Count(ctx context.Context, exec boil.ContextE
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: failed to count class_advancement_paths rows")
+		return 0, errors.Wrap(err, "entity: failed to count class_advancement_paths rows")
 	}
 
 	return count, nil
+}
+
+// ExistsG checks if the row exists in the table using the global executor.
+func (q classAdvancementPathQuery) ExistsG(ctx context.Context) (bool, error) {
+	return q.Exists(ctx, boil.GetContextDB())
+}
+
+// ExistsGP checks if the row exists in the table using the global executor, and panics on error.
+func (q classAdvancementPathQuery) ExistsGP(ctx context.Context) bool {
+	e, err := q.Exists(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return e
+}
+
+// ExistsP checks if the row exists in the table, and panics on error.
+func (q classAdvancementPathQuery) ExistsP(ctx context.Context, exec boil.ContextExecutor) bool {
+	e, err := q.Exists(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return e
 }
 
 // Exists checks if the row exists in the table.
@@ -293,7 +393,7 @@ func (q classAdvancementPathQuery) Exists(ctx context.Context, exec boil.Context
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return false, errors.Wrap(err, "models: failed to check if class_advancement_paths exists")
+		return false, errors.Wrap(err, "entity: failed to check if class_advancement_paths exists")
 	}
 
 	return count > 0, nil

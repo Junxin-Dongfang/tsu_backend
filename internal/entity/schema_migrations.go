@@ -345,6 +345,31 @@ func AddSchemaMigrationHook(hookPoint boil.HookPoint, schemaMigrationHook Schema
 	}
 }
 
+// OneG returns a single schemaMigration record from the query using the global executor.
+func (q schemaMigrationQuery) OneG(ctx context.Context) (*SchemaMigration, error) {
+	return q.One(ctx, boil.GetContextDB())
+}
+
+// OneGP returns a single schemaMigration record from the query using the global executor, and panics on error.
+func (q schemaMigrationQuery) OneGP(ctx context.Context) *SchemaMigration {
+	o, err := q.One(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
+// OneP returns a single schemaMigration record from the query, and panics on error.
+func (q schemaMigrationQuery) OneP(ctx context.Context, exec boil.ContextExecutor) *SchemaMigration {
+	o, err := q.One(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
 // One returns a single schemaMigration record from the query.
 func (q schemaMigrationQuery) One(ctx context.Context, exec boil.ContextExecutor) (*SchemaMigration, error) {
 	o := &SchemaMigration{}
@@ -356,7 +381,7 @@ func (q schemaMigrationQuery) One(ctx context.Context, exec boil.ContextExecutor
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "models: failed to execute a one query for schema_migrations")
+		return nil, errors.Wrap(err, "entity: failed to execute a one query for schema_migrations")
 	}
 
 	if err := o.doAfterSelectHooks(ctx, exec); err != nil {
@@ -366,13 +391,38 @@ func (q schemaMigrationQuery) One(ctx context.Context, exec boil.ContextExecutor
 	return o, nil
 }
 
+// AllG returns all SchemaMigration records from the query using the global executor.
+func (q schemaMigrationQuery) AllG(ctx context.Context) (SchemaMigrationSlice, error) {
+	return q.All(ctx, boil.GetContextDB())
+}
+
+// AllGP returns all SchemaMigration records from the query using the global executor, and panics on error.
+func (q schemaMigrationQuery) AllGP(ctx context.Context) SchemaMigrationSlice {
+	o, err := q.All(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
+// AllP returns all SchemaMigration records from the query, and panics on error.
+func (q schemaMigrationQuery) AllP(ctx context.Context, exec boil.ContextExecutor) SchemaMigrationSlice {
+	o, err := q.All(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return o
+}
+
 // All returns all SchemaMigration records from the query.
 func (q schemaMigrationQuery) All(ctx context.Context, exec boil.ContextExecutor) (SchemaMigrationSlice, error) {
 	var o []*SchemaMigration
 
 	err := q.Bind(ctx, exec, &o)
 	if err != nil {
-		return nil, errors.Wrap(err, "models: failed to assign all query results to SchemaMigration slice")
+		return nil, errors.Wrap(err, "entity: failed to assign all query results to SchemaMigration slice")
 	}
 
 	if len(schemaMigrationAfterSelectHooks) != 0 {
@@ -386,6 +436,31 @@ func (q schemaMigrationQuery) All(ctx context.Context, exec boil.ContextExecutor
 	return o, nil
 }
 
+// CountG returns the count of all SchemaMigration records in the query using the global executor
+func (q schemaMigrationQuery) CountG(ctx context.Context) (int64, error) {
+	return q.Count(ctx, boil.GetContextDB())
+}
+
+// CountGP returns the count of all SchemaMigration records in the query using the global executor, and panics on error.
+func (q schemaMigrationQuery) CountGP(ctx context.Context) int64 {
+	c, err := q.Count(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return c
+}
+
+// CountP returns the count of all SchemaMigration records in the query, and panics on error.
+func (q schemaMigrationQuery) CountP(ctx context.Context, exec boil.ContextExecutor) int64 {
+	c, err := q.Count(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return c
+}
+
 // Count returns the count of all SchemaMigration records in the query.
 func (q schemaMigrationQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	var count int64
@@ -395,10 +470,35 @@ func (q schemaMigrationQuery) Count(ctx context.Context, exec boil.ContextExecut
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: failed to count schema_migrations rows")
+		return 0, errors.Wrap(err, "entity: failed to count schema_migrations rows")
 	}
 
 	return count, nil
+}
+
+// ExistsG checks if the row exists in the table using the global executor.
+func (q schemaMigrationQuery) ExistsG(ctx context.Context) (bool, error) {
+	return q.Exists(ctx, boil.GetContextDB())
+}
+
+// ExistsGP checks if the row exists in the table using the global executor, and panics on error.
+func (q schemaMigrationQuery) ExistsGP(ctx context.Context) bool {
+	e, err := q.Exists(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return e
+}
+
+// ExistsP checks if the row exists in the table, and panics on error.
+func (q schemaMigrationQuery) ExistsP(ctx context.Context, exec boil.ContextExecutor) bool {
+	e, err := q.Exists(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return e
 }
 
 // Exists checks if the row exists in the table.
@@ -411,7 +511,7 @@ func (q schemaMigrationQuery) Exists(ctx context.Context, exec boil.ContextExecu
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return false, errors.Wrap(err, "models: failed to check if schema_migrations exists")
+		return false, errors.Wrap(err, "entity: failed to check if schema_migrations exists")
 	}
 
 	return count > 0, nil
@@ -426,6 +526,31 @@ func SchemaMigrations(mods ...qm.QueryMod) schemaMigrationQuery {
 	}
 
 	return schemaMigrationQuery{q}
+}
+
+// FindSchemaMigrationG retrieves a single record by ID.
+func FindSchemaMigrationG(ctx context.Context, version int64, selectCols ...string) (*SchemaMigration, error) {
+	return FindSchemaMigration(ctx, boil.GetContextDB(), version, selectCols...)
+}
+
+// FindSchemaMigrationP retrieves a single record by ID with an executor, and panics on error.
+func FindSchemaMigrationP(ctx context.Context, exec boil.ContextExecutor, version int64, selectCols ...string) *SchemaMigration {
+	retobj, err := FindSchemaMigration(ctx, exec, version, selectCols...)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return retobj
+}
+
+// FindSchemaMigrationGP retrieves a single record by ID, and panics on error.
+func FindSchemaMigrationGP(ctx context.Context, version int64, selectCols ...string) *SchemaMigration {
+	retobj, err := FindSchemaMigration(ctx, boil.GetContextDB(), version, selectCols...)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return retobj
 }
 
 // FindSchemaMigration retrieves a single record by ID with an executor.
@@ -448,7 +573,7 @@ func FindSchemaMigration(ctx context.Context, exec boil.ContextExecutor, version
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "models: unable to select from schema_migrations")
+		return nil, errors.Wrap(err, "entity: unable to select from schema_migrations")
 	}
 
 	if err = schemaMigrationObj.doAfterSelectHooks(ctx, exec); err != nil {
@@ -458,11 +583,32 @@ func FindSchemaMigration(ctx context.Context, exec boil.ContextExecutor, version
 	return schemaMigrationObj, nil
 }
 
+// InsertG a single record. See Insert for whitelist behavior description.
+func (o *SchemaMigration) InsertG(ctx context.Context, columns boil.Columns) error {
+	return o.Insert(ctx, boil.GetContextDB(), columns)
+}
+
+// InsertP a single record using an executor, and panics on error. See Insert
+// for whitelist behavior description.
+func (o *SchemaMigration) InsertP(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) {
+	if err := o.Insert(ctx, exec, columns); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// InsertGP a single record, and panics on error. See Insert for whitelist
+// behavior description.
+func (o *SchemaMigration) InsertGP(ctx context.Context, columns boil.Columns) {
+	if err := o.Insert(ctx, boil.GetContextDB(), columns); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
 // Insert a single record using an executor.
 // See boil.Columns.InsertColumnSet documentation to understand column list inference for inserts.
 func (o *SchemaMigration) Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error {
 	if o == nil {
-		return errors.New("models: no schema_migrations provided for insertion")
+		return errors.New("entity: no schema_migrations provided for insertion")
 	}
 
 	var err error
@@ -525,7 +671,7 @@ func (o *SchemaMigration) Insert(ctx context.Context, exec boil.ContextExecutor,
 	}
 
 	if err != nil {
-		return errors.Wrap(err, "models: unable to insert into schema_migrations")
+		return errors.Wrap(err, "entity: unable to insert into schema_migrations")
 	}
 
 	if !cached {
@@ -535,6 +681,34 @@ func (o *SchemaMigration) Insert(ctx context.Context, exec boil.ContextExecutor,
 	}
 
 	return o.doAfterInsertHooks(ctx, exec)
+}
+
+// UpdateG a single SchemaMigration record using the global executor.
+// See Update for more documentation.
+func (o *SchemaMigration) UpdateG(ctx context.Context, columns boil.Columns) (int64, error) {
+	return o.Update(ctx, boil.GetContextDB(), columns)
+}
+
+// UpdateP uses an executor to update the SchemaMigration, and panics on error.
+// See Update for more documentation.
+func (o *SchemaMigration) UpdateP(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) int64 {
+	rowsAff, err := o.Update(ctx, exec, columns)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
+// UpdateGP a single SchemaMigration record using the global executor. Panics on error.
+// See Update for more documentation.
+func (o *SchemaMigration) UpdateGP(ctx context.Context, columns boil.Columns) int64 {
+	rowsAff, err := o.Update(ctx, boil.GetContextDB(), columns)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
 }
 
 // Update uses an executor to update the SchemaMigration.
@@ -560,7 +734,7 @@ func (o *SchemaMigration) Update(ctx context.Context, exec boil.ContextExecutor,
 			wl = strmangle.SetComplement(wl, []string{"created_at"})
 		}
 		if len(wl) == 0 {
-			return 0, errors.New("models: unable to update schema_migrations, could not build whitelist")
+			return 0, errors.New("entity: unable to update schema_migrations, could not build whitelist")
 		}
 
 		cache.query = fmt.Sprintf("UPDATE \"schema_migrations\" SET %s WHERE %s",
@@ -583,12 +757,12 @@ func (o *SchemaMigration) Update(ctx context.Context, exec boil.ContextExecutor,
 	var result sql.Result
 	result, err = exec.ExecContext(ctx, cache.query, values...)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to update schema_migrations row")
+		return 0, errors.Wrap(err, "entity: unable to update schema_migrations row")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "models: failed to get rows affected by update for schema_migrations")
+		return 0, errors.Wrap(err, "entity: failed to get rows affected by update for schema_migrations")
 	}
 
 	if !cached {
@@ -600,21 +774,71 @@ func (o *SchemaMigration) Update(ctx context.Context, exec boil.ContextExecutor,
 	return rowsAff, o.doAfterUpdateHooks(ctx, exec)
 }
 
+// UpdateAllP updates all rows with matching column names, and panics on error.
+func (q schemaMigrationQuery) UpdateAllP(ctx context.Context, exec boil.ContextExecutor, cols M) int64 {
+	rowsAff, err := q.UpdateAll(ctx, exec, cols)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
+// UpdateAllG updates all rows with the specified column values.
+func (q schemaMigrationQuery) UpdateAllG(ctx context.Context, cols M) (int64, error) {
+	return q.UpdateAll(ctx, boil.GetContextDB(), cols)
+}
+
+// UpdateAllGP updates all rows with the specified column values, and panics on error.
+func (q schemaMigrationQuery) UpdateAllGP(ctx context.Context, cols M) int64 {
+	rowsAff, err := q.UpdateAll(ctx, boil.GetContextDB(), cols)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
 // UpdateAll updates all rows with the specified column values.
 func (q schemaMigrationQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
 	queries.SetUpdate(q.Query, cols)
 
 	result, err := q.Query.ExecContext(ctx, exec)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to update all for schema_migrations")
+		return 0, errors.Wrap(err, "entity: unable to update all for schema_migrations")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to retrieve rows affected for schema_migrations")
+		return 0, errors.Wrap(err, "entity: unable to retrieve rows affected for schema_migrations")
 	}
 
 	return rowsAff, nil
+}
+
+// UpdateAllG updates all rows with the specified column values.
+func (o SchemaMigrationSlice) UpdateAllG(ctx context.Context, cols M) (int64, error) {
+	return o.UpdateAll(ctx, boil.GetContextDB(), cols)
+}
+
+// UpdateAllGP updates all rows with the specified column values, and panics on error.
+func (o SchemaMigrationSlice) UpdateAllGP(ctx context.Context, cols M) int64 {
+	rowsAff, err := o.UpdateAll(ctx, boil.GetContextDB(), cols)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
+// UpdateAllP updates all rows with the specified column values, and panics on error.
+func (o SchemaMigrationSlice) UpdateAllP(ctx context.Context, exec boil.ContextExecutor, cols M) int64 {
+	rowsAff, err := o.UpdateAll(ctx, exec, cols)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
 }
 
 // UpdateAll updates all rows with the specified column values, using an executor.
@@ -625,7 +849,7 @@ func (o SchemaMigrationSlice) UpdateAll(ctx context.Context, exec boil.ContextEx
 	}
 
 	if len(cols) == 0 {
-		return 0, errors.New("models: update all requires at least one column argument")
+		return 0, errors.New("entity: update all requires at least one column argument")
 	}
 
 	colNames := make([]string, len(cols))
@@ -655,21 +879,41 @@ func (o SchemaMigrationSlice) UpdateAll(ctx context.Context, exec boil.ContextEx
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to update all in schemaMigration slice")
+		return 0, errors.Wrap(err, "entity: unable to update all in schemaMigration slice")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to retrieve rows affected all in update all schemaMigration")
+		return 0, errors.Wrap(err, "entity: unable to retrieve rows affected all in update all schemaMigration")
 	}
 	return rowsAff, nil
+}
+
+// UpsertG attempts an insert, and does an update or ignore on conflict.
+func (o *SchemaMigration) UpsertG(ctx context.Context, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) error {
+	return o.Upsert(ctx, boil.GetContextDB(), updateOnConflict, conflictColumns, updateColumns, insertColumns, opts...)
+}
+
+// UpsertGP attempts an insert, and does an update or ignore on conflict. Panics on error.
+func (o *SchemaMigration) UpsertGP(ctx context.Context, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) {
+	if err := o.Upsert(ctx, boil.GetContextDB(), updateOnConflict, conflictColumns, updateColumns, insertColumns, opts...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// UpsertP attempts an insert using an executor, and does an update or ignore on conflict.
+// UpsertP panics on error.
+func (o *SchemaMigration) UpsertP(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) {
+	if err := o.Upsert(ctx, exec, updateOnConflict, conflictColumns, updateColumns, insertColumns, opts...); err != nil {
+		panic(boil.WrapErr(err))
+	}
 }
 
 // Upsert attempts an insert using an executor, and does an update or ignore on conflict.
 // See boil.Columns documentation for how to properly use updateColumns and insertColumns.
 func (o *SchemaMigration) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns, opts ...UpsertOptionFunc) error {
 	if o == nil {
-		return errors.New("models: no schema_migrations provided for upsert")
+		return errors.New("entity: no schema_migrations provided for upsert")
 	}
 
 	if err := o.doBeforeUpsertHooks(ctx, exec); err != nil {
@@ -726,7 +970,7 @@ func (o *SchemaMigration) Upsert(ctx context.Context, exec boil.ContextExecutor,
 		)
 
 		if updateOnConflict && len(update) == 0 {
-			return errors.New("models: unable to upsert schema_migrations, could not build update column list")
+			return errors.New("entity: unable to upsert schema_migrations, could not build update column list")
 		}
 
 		ret := strmangle.SetComplement(schemaMigrationAllColumns, strmangle.SetIntersect(insert, update))
@@ -734,7 +978,7 @@ func (o *SchemaMigration) Upsert(ctx context.Context, exec boil.ContextExecutor,
 		conflict := conflictColumns
 		if len(conflict) == 0 && updateOnConflict && len(update) != 0 {
 			if len(schemaMigrationPrimaryKeyColumns) == 0 {
-				return errors.New("models: unable to upsert schema_migrations, could not build conflict column list")
+				return errors.New("entity: unable to upsert schema_migrations, could not build conflict column list")
 			}
 
 			conflict = make([]string, len(schemaMigrationPrimaryKeyColumns))
@@ -775,7 +1019,7 @@ func (o *SchemaMigration) Upsert(ctx context.Context, exec boil.ContextExecutor,
 		_, err = exec.ExecContext(ctx, cache.query, vals...)
 	}
 	if err != nil {
-		return errors.Wrap(err, "models: unable to upsert schema_migrations")
+		return errors.Wrap(err, "entity: unable to upsert schema_migrations")
 	}
 
 	if !cached {
@@ -787,11 +1031,41 @@ func (o *SchemaMigration) Upsert(ctx context.Context, exec boil.ContextExecutor,
 	return o.doAfterUpsertHooks(ctx, exec)
 }
 
+// DeleteG deletes a single SchemaMigration record.
+// DeleteG will match against the primary key column to find the record to delete.
+func (o *SchemaMigration) DeleteG(ctx context.Context) (int64, error) {
+	return o.Delete(ctx, boil.GetContextDB())
+}
+
+// DeleteP deletes a single SchemaMigration record with an executor.
+// DeleteP will match against the primary key column to find the record to delete.
+// Panics on error.
+func (o *SchemaMigration) DeleteP(ctx context.Context, exec boil.ContextExecutor) int64 {
+	rowsAff, err := o.Delete(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
+// DeleteGP deletes a single SchemaMigration record.
+// DeleteGP will match against the primary key column to find the record to delete.
+// Panics on error.
+func (o *SchemaMigration) DeleteGP(ctx context.Context) int64 {
+	rowsAff, err := o.Delete(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
 // Delete deletes a single SchemaMigration record with an executor.
 // Delete will match against the primary key column to find the record to delete.
 func (o *SchemaMigration) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if o == nil {
-		return 0, errors.New("models: no SchemaMigration provided for delete")
+		return 0, errors.New("entity: no SchemaMigration provided for delete")
 	}
 
 	if err := o.doBeforeDeleteHooks(ctx, exec); err != nil {
@@ -808,12 +1082,12 @@ func (o *SchemaMigration) Delete(ctx context.Context, exec boil.ContextExecutor)
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to delete from schema_migrations")
+		return 0, errors.Wrap(err, "entity: unable to delete from schema_migrations")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "models: failed to get rows affected by delete for schema_migrations")
+		return 0, errors.Wrap(err, "entity: failed to get rows affected by delete for schema_migrations")
 	}
 
 	if err := o.doAfterDeleteHooks(ctx, exec); err != nil {
@@ -823,25 +1097,74 @@ func (o *SchemaMigration) Delete(ctx context.Context, exec boil.ContextExecutor)
 	return rowsAff, nil
 }
 
+func (q schemaMigrationQuery) DeleteAllG(ctx context.Context) (int64, error) {
+	return q.DeleteAll(ctx, boil.GetContextDB())
+}
+
+// DeleteAllP deletes all rows, and panics on error.
+func (q schemaMigrationQuery) DeleteAllP(ctx context.Context, exec boil.ContextExecutor) int64 {
+	rowsAff, err := q.DeleteAll(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
+// DeleteAllGP deletes all rows, and panics on error.
+func (q schemaMigrationQuery) DeleteAllGP(ctx context.Context) int64 {
+	rowsAff, err := q.DeleteAll(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
 // DeleteAll deletes all matching rows.
 func (q schemaMigrationQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if q.Query == nil {
-		return 0, errors.New("models: no schemaMigrationQuery provided for delete all")
+		return 0, errors.New("entity: no schemaMigrationQuery provided for delete all")
 	}
 
 	queries.SetDelete(q.Query)
 
 	result, err := q.Query.ExecContext(ctx, exec)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to delete all from schema_migrations")
+		return 0, errors.Wrap(err, "entity: unable to delete all from schema_migrations")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "models: failed to get rows affected by deleteall for schema_migrations")
+		return 0, errors.Wrap(err, "entity: failed to get rows affected by deleteall for schema_migrations")
 	}
 
 	return rowsAff, nil
+}
+
+// DeleteAllG deletes all rows in the slice.
+func (o SchemaMigrationSlice) DeleteAllG(ctx context.Context) (int64, error) {
+	return o.DeleteAll(ctx, boil.GetContextDB())
+}
+
+// DeleteAllP deletes all rows in the slice, using an executor, and panics on error.
+func (o SchemaMigrationSlice) DeleteAllP(ctx context.Context, exec boil.ContextExecutor) int64 {
+	rowsAff, err := o.DeleteAll(ctx, exec)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
+}
+
+// DeleteAllGP deletes all rows in the slice, and panics on error.
+func (o SchemaMigrationSlice) DeleteAllGP(ctx context.Context) int64 {
+	rowsAff, err := o.DeleteAll(ctx, boil.GetContextDB())
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return rowsAff
 }
 
 // DeleteAll deletes all rows in the slice, using an executor.
@@ -874,12 +1197,12 @@ func (o SchemaMigrationSlice) DeleteAll(ctx context.Context, exec boil.ContextEx
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to delete all from schemaMigration slice")
+		return 0, errors.Wrap(err, "entity: unable to delete all from schemaMigration slice")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "models: failed to get rows affected by deleteall for schema_migrations")
+		return 0, errors.Wrap(err, "entity: failed to get rows affected by deleteall for schema_migrations")
 	}
 
 	if len(schemaMigrationAfterDeleteHooks) != 0 {
@@ -893,6 +1216,29 @@ func (o SchemaMigrationSlice) DeleteAll(ctx context.Context, exec boil.ContextEx
 	return rowsAff, nil
 }
 
+// ReloadG refetches the object from the database using the primary keys.
+func (o *SchemaMigration) ReloadG(ctx context.Context) error {
+	if o == nil {
+		return errors.New("entity: no SchemaMigration provided for reload")
+	}
+
+	return o.Reload(ctx, boil.GetContextDB())
+}
+
+// ReloadP refetches the object from the database with an executor. Panics on error.
+func (o *SchemaMigration) ReloadP(ctx context.Context, exec boil.ContextExecutor) {
+	if err := o.Reload(ctx, exec); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// ReloadGP refetches the object from the database and panics on error.
+func (o *SchemaMigration) ReloadGP(ctx context.Context) {
+	if err := o.Reload(ctx, boil.GetContextDB()); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
 // Reload refetches the object from the database
 // using the primary keys with an executor.
 func (o *SchemaMigration) Reload(ctx context.Context, exec boil.ContextExecutor) error {
@@ -903,6 +1249,34 @@ func (o *SchemaMigration) Reload(ctx context.Context, exec boil.ContextExecutor)
 
 	*o = *ret
 	return nil
+}
+
+// ReloadAllG refetches every row with matching primary key column values
+// and overwrites the original object slice with the newly updated slice.
+func (o *SchemaMigrationSlice) ReloadAllG(ctx context.Context) error {
+	if o == nil {
+		return errors.New("entity: empty SchemaMigrationSlice provided for reload all")
+	}
+
+	return o.ReloadAll(ctx, boil.GetContextDB())
+}
+
+// ReloadAllP refetches every row with matching primary key column values
+// and overwrites the original object slice with the newly updated slice.
+// Panics on error.
+func (o *SchemaMigrationSlice) ReloadAllP(ctx context.Context, exec boil.ContextExecutor) {
+	if err := o.ReloadAll(ctx, exec); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// ReloadAllGP refetches every row with matching primary key column values
+// and overwrites the original object slice with the newly updated slice.
+// Panics on error.
+func (o *SchemaMigrationSlice) ReloadAllGP(ctx context.Context) {
+	if err := o.ReloadAll(ctx, boil.GetContextDB()); err != nil {
+		panic(boil.WrapErr(err))
+	}
 }
 
 // ReloadAll refetches every row with matching primary key column values
@@ -926,12 +1300,37 @@ func (o *SchemaMigrationSlice) ReloadAll(ctx context.Context, exec boil.ContextE
 
 	err := q.Bind(ctx, exec, &slice)
 	if err != nil {
-		return errors.Wrap(err, "models: unable to reload all in SchemaMigrationSlice")
+		return errors.Wrap(err, "entity: unable to reload all in SchemaMigrationSlice")
 	}
 
 	*o = slice
 
 	return nil
+}
+
+// SchemaMigrationExistsG checks if the SchemaMigration row exists.
+func SchemaMigrationExistsG(ctx context.Context, version int64) (bool, error) {
+	return SchemaMigrationExists(ctx, boil.GetContextDB(), version)
+}
+
+// SchemaMigrationExistsP checks if the SchemaMigration row exists. Panics on error.
+func SchemaMigrationExistsP(ctx context.Context, exec boil.ContextExecutor, version int64) bool {
+	e, err := SchemaMigrationExists(ctx, exec, version)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return e
+}
+
+// SchemaMigrationExistsGP checks if the SchemaMigration row exists. Panics on error.
+func SchemaMigrationExistsGP(ctx context.Context, version int64) bool {
+	e, err := SchemaMigrationExists(ctx, boil.GetContextDB(), version)
+	if err != nil {
+		panic(boil.WrapErr(err))
+	}
+
+	return e
 }
 
 // SchemaMigrationExists checks if the SchemaMigration row exists.
@@ -948,7 +1347,7 @@ func SchemaMigrationExists(ctx context.Context, exec boil.ContextExecutor, versi
 
 	err := row.Scan(&exists)
 	if err != nil {
-		return false, errors.Wrap(err, "models: unable to check if schema_migrations exists")
+		return false, errors.Wrap(err, "entity: unable to check if schema_migrations exists")
 	}
 
 	return exists, nil
