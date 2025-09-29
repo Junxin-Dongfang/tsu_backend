@@ -4,11 +4,15 @@
 -- =============================================================================
 
 -- --------------------------------------------------------------------------------
+-- 删除表
+-- --------------------------------------------------------------------------------
+DROP TABLE IF EXISTS tags;
+DROP TABLE IF EXISTS tags_relations;
+
+-- --------------------------------------------------------------------------------
 -- 删除函数
 -- --------------------------------------------------------------------------------
 DROP FUNCTION IF EXISTS validate_enum_value(TEXT, TEXT);
-DROP FUNCTION IF EXISTS create_standard_indexes(TEXT);
-DROP FUNCTION IF EXISTS handle_user_finance_change();
 DROP FUNCTION IF EXISTS update_updated_at_column();
 
 -- --------------------------------------------------------------------------------
@@ -16,9 +20,9 @@ DROP FUNCTION IF EXISTS update_updated_at_column();
 -- --------------------------------------------------------------------------------
 DROP TYPE IF EXISTS action_type_enum;
 DROP TYPE IF EXISTS skill_type_enum;
-DROP TYPE IF EXISTS attribute_category_enum;
-DROP TYPE IF EXISTS attribute_data_type_enum;
+DROP TYPE IF EXISTS data_type_enum;
 DROP TYPE IF EXISTS class_tier_enum;
+DROP TYPE IF EXISTS tag_type_enum;
 
 -- --------------------------------------------------------------------------------
 -- 删除扩展（谨慎操作，可能被其他对象使用）

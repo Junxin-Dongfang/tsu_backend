@@ -15,6 +15,7 @@ DROP FUNCTION IF EXISTS get_attribute_type_options();
 DROP TABLE IF EXISTS hero_attribute_type_tags;
 DROP TABLE IF EXISTS attribute_tags;
 DROP TABLE IF EXISTS hero_attribute_type;
+DROP TYPE IF EXISTS attribute_category_enum;
 
 -- --------------------------------------------------------------------------------
 -- 完成消息
