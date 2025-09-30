@@ -3,8 +3,8 @@ package interfaces
 import (
 	"context"
 
-	apiReqAdmin "tsu-self/internal/api/model/request/admin"
 	"tsu-self/internal/entity"
+	apiReqAdmin "tsu-self/internal/model/request/admin"
 )
 
 // AttributeTypeRepository 属性类型仓储接口

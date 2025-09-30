@@ -185,20 +185,17 @@ var UserWhere = struct {
 
 // UserRels is where relationship names are stored.
 var UserRels = struct {
-	UserFinance           string
-	FinancialTransactions string
-	UserLoginHistories    string
+	Heroes             string
+	UserLoginHistories string
 }{
-	UserFinance:           "UserFinance",
-	FinancialTransactions: "FinancialTransactions",
-	UserLoginHistories:    "UserLoginHistories",
+	Heroes:             "Heroes",
+	UserLoginHistories: "UserLoginHistories",
 }
 
 // userR is where relationships are stored.
 type userR struct {
-	UserFinance           *UserFinance              `boil:"UserFinance" json:"UserFinance" toml:"UserFinance" yaml:"UserFinance"`
-	FinancialTransactions FinancialTransactionSlice `boil:"FinancialTransactions" json:"FinancialTransactions" toml:"FinancialTransactions" yaml:"FinancialTransactions"`
-	UserLoginHistories    UserLoginHistorySlice     `boil:"UserLoginHistories" json:"UserLoginHistories" toml:"UserLoginHistories" yaml:"UserLoginHistories"`
+	Heroes             HeroSlice             `boil:"Heroes" json:"Heroes" toml:"Heroes" yaml:"Heroes"`
+	UserLoginHistories UserLoginHistorySlice `boil:"UserLoginHistories" json:"UserLoginHistories" toml:"UserLoginHistories" yaml:"UserLoginHistories"`
 }
 
 // NewStruct creates a new relationship struct
@@ -206,36 +203,20 @@ func (*userR) NewStruct() *userR {
 	return &userR{}
 }
 
-func (o *User) GetUserFinance() *UserFinance {
+func (o *User) GetHeroes() HeroSlice {
 	if o == nil {
 		return nil
 	}
 
-	return o.R.GetUserFinance()
+	return o.R.GetHeroes()
 }
 
-func (r *userR) GetUserFinance() *UserFinance {
+func (r *userR) GetHeroes() HeroSlice {
 	if r == nil {
 		return nil
 	}
 
-	return r.UserFinance
-}
-
-func (o *User) GetFinancialTransactions() FinancialTransactionSlice {
-	if o == nil {
-		return nil
-	}
-
-	return o.R.GetFinancialTransactions()
-}
-
-func (r *userR) GetFinancialTransactions() FinancialTransactionSlice {
-	if r == nil {
-		return nil
-	}
-
-	return r.FinancialTransactions
+	return r.Heroes
 }
 
 func (o *User) GetUserLoginHistories() UserLoginHistorySlice {
@@ -259,8 +240,8 @@ type userL struct{}
 
 var (
 	userAllColumns            = []string{"id", "username", "nickname", "email", "phone_number", "is_banned", "ban_until", "ban_reason", "avatar_url", "bio", "birth_date", "gender", "timezone", "language", "last_login_at", "last_login_ip", "login_count", "created_at", "updated_at", "deleted_at"}
-	userColumnsWithoutDefault = []string{"id", "username", "email"}
-	userColumnsWithDefault    = []string{"nickname", "phone_number", "is_banned", "ban_until", "ban_reason", "avatar_url", "bio", "birth_date", "gender", "timezone", "language", "last_login_at", "last_login_ip", "login_count", "created_at", "updated_at", "deleted_at"}
+	userColumnsWithoutDefault = []string{"username", "email"}
+	userColumnsWithDefault    = []string{"id", "nickname", "phone_number", "is_banned", "ban_until", "ban_reason", "avatar_url", "bio", "birth_date", "gender", "timezone", "language", "last_login_at", "last_login_ip", "login_count", "created_at", "updated_at", "deleted_at"}
 	userPrimaryKeyColumns     = []string{"id"}
 	userGeneratedColumns      = []string{}
 )
@@ -670,29 +651,18 @@ func (q userQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (bool,
 	return count > 0, nil
 }
 
-// UserFinance pointed to by the foreign key.
-func (o *User) UserFinance(mods ...qm.QueryMod) userFinanceQuery {
-	queryMods := []qm.QueryMod{
-		qm.Where("\"user_id\" = ?", o.ID),
-	}
-
-	queryMods = append(queryMods, mods...)
-
-	return UserFinances(queryMods...)
-}
-
-// FinancialTransactions retrieves all the financial_transaction's FinancialTransactions with an executor.
-func (o *User) FinancialTransactions(mods ...qm.QueryMod) financialTransactionQuery {
+// Heroes retrieves all the hero's Heroes with an executor.
+func (o *User) Heroes(mods ...qm.QueryMod) heroQuery {
 	var queryMods []qm.QueryMod
 	if len(mods) != 0 {
 		queryMods = append(queryMods, mods...)
 	}
 
 	queryMods = append(queryMods,
-		qm.Where("\"financial_transactions\".\"user_id\"=?", o.ID),
+		qm.Where("\"heroes\".\"user_id\"=?", o.ID),
 	)
 
-	return FinancialTransactions(queryMods...)
+	return Heroes(queryMods...)
 }
 
 // UserLoginHistories retrieves all the user_login_history's UserLoginHistories with an executor.
@@ -709,127 +679,9 @@ func (o *User) UserLoginHistories(mods ...qm.QueryMod) userLoginHistoryQuery {
 	return UserLoginHistories(queryMods...)
 }
 
-// LoadUserFinance allows an eager lookup of values, cached into the
-// loaded structs of the objects. This is for a 1-1 relationship.
-func (userL) LoadUserFinance(ctx context.Context, e boil.ContextExecutor, singular bool, maybeUser interface{}, mods queries.Applicator) error {
-	var slice []*User
-	var object *User
-
-	if singular {
-		var ok bool
-		object, ok = maybeUser.(*User)
-		if !ok {
-			object = new(User)
-			ok = queries.SetFromEmbeddedStruct(&object, &maybeUser)
-			if !ok {
-				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeUser))
-			}
-		}
-	} else {
-		s, ok := maybeUser.(*[]*User)
-		if ok {
-			slice = *s
-		} else {
-			ok = queries.SetFromEmbeddedStruct(&slice, maybeUser)
-			if !ok {
-				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeUser))
-			}
-		}
-	}
-
-	args := make(map[interface{}]struct{})
-	if singular {
-		if object.R == nil {
-			object.R = &userR{}
-		}
-		args[object.ID] = struct{}{}
-	} else {
-		for _, obj := range slice {
-			if obj.R == nil {
-				obj.R = &userR{}
-			}
-
-			args[obj.ID] = struct{}{}
-		}
-	}
-
-	if len(args) == 0 {
-		return nil
-	}
-
-	argsSlice := make([]interface{}, len(args))
-	i := 0
-	for arg := range args {
-		argsSlice[i] = arg
-		i++
-	}
-
-	query := NewQuery(
-		qm.From(`user_finances`),
-		qm.WhereIn(`user_finances.user_id in ?`, argsSlice...),
-		qmhelper.WhereIsNull(`user_finances.deleted_at`),
-	)
-	if mods != nil {
-		mods.Apply(query)
-	}
-
-	results, err := query.QueryContext(ctx, e)
-	if err != nil {
-		return errors.Wrap(err, "failed to eager load UserFinance")
-	}
-
-	var resultSlice []*UserFinance
-	if err = queries.Bind(results, &resultSlice); err != nil {
-		return errors.Wrap(err, "failed to bind eager loaded slice UserFinance")
-	}
-
-	if err = results.Close(); err != nil {
-		return errors.Wrap(err, "failed to close results of eager load for user_finances")
-	}
-	if err = results.Err(); err != nil {
-		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for user_finances")
-	}
-
-	if len(userFinanceAfterSelectHooks) != 0 {
-		for _, obj := range resultSlice {
-			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
-				return err
-			}
-		}
-	}
-
-	if len(resultSlice) == 0 {
-		return nil
-	}
-
-	if singular {
-		foreign := resultSlice[0]
-		object.R.UserFinance = foreign
-		if foreign.R == nil {
-			foreign.R = &userFinanceR{}
-		}
-		foreign.R.User = object
-	}
-
-	for _, local := range slice {
-		for _, foreign := range resultSlice {
-			if local.ID == foreign.UserID {
-				local.R.UserFinance = foreign
-				if foreign.R == nil {
-					foreign.R = &userFinanceR{}
-				}
-				foreign.R.User = local
-				break
-			}
-		}
-	}
-
-	return nil
-}
-
-// LoadFinancialTransactions allows an eager lookup of values, cached into the
+// LoadHeroes allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
-func (userL) LoadFinancialTransactions(ctx context.Context, e boil.ContextExecutor, singular bool, maybeUser interface{}, mods queries.Applicator) error {
+func (userL) LoadHeroes(ctx context.Context, e boil.ContextExecutor, singular bool, maybeUser interface{}, mods queries.Applicator) error {
 	var slice []*User
 	var object *User
 
@@ -882,9 +734,9 @@ func (userL) LoadFinancialTransactions(ctx context.Context, e boil.ContextExecut
 	}
 
 	query := NewQuery(
-		qm.From(`financial_transactions`),
-		qm.WhereIn(`financial_transactions.user_id in ?`, argsSlice...),
-		qmhelper.WhereIsNull(`financial_transactions.deleted_at`),
+		qm.From(`heroes`),
+		qm.WhereIn(`heroes.user_id in ?`, argsSlice...),
+		qmhelper.WhereIsNull(`heroes.deleted_at`),
 	)
 	if mods != nil {
 		mods.Apply(query)
@@ -892,22 +744,22 @@ func (userL) LoadFinancialTransactions(ctx context.Context, e boil.ContextExecut
 
 	results, err := query.QueryContext(ctx, e)
 	if err != nil {
-		return errors.Wrap(err, "failed to eager load financial_transactions")
+		return errors.Wrap(err, "failed to eager load heroes")
 	}
 
-	var resultSlice []*FinancialTransaction
+	var resultSlice []*Hero
 	if err = queries.Bind(results, &resultSlice); err != nil {
-		return errors.Wrap(err, "failed to bind eager loaded slice financial_transactions")
+		return errors.Wrap(err, "failed to bind eager loaded slice heroes")
 	}
 
 	if err = results.Close(); err != nil {
-		return errors.Wrap(err, "failed to close results in eager load on financial_transactions")
+		return errors.Wrap(err, "failed to close results in eager load on heroes")
 	}
 	if err = results.Err(); err != nil {
-		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for financial_transactions")
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for heroes")
 	}
 
-	if len(financialTransactionAfterSelectHooks) != 0 {
+	if len(heroAfterSelectHooks) != 0 {
 		for _, obj := range resultSlice {
 			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
 				return err
@@ -915,10 +767,10 @@ func (userL) LoadFinancialTransactions(ctx context.Context, e boil.ContextExecut
 		}
 	}
 	if singular {
-		object.R.FinancialTransactions = resultSlice
+		object.R.Heroes = resultSlice
 		for _, foreign := range resultSlice {
 			if foreign.R == nil {
-				foreign.R = &financialTransactionR{}
+				foreign.R = &heroR{}
 			}
 			foreign.R.User = object
 		}
@@ -928,9 +780,9 @@ func (userL) LoadFinancialTransactions(ctx context.Context, e boil.ContextExecut
 	for _, foreign := range resultSlice {
 		for _, local := range slice {
 			if local.ID == foreign.UserID {
-				local.R.FinancialTransactions = append(local.R.FinancialTransactions, foreign)
+				local.R.Heroes = append(local.R.Heroes, foreign)
 				if foreign.R == nil {
-					foreign.R = &financialTransactionR{}
+					foreign.R = &heroR{}
 				}
 				foreign.R.User = local
 				break
@@ -1054,120 +906,42 @@ func (userL) LoadUserLoginHistories(ctx context.Context, e boil.ContextExecutor,
 	return nil
 }
 
-// SetUserFinanceG of the user to the related item.
-// Sets o.R.UserFinance to related.
-// Adds o to related.R.User.
-// Uses the global database handle.
-func (o *User) SetUserFinanceG(ctx context.Context, insert bool, related *UserFinance) error {
-	return o.SetUserFinance(ctx, boil.GetContextDB(), insert, related)
-}
-
-// SetUserFinanceP of the user to the related item.
-// Sets o.R.UserFinance to related.
-// Adds o to related.R.User.
-// Panics on error.
-func (o *User) SetUserFinanceP(ctx context.Context, exec boil.ContextExecutor, insert bool, related *UserFinance) {
-	if err := o.SetUserFinance(ctx, exec, insert, related); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// SetUserFinanceGP of the user to the related item.
-// Sets o.R.UserFinance to related.
-// Adds o to related.R.User.
-// Uses the global database handle and panics on error.
-func (o *User) SetUserFinanceGP(ctx context.Context, insert bool, related *UserFinance) {
-	if err := o.SetUserFinance(ctx, boil.GetContextDB(), insert, related); err != nil {
-		panic(boil.WrapErr(err))
-	}
-}
-
-// SetUserFinance of the user to the related item.
-// Sets o.R.UserFinance to related.
-// Adds o to related.R.User.
-func (o *User) SetUserFinance(ctx context.Context, exec boil.ContextExecutor, insert bool, related *UserFinance) error {
-	var err error
-
-	if insert {
-		related.UserID = o.ID
-
-		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
-			return errors.Wrap(err, "failed to insert into foreign table")
-		}
-	} else {
-		updateQuery := fmt.Sprintf(
-			"UPDATE \"user_finances\" SET %s WHERE %s",
-			strmangle.SetParamNames("\"", "\"", 1, []string{"user_id"}),
-			strmangle.WhereClause("\"", "\"", 2, userFinancePrimaryKeyColumns),
-		)
-		values := []interface{}{o.ID, related.ID}
-
-		if boil.IsDebug(ctx) {
-			writer := boil.DebugWriterFrom(ctx)
-			fmt.Fprintln(writer, updateQuery)
-			fmt.Fprintln(writer, values)
-		}
-		if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
-			return errors.Wrap(err, "failed to update foreign table")
-		}
-
-		related.UserID = o.ID
-	}
-
-	if o.R == nil {
-		o.R = &userR{
-			UserFinance: related,
-		}
-	} else {
-		o.R.UserFinance = related
-	}
-
-	if related.R == nil {
-		related.R = &userFinanceR{
-			User: o,
-		}
-	} else {
-		related.R.User = o
-	}
-	return nil
-}
-
-// AddFinancialTransactionsG adds the given related objects to the existing relationships
+// AddHeroesG adds the given related objects to the existing relationships
 // of the user, optionally inserting them as new records.
-// Appends related to o.R.FinancialTransactions.
+// Appends related to o.R.Heroes.
 // Sets related.R.User appropriately.
 // Uses the global database handle.
-func (o *User) AddFinancialTransactionsG(ctx context.Context, insert bool, related ...*FinancialTransaction) error {
-	return o.AddFinancialTransactions(ctx, boil.GetContextDB(), insert, related...)
+func (o *User) AddHeroesG(ctx context.Context, insert bool, related ...*Hero) error {
+	return o.AddHeroes(ctx, boil.GetContextDB(), insert, related...)
 }
 
-// AddFinancialTransactionsP adds the given related objects to the existing relationships
+// AddHeroesP adds the given related objects to the existing relationships
 // of the user, optionally inserting them as new records.
-// Appends related to o.R.FinancialTransactions.
+// Appends related to o.R.Heroes.
 // Sets related.R.User appropriately.
 // Panics on error.
-func (o *User) AddFinancialTransactionsP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*FinancialTransaction) {
-	if err := o.AddFinancialTransactions(ctx, exec, insert, related...); err != nil {
+func (o *User) AddHeroesP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Hero) {
+	if err := o.AddHeroes(ctx, exec, insert, related...); err != nil {
 		panic(boil.WrapErr(err))
 	}
 }
 
-// AddFinancialTransactionsGP adds the given related objects to the existing relationships
+// AddHeroesGP adds the given related objects to the existing relationships
 // of the user, optionally inserting them as new records.
-// Appends related to o.R.FinancialTransactions.
+// Appends related to o.R.Heroes.
 // Sets related.R.User appropriately.
 // Uses the global database handle and panics on error.
-func (o *User) AddFinancialTransactionsGP(ctx context.Context, insert bool, related ...*FinancialTransaction) {
-	if err := o.AddFinancialTransactions(ctx, boil.GetContextDB(), insert, related...); err != nil {
+func (o *User) AddHeroesGP(ctx context.Context, insert bool, related ...*Hero) {
+	if err := o.AddHeroes(ctx, boil.GetContextDB(), insert, related...); err != nil {
 		panic(boil.WrapErr(err))
 	}
 }
 
-// AddFinancialTransactions adds the given related objects to the existing relationships
+// AddHeroes adds the given related objects to the existing relationships
 // of the user, optionally inserting them as new records.
-// Appends related to o.R.FinancialTransactions.
+// Appends related to o.R.Heroes.
 // Sets related.R.User appropriately.
-func (o *User) AddFinancialTransactions(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*FinancialTransaction) error {
+func (o *User) AddHeroes(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Hero) error {
 	var err error
 	for _, rel := range related {
 		if insert {
@@ -1177,9 +951,9 @@ func (o *User) AddFinancialTransactions(ctx context.Context, exec boil.ContextEx
 			}
 		} else {
 			updateQuery := fmt.Sprintf(
-				"UPDATE \"financial_transactions\" SET %s WHERE %s",
+				"UPDATE \"heroes\" SET %s WHERE %s",
 				strmangle.SetParamNames("\"", "\"", 1, []string{"user_id"}),
-				strmangle.WhereClause("\"", "\"", 2, financialTransactionPrimaryKeyColumns),
+				strmangle.WhereClause("\"", "\"", 2, heroPrimaryKeyColumns),
 			)
 			values := []interface{}{o.ID, rel.ID}
 
@@ -1198,15 +972,15 @@ func (o *User) AddFinancialTransactions(ctx context.Context, exec boil.ContextEx
 
 	if o.R == nil {
 		o.R = &userR{
-			FinancialTransactions: related,
+			Heroes: related,
 		}
 	} else {
-		o.R.FinancialTransactions = append(o.R.FinancialTransactions, related...)
+		o.R.Heroes = append(o.R.Heroes, related...)
 	}
 
 	for _, rel := range related {
 		if rel.R == nil {
-			rel.R = &financialTransactionR{
+			rel.R = &heroR{
 				User: o,
 			}
 		} else {

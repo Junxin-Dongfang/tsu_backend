@@ -32,10 +32,11 @@ type ClassAdvancedRequirement struct {
 	RequiredJobChangeCount int        `boil:"required_job_change_count" json:"required_job_change_count" toml:"required_job_change_count" yaml:"required_job_change_count"`
 	RequiredAttributes     null.JSON  `boil:"required_attributes" json:"required_attributes,omitempty" toml:"required_attributes" yaml:"required_attributes,omitempty"`
 	RequiredSkills         null.JSON  `boil:"required_skills" json:"required_skills,omitempty" toml:"required_skills" yaml:"required_skills,omitempty"`
+	RequiredItems          null.JSON  `boil:"required_items" json:"required_items,omitempty" toml:"required_items" yaml:"required_items,omitempty"`
 	IsActive               null.Bool  `boil:"is_active" json:"is_active,omitempty" toml:"is_active" yaml:"is_active,omitempty"`
 	DisplayOrder           null.Int16 `boil:"display_order" json:"display_order,omitempty" toml:"display_order" yaml:"display_order,omitempty"`
-	CreatedAt              null.Time  `boil:"created_at" json:"created_at,omitempty" toml:"created_at" yaml:"created_at,omitempty"`
-	UpdatedAt              null.Time  `boil:"updated_at" json:"updated_at,omitempty" toml:"updated_at" yaml:"updated_at,omitempty"`
+	CreatedAt              time.Time  `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
+	UpdatedAt              time.Time  `boil:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
 	DeletedAt              null.Time  `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
 
 	R *classAdvancedRequirementR `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -51,6 +52,7 @@ var ClassAdvancedRequirementColumns = struct {
 	RequiredJobChangeCount string
 	RequiredAttributes     string
 	RequiredSkills         string
+	RequiredItems          string
 	IsActive               string
 	DisplayOrder           string
 	CreatedAt              string
@@ -65,6 +67,7 @@ var ClassAdvancedRequirementColumns = struct {
 	RequiredJobChangeCount: "required_job_change_count",
 	RequiredAttributes:     "required_attributes",
 	RequiredSkills:         "required_skills",
+	RequiredItems:          "required_items",
 	IsActive:               "is_active",
 	DisplayOrder:           "display_order",
 	CreatedAt:              "created_at",
@@ -81,6 +84,7 @@ var ClassAdvancedRequirementTableColumns = struct {
 	RequiredJobChangeCount string
 	RequiredAttributes     string
 	RequiredSkills         string
+	RequiredItems          string
 	IsActive               string
 	DisplayOrder           string
 	CreatedAt              string
@@ -95,6 +99,7 @@ var ClassAdvancedRequirementTableColumns = struct {
 	RequiredJobChangeCount: "class_advanced_requirements.required_job_change_count",
 	RequiredAttributes:     "class_advanced_requirements.required_attributes",
 	RequiredSkills:         "class_advanced_requirements.required_skills",
+	RequiredItems:          "class_advanced_requirements.required_items",
 	IsActive:               "class_advanced_requirements.is_active",
 	DisplayOrder:           "class_advanced_requirements.display_order",
 	CreatedAt:              "class_advanced_requirements.created_at",
@@ -103,37 +108,6 @@ var ClassAdvancedRequirementTableColumns = struct {
 }
 
 // Generated where
-
-type whereHelperstring struct{ field string }
-
-func (w whereHelperstring) EQ(x string) qm.QueryMod      { return qmhelper.Where(w.field, qmhelper.EQ, x) }
-func (w whereHelperstring) NEQ(x string) qm.QueryMod     { return qmhelper.Where(w.field, qmhelper.NEQ, x) }
-func (w whereHelperstring) LT(x string) qm.QueryMod      { return qmhelper.Where(w.field, qmhelper.LT, x) }
-func (w whereHelperstring) LTE(x string) qm.QueryMod     { return qmhelper.Where(w.field, qmhelper.LTE, x) }
-func (w whereHelperstring) GT(x string) qm.QueryMod      { return qmhelper.Where(w.field, qmhelper.GT, x) }
-func (w whereHelperstring) GTE(x string) qm.QueryMod     { return qmhelper.Where(w.field, qmhelper.GTE, x) }
-func (w whereHelperstring) LIKE(x string) qm.QueryMod    { return qm.Where(w.field+" LIKE ?", x) }
-func (w whereHelperstring) NLIKE(x string) qm.QueryMod   { return qm.Where(w.field+" NOT LIKE ?", x) }
-func (w whereHelperstring) ILIKE(x string) qm.QueryMod   { return qm.Where(w.field+" ILIKE ?", x) }
-func (w whereHelperstring) NILIKE(x string) qm.QueryMod  { return qm.Where(w.field+" NOT ILIKE ?", x) }
-func (w whereHelperstring) SIMILAR(x string) qm.QueryMod { return qm.Where(w.field+" SIMILAR TO ?", x) }
-func (w whereHelperstring) NSIMILAR(x string) qm.QueryMod {
-	return qm.Where(w.field+" NOT SIMILAR TO ?", x)
-}
-func (w whereHelperstring) IN(slice []string) qm.QueryMod {
-	values := make([]interface{}, 0, len(slice))
-	for _, value := range slice {
-		values = append(values, value)
-	}
-	return qm.WhereIn(fmt.Sprintf("%s IN ?", w.field), values...)
-}
-func (w whereHelperstring) NIN(slice []string) qm.QueryMod {
-	values := make([]interface{}, 0, len(slice))
-	for _, value := range slice {
-		values = append(values, value)
-	}
-	return qm.WhereNotIn(fmt.Sprintf("%s NOT IN ?", w.field), values...)
-}
 
 type whereHelperint struct{ field string }
 
@@ -157,54 +131,6 @@ func (w whereHelperint) NIN(slice []int) qm.QueryMod {
 	}
 	return qm.WhereNotIn(fmt.Sprintf("%s NOT IN ?", w.field), values...)
 }
-
-type whereHelpernull_JSON struct{ field string }
-
-func (w whereHelpernull_JSON) EQ(x null.JSON) qm.QueryMod {
-	return qmhelper.WhereNullEQ(w.field, false, x)
-}
-func (w whereHelpernull_JSON) NEQ(x null.JSON) qm.QueryMod {
-	return qmhelper.WhereNullEQ(w.field, true, x)
-}
-func (w whereHelpernull_JSON) LT(x null.JSON) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.LT, x)
-}
-func (w whereHelpernull_JSON) LTE(x null.JSON) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.LTE, x)
-}
-func (w whereHelpernull_JSON) GT(x null.JSON) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.GT, x)
-}
-func (w whereHelpernull_JSON) GTE(x null.JSON) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.GTE, x)
-}
-
-func (w whereHelpernull_JSON) IsNull() qm.QueryMod    { return qmhelper.WhereIsNull(w.field) }
-func (w whereHelpernull_JSON) IsNotNull() qm.QueryMod { return qmhelper.WhereIsNotNull(w.field) }
-
-type whereHelpernull_Bool struct{ field string }
-
-func (w whereHelpernull_Bool) EQ(x null.Bool) qm.QueryMod {
-	return qmhelper.WhereNullEQ(w.field, false, x)
-}
-func (w whereHelpernull_Bool) NEQ(x null.Bool) qm.QueryMod {
-	return qmhelper.WhereNullEQ(w.field, true, x)
-}
-func (w whereHelpernull_Bool) LT(x null.Bool) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.LT, x)
-}
-func (w whereHelpernull_Bool) LTE(x null.Bool) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.LTE, x)
-}
-func (w whereHelpernull_Bool) GT(x null.Bool) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.GT, x)
-}
-func (w whereHelpernull_Bool) GTE(x null.Bool) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.GTE, x)
-}
-
-func (w whereHelpernull_Bool) IsNull() qm.QueryMod    { return qmhelper.WhereIsNull(w.field) }
-func (w whereHelpernull_Bool) IsNotNull() qm.QueryMod { return qmhelper.WhereIsNotNull(w.field) }
 
 type whereHelpernull_Int16 struct{ field string }
 
@@ -244,29 +170,26 @@ func (w whereHelpernull_Int16) NIN(slice []int16) qm.QueryMod {
 func (w whereHelpernull_Int16) IsNull() qm.QueryMod    { return qmhelper.WhereIsNull(w.field) }
 func (w whereHelpernull_Int16) IsNotNull() qm.QueryMod { return qmhelper.WhereIsNotNull(w.field) }
 
-type whereHelpernull_Time struct{ field string }
+type whereHelpertime_Time struct{ field string }
 
-func (w whereHelpernull_Time) EQ(x null.Time) qm.QueryMod {
-	return qmhelper.WhereNullEQ(w.field, false, x)
+func (w whereHelpertime_Time) EQ(x time.Time) qm.QueryMod {
+	return qmhelper.Where(w.field, qmhelper.EQ, x)
 }
-func (w whereHelpernull_Time) NEQ(x null.Time) qm.QueryMod {
-	return qmhelper.WhereNullEQ(w.field, true, x)
+func (w whereHelpertime_Time) NEQ(x time.Time) qm.QueryMod {
+	return qmhelper.Where(w.field, qmhelper.NEQ, x)
 }
-func (w whereHelpernull_Time) LT(x null.Time) qm.QueryMod {
+func (w whereHelpertime_Time) LT(x time.Time) qm.QueryMod {
 	return qmhelper.Where(w.field, qmhelper.LT, x)
 }
-func (w whereHelpernull_Time) LTE(x null.Time) qm.QueryMod {
+func (w whereHelpertime_Time) LTE(x time.Time) qm.QueryMod {
 	return qmhelper.Where(w.field, qmhelper.LTE, x)
 }
-func (w whereHelpernull_Time) GT(x null.Time) qm.QueryMod {
+func (w whereHelpertime_Time) GT(x time.Time) qm.QueryMod {
 	return qmhelper.Where(w.field, qmhelper.GT, x)
 }
-func (w whereHelpernull_Time) GTE(x null.Time) qm.QueryMod {
+func (w whereHelpertime_Time) GTE(x time.Time) qm.QueryMod {
 	return qmhelper.Where(w.field, qmhelper.GTE, x)
 }
-
-func (w whereHelpernull_Time) IsNull() qm.QueryMod    { return qmhelper.WhereIsNull(w.field) }
-func (w whereHelpernull_Time) IsNotNull() qm.QueryMod { return qmhelper.WhereIsNotNull(w.field) }
 
 var ClassAdvancedRequirementWhere = struct {
 	ID                     whereHelperstring
@@ -277,10 +200,11 @@ var ClassAdvancedRequirementWhere = struct {
 	RequiredJobChangeCount whereHelperint
 	RequiredAttributes     whereHelpernull_JSON
 	RequiredSkills         whereHelpernull_JSON
+	RequiredItems          whereHelpernull_JSON
 	IsActive               whereHelpernull_Bool
 	DisplayOrder           whereHelpernull_Int16
-	CreatedAt              whereHelpernull_Time
-	UpdatedAt              whereHelpernull_Time
+	CreatedAt              whereHelpertime_Time
+	UpdatedAt              whereHelpertime_Time
 	DeletedAt              whereHelpernull_Time
 }{
 	ID:                     whereHelperstring{field: "\"class_advanced_requirements\".\"id\""},
@@ -291,10 +215,11 @@ var ClassAdvancedRequirementWhere = struct {
 	RequiredJobChangeCount: whereHelperint{field: "\"class_advanced_requirements\".\"required_job_change_count\""},
 	RequiredAttributes:     whereHelpernull_JSON{field: "\"class_advanced_requirements\".\"required_attributes\""},
 	RequiredSkills:         whereHelpernull_JSON{field: "\"class_advanced_requirements\".\"required_skills\""},
+	RequiredItems:          whereHelpernull_JSON{field: "\"class_advanced_requirements\".\"required_items\""},
 	IsActive:               whereHelpernull_Bool{field: "\"class_advanced_requirements\".\"is_active\""},
 	DisplayOrder:           whereHelpernull_Int16{field: "\"class_advanced_requirements\".\"display_order\""},
-	CreatedAt:              whereHelpernull_Time{field: "\"class_advanced_requirements\".\"created_at\""},
-	UpdatedAt:              whereHelpernull_Time{field: "\"class_advanced_requirements\".\"updated_at\""},
+	CreatedAt:              whereHelpertime_Time{field: "\"class_advanced_requirements\".\"created_at\""},
+	UpdatedAt:              whereHelpertime_Time{field: "\"class_advanced_requirements\".\"updated_at\""},
 	DeletedAt:              whereHelpernull_Time{field: "\"class_advanced_requirements\".\"deleted_at\""},
 }
 
@@ -354,9 +279,9 @@ func (r *classAdvancedRequirementR) GetToClass() *Class {
 type classAdvancedRequirementL struct{}
 
 var (
-	classAdvancedRequirementAllColumns            = []string{"id", "from_class_id", "to_class_id", "required_level", "required_honor", "required_job_change_count", "required_attributes", "required_skills", "is_active", "display_order", "created_at", "updated_at", "deleted_at"}
+	classAdvancedRequirementAllColumns            = []string{"id", "from_class_id", "to_class_id", "required_level", "required_honor", "required_job_change_count", "required_attributes", "required_skills", "required_items", "is_active", "display_order", "created_at", "updated_at", "deleted_at"}
 	classAdvancedRequirementColumnsWithoutDefault = []string{"from_class_id", "to_class_id", "required_level"}
-	classAdvancedRequirementColumnsWithDefault    = []string{"id", "required_honor", "required_job_change_count", "required_attributes", "required_skills", "is_active", "display_order", "created_at", "updated_at", "deleted_at"}
+	classAdvancedRequirementColumnsWithDefault    = []string{"id", "required_honor", "required_job_change_count", "required_attributes", "required_skills", "required_items", "is_active", "display_order", "created_at", "updated_at", "deleted_at"}
 	classAdvancedRequirementPrimaryKeyColumns     = []string{"id"}
 	classAdvancedRequirementGeneratedColumns      = []string{}
 )
@@ -1278,11 +1203,11 @@ func (o *ClassAdvancedRequirement) Insert(ctx context.Context, exec boil.Context
 	if !boil.TimestampsAreSkipped(ctx) {
 		currTime := time.Now().In(boil.GetLocation())
 
-		if queries.MustTime(o.CreatedAt).IsZero() {
-			queries.SetScanner(&o.CreatedAt, currTime)
+		if o.CreatedAt.IsZero() {
+			o.CreatedAt = currTime
 		}
-		if queries.MustTime(o.UpdatedAt).IsZero() {
-			queries.SetScanner(&o.UpdatedAt, currTime)
+		if o.UpdatedAt.IsZero() {
+			o.UpdatedAt = currTime
 		}
 	}
 
@@ -1391,7 +1316,7 @@ func (o *ClassAdvancedRequirement) Update(ctx context.Context, exec boil.Context
 	if !boil.TimestampsAreSkipped(ctx) {
 		currTime := time.Now().In(boil.GetLocation())
 
-		queries.SetScanner(&o.UpdatedAt, currTime)
+		o.UpdatedAt = currTime
 	}
 
 	var err error
@@ -1597,10 +1522,10 @@ func (o *ClassAdvancedRequirement) Upsert(ctx context.Context, exec boil.Context
 	if !boil.TimestampsAreSkipped(ctx) {
 		currTime := time.Now().In(boil.GetLocation())
 
-		if queries.MustTime(o.CreatedAt).IsZero() {
-			queries.SetScanner(&o.CreatedAt, currTime)
+		if o.CreatedAt.IsZero() {
+			o.CreatedAt = currTime
 		}
-		queries.SetScanner(&o.UpdatedAt, currTime)
+		o.UpdatedAt = currTime
 	}
 
 	if err := o.doBeforeUpsertHooks(ctx, exec); err != nil {

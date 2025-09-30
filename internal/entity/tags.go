@@ -27,14 +27,14 @@ type Tag struct {
 	ID           string      `boil:"id" json:"id" toml:"id" yaml:"id"`
 	TagCode      string      `boil:"tag_code" json:"tag_code" toml:"tag_code" yaml:"tag_code"`
 	TagName      string      `boil:"tag_name" json:"tag_name" toml:"tag_name" yaml:"tag_name"`
-	Description  null.String `boil:"description" json:"description,omitempty" toml:"description" yaml:"description,omitempty"`
-	TagType      string      `boil:"tag_type" json:"tag_type" toml:"tag_type" yaml:"tag_type"`
 	Color        null.String `boil:"color" json:"color,omitempty" toml:"color" yaml:"color,omitempty"`
 	Icon         null.String `boil:"icon" json:"icon,omitempty" toml:"icon" yaml:"icon,omitempty"`
-	IsActive     null.Bool   `boil:"is_active" json:"is_active,omitempty" toml:"is_active" yaml:"is_active,omitempty"`
-	DisplayOrder null.Int16  `boil:"display_order" json:"display_order,omitempty" toml:"display_order" yaml:"display_order,omitempty"`
-	CreatedAt    null.Time   `boil:"created_at" json:"created_at,omitempty" toml:"created_at" yaml:"created_at,omitempty"`
-	UpdatedAt    null.Time   `boil:"updated_at" json:"updated_at,omitempty" toml:"updated_at" yaml:"updated_at,omitempty"`
+	Description  null.String `boil:"description" json:"description,omitempty" toml:"description" yaml:"description,omitempty"`
+	Category     string      `boil:"category" json:"category" toml:"category" yaml:"category"`
+	IsActive     bool        `boil:"is_active" json:"is_active" toml:"is_active" yaml:"is_active"`
+	DisplayOrder int         `boil:"display_order" json:"display_order" toml:"display_order" yaml:"display_order"`
+	CreatedAt    time.Time   `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
+	UpdatedAt    time.Time   `boil:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
 	DeletedAt    null.Time   `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
 
 	R *tagR `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -45,10 +45,10 @@ var TagColumns = struct {
 	ID           string
 	TagCode      string
 	TagName      string
-	Description  string
-	TagType      string
 	Color        string
 	Icon         string
+	Description  string
+	Category     string
 	IsActive     string
 	DisplayOrder string
 	CreatedAt    string
@@ -58,10 +58,10 @@ var TagColumns = struct {
 	ID:           "id",
 	TagCode:      "tag_code",
 	TagName:      "tag_name",
-	Description:  "description",
-	TagType:      "tag_type",
 	Color:        "color",
 	Icon:         "icon",
+	Description:  "description",
+	Category:     "category",
 	IsActive:     "is_active",
 	DisplayOrder: "display_order",
 	CreatedAt:    "created_at",
@@ -73,10 +73,10 @@ var TagTableColumns = struct {
 	ID           string
 	TagCode      string
 	TagName      string
-	Description  string
-	TagType      string
 	Color        string
 	Icon         string
+	Description  string
+	Category     string
 	IsActive     string
 	DisplayOrder string
 	CreatedAt    string
@@ -86,10 +86,10 @@ var TagTableColumns = struct {
 	ID:           "tags.id",
 	TagCode:      "tags.tag_code",
 	TagName:      "tags.tag_name",
-	Description:  "tags.description",
-	TagType:      "tags.tag_type",
 	Color:        "tags.color",
 	Icon:         "tags.icon",
+	Description:  "tags.description",
+	Category:     "tags.category",
 	IsActive:     "tags.is_active",
 	DisplayOrder: "tags.display_order",
 	CreatedAt:    "tags.created_at",
@@ -103,40 +103,40 @@ var TagWhere = struct {
 	ID           whereHelperstring
 	TagCode      whereHelperstring
 	TagName      whereHelperstring
-	Description  whereHelpernull_String
-	TagType      whereHelperstring
 	Color        whereHelpernull_String
 	Icon         whereHelpernull_String
-	IsActive     whereHelpernull_Bool
-	DisplayOrder whereHelpernull_Int16
-	CreatedAt    whereHelpernull_Time
-	UpdatedAt    whereHelpernull_Time
+	Description  whereHelpernull_String
+	Category     whereHelperstring
+	IsActive     whereHelperbool
+	DisplayOrder whereHelperint
+	CreatedAt    whereHelpertime_Time
+	UpdatedAt    whereHelpertime_Time
 	DeletedAt    whereHelpernull_Time
 }{
 	ID:           whereHelperstring{field: "\"tags\".\"id\""},
 	TagCode:      whereHelperstring{field: "\"tags\".\"tag_code\""},
 	TagName:      whereHelperstring{field: "\"tags\".\"tag_name\""},
-	Description:  whereHelpernull_String{field: "\"tags\".\"description\""},
-	TagType:      whereHelperstring{field: "\"tags\".\"tag_type\""},
 	Color:        whereHelpernull_String{field: "\"tags\".\"color\""},
 	Icon:         whereHelpernull_String{field: "\"tags\".\"icon\""},
-	IsActive:     whereHelpernull_Bool{field: "\"tags\".\"is_active\""},
-	DisplayOrder: whereHelpernull_Int16{field: "\"tags\".\"display_order\""},
-	CreatedAt:    whereHelpernull_Time{field: "\"tags\".\"created_at\""},
-	UpdatedAt:    whereHelpernull_Time{field: "\"tags\".\"updated_at\""},
+	Description:  whereHelpernull_String{field: "\"tags\".\"description\""},
+	Category:     whereHelperstring{field: "\"tags\".\"category\""},
+	IsActive:     whereHelperbool{field: "\"tags\".\"is_active\""},
+	DisplayOrder: whereHelperint{field: "\"tags\".\"display_order\""},
+	CreatedAt:    whereHelpertime_Time{field: "\"tags\".\"created_at\""},
+	UpdatedAt:    whereHelpertime_Time{field: "\"tags\".\"updated_at\""},
 	DeletedAt:    whereHelpernull_Time{field: "\"tags\".\"deleted_at\""},
 }
 
 // TagRels is where relationship names are stored.
 var TagRels = struct {
-	ClassTagRelations string
+	TagsRelations string
 }{
-	ClassTagRelations: "ClassTagRelations",
+	TagsRelations: "TagsRelations",
 }
 
 // tagR is where relationships are stored.
 type tagR struct {
-	ClassTagRelations ClassTagRelationSlice `boil:"ClassTagRelations" json:"ClassTagRelations" toml:"ClassTagRelations" yaml:"ClassTagRelations"`
+	TagsRelations TagsRelationSlice `boil:"TagsRelations" json:"TagsRelations" toml:"TagsRelations" yaml:"TagsRelations"`
 }
 
 // NewStruct creates a new relationship struct
@@ -144,29 +144,29 @@ func (*tagR) NewStruct() *tagR {
 	return &tagR{}
 }
 
-func (o *Tag) GetClassTagRelations() ClassTagRelationSlice {
+func (o *Tag) GetTagsRelations() TagsRelationSlice {
 	if o == nil {
 		return nil
 	}
 
-	return o.R.GetClassTagRelations()
+	return o.R.GetTagsRelations()
 }
 
-func (r *tagR) GetClassTagRelations() ClassTagRelationSlice {
+func (r *tagR) GetTagsRelations() TagsRelationSlice {
 	if r == nil {
 		return nil
 	}
 
-	return r.ClassTagRelations
+	return r.TagsRelations
 }
 
 // tagL is where Load methods for each relationship are stored.
 type tagL struct{}
 
 var (
-	tagAllColumns            = []string{"id", "tag_code", "tag_name", "description", "tag_type", "color", "icon", "is_active", "display_order", "created_at", "updated_at", "deleted_at"}
-	tagColumnsWithoutDefault = []string{"tag_code", "tag_name", "tag_type"}
-	tagColumnsWithDefault    = []string{"id", "description", "color", "icon", "is_active", "display_order", "created_at", "updated_at", "deleted_at"}
+	tagAllColumns            = []string{"id", "tag_code", "tag_name", "color", "icon", "description", "category", "is_active", "display_order", "created_at", "updated_at", "deleted_at"}
+	tagColumnsWithoutDefault = []string{"tag_code", "tag_name", "category"}
+	tagColumnsWithDefault    = []string{"id", "color", "icon", "description", "is_active", "display_order", "created_at", "updated_at", "deleted_at"}
 	tagPrimaryKeyColumns     = []string{"id"}
 	tagGeneratedColumns      = []string{}
 )
@@ -576,23 +576,23 @@ func (q tagQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (bool, 
 	return count > 0, nil
 }
 
-// ClassTagRelations retrieves all the class_tag_relation's ClassTagRelations with an executor.
-func (o *Tag) ClassTagRelations(mods ...qm.QueryMod) classTagRelationQuery {
+// TagsRelations retrieves all the tags_relation's TagsRelations with an executor.
+func (o *Tag) TagsRelations(mods ...qm.QueryMod) tagsRelationQuery {
 	var queryMods []qm.QueryMod
 	if len(mods) != 0 {
 		queryMods = append(queryMods, mods...)
 	}
 
 	queryMods = append(queryMods,
-		qm.Where("\"class_tag_relations\".\"tag_id\"=?", o.ID),
+		qm.Where("\"tags_relations\".\"tag_id\"=?", o.ID),
 	)
 
-	return ClassTagRelations(queryMods...)
+	return TagsRelations(queryMods...)
 }
 
-// LoadClassTagRelations allows an eager lookup of values, cached into the
+// LoadTagsRelations allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
-func (tagL) LoadClassTagRelations(ctx context.Context, e boil.ContextExecutor, singular bool, maybeTag interface{}, mods queries.Applicator) error {
+func (tagL) LoadTagsRelations(ctx context.Context, e boil.ContextExecutor, singular bool, maybeTag interface{}, mods queries.Applicator) error {
 	var slice []*Tag
 	var object *Tag
 
@@ -645,8 +645,9 @@ func (tagL) LoadClassTagRelations(ctx context.Context, e boil.ContextExecutor, s
 	}
 
 	query := NewQuery(
-		qm.From(`class_tag_relations`),
-		qm.WhereIn(`class_tag_relations.tag_id in ?`, argsSlice...),
+		qm.From(`tags_relations`),
+		qm.WhereIn(`tags_relations.tag_id in ?`, argsSlice...),
+		qmhelper.WhereIsNull(`tags_relations.deleted_at`),
 	)
 	if mods != nil {
 		mods.Apply(query)
@@ -654,22 +655,22 @@ func (tagL) LoadClassTagRelations(ctx context.Context, e boil.ContextExecutor, s
 
 	results, err := query.QueryContext(ctx, e)
 	if err != nil {
-		return errors.Wrap(err, "failed to eager load class_tag_relations")
+		return errors.Wrap(err, "failed to eager load tags_relations")
 	}
 
-	var resultSlice []*ClassTagRelation
+	var resultSlice []*TagsRelation
 	if err = queries.Bind(results, &resultSlice); err != nil {
-		return errors.Wrap(err, "failed to bind eager loaded slice class_tag_relations")
+		return errors.Wrap(err, "failed to bind eager loaded slice tags_relations")
 	}
 
 	if err = results.Close(); err != nil {
-		return errors.Wrap(err, "failed to close results in eager load on class_tag_relations")
+		return errors.Wrap(err, "failed to close results in eager load on tags_relations")
 	}
 	if err = results.Err(); err != nil {
-		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for class_tag_relations")
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for tags_relations")
 	}
 
-	if len(classTagRelationAfterSelectHooks) != 0 {
+	if len(tagsRelationAfterSelectHooks) != 0 {
 		for _, obj := range resultSlice {
 			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
 				return err
@@ -677,10 +678,10 @@ func (tagL) LoadClassTagRelations(ctx context.Context, e boil.ContextExecutor, s
 		}
 	}
 	if singular {
-		object.R.ClassTagRelations = resultSlice
+		object.R.TagsRelations = resultSlice
 		for _, foreign := range resultSlice {
 			if foreign.R == nil {
-				foreign.R = &classTagRelationR{}
+				foreign.R = &tagsRelationR{}
 			}
 			foreign.R.Tag = object
 		}
@@ -690,9 +691,9 @@ func (tagL) LoadClassTagRelations(ctx context.Context, e boil.ContextExecutor, s
 	for _, foreign := range resultSlice {
 		for _, local := range slice {
 			if local.ID == foreign.TagID {
-				local.R.ClassTagRelations = append(local.R.ClassTagRelations, foreign)
+				local.R.TagsRelations = append(local.R.TagsRelations, foreign)
 				if foreign.R == nil {
-					foreign.R = &classTagRelationR{}
+					foreign.R = &tagsRelationR{}
 				}
 				foreign.R.Tag = local
 				break
@@ -703,42 +704,42 @@ func (tagL) LoadClassTagRelations(ctx context.Context, e boil.ContextExecutor, s
 	return nil
 }
 
-// AddClassTagRelationsG adds the given related objects to the existing relationships
+// AddTagsRelationsG adds the given related objects to the existing relationships
 // of the tag, optionally inserting them as new records.
-// Appends related to o.R.ClassTagRelations.
+// Appends related to o.R.TagsRelations.
 // Sets related.R.Tag appropriately.
 // Uses the global database handle.
-func (o *Tag) AddClassTagRelationsG(ctx context.Context, insert bool, related ...*ClassTagRelation) error {
-	return o.AddClassTagRelations(ctx, boil.GetContextDB(), insert, related...)
+func (o *Tag) AddTagsRelationsG(ctx context.Context, insert bool, related ...*TagsRelation) error {
+	return o.AddTagsRelations(ctx, boil.GetContextDB(), insert, related...)
 }
 
-// AddClassTagRelationsP adds the given related objects to the existing relationships
+// AddTagsRelationsP adds the given related objects to the existing relationships
 // of the tag, optionally inserting them as new records.
-// Appends related to o.R.ClassTagRelations.
+// Appends related to o.R.TagsRelations.
 // Sets related.R.Tag appropriately.
 // Panics on error.
-func (o *Tag) AddClassTagRelationsP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*ClassTagRelation) {
-	if err := o.AddClassTagRelations(ctx, exec, insert, related...); err != nil {
+func (o *Tag) AddTagsRelationsP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*TagsRelation) {
+	if err := o.AddTagsRelations(ctx, exec, insert, related...); err != nil {
 		panic(boil.WrapErr(err))
 	}
 }
 
-// AddClassTagRelationsGP adds the given related objects to the existing relationships
+// AddTagsRelationsGP adds the given related objects to the existing relationships
 // of the tag, optionally inserting them as new records.
-// Appends related to o.R.ClassTagRelations.
+// Appends related to o.R.TagsRelations.
 // Sets related.R.Tag appropriately.
 // Uses the global database handle and panics on error.
-func (o *Tag) AddClassTagRelationsGP(ctx context.Context, insert bool, related ...*ClassTagRelation) {
-	if err := o.AddClassTagRelations(ctx, boil.GetContextDB(), insert, related...); err != nil {
+func (o *Tag) AddTagsRelationsGP(ctx context.Context, insert bool, related ...*TagsRelation) {
+	if err := o.AddTagsRelations(ctx, boil.GetContextDB(), insert, related...); err != nil {
 		panic(boil.WrapErr(err))
 	}
 }
 
-// AddClassTagRelations adds the given related objects to the existing relationships
+// AddTagsRelations adds the given related objects to the existing relationships
 // of the tag, optionally inserting them as new records.
-// Appends related to o.R.ClassTagRelations.
+// Appends related to o.R.TagsRelations.
 // Sets related.R.Tag appropriately.
-func (o *Tag) AddClassTagRelations(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*ClassTagRelation) error {
+func (o *Tag) AddTagsRelations(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*TagsRelation) error {
 	var err error
 	for _, rel := range related {
 		if insert {
@@ -748,9 +749,9 @@ func (o *Tag) AddClassTagRelations(ctx context.Context, exec boil.ContextExecuto
 			}
 		} else {
 			updateQuery := fmt.Sprintf(
-				"UPDATE \"class_tag_relations\" SET %s WHERE %s",
+				"UPDATE \"tags_relations\" SET %s WHERE %s",
 				strmangle.SetParamNames("\"", "\"", 1, []string{"tag_id"}),
-				strmangle.WhereClause("\"", "\"", 2, classTagRelationPrimaryKeyColumns),
+				strmangle.WhereClause("\"", "\"", 2, tagsRelationPrimaryKeyColumns),
 			)
 			values := []interface{}{o.ID, rel.ID}
 
@@ -769,15 +770,15 @@ func (o *Tag) AddClassTagRelations(ctx context.Context, exec boil.ContextExecuto
 
 	if o.R == nil {
 		o.R = &tagR{
-			ClassTagRelations: related,
+			TagsRelations: related,
 		}
 	} else {
-		o.R.ClassTagRelations = append(o.R.ClassTagRelations, related...)
+		o.R.TagsRelations = append(o.R.TagsRelations, related...)
 	}
 
 	for _, rel := range related {
 		if rel.R == nil {
-			rel.R = &classTagRelationR{
+			rel.R = &tagsRelationR{
 				Tag: o,
 			}
 		} else {
@@ -885,11 +886,11 @@ func (o *Tag) Insert(ctx context.Context, exec boil.ContextExecutor, columns boi
 	if !boil.TimestampsAreSkipped(ctx) {
 		currTime := time.Now().In(boil.GetLocation())
 
-		if queries.MustTime(o.CreatedAt).IsZero() {
-			queries.SetScanner(&o.CreatedAt, currTime)
+		if o.CreatedAt.IsZero() {
+			o.CreatedAt = currTime
 		}
-		if queries.MustTime(o.UpdatedAt).IsZero() {
-			queries.SetScanner(&o.UpdatedAt, currTime)
+		if o.UpdatedAt.IsZero() {
+			o.UpdatedAt = currTime
 		}
 	}
 
@@ -998,7 +999,7 @@ func (o *Tag) Update(ctx context.Context, exec boil.ContextExecutor, columns boi
 	if !boil.TimestampsAreSkipped(ctx) {
 		currTime := time.Now().In(boil.GetLocation())
 
-		queries.SetScanner(&o.UpdatedAt, currTime)
+		o.UpdatedAt = currTime
 	}
 
 	var err error
@@ -1204,10 +1205,10 @@ func (o *Tag) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnCon
 	if !boil.TimestampsAreSkipped(ctx) {
 		currTime := time.Now().In(boil.GetLocation())
 
-		if queries.MustTime(o.CreatedAt).IsZero() {
-			queries.SetScanner(&o.CreatedAt, currTime)
+		if o.CreatedAt.IsZero() {
+			o.CreatedAt = currTime
 		}
-		queries.SetScanner(&o.UpdatedAt, currTime)
+		o.UpdatedAt = currTime
 	}
 
 	if err := o.doBeforeUpsertHooks(ctx, exec); err != nil {

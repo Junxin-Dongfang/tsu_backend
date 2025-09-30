@@ -1,0 +1,26 @@
+FROM postgres:15
+
+# 2. 安装构建 pg_uuidv7 所需的依赖，并包含 ca-certificates
+#    - postgresql-server-dev-15 包含了编译 PostgreSQL 扩展所需的头文件和工具
+#    - build-essential 包含了基本的编译工具，如 make, gcc 等
+#    - git 用于从代码仓库克隆扩展的源代码
+#    - ca-certificates 提供了 SSL 根证书，用于安全的 HTTPS 连接
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+       postgresql-server-dev-15 \
+       build-essential \
+       git \
+       ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 3. 从 GitHub 克隆 pg_uuidv7 的源代码，编译并安装
+RUN git clone https://github.com/fboulnois/pg_uuidv7.git /docker-entrypoint-initdb.d/pg_uuidv7 \
+    && cd /docker-entrypoint-initdb.d/pg_uuidv7 \
+    && make \
+    && make install
+
+# 4. (可选) 创建一个初始化脚本来在数据库启动时自动启用扩展
+#    当容器第一次启动时，/docker-entrypoint-initdb.d/ 目录下的脚本会自动执行
+#    这样，tsu_db 数据库就会自动创建并启用 uuid-ossp 和 pg_uuidv7 扩展
+RUN echo "CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";" > /docker-entrypoint-initdb.d/10-extensions.sql \
+    && echo "CREATE EXTENSION IF NOT EXISTS \"pg_uuidv7\";" >> /docker-entrypoint-initdb.d/10-extensions.sql

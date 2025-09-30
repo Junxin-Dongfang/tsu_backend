@@ -16,6 +16,7 @@ import (
 	"os"
 	"time"
 	"tsu-self/internal/modules/admin"
+	"tsu-self/internal/modules/auth"
 	"tsu-self/internal/pkg/log"
 
 	"github.com/liangdas/mqant"
@@ -102,5 +103,6 @@ func main() {
 	log.Info("注册模块...")
 	app.Run(
 		&admin.AdminModule{},
+		&auth.AuthModule{},
 	)
 }

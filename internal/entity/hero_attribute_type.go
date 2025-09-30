@@ -25,189 +25,163 @@ import (
 
 // HeroAttributeType is an object representing the database table.
 type HeroAttributeType struct {
-	ID                   string            `boil:"id" json:"id" toml:"id" yaml:"id"`
-	AttributeCode        string            `boil:"attribute_code" json:"attribute_code" toml:"attribute_code" yaml:"attribute_code"`
-	AttributeName        string            `boil:"attribute_name" json:"attribute_name" toml:"attribute_name" yaml:"attribute_name"`
-	Category             string            `boil:"category" json:"category" toml:"category" yaml:"category"`
-	DataType             string            `boil:"data_type" json:"data_type" toml:"data_type" yaml:"data_type"`
-	MinValue             types.NullDecimal `boil:"min_value" json:"min_value,omitempty" toml:"min_value" yaml:"min_value,omitempty"`
-	MaxValue             types.NullDecimal `boil:"max_value" json:"max_value,omitempty" toml:"max_value" yaml:"max_value,omitempty"`
-	DefaultValue         types.NullDecimal `boil:"default_value" json:"default_value,omitempty" toml:"default_value" yaml:"default_value,omitempty"`
-	CalculationFormula   null.String       `boil:"calculation_formula" json:"calculation_formula,omitempty" toml:"calculation_formula" yaml:"calculation_formula,omitempty"`
-	DependencyAttributes null.String       `boil:"dependency_attributes" json:"dependency_attributes,omitempty" toml:"dependency_attributes" yaml:"dependency_attributes,omitempty"`
-	Icon                 null.String       `boil:"icon" json:"icon,omitempty" toml:"icon" yaml:"icon,omitempty"`
-	Color                null.String       `boil:"color" json:"color,omitempty" toml:"color" yaml:"color,omitempty"`
-	Unit                 null.String       `boil:"unit" json:"unit,omitempty" toml:"unit" yaml:"unit,omitempty"`
-	DisplayOrder         null.Int16        `boil:"display_order" json:"display_order,omitempty" toml:"display_order" yaml:"display_order,omitempty"`
-	IsActive             null.Bool         `boil:"is_active" json:"is_active,omitempty" toml:"is_active" yaml:"is_active,omitempty"`
-	IsVisible            null.Bool         `boil:"is_visible" json:"is_visible,omitempty" toml:"is_visible" yaml:"is_visible,omitempty"`
-	Description          null.String       `boil:"description" json:"description,omitempty" toml:"description" yaml:"description,omitempty"`
-	CreatedAt            time.Time         `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
-	UpdatedAt            time.Time         `boil:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
-	DeletedAt            null.Time         `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
+	ID                    string            `boil:"id" json:"id" toml:"id" yaml:"id"`
+	AttributeCode         string            `boil:"attribute_code" json:"attribute_code" toml:"attribute_code" yaml:"attribute_code"`
+	AttributeName         string            `boil:"attribute_name" json:"attribute_name" toml:"attribute_name" yaml:"attribute_name"`
+	Category              string            `boil:"category" json:"category" toml:"category" yaml:"category"`
+	DataType              string            `boil:"data_type" json:"data_type" toml:"data_type" yaml:"data_type"`
+	MinValue              types.NullDecimal `boil:"min_value" json:"min_value,omitempty" toml:"min_value" yaml:"min_value,omitempty"`
+	MaxValue              types.NullDecimal `boil:"max_value" json:"max_value,omitempty" toml:"max_value" yaml:"max_value,omitempty"`
+	DefaultValue          types.NullDecimal `boil:"default_value" json:"default_value,omitempty" toml:"default_value" yaml:"default_value,omitempty"`
+	CalculationFormula    null.String       `boil:"calculation_formula" json:"calculation_formula,omitempty" toml:"calculation_formula" yaml:"calculation_formula,omitempty"`
+	AttributeDependencies null.JSON         `boil:"attribute_dependencies" json:"attribute_dependencies,omitempty" toml:"attribute_dependencies" yaml:"attribute_dependencies,omitempty"`
+	Icon                  null.String       `boil:"icon" json:"icon,omitempty" toml:"icon" yaml:"icon,omitempty"`
+	Color                 null.String       `boil:"color" json:"color,omitempty" toml:"color" yaml:"color,omitempty"`
+	Unit                  null.String       `boil:"unit" json:"unit,omitempty" toml:"unit" yaml:"unit,omitempty"`
+	DisplayOrder          int               `boil:"display_order" json:"display_order" toml:"display_order" yaml:"display_order"`
+	IsActive              bool              `boil:"is_active" json:"is_active" toml:"is_active" yaml:"is_active"`
+	IsVisible             bool              `boil:"is_visible" json:"is_visible" toml:"is_visible" yaml:"is_visible"`
+	Description           null.String       `boil:"description" json:"description,omitempty" toml:"description" yaml:"description,omitempty"`
+	CreatedAt             time.Time         `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
+	UpdatedAt             time.Time         `boil:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
+	DeletedAt             null.Time         `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
 
 	R *heroAttributeTypeR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L heroAttributeTypeL  `boil:"-" json:"-" toml:"-" yaml:"-"`
 }
 
 var HeroAttributeTypeColumns = struct {
-	ID                   string
-	AttributeCode        string
-	AttributeName        string
-	Category             string
-	DataType             string
-	MinValue             string
-	MaxValue             string
-	DefaultValue         string
-	CalculationFormula   string
-	DependencyAttributes string
-	Icon                 string
-	Color                string
-	Unit                 string
-	DisplayOrder         string
-	IsActive             string
-	IsVisible            string
-	Description          string
-	CreatedAt            string
-	UpdatedAt            string
-	DeletedAt            string
+	ID                    string
+	AttributeCode         string
+	AttributeName         string
+	Category              string
+	DataType              string
+	MinValue              string
+	MaxValue              string
+	DefaultValue          string
+	CalculationFormula    string
+	AttributeDependencies string
+	Icon                  string
+	Color                 string
+	Unit                  string
+	DisplayOrder          string
+	IsActive              string
+	IsVisible             string
+	Description           string
+	CreatedAt             string
+	UpdatedAt             string
+	DeletedAt             string
 }{
-	ID:                   "id",
-	AttributeCode:        "attribute_code",
-	AttributeName:        "attribute_name",
-	Category:             "category",
-	DataType:             "data_type",
-	MinValue:             "min_value",
-	MaxValue:             "max_value",
-	DefaultValue:         "default_value",
-	CalculationFormula:   "calculation_formula",
-	DependencyAttributes: "dependency_attributes",
-	Icon:                 "icon",
-	Color:                "color",
-	Unit:                 "unit",
-	DisplayOrder:         "display_order",
-	IsActive:             "is_active",
-	IsVisible:            "is_visible",
-	Description:          "description",
-	CreatedAt:            "created_at",
-	UpdatedAt:            "updated_at",
-	DeletedAt:            "deleted_at",
+	ID:                    "id",
+	AttributeCode:         "attribute_code",
+	AttributeName:         "attribute_name",
+	Category:              "category",
+	DataType:              "data_type",
+	MinValue:              "min_value",
+	MaxValue:              "max_value",
+	DefaultValue:          "default_value",
+	CalculationFormula:    "calculation_formula",
+	AttributeDependencies: "attribute_dependencies",
+	Icon:                  "icon",
+	Color:                 "color",
+	Unit:                  "unit",
+	DisplayOrder:          "display_order",
+	IsActive:              "is_active",
+	IsVisible:             "is_visible",
+	Description:           "description",
+	CreatedAt:             "created_at",
+	UpdatedAt:             "updated_at",
+	DeletedAt:             "deleted_at",
 }
 
 var HeroAttributeTypeTableColumns = struct {
-	ID                   string
-	AttributeCode        string
-	AttributeName        string
-	Category             string
-	DataType             string
-	MinValue             string
-	MaxValue             string
-	DefaultValue         string
-	CalculationFormula   string
-	DependencyAttributes string
-	Icon                 string
-	Color                string
-	Unit                 string
-	DisplayOrder         string
-	IsActive             string
-	IsVisible            string
-	Description          string
-	CreatedAt            string
-	UpdatedAt            string
-	DeletedAt            string
+	ID                    string
+	AttributeCode         string
+	AttributeName         string
+	Category              string
+	DataType              string
+	MinValue              string
+	MaxValue              string
+	DefaultValue          string
+	CalculationFormula    string
+	AttributeDependencies string
+	Icon                  string
+	Color                 string
+	Unit                  string
+	DisplayOrder          string
+	IsActive              string
+	IsVisible             string
+	Description           string
+	CreatedAt             string
+	UpdatedAt             string
+	DeletedAt             string
 }{
-	ID:                   "hero_attribute_type.id",
-	AttributeCode:        "hero_attribute_type.attribute_code",
-	AttributeName:        "hero_attribute_type.attribute_name",
-	Category:             "hero_attribute_type.category",
-	DataType:             "hero_attribute_type.data_type",
-	MinValue:             "hero_attribute_type.min_value",
-	MaxValue:             "hero_attribute_type.max_value",
-	DefaultValue:         "hero_attribute_type.default_value",
-	CalculationFormula:   "hero_attribute_type.calculation_formula",
-	DependencyAttributes: "hero_attribute_type.dependency_attributes",
-	Icon:                 "hero_attribute_type.icon",
-	Color:                "hero_attribute_type.color",
-	Unit:                 "hero_attribute_type.unit",
-	DisplayOrder:         "hero_attribute_type.display_order",
-	IsActive:             "hero_attribute_type.is_active",
-	IsVisible:            "hero_attribute_type.is_visible",
-	Description:          "hero_attribute_type.description",
-	CreatedAt:            "hero_attribute_type.created_at",
-	UpdatedAt:            "hero_attribute_type.updated_at",
-	DeletedAt:            "hero_attribute_type.deleted_at",
+	ID:                    "hero_attribute_type.id",
+	AttributeCode:         "hero_attribute_type.attribute_code",
+	AttributeName:         "hero_attribute_type.attribute_name",
+	Category:              "hero_attribute_type.category",
+	DataType:              "hero_attribute_type.data_type",
+	MinValue:              "hero_attribute_type.min_value",
+	MaxValue:              "hero_attribute_type.max_value",
+	DefaultValue:          "hero_attribute_type.default_value",
+	CalculationFormula:    "hero_attribute_type.calculation_formula",
+	AttributeDependencies: "hero_attribute_type.attribute_dependencies",
+	Icon:                  "hero_attribute_type.icon",
+	Color:                 "hero_attribute_type.color",
+	Unit:                  "hero_attribute_type.unit",
+	DisplayOrder:          "hero_attribute_type.display_order",
+	IsActive:              "hero_attribute_type.is_active",
+	IsVisible:             "hero_attribute_type.is_visible",
+	Description:           "hero_attribute_type.description",
+	CreatedAt:             "hero_attribute_type.created_at",
+	UpdatedAt:             "hero_attribute_type.updated_at",
+	DeletedAt:             "hero_attribute_type.deleted_at",
 }
 
 // Generated where
 
-type whereHelpertypes_NullDecimal struct{ field string }
-
-func (w whereHelpertypes_NullDecimal) EQ(x types.NullDecimal) qm.QueryMod {
-	return qmhelper.WhereNullEQ(w.field, false, x)
-}
-func (w whereHelpertypes_NullDecimal) NEQ(x types.NullDecimal) qm.QueryMod {
-	return qmhelper.WhereNullEQ(w.field, true, x)
-}
-func (w whereHelpertypes_NullDecimal) LT(x types.NullDecimal) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.LT, x)
-}
-func (w whereHelpertypes_NullDecimal) LTE(x types.NullDecimal) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.LTE, x)
-}
-func (w whereHelpertypes_NullDecimal) GT(x types.NullDecimal) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.GT, x)
-}
-func (w whereHelpertypes_NullDecimal) GTE(x types.NullDecimal) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.GTE, x)
-}
-
-func (w whereHelpertypes_NullDecimal) IsNull() qm.QueryMod { return qmhelper.WhereIsNull(w.field) }
-func (w whereHelpertypes_NullDecimal) IsNotNull() qm.QueryMod {
-	return qmhelper.WhereIsNotNull(w.field)
-}
-
 var HeroAttributeTypeWhere = struct {
-	ID                   whereHelperstring
-	AttributeCode        whereHelperstring
-	AttributeName        whereHelperstring
-	Category             whereHelperstring
-	DataType             whereHelperstring
-	MinValue             whereHelpertypes_NullDecimal
-	MaxValue             whereHelpertypes_NullDecimal
-	DefaultValue         whereHelpertypes_NullDecimal
-	CalculationFormula   whereHelpernull_String
-	DependencyAttributes whereHelpernull_String
-	Icon                 whereHelpernull_String
-	Color                whereHelpernull_String
-	Unit                 whereHelpernull_String
-	DisplayOrder         whereHelpernull_Int16
-	IsActive             whereHelpernull_Bool
-	IsVisible            whereHelpernull_Bool
-	Description          whereHelpernull_String
-	CreatedAt            whereHelpertime_Time
-	UpdatedAt            whereHelpertime_Time
-	DeletedAt            whereHelpernull_Time
+	ID                    whereHelperstring
+	AttributeCode         whereHelperstring
+	AttributeName         whereHelperstring
+	Category              whereHelperstring
+	DataType              whereHelperstring
+	MinValue              whereHelpertypes_NullDecimal
+	MaxValue              whereHelpertypes_NullDecimal
+	DefaultValue          whereHelpertypes_NullDecimal
+	CalculationFormula    whereHelpernull_String
+	AttributeDependencies whereHelpernull_JSON
+	Icon                  whereHelpernull_String
+	Color                 whereHelpernull_String
+	Unit                  whereHelpernull_String
+	DisplayOrder          whereHelperint
+	IsActive              whereHelperbool
+	IsVisible             whereHelperbool
+	Description           whereHelpernull_String
+	CreatedAt             whereHelpertime_Time
+	UpdatedAt             whereHelpertime_Time
+	DeletedAt             whereHelpernull_Time
 }{
-	ID:                   whereHelperstring{field: "\"hero_attribute_type\".\"id\""},
-	AttributeCode:        whereHelperstring{field: "\"hero_attribute_type\".\"attribute_code\""},
-	AttributeName:        whereHelperstring{field: "\"hero_attribute_type\".\"attribute_name\""},
-	Category:             whereHelperstring{field: "\"hero_attribute_type\".\"category\""},
-	DataType:             whereHelperstring{field: "\"hero_attribute_type\".\"data_type\""},
-	MinValue:             whereHelpertypes_NullDecimal{field: "\"hero_attribute_type\".\"min_value\""},
-	MaxValue:             whereHelpertypes_NullDecimal{field: "\"hero_attribute_type\".\"max_value\""},
-	DefaultValue:         whereHelpertypes_NullDecimal{field: "\"hero_attribute_type\".\"default_value\""},
-	CalculationFormula:   whereHelpernull_String{field: "\"hero_attribute_type\".\"calculation_formula\""},
-	DependencyAttributes: whereHelpernull_String{field: "\"hero_attribute_type\".\"dependency_attributes\""},
-	Icon:                 whereHelpernull_String{field: "\"hero_attribute_type\".\"icon\""},
-	Color:                whereHelpernull_String{field: "\"hero_attribute_type\".\"color\""},
-	Unit:                 whereHelpernull_String{field: "\"hero_attribute_type\".\"unit\""},
-	DisplayOrder:         whereHelpernull_Int16{field: "\"hero_attribute_type\".\"display_order\""},
-	IsActive:             whereHelpernull_Bool{field: "\"hero_attribute_type\".\"is_active\""},
-	IsVisible:            whereHelpernull_Bool{field: "\"hero_attribute_type\".\"is_visible\""},
-	Description:          whereHelpernull_String{field: "\"hero_attribute_type\".\"description\""},
-	CreatedAt:            whereHelpertime_Time{field: "\"hero_attribute_type\".\"created_at\""},
-	UpdatedAt:            whereHelpertime_Time{field: "\"hero_attribute_type\".\"updated_at\""},
-	DeletedAt:            whereHelpernull_Time{field: "\"hero_attribute_type\".\"deleted_at\""},
+	ID:                    whereHelperstring{field: "\"hero_attribute_type\".\"id\""},
+	AttributeCode:         whereHelperstring{field: "\"hero_attribute_type\".\"attribute_code\""},
+	AttributeName:         whereHelperstring{field: "\"hero_attribute_type\".\"attribute_name\""},
+	Category:              whereHelperstring{field: "\"hero_attribute_type\".\"category\""},
+	DataType:              whereHelperstring{field: "\"hero_attribute_type\".\"data_type\""},
+	MinValue:              whereHelpertypes_NullDecimal{field: "\"hero_attribute_type\".\"min_value\""},
+	MaxValue:              whereHelpertypes_NullDecimal{field: "\"hero_attribute_type\".\"max_value\""},
+	DefaultValue:          whereHelpertypes_NullDecimal{field: "\"hero_attribute_type\".\"default_value\""},
+	CalculationFormula:    whereHelpernull_String{field: "\"hero_attribute_type\".\"calculation_formula\""},
+	AttributeDependencies: whereHelpernull_JSON{field: "\"hero_attribute_type\".\"attribute_dependencies\""},
+	Icon:                  whereHelpernull_String{field: "\"hero_attribute_type\".\"icon\""},
+	Color:                 whereHelpernull_String{field: "\"hero_attribute_type\".\"color\""},
+	Unit:                  whereHelpernull_String{field: "\"hero_attribute_type\".\"unit\""},
+	DisplayOrder:          whereHelperint{field: "\"hero_attribute_type\".\"display_order\""},
+	IsActive:              whereHelperbool{field: "\"hero_attribute_type\".\"is_active\""},
+	IsVisible:             whereHelperbool{field: "\"hero_attribute_type\".\"is_visible\""},
+	Description:           whereHelpernull_String{field: "\"hero_attribute_type\".\"description\""},
+	CreatedAt:             whereHelpertime_Time{field: "\"hero_attribute_type\".\"created_at\""},
+	UpdatedAt:             whereHelpertime_Time{field: "\"hero_attribute_type\".\"updated_at\""},
+	DeletedAt:             whereHelpernull_Time{field: "\"hero_attribute_type\".\"deleted_at\""},
 }
 
 // HeroAttributeTypeRels is where relationship names are stored.
@@ -247,9 +221,9 @@ func (r *heroAttributeTypeR) GetAttributeClassAttributeBonuses() ClassAttributeB
 type heroAttributeTypeL struct{}
 
 var (
-	heroAttributeTypeAllColumns            = []string{"id", "attribute_code", "attribute_name", "category", "data_type", "min_value", "max_value", "default_value", "calculation_formula", "dependency_attributes", "icon", "color", "unit", "display_order", "is_active", "is_visible", "description", "created_at", "updated_at", "deleted_at"}
-	heroAttributeTypeColumnsWithoutDefault = []string{"attribute_code", "attribute_name", "category", "data_type"}
-	heroAttributeTypeColumnsWithDefault    = []string{"id", "min_value", "max_value", "default_value", "calculation_formula", "dependency_attributes", "icon", "color", "unit", "display_order", "is_active", "is_visible", "description", "created_at", "updated_at", "deleted_at"}
+	heroAttributeTypeAllColumns            = []string{"id", "attribute_code", "attribute_name", "category", "data_type", "min_value", "max_value", "default_value", "calculation_formula", "attribute_dependencies", "icon", "color", "unit", "display_order", "is_active", "is_visible", "description", "created_at", "updated_at", "deleted_at"}
+	heroAttributeTypeColumnsWithoutDefault = []string{"attribute_code", "attribute_name"}
+	heroAttributeTypeColumnsWithDefault    = []string{"id", "category", "data_type", "min_value", "max_value", "default_value", "calculation_formula", "attribute_dependencies", "icon", "color", "unit", "display_order", "is_active", "is_visible", "description", "created_at", "updated_at", "deleted_at"}
 	heroAttributeTypePrimaryKeyColumns     = []string{"id"}
 	heroAttributeTypeGeneratedColumns      = []string{}
 )

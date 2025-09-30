@@ -29,6 +29,8 @@ type Class struct {
 	ClassName      string      `boil:"class_name" json:"class_name" toml:"class_name" yaml:"class_name"`
 	Description    null.String `boil:"description" json:"description,omitempty" toml:"description" yaml:"description,omitempty"`
 	LoreText       null.String `boil:"lore_text" json:"lore_text,omitempty" toml:"lore_text" yaml:"lore_text,omitempty"`
+	Specialty      null.String `boil:"specialty" json:"specialty,omitempty" toml:"specialty" yaml:"specialty,omitempty"`
+	Playstyle      null.String `boil:"playstyle" json:"playstyle,omitempty" toml:"playstyle" yaml:"playstyle,omitempty"`
 	Tier           string      `boil:"tier" json:"tier" toml:"tier" yaml:"tier"`
 	PromotionCount null.Int16  `boil:"promotion_count" json:"promotion_count,omitempty" toml:"promotion_count" yaml:"promotion_count,omitempty"`
 	Icon           null.String `boil:"icon" json:"icon,omitempty" toml:"icon" yaml:"icon,omitempty"`
@@ -36,8 +38,8 @@ type Class struct {
 	IsActive       null.Bool   `boil:"is_active" json:"is_active,omitempty" toml:"is_active" yaml:"is_active,omitempty"`
 	IsVisible      null.Bool   `boil:"is_visible" json:"is_visible,omitempty" toml:"is_visible" yaml:"is_visible,omitempty"`
 	DisplayOrder   null.Int16  `boil:"display_order" json:"display_order,omitempty" toml:"display_order" yaml:"display_order,omitempty"`
-	CreatedAt      null.Time   `boil:"created_at" json:"created_at,omitempty" toml:"created_at" yaml:"created_at,omitempty"`
-	UpdatedAt      null.Time   `boil:"updated_at" json:"updated_at,omitempty" toml:"updated_at" yaml:"updated_at,omitempty"`
+	CreatedAt      time.Time   `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
+	UpdatedAt      time.Time   `boil:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
 	DeletedAt      null.Time   `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
 
 	R *classR `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -50,6 +52,8 @@ var ClassColumns = struct {
 	ClassName      string
 	Description    string
 	LoreText       string
+	Specialty      string
+	Playstyle      string
 	Tier           string
 	PromotionCount string
 	Icon           string
@@ -66,6 +70,8 @@ var ClassColumns = struct {
 	ClassName:      "class_name",
 	Description:    "description",
 	LoreText:       "lore_text",
+	Specialty:      "specialty",
+	Playstyle:      "playstyle",
 	Tier:           "tier",
 	PromotionCount: "promotion_count",
 	Icon:           "icon",
@@ -84,6 +90,8 @@ var ClassTableColumns = struct {
 	ClassName      string
 	Description    string
 	LoreText       string
+	Specialty      string
+	Playstyle      string
 	Tier           string
 	PromotionCount string
 	Icon           string
@@ -100,6 +108,8 @@ var ClassTableColumns = struct {
 	ClassName:      "classes.class_name",
 	Description:    "classes.description",
 	LoreText:       "classes.lore_text",
+	Specialty:      "classes.specialty",
+	Playstyle:      "classes.playstyle",
 	Tier:           "classes.tier",
 	PromotionCount: "classes.promotion_count",
 	Icon:           "classes.icon",
@@ -114,68 +124,14 @@ var ClassTableColumns = struct {
 
 // Generated where
 
-type whereHelpernull_String struct{ field string }
-
-func (w whereHelpernull_String) EQ(x null.String) qm.QueryMod {
-	return qmhelper.WhereNullEQ(w.field, false, x)
-}
-func (w whereHelpernull_String) NEQ(x null.String) qm.QueryMod {
-	return qmhelper.WhereNullEQ(w.field, true, x)
-}
-func (w whereHelpernull_String) LT(x null.String) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.LT, x)
-}
-func (w whereHelpernull_String) LTE(x null.String) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.LTE, x)
-}
-func (w whereHelpernull_String) GT(x null.String) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.GT, x)
-}
-func (w whereHelpernull_String) GTE(x null.String) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.GTE, x)
-}
-func (w whereHelpernull_String) LIKE(x null.String) qm.QueryMod {
-	return qm.Where(w.field+" LIKE ?", x)
-}
-func (w whereHelpernull_String) NLIKE(x null.String) qm.QueryMod {
-	return qm.Where(w.field+" NOT LIKE ?", x)
-}
-func (w whereHelpernull_String) ILIKE(x null.String) qm.QueryMod {
-	return qm.Where(w.field+" ILIKE ?", x)
-}
-func (w whereHelpernull_String) NILIKE(x null.String) qm.QueryMod {
-	return qm.Where(w.field+" NOT ILIKE ?", x)
-}
-func (w whereHelpernull_String) SIMILAR(x null.String) qm.QueryMod {
-	return qm.Where(w.field+" SIMILAR TO ?", x)
-}
-func (w whereHelpernull_String) NSIMILAR(x null.String) qm.QueryMod {
-	return qm.Where(w.field+" NOT SIMILAR TO ?", x)
-}
-func (w whereHelpernull_String) IN(slice []string) qm.QueryMod {
-	values := make([]interface{}, 0, len(slice))
-	for _, value := range slice {
-		values = append(values, value)
-	}
-	return qm.WhereIn(fmt.Sprintf("%s IN ?", w.field), values...)
-}
-func (w whereHelpernull_String) NIN(slice []string) qm.QueryMod {
-	values := make([]interface{}, 0, len(slice))
-	for _, value := range slice {
-		values = append(values, value)
-	}
-	return qm.WhereNotIn(fmt.Sprintf("%s NOT IN ?", w.field), values...)
-}
-
-func (w whereHelpernull_String) IsNull() qm.QueryMod    { return qmhelper.WhereIsNull(w.field) }
-func (w whereHelpernull_String) IsNotNull() qm.QueryMod { return qmhelper.WhereIsNotNull(w.field) }
-
 var ClassWhere = struct {
 	ID             whereHelperstring
 	ClassCode      whereHelperstring
 	ClassName      whereHelperstring
 	Description    whereHelpernull_String
 	LoreText       whereHelpernull_String
+	Specialty      whereHelpernull_String
+	Playstyle      whereHelpernull_String
 	Tier           whereHelperstring
 	PromotionCount whereHelpernull_Int16
 	Icon           whereHelpernull_String
@@ -183,8 +139,8 @@ var ClassWhere = struct {
 	IsActive       whereHelpernull_Bool
 	IsVisible      whereHelpernull_Bool
 	DisplayOrder   whereHelpernull_Int16
-	CreatedAt      whereHelpernull_Time
-	UpdatedAt      whereHelpernull_Time
+	CreatedAt      whereHelpertime_Time
+	UpdatedAt      whereHelpertime_Time
 	DeletedAt      whereHelpernull_Time
 }{
 	ID:             whereHelperstring{field: "\"classes\".\"id\""},
@@ -192,6 +148,8 @@ var ClassWhere = struct {
 	ClassName:      whereHelperstring{field: "\"classes\".\"class_name\""},
 	Description:    whereHelpernull_String{field: "\"classes\".\"description\""},
 	LoreText:       whereHelpernull_String{field: "\"classes\".\"lore_text\""},
+	Specialty:      whereHelpernull_String{field: "\"classes\".\"specialty\""},
+	Playstyle:      whereHelpernull_String{field: "\"classes\".\"playstyle\""},
 	Tier:           whereHelperstring{field: "\"classes\".\"tier\""},
 	PromotionCount: whereHelpernull_Int16{field: "\"classes\".\"promotion_count\""},
 	Icon:           whereHelpernull_String{field: "\"classes\".\"icon\""},
@@ -199,8 +157,8 @@ var ClassWhere = struct {
 	IsActive:       whereHelpernull_Bool{field: "\"classes\".\"is_active\""},
 	IsVisible:      whereHelpernull_Bool{field: "\"classes\".\"is_visible\""},
 	DisplayOrder:   whereHelpernull_Int16{field: "\"classes\".\"display_order\""},
-	CreatedAt:      whereHelpernull_Time{field: "\"classes\".\"created_at\""},
-	UpdatedAt:      whereHelpernull_Time{field: "\"classes\".\"updated_at\""},
+	CreatedAt:      whereHelpertime_Time{field: "\"classes\".\"created_at\""},
+	UpdatedAt:      whereHelpertime_Time{field: "\"classes\".\"updated_at\""},
 	DeletedAt:      whereHelpernull_Time{field: "\"classes\".\"deleted_at\""},
 }
 
@@ -209,12 +167,12 @@ var ClassRels = struct {
 	FromClassClassAdvancedRequirements string
 	ToClassClassAdvancedRequirements   string
 	ClassAttributeBonuses              string
-	ClassTagRelations                  string
+	Heroes                             string
 }{
 	FromClassClassAdvancedRequirements: "FromClassClassAdvancedRequirements",
 	ToClassClassAdvancedRequirements:   "ToClassClassAdvancedRequirements",
 	ClassAttributeBonuses:              "ClassAttributeBonuses",
-	ClassTagRelations:                  "ClassTagRelations",
+	Heroes:                             "Heroes",
 }
 
 // classR is where relationships are stored.
@@ -222,7 +180,7 @@ type classR struct {
 	FromClassClassAdvancedRequirements ClassAdvancedRequirementSlice `boil:"FromClassClassAdvancedRequirements" json:"FromClassClassAdvancedRequirements" toml:"FromClassClassAdvancedRequirements" yaml:"FromClassClassAdvancedRequirements"`
 	ToClassClassAdvancedRequirements   ClassAdvancedRequirementSlice `boil:"ToClassClassAdvancedRequirements" json:"ToClassClassAdvancedRequirements" toml:"ToClassClassAdvancedRequirements" yaml:"ToClassClassAdvancedRequirements"`
 	ClassAttributeBonuses              ClassAttributeBonuseSlice     `boil:"ClassAttributeBonuses" json:"ClassAttributeBonuses" toml:"ClassAttributeBonuses" yaml:"ClassAttributeBonuses"`
-	ClassTagRelations                  ClassTagRelationSlice         `boil:"ClassTagRelations" json:"ClassTagRelations" toml:"ClassTagRelations" yaml:"ClassTagRelations"`
+	Heroes                             HeroSlice                     `boil:"Heroes" json:"Heroes" toml:"Heroes" yaml:"Heroes"`
 }
 
 // NewStruct creates a new relationship struct
@@ -278,29 +236,29 @@ func (r *classR) GetClassAttributeBonuses() ClassAttributeBonuseSlice {
 	return r.ClassAttributeBonuses
 }
 
-func (o *Class) GetClassTagRelations() ClassTagRelationSlice {
+func (o *Class) GetHeroes() HeroSlice {
 	if o == nil {
 		return nil
 	}
 
-	return o.R.GetClassTagRelations()
+	return o.R.GetHeroes()
 }
 
-func (r *classR) GetClassTagRelations() ClassTagRelationSlice {
+func (r *classR) GetHeroes() HeroSlice {
 	if r == nil {
 		return nil
 	}
 
-	return r.ClassTagRelations
+	return r.Heroes
 }
 
 // classL is where Load methods for each relationship are stored.
 type classL struct{}
 
 var (
-	classAllColumns            = []string{"id", "class_code", "class_name", "description", "lore_text", "tier", "promotion_count", "icon", "color", "is_active", "is_visible", "display_order", "created_at", "updated_at", "deleted_at"}
+	classAllColumns            = []string{"id", "class_code", "class_name", "description", "lore_text", "specialty", "playstyle", "tier", "promotion_count", "icon", "color", "is_active", "is_visible", "display_order", "created_at", "updated_at", "deleted_at"}
 	classColumnsWithoutDefault = []string{"class_code", "class_name", "tier"}
-	classColumnsWithDefault    = []string{"id", "description", "lore_text", "promotion_count", "icon", "color", "is_active", "is_visible", "display_order", "created_at", "updated_at", "deleted_at"}
+	classColumnsWithDefault    = []string{"id", "description", "lore_text", "specialty", "playstyle", "promotion_count", "icon", "color", "is_active", "is_visible", "display_order", "created_at", "updated_at", "deleted_at"}
 	classPrimaryKeyColumns     = []string{"id"}
 	classGeneratedColumns      = []string{}
 )
@@ -752,18 +710,18 @@ func (o *Class) ClassAttributeBonuses(mods ...qm.QueryMod) classAttributeBonuseQ
 	return ClassAttributeBonuses(queryMods...)
 }
 
-// ClassTagRelations retrieves all the class_tag_relation's ClassTagRelations with an executor.
-func (o *Class) ClassTagRelations(mods ...qm.QueryMod) classTagRelationQuery {
+// Heroes retrieves all the hero's Heroes with an executor.
+func (o *Class) Heroes(mods ...qm.QueryMod) heroQuery {
 	var queryMods []qm.QueryMod
 	if len(mods) != 0 {
 		queryMods = append(queryMods, mods...)
 	}
 
 	queryMods = append(queryMods,
-		qm.Where("\"class_tag_relations\".\"class_id\"=?", o.ID),
+		qm.Where("\"heroes\".\"class_id\"=?", o.ID),
 	)
 
-	return ClassTagRelations(queryMods...)
+	return Heroes(queryMods...)
 }
 
 // LoadFromClassClassAdvancedRequirements allows an eager lookup of values, cached into the
@@ -1107,9 +1065,9 @@ func (classL) LoadClassAttributeBonuses(ctx context.Context, e boil.ContextExecu
 	return nil
 }
 
-// LoadClassTagRelations allows an eager lookup of values, cached into the
+// LoadHeroes allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
-func (classL) LoadClassTagRelations(ctx context.Context, e boil.ContextExecutor, singular bool, maybeClass interface{}, mods queries.Applicator) error {
+func (classL) LoadHeroes(ctx context.Context, e boil.ContextExecutor, singular bool, maybeClass interface{}, mods queries.Applicator) error {
 	var slice []*Class
 	var object *Class
 
@@ -1162,8 +1120,9 @@ func (classL) LoadClassTagRelations(ctx context.Context, e boil.ContextExecutor,
 	}
 
 	query := NewQuery(
-		qm.From(`class_tag_relations`),
-		qm.WhereIn(`class_tag_relations.class_id in ?`, argsSlice...),
+		qm.From(`heroes`),
+		qm.WhereIn(`heroes.class_id in ?`, argsSlice...),
+		qmhelper.WhereIsNull(`heroes.deleted_at`),
 	)
 	if mods != nil {
 		mods.Apply(query)
@@ -1171,22 +1130,22 @@ func (classL) LoadClassTagRelations(ctx context.Context, e boil.ContextExecutor,
 
 	results, err := query.QueryContext(ctx, e)
 	if err != nil {
-		return errors.Wrap(err, "failed to eager load class_tag_relations")
+		return errors.Wrap(err, "failed to eager load heroes")
 	}
 
-	var resultSlice []*ClassTagRelation
+	var resultSlice []*Hero
 	if err = queries.Bind(results, &resultSlice); err != nil {
-		return errors.Wrap(err, "failed to bind eager loaded slice class_tag_relations")
+		return errors.Wrap(err, "failed to bind eager loaded slice heroes")
 	}
 
 	if err = results.Close(); err != nil {
-		return errors.Wrap(err, "failed to close results in eager load on class_tag_relations")
+		return errors.Wrap(err, "failed to close results in eager load on heroes")
 	}
 	if err = results.Err(); err != nil {
-		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for class_tag_relations")
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for heroes")
 	}
 
-	if len(classTagRelationAfterSelectHooks) != 0 {
+	if len(heroAfterSelectHooks) != 0 {
 		for _, obj := range resultSlice {
 			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
 				return err
@@ -1194,10 +1153,10 @@ func (classL) LoadClassTagRelations(ctx context.Context, e boil.ContextExecutor,
 		}
 	}
 	if singular {
-		object.R.ClassTagRelations = resultSlice
+		object.R.Heroes = resultSlice
 		for _, foreign := range resultSlice {
 			if foreign.R == nil {
-				foreign.R = &classTagRelationR{}
+				foreign.R = &heroR{}
 			}
 			foreign.R.Class = object
 		}
@@ -1207,9 +1166,9 @@ func (classL) LoadClassTagRelations(ctx context.Context, e boil.ContextExecutor,
 	for _, foreign := range resultSlice {
 		for _, local := range slice {
 			if local.ID == foreign.ClassID {
-				local.R.ClassTagRelations = append(local.R.ClassTagRelations, foreign)
+				local.R.Heroes = append(local.R.Heroes, foreign)
 				if foreign.R == nil {
-					foreign.R = &classTagRelationR{}
+					foreign.R = &heroR{}
 				}
 				foreign.R.Class = local
 				break
@@ -1472,42 +1431,42 @@ func (o *Class) AddClassAttributeBonuses(ctx context.Context, exec boil.ContextE
 	return nil
 }
 
-// AddClassTagRelationsG adds the given related objects to the existing relationships
+// AddHeroesG adds the given related objects to the existing relationships
 // of the class, optionally inserting them as new records.
-// Appends related to o.R.ClassTagRelations.
+// Appends related to o.R.Heroes.
 // Sets related.R.Class appropriately.
 // Uses the global database handle.
-func (o *Class) AddClassTagRelationsG(ctx context.Context, insert bool, related ...*ClassTagRelation) error {
-	return o.AddClassTagRelations(ctx, boil.GetContextDB(), insert, related...)
+func (o *Class) AddHeroesG(ctx context.Context, insert bool, related ...*Hero) error {
+	return o.AddHeroes(ctx, boil.GetContextDB(), insert, related...)
 }
 
-// AddClassTagRelationsP adds the given related objects to the existing relationships
+// AddHeroesP adds the given related objects to the existing relationships
 // of the class, optionally inserting them as new records.
-// Appends related to o.R.ClassTagRelations.
+// Appends related to o.R.Heroes.
 // Sets related.R.Class appropriately.
 // Panics on error.
-func (o *Class) AddClassTagRelationsP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*ClassTagRelation) {
-	if err := o.AddClassTagRelations(ctx, exec, insert, related...); err != nil {
+func (o *Class) AddHeroesP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Hero) {
+	if err := o.AddHeroes(ctx, exec, insert, related...); err != nil {
 		panic(boil.WrapErr(err))
 	}
 }
 
-// AddClassTagRelationsGP adds the given related objects to the existing relationships
+// AddHeroesGP adds the given related objects to the existing relationships
 // of the class, optionally inserting them as new records.
-// Appends related to o.R.ClassTagRelations.
+// Appends related to o.R.Heroes.
 // Sets related.R.Class appropriately.
 // Uses the global database handle and panics on error.
-func (o *Class) AddClassTagRelationsGP(ctx context.Context, insert bool, related ...*ClassTagRelation) {
-	if err := o.AddClassTagRelations(ctx, boil.GetContextDB(), insert, related...); err != nil {
+func (o *Class) AddHeroesGP(ctx context.Context, insert bool, related ...*Hero) {
+	if err := o.AddHeroes(ctx, boil.GetContextDB(), insert, related...); err != nil {
 		panic(boil.WrapErr(err))
 	}
 }
 
-// AddClassTagRelations adds the given related objects to the existing relationships
+// AddHeroes adds the given related objects to the existing relationships
 // of the class, optionally inserting them as new records.
-// Appends related to o.R.ClassTagRelations.
+// Appends related to o.R.Heroes.
 // Sets related.R.Class appropriately.
-func (o *Class) AddClassTagRelations(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*ClassTagRelation) error {
+func (o *Class) AddHeroes(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Hero) error {
 	var err error
 	for _, rel := range related {
 		if insert {
@@ -1517,9 +1476,9 @@ func (o *Class) AddClassTagRelations(ctx context.Context, exec boil.ContextExecu
 			}
 		} else {
 			updateQuery := fmt.Sprintf(
-				"UPDATE \"class_tag_relations\" SET %s WHERE %s",
+				"UPDATE \"heroes\" SET %s WHERE %s",
 				strmangle.SetParamNames("\"", "\"", 1, []string{"class_id"}),
-				strmangle.WhereClause("\"", "\"", 2, classTagRelationPrimaryKeyColumns),
+				strmangle.WhereClause("\"", "\"", 2, heroPrimaryKeyColumns),
 			)
 			values := []interface{}{o.ID, rel.ID}
 
@@ -1538,15 +1497,15 @@ func (o *Class) AddClassTagRelations(ctx context.Context, exec boil.ContextExecu
 
 	if o.R == nil {
 		o.R = &classR{
-			ClassTagRelations: related,
+			Heroes: related,
 		}
 	} else {
-		o.R.ClassTagRelations = append(o.R.ClassTagRelations, related...)
+		o.R.Heroes = append(o.R.Heroes, related...)
 	}
 
 	for _, rel := range related {
 		if rel.R == nil {
-			rel.R = &classTagRelationR{
+			rel.R = &heroR{
 				Class: o,
 			}
 		} else {
@@ -1654,11 +1613,11 @@ func (o *Class) Insert(ctx context.Context, exec boil.ContextExecutor, columns b
 	if !boil.TimestampsAreSkipped(ctx) {
 		currTime := time.Now().In(boil.GetLocation())
 
-		if queries.MustTime(o.CreatedAt).IsZero() {
-			queries.SetScanner(&o.CreatedAt, currTime)
+		if o.CreatedAt.IsZero() {
+			o.CreatedAt = currTime
 		}
-		if queries.MustTime(o.UpdatedAt).IsZero() {
-			queries.SetScanner(&o.UpdatedAt, currTime)
+		if o.UpdatedAt.IsZero() {
+			o.UpdatedAt = currTime
 		}
 	}
 
@@ -1767,7 +1726,7 @@ func (o *Class) Update(ctx context.Context, exec boil.ContextExecutor, columns b
 	if !boil.TimestampsAreSkipped(ctx) {
 		currTime := time.Now().In(boil.GetLocation())
 
-		queries.SetScanner(&o.UpdatedAt, currTime)
+		o.UpdatedAt = currTime
 	}
 
 	var err error
@@ -1973,10 +1932,10 @@ func (o *Class) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnC
 	if !boil.TimestampsAreSkipped(ctx) {
 		currTime := time.Now().In(boil.GetLocation())
 
-		if queries.MustTime(o.CreatedAt).IsZero() {
-			queries.SetScanner(&o.CreatedAt, currTime)
+		if o.CreatedAt.IsZero() {
+			o.CreatedAt = currTime
 		}
-		queries.SetScanner(&o.UpdatedAt, currTime)
+		o.UpdatedAt = currTime
 	}
 
 	if err := o.doBeforeUpsertHooks(ctx, exec); err != nil {

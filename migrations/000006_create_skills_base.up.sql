@@ -809,7 +809,7 @@ BEGIN
     
     RETURN v_final_hit_rate;
 END;
-$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 
 COMMENT ON FUNCTION calculate_hit_rate IS '计算动作的命中率（基于配置和角色属性）';
 
@@ -1141,7 +1141,7 @@ ON CONFLICT (attribute_code) WHERE deleted_at IS NULL DO NOTHING;
 -- 完成消息
 -- --------------------------------------------------------------------------------
 
-DO $
+DO $$
 BEGIN
     RAISE NOTICE '============================================';
     RAISE NOTICE '技能基础系统创建完成（完整版）';
@@ -1165,4 +1165,4 @@ BEGIN
     RAISE NOTICE '  • % 个Buff', (SELECT COUNT(*) FROM buffs WHERE deleted_at IS NULL);
     RAISE NOTICE '  • % 个射程配置规则', (SELECT COUNT(*) FROM range_config_rules);
     RAISE NOTICE '============================================';
-END $;
+END $$;

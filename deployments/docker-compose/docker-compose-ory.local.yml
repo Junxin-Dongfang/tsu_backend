@@ -134,6 +134,7 @@ services:
   oathkeeper:
     image: oryd/oathkeeper:v0.40.9
     container_name: tsu_oathkeeper
+    restart: always
     depends_on:
       - kratos
     ports:

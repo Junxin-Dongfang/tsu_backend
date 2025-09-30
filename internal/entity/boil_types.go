@@ -51,105 +51,120 @@ func makeCacheKey(cols boil.Columns, nzDefaults []string) string {
 	return str
 }
 
+// Enum values for ActionTypeEnum
+const (
+	ActionTypeEnumMain     string = "main"
+	ActionTypeEnumMinor    string = "minor"
+	ActionTypeEnumReaction string = "reaction"
+)
+
+func AllActionTypeEnum() []string {
+	return []string{
+		ActionTypeEnumMain,
+		ActionTypeEnumMinor,
+		ActionTypeEnumReaction,
+	}
+}
+
 // Enum values for ClassTierEnum
 const (
-	ClassTierEnum1 string = "1"
-	ClassTierEnum2 string = "2"
-	ClassTierEnum3 string = "3"
-	ClassTierEnum4 string = "4"
-	ClassTierEnum5 string = "5"
+	ClassTierEnumBasic     string = "basic"
+	ClassTierEnumAdvanced  string = "advanced"
+	ClassTierEnumElite     string = "elite"
+	ClassTierEnumLegendary string = "legendary"
+	ClassTierEnumMythic    string = "mythic"
 )
 
 func AllClassTierEnum() []string {
 	return []string{
-		ClassTierEnum1,
-		ClassTierEnum2,
-		ClassTierEnum3,
-		ClassTierEnum4,
-		ClassTierEnum5,
-	}
-}
-
-// Enum values for TransactionTypeEnum
-const (
-	TransactionTypeEnumPurchase            string = "purchase"
-	TransactionTypeEnumDiamondTopup        string = "diamond_topup"
-	TransactionTypeEnumSubscriptionPayment string = "subscription_payment"
-	TransactionTypeEnumRefund              string = "refund"
-)
-
-func AllTransactionTypeEnum() []string {
-	return []string{
-		TransactionTypeEnumPurchase,
-		TransactionTypeEnumDiamondTopup,
-		TransactionTypeEnumSubscriptionPayment,
-		TransactionTypeEnumRefund,
-	}
-}
-
-// Enum values for PaymentMethodEnum
-const (
-	PaymentMethodEnumWechat     string = "wechat"
-	PaymentMethodEnumZhifubao   string = "zhifubao"
-	PaymentMethodEnumCreditCard string = "credit_card"
-	PaymentMethodEnumPaypal     string = "paypal"
-	PaymentMethodEnumStripe     string = "stripe"
-	PaymentMethodEnumApplePay   string = "apple_pay"
-	PaymentMethodEnumGooglePay  string = "google_pay"
-)
-
-func AllPaymentMethodEnum() []string {
-	return []string{
-		PaymentMethodEnumWechat,
-		PaymentMethodEnumZhifubao,
-		PaymentMethodEnumCreditCard,
-		PaymentMethodEnumPaypal,
-		PaymentMethodEnumStripe,
-		PaymentMethodEnumApplePay,
-		PaymentMethodEnumGooglePay,
+		ClassTierEnumBasic,
+		ClassTierEnumAdvanced,
+		ClassTierEnumElite,
+		ClassTierEnumLegendary,
+		ClassTierEnumMythic,
 	}
 }
 
 // Enum values for AttributeCategoryEnum
 const (
-	AttributeCategoryEnumBase       string = "base"
+	AttributeCategoryEnumBasic      string = "basic"
 	AttributeCategoryEnumDerived    string = "derived"
 	AttributeCategoryEnumResistance string = "resistance"
 )
 
 func AllAttributeCategoryEnum() []string {
 	return []string{
-		AttributeCategoryEnumBase,
+		AttributeCategoryEnumBasic,
 		AttributeCategoryEnumDerived,
 		AttributeCategoryEnumResistance,
 	}
 }
 
-// Enum values for AttributeDataTypeEnum
+// Enum values for DataTypeEnum
 const (
-	AttributeDataTypeEnumInteger    string = "integer"
-	AttributeDataTypeEnumPercentage string = "percentage"
+	DataTypeEnumInteger    string = "integer"
+	DataTypeEnumDecimal    string = "decimal"
+	DataTypeEnumPercentage string = "percentage"
+	DataTypeEnumBoolean    string = "boolean"
 )
 
-func AllAttributeDataTypeEnum() []string {
+func AllDataTypeEnum() []string {
 	return []string{
-		AttributeDataTypeEnumInteger,
-		AttributeDataTypeEnumPercentage,
+		DataTypeEnumInteger,
+		DataTypeEnumDecimal,
+		DataTypeEnumPercentage,
+		DataTypeEnumBoolean,
+	}
+}
+
+// Enum values for HeroStatusEnum
+const (
+	HeroStatusEnumActive   string = "active"
+	HeroStatusEnumInactive string = "inactive"
+)
+
+func AllHeroStatusEnum() []string {
+	return []string{
+		HeroStatusEnumActive,
+		HeroStatusEnumInactive,
+	}
+}
+
+// Enum values for SkillTypeEnum
+const (
+	SkillTypeEnumWeapon   string = "weapon"
+	SkillTypeEnumMagic    string = "magic"
+	SkillTypeEnumPhysical string = "physical"
+	SkillTypeEnumUsage    string = "usage"
+	SkillTypeEnumReaction string = "reaction"
+	SkillTypeEnumGuard    string = "guard"
+)
+
+func AllSkillTypeEnum() []string {
+	return []string{
+		SkillTypeEnumWeapon,
+		SkillTypeEnumMagic,
+		SkillTypeEnumPhysical,
+		SkillTypeEnumUsage,
+		SkillTypeEnumReaction,
+		SkillTypeEnumGuard,
 	}
 }
 
 // Enum values for TagTypeEnum
 const (
-	TagTypeEnumClass     string = "class"
-	TagTypeEnumSkill     string = "skill"
-	TagTypeEnumEquipment string = "equipment"
+	TagTypeEnumClass   string = "class"
+	TagTypeEnumItem    string = "item"
+	TagTypeEnumSkill   string = "skill"
+	TagTypeEnumMonster string = "monster"
 )
 
 func AllTagTypeEnum() []string {
 	return []string{
 		TagTypeEnumClass,
+		TagTypeEnumItem,
 		TagTypeEnumSkill,
-		TagTypeEnumEquipment,
+		TagTypeEnumMonster,
 	}
 }
 

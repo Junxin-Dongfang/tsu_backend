@@ -11,7 +11,7 @@ BEGIN
         CREATE TYPE attribute_category_enum AS ENUM (
             'basic',      -- 基础属性
             'derived',    -- 派生属性
-            'resistance', -- 抗性属性
+            'resistance'  -- 抗性属性
         );
     END IF;
 END $$;
@@ -76,7 +76,7 @@ RETURNS TABLE (
     attribute_code VARCHAR,
     attribute_name VARCHAR,
     category attribute_category_enum,
-    data_type attribute_data_type_enum
+    data_type data_type_enum
 ) AS $$
 BEGIN
     RETURN QUERY
@@ -129,8 +129,7 @@ DO $$
 BEGIN
     RAISE NOTICE '============================================';
     RAISE NOTICE 'Attribute System 创建完成';
-    RAISE NOTICE '包含: 属性类型定义、属性标签、基础数据';
+    RAISE NOTICE '包含: 属性类型定义、基础数据';
     RAISE NOTICE '已插入 % 个属性类型', (SELECT COUNT(*) FROM hero_attribute_type WHERE deleted_at IS NULL);
-    RAISE NOTICE '已插入 % 个属性标签', (SELECT COUNT(*) FROM attribute_tags WHERE deleted_at IS NULL);
     RAISE NOTICE '============================================';
 END $$;

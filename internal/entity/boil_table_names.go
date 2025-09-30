@@ -4,27 +4,59 @@
 package entity
 
 var TableNames = struct {
+	ActionCategories          string
+	ActionEffects             string
+	ActionFlags               string
+	ActionTypeDefinitions     string
+	Actions                   string
+	BuffEffects               string
+	Buffs                     string
 	ClassAdvancedRequirements string
 	ClassAttributeBonuses     string
-	ClassTagRelations         string
 	Classes                   string
-	FinancialTransactions     string
+	DamageTypes               string
+	EffectTypeDefinitions     string
+	Effects                   string
+	FormulaVariables          string
 	HeroAttributeType         string
+	HeroSkills                string
+	Heroes                    string
+	RangeConfigRules          string
 	SchemaMigrations          string
+	SkillCategories           string
+	SkillLevelConfigs         string
+	SkillUnlockActions        string
+	Skills                    string
 	Tags                      string
-	UserFinances              string
+	TagsRelations             string
 	UserLoginHistory          string
 	Users                     string
 }{
+	ActionCategories:          "action_categories",
+	ActionEffects:             "action_effects",
+	ActionFlags:               "action_flags",
+	ActionTypeDefinitions:     "action_type_definitions",
+	Actions:                   "actions",
+	BuffEffects:               "buff_effects",
+	Buffs:                     "buffs",
 	ClassAdvancedRequirements: "class_advanced_requirements",
 	ClassAttributeBonuses:     "class_attribute_bonuses",
-	ClassTagRelations:         "class_tag_relations",
 	Classes:                   "classes",
-	FinancialTransactions:     "financial_transactions",
+	DamageTypes:               "damage_types",
+	EffectTypeDefinitions:     "effect_type_definitions",
+	Effects:                   "effects",
+	FormulaVariables:          "formula_variables",
 	HeroAttributeType:         "hero_attribute_type",
+	HeroSkills:                "hero_skills",
+	Heroes:                    "heroes",
+	RangeConfigRules:          "range_config_rules",
 	SchemaMigrations:          "schema_migrations",
+	SkillCategories:           "skill_categories",
+	SkillLevelConfigs:         "skill_level_configs",
+	SkillUnlockActions:        "skill_unlock_actions",
+	Skills:                    "skills",
 	Tags:                      "tags",
-	UserFinances:              "user_finances",
+	TagsRelations:             "tags_relations",
 	UserLoginHistory:          "user_login_history",
 	Users:                     "users",
 }

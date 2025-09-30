@@ -4,13 +4,11 @@
 package entity
 
 var ViewNames = struct {
-	ClassAdvancementPaths string
-	ClassDetails          string
-	ClassHeroStats        string
-	ClassTagsView         string
+	ActionEffectsDetail  string
+	BuffEffectsDetail    string
+	SkillActionRelations string
 }{
-	ClassAdvancementPaths: "class_advancement_paths",
-	ClassDetails:          "class_details",
-	ClassHeroStats:        "class_hero_stats",
-	ClassTagsView:         "class_tags_view",
+	ActionEffectsDetail:  "action_effects_detail",
+	BuffEffectsDetail:    "buff_effects_detail",
+	SkillActionRelations: "skill_action_relations",
 }

@@ -17,10 +17,11 @@ END $$;
 -- --------------------------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS classes (
+    id            UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     -- 职业基本信息
-    class_code    VARCHAR(32) PRIMARY KEY NOT NULL UNIQUE,             -- 职业代码
-    class_name    VARCHAR(64) NOT NULL,                    -- 职业名称
-    description   TEXT,                                     -- 职业描述
+    class_code    VARCHAR(32) NOT NULL UNIQUE,                         -- 职业代码
+    class_name    VARCHAR(64) NOT NULL,                                -- 职业名称
+    description   TEXT,                                                -- 职业描述
     lore_text     TEXT,                                     -- 职业背景故事
     
     -- 职业特色
@@ -28,7 +29,7 @@ CREATE TABLE IF NOT EXISTS classes (
     playstyle    TEXT,                             -- 职业玩法风格描述
 
     -- 职业等级和阶级
-    tier          class_tier_enum NOT NULL,               -- 职业阶级 (1-5)
+    tier          class_tier_enum NOT NULL,               -- 职业阶级
     promotion_count SMALLINT DEFAULT 0 CHECK (promotion_count >= 0), -- 转职次数加成
 
     -- 显示配置
@@ -169,8 +170,8 @@ BEGIN
     END IF;
 
     -- 检查等级要求
-    IF hero_level_param < v_req_record.required_level THEN
-        v_missing_reqs := array_append(v_missing_reqs, format('需要等级 %s (当前 %s)', v_req_record.required_level, hero_level_param));
+    IF p_hero_level_param < v_req_record.required_level THEN
+        v_missing_reqs := array_append(v_missing_reqs, format('需要等级 %s (当前 %s)', v_req_record.required_level, p_hero_level_param));
     END IF;
 
     -- 检查属性要求
@@ -184,7 +185,7 @@ BEGIN
             FOR v_req_key, v_req_value IN SELECT key, value::NUMERIC FROM jsonb_each_text(v_req_record.required_attributes)
             LOOP
                 -- 使用 ->> 操作符获取文本值，然后转换为 NUMERIC
-                v_player_value := (hero_attributes_param ->> v_req_key)::NUMERIC;
+                v_player_value := (p_hero_attributes_param ->> v_req_key)::NUMERIC;
 
                 -- 检查玩家是否拥有该属性且满足要求
                 IF v_player_value IS NULL OR v_player_value < v_req_value THEN

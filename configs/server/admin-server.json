@@ -16,6 +16,26 @@
                     "database_url": "postgres://tsu_user:tsu_test@tsu_postgres:5432/tsu_db?sslmode=disable"
                 }
             }
+        ],
+        "auth":[
+            {
+                "Id":"auth",
+                "ProcessID":"development",
+                "Settings": {
+                    "kratos_public_url": "http://tsu_kratos_service:4433",
+                    "kratos_admin_url": "http://tsu_kratos_service:4434",
+                    "keto_read_url": "http://tsu_keto_service:4466",
+                    "keto_write_url": "http://tsu_keto_service:4467",
+                    "redis_addr": "redis:6379",
+                    "redis_password": "tsu_redis_password",
+                    "redis_db": 0,
+                    "jwt_secret": "your-super-secret-jwt-key-change-in-production",
+                    "token_ttl_minutes": 30,
+                    "environment": "development",
+                    "http_port": "8082",
+                    "database_url": "postgres://ory_user:ory_test@tsu_ory_postgres:5432/ory_db?sslmode=disable&search_path=kratos"
+                }
+            }
         ]
     }
 }

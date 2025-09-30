@@ -13,7 +13,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aarondl/null/v8"
 	"github.com/aarondl/sqlboiler/v4/boil"
 	"github.com/aarondl/sqlboiler/v4/queries"
 	"github.com/aarondl/sqlboiler/v4/queries/qm"
@@ -29,9 +28,10 @@ type ClassAttributeBonuse struct {
 	ClassID            string        `boil:"class_id" json:"class_id" toml:"class_id" yaml:"class_id"`
 	AttributeID        string        `boil:"attribute_id" json:"attribute_id" toml:"attribute_id" yaml:"attribute_id"`
 	BaseBonusValue     types.Decimal `boil:"base_bonus_value" json:"base_bonus_value" toml:"base_bonus_value" yaml:"base_bonus_value"`
+	BonusPerLevel      bool          `boil:"bonus_per_level" json:"bonus_per_level" toml:"bonus_per_level" yaml:"bonus_per_level"`
 	PerLevelBonusValue types.Decimal `boil:"per_level_bonus_value" json:"per_level_bonus_value" toml:"per_level_bonus_value" yaml:"per_level_bonus_value"`
-	CreatedAt          null.Time     `boil:"created_at" json:"created_at,omitempty" toml:"created_at" yaml:"created_at,omitempty"`
-	UpdatedAt          null.Time     `boil:"updated_at" json:"updated_at,omitempty" toml:"updated_at" yaml:"updated_at,omitempty"`
+	CreatedAt          time.Time     `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
+	UpdatedAt          time.Time     `boil:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
 
 	R *classAttributeBonuseR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L classAttributeBonuseL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -42,6 +42,7 @@ var ClassAttributeBonuseColumns = struct {
 	ClassID            string
 	AttributeID        string
 	BaseBonusValue     string
+	BonusPerLevel      string
 	PerLevelBonusValue string
 	CreatedAt          string
 	UpdatedAt          string
@@ -50,6 +51,7 @@ var ClassAttributeBonuseColumns = struct {
 	ClassID:            "class_id",
 	AttributeID:        "attribute_id",
 	BaseBonusValue:     "base_bonus_value",
+	BonusPerLevel:      "bonus_per_level",
 	PerLevelBonusValue: "per_level_bonus_value",
 	CreatedAt:          "created_at",
 	UpdatedAt:          "updated_at",
@@ -60,6 +62,7 @@ var ClassAttributeBonuseTableColumns = struct {
 	ClassID            string
 	AttributeID        string
 	BaseBonusValue     string
+	BonusPerLevel      string
 	PerLevelBonusValue string
 	CreatedAt          string
 	UpdatedAt          string
@@ -68,6 +71,7 @@ var ClassAttributeBonuseTableColumns = struct {
 	ClassID:            "class_attribute_bonuses.class_id",
 	AttributeID:        "class_attribute_bonuses.attribute_id",
 	BaseBonusValue:     "class_attribute_bonuses.base_bonus_value",
+	BonusPerLevel:      "class_attribute_bonuses.bonus_per_level",
 	PerLevelBonusValue: "class_attribute_bonuses.per_level_bonus_value",
 	CreatedAt:          "class_attribute_bonuses.created_at",
 	UpdatedAt:          "class_attribute_bonuses.updated_at",
@@ -96,22 +100,33 @@ func (w whereHelpertypes_Decimal) GTE(x types.Decimal) qm.QueryMod {
 	return qmhelper.Where(w.field, qmhelper.GTE, x)
 }
 
+type whereHelperbool struct{ field string }
+
+func (w whereHelperbool) EQ(x bool) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.EQ, x) }
+func (w whereHelperbool) NEQ(x bool) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.NEQ, x) }
+func (w whereHelperbool) LT(x bool) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.LT, x) }
+func (w whereHelperbool) LTE(x bool) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.LTE, x) }
+func (w whereHelperbool) GT(x bool) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.GT, x) }
+func (w whereHelperbool) GTE(x bool) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.GTE, x) }
+
 var ClassAttributeBonuseWhere = struct {
 	ID                 whereHelperstring
 	ClassID            whereHelperstring
 	AttributeID        whereHelperstring
 	BaseBonusValue     whereHelpertypes_Decimal
+	BonusPerLevel      whereHelperbool
 	PerLevelBonusValue whereHelpertypes_Decimal
-	CreatedAt          whereHelpernull_Time
-	UpdatedAt          whereHelpernull_Time
+	CreatedAt          whereHelpertime_Time
+	UpdatedAt          whereHelpertime_Time
 }{
 	ID:                 whereHelperstring{field: "\"class_attribute_bonuses\".\"id\""},
 	ClassID:            whereHelperstring{field: "\"class_attribute_bonuses\".\"class_id\""},
 	AttributeID:        whereHelperstring{field: "\"class_attribute_bonuses\".\"attribute_id\""},
 	BaseBonusValue:     whereHelpertypes_Decimal{field: "\"class_attribute_bonuses\".\"base_bonus_value\""},
+	BonusPerLevel:      whereHelperbool{field: "\"class_attribute_bonuses\".\"bonus_per_level\""},
 	PerLevelBonusValue: whereHelpertypes_Decimal{field: "\"class_attribute_bonuses\".\"per_level_bonus_value\""},
-	CreatedAt:          whereHelpernull_Time{field: "\"class_attribute_bonuses\".\"created_at\""},
-	UpdatedAt:          whereHelpernull_Time{field: "\"class_attribute_bonuses\".\"updated_at\""},
+	CreatedAt:          whereHelpertime_Time{field: "\"class_attribute_bonuses\".\"created_at\""},
+	UpdatedAt:          whereHelpertime_Time{field: "\"class_attribute_bonuses\".\"updated_at\""},
 }
 
 // ClassAttributeBonuseRels is where relationship names are stored.
@@ -170,9 +185,9 @@ func (r *classAttributeBonuseR) GetClass() *Class {
 type classAttributeBonuseL struct{}
 
 var (
-	classAttributeBonuseAllColumns            = []string{"id", "class_id", "attribute_id", "base_bonus_value", "per_level_bonus_value", "created_at", "updated_at"}
-	classAttributeBonuseColumnsWithoutDefault = []string{"class_id", "attribute_id", "base_bonus_value", "per_level_bonus_value"}
-	classAttributeBonuseColumnsWithDefault    = []string{"id", "created_at", "updated_at"}
+	classAttributeBonuseAllColumns            = []string{"id", "class_id", "attribute_id", "base_bonus_value", "bonus_per_level", "per_level_bonus_value", "created_at", "updated_at"}
+	classAttributeBonuseColumnsWithoutDefault = []string{"class_id", "attribute_id"}
+	classAttributeBonuseColumnsWithDefault    = []string{"id", "base_bonus_value", "bonus_per_level", "per_level_bonus_value", "created_at", "updated_at"}
 	classAttributeBonusePrimaryKeyColumns     = []string{"id"}
 	classAttributeBonuseGeneratedColumns      = []string{}
 )
@@ -1094,11 +1109,11 @@ func (o *ClassAttributeBonuse) Insert(ctx context.Context, exec boil.ContextExec
 	if !boil.TimestampsAreSkipped(ctx) {
 		currTime := time.Now().In(boil.GetLocation())
 
-		if queries.MustTime(o.CreatedAt).IsZero() {
-			queries.SetScanner(&o.CreatedAt, currTime)
+		if o.CreatedAt.IsZero() {
+			o.CreatedAt = currTime
 		}
-		if queries.MustTime(o.UpdatedAt).IsZero() {
-			queries.SetScanner(&o.UpdatedAt, currTime)
+		if o.UpdatedAt.IsZero() {
+			o.UpdatedAt = currTime
 		}
 	}
 
@@ -1207,7 +1222,7 @@ func (o *ClassAttributeBonuse) Update(ctx context.Context, exec boil.ContextExec
 	if !boil.TimestampsAreSkipped(ctx) {
 		currTime := time.Now().In(boil.GetLocation())
 
-		queries.SetScanner(&o.UpdatedAt, currTime)
+		o.UpdatedAt = currTime
 	}
 
 	var err error
@@ -1413,10 +1428,10 @@ func (o *ClassAttributeBonuse) Upsert(ctx context.Context, exec boil.ContextExec
 	if !boil.TimestampsAreSkipped(ctx) {
 		currTime := time.Now().In(boil.GetLocation())
 
-		if queries.MustTime(o.CreatedAt).IsZero() {
-			queries.SetScanner(&o.CreatedAt, currTime)
+		if o.CreatedAt.IsZero() {
+			o.CreatedAt = currTime
 		}
-		queries.SetScanner(&o.UpdatedAt, currTime)
+		o.UpdatedAt = currTime
 	}
 
 	if err := o.doBeforeUpsertHooks(ctx, exec); err != nil {

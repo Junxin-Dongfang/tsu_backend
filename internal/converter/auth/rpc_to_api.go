@@ -1,8 +1,7 @@
 package auth
 
 import (
-	apiAuth "tsu-self/internal/api/model/response/auth"
-	"tsu-self/internal/converter/common"
+	apiAuth "tsu-self/internal/model/response/auth"
 	"tsu-self/internal/rpc/generated/auth"
 )
 
@@ -14,11 +13,6 @@ func LoginResponseFromRPC(resp *auth.LoginResponse) *apiAuth.LoginResult {
 		SessionCookie: "", // 如果需要 cookie，在这里设置
 		ErrorMessage:  resp.ErrorMessage,
 	}
-
-	if resp.UserInfo != nil {
-		result.UserInfo = common.UserInfoFromRPC(resp.UserInfo)
-	}
-
 	return result
 }
 
@@ -30,10 +24,6 @@ func RegisterResponseFromRPC(resp *auth.RegisterResponse) *apiAuth.RegisterResul
 		SessionToken:  resp.Token,
 		SessionCookie: "", // 如果需要 cookie，在这里设置
 		ErrorMessage:  resp.ErrorMessage,
-	}
-
-	if resp.UserInfo != nil {
-		result.UserInfo = common.UserInfoFromRPC(resp.UserInfo)
 	}
 
 	return result

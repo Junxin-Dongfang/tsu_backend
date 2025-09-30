@@ -4,13 +4,10 @@ package admin
 import (
 	"context"
 	"fmt"
-	"net"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/hashicorp/consul/api"
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -21,12 +18,11 @@ import (
 	echoSwagger "github.com/swaggo/echo-swagger"
 
 	_ "tsu-self/docs"
-	customvalidator "tsu-self/internal/api/model/validator"
 	custommiddleware "tsu-self/internal/middleware"
+	customvalidator "tsu-self/internal/model/validator"
 	"tsu-self/internal/modules/admin/service"
 	"tsu-self/internal/pkg/log"
 	"tsu-self/internal/pkg/response"
-	"tsu-self/internal/repository/impl"
 )
 
 // CustomValidator 自定义验证器
@@ -45,16 +41,13 @@ var Module = func() module.Module {
 
 type AdminModule struct {
 	basemodule.BaseModule
-	app                module.App
-	echoServer         *echo.Echo
-	respWriter         response.Writer
-	logger             log.Logger
-	db                 *sqlx.DB
-	syncService          *service.SyncService
-	transactionService   *service.TransactionService
-	userService          *service.UserService
-	classService         *service.ClassService
-	attributeTypeService *service.AttributeTypeService
+	app         module.App
+	echoServer  *echo.Echo
+	respWriter  response.Writer
+	logger      log.Logger
+	db          *sqlx.DB
+	syncService *service.SyncService
+	userService *service.UserService
 }
 
 func (m *AdminModule) GetType() string {
@@ -113,9 +106,6 @@ func (m *AdminModule) OnInit(app module.App, settings *conf.ModuleSettings) {
 
 	// 启动 HTTP 服务器
 	go m.startHTTPServer()
-
-	// 注册 HTTP 服务到 Consul
-	go m.registerHTTPService()
 
 	m.logger.Info("Admin 模块初始化完成")
 }
@@ -185,24 +175,10 @@ func (m *AdminModule) initServices() {
 	// 初始化 SyncService
 	m.syncService = service.NewSyncService(m.db, m.logger)
 
-	// 初始化 TransactionService
-	m.transactionService = service.NewTransactionService(m.db, m.syncService, m.logger)
-
 	// 初始化 UserService
 	m.userService = service.NewUserService(m.db, m.logger)
 
-	// 初始化 ClassService
-	classRepo := impl.NewClassRepository(m.db.DB)
-	m.classService = service.NewClassService(classRepo)
-
-	// 初始化 AttributeTypeService
-	attributeTypeRepo := impl.NewAttributeTypeRepository(m.db.DB)
-	m.attributeTypeService = service.NewAttributeTypeService(attributeTypeRepo)
-
 	m.app = m.GetApp()
-
-	// 启动事件监听器
-	go m.startEventListeners()
 }
 
 func (m *AdminModule) setupMiddleware() {
@@ -271,8 +247,8 @@ func (m *AdminModule) setupRoutes() {
 	}
 
 	// 健康检查
-	m.echoServer.GET("/health", m.healthCheck)
-	m.echoServer.GET("/ready", m.readinessCheck)
+	// m.echoServer.GET("/health", m.healthCheck)
+	// m.echoServer.GET("/ready", m.readinessCheck)
 
 	// API 路由
 	api := m.echoServer.Group("")
@@ -284,51 +260,10 @@ func (m *AdminModule) setupRoutes() {
 		auth.POST("/register", m.Register)
 	}
 
-	user := api.Group("/user")
-	{
-		user.GET("/:user_id/profile", m.GetUserProfile)
-		user.PUT("/:user_id/profile", m.UpdateUserProfile)
-	}
-
-	// 职业管理路由
-	admin := api.Group("/admin")
-	{
-		// 职业基础管理
-		classes := admin.Group("/classes")
-		{
-			classes.GET("", m.ListClasses)             // 获取职业列表
-			classes.POST("", m.CreateClass)            // 创建职业
-			classes.GET("/:id", m.GetClass)            // 获取职业详情
-			classes.PUT("/:id", m.UpdateClass)         // 更新职业
-			classes.DELETE("/:id", m.DeleteClass)      // 删除职业
-			classes.GET("/:id/basic", m.GetClassBasic) // 获取职业基本信息
-			classes.GET("/:id/stats", m.GetClassStats) // 获取职业统计信息
-
-			// 职业属性加成管理
-			classes.GET("/:id/attribute-bonuses", m.GetClassAttributeBonuses)                // 获取属性加成列表
-			classes.POST("/:id/attribute-bonuses", m.CreateClassAttributeBonus)              // 创建属性加成
-			classes.POST("/:id/attribute-bonuses/batch", m.BatchCreateClassAttributeBonuses) // 批量创建属性加成
-		}
-
-		// 标签管理
-		admin.GET("/classes/tags", m.GetAllClassTags) // 获取所有职业标签
-
-		// 属性类型管理
-		attributeTypes := admin.Group("/attribute-types")
-		{
-			attributeTypes.GET("", m.GetAttributeTypes)          // 获取属性类型列表
-			attributeTypes.POST("", m.CreateAttributeType)       // 创建属性类型
-			attributeTypes.GET("/options", m.GetAttributeTypeOptions) // 获取属性类型选项
-			attributeTypes.GET("/:id", m.GetAttributeType)       // 获取属性类型详情
-			attributeTypes.PUT("/:id", m.UpdateAttributeType)    // 更新属性类型
-			attributeTypes.DELETE("/:id", m.DeleteAttributeType) // 删除属性类型
-		}
-	}
 }
 
 func (m *AdminModule) setupRPCMethods() {
 	// 注册 RPC 方法供其他模块调用
-	m.GetServer().RegisterGO("HandleUserRegistered", m.handleUserRegisteredRPC)
 	// m.GetServer().RegisterGO("ValidateSession", m.rpcValidateSession)
 	// m.GetServer().RegisterGO("GetUserInfo", m.rpcGetUserInfo)
 	// m.GetServer().RegisterGO("Login", m.rpcLogin)
@@ -342,108 +277,4 @@ func (m *AdminModule) startHTTPServer() {
 		m.logger.Error("HTTP 服务器启动失败", err)
 		panic(err)
 	}
-}
-
-// 新增方法：注册 HTTP 服务到 Consul
-func (m *AdminModule) registerHTTPService() {
-	time.Sleep(2 * time.Second) // 等待 HTTP 服务器启动
-
-	// 创建 Consul 客户端
-	consulConfig := api.DefaultConfig()
-	consulConfig.Address = "consul:8500" // 使用容器名
-
-	consulClient, err := api.NewClient(consulConfig)
-	if err != nil {
-		m.logger.Error("创建 Consul 客户端失败", err)
-		return
-	}
-
-	// 获取容器 IP
-	containerIP := m.getContainerIP()
-	if containerIP == "" {
-		m.logger.Error("无法获取容器 IP", err)
-		return
-	}
-	portInt := 8081 // 默认端口
-	if httpPortStr := m.GetModuleSettings().Settings["http_port"].(string); httpPortStr != "" {
-		if port, err := strconv.Atoi(httpPortStr); err == nil {
-			portInt = port
-		}
-	}
-
-	// 注册 HTTP 服务
-	registration := &api.AgentServiceRegistration{
-		ID:      "admin-http",
-		Name:    "admin-http",
-		Port:    portInt,
-		Address: containerIP,
-		Tags:    []string{"http", "swagger", "admin"},
-		Check: &api.AgentServiceCheck{
-			HTTP:                           fmt.Sprintf("http://%s:%d/health", containerIP, portInt),
-			Interval:                       "10s",
-			Timeout:                        "5s",
-			DeregisterCriticalServiceAfter: "30s",
-		},
-	}
-
-	err = consulClient.Agent().ServiceRegister(registration)
-	if err != nil {
-		m.logger.Error("注册 HTTP 服务到 Consul 失败", err)
-		return
-	}
-
-	m.logger.Info("HTTP 服务已注册到 Consul",
-		log.String("address", containerIP),
-		log.Int("port", portInt))
-}
-
-// 获取容器 IP 地址
-func (m *AdminModule) getContainerIP() string {
-	// 方法1：通过网络接口获取
-	addrs, err := net.InterfaceAddrs()
-	if err != nil {
-		return ""
-	}
-
-	for _, addr := range addrs {
-		if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-			if ipnet.IP.To4() != nil {
-				return ipnet.IP.String()
-			}
-		}
-	}
-
-	return ""
-}
-
-// startEventListeners 启动事件监听器 - 使用mqant框架推荐方式
-func (m *AdminModule) startEventListeners() {
-	// 使用mqant的RPC机制替代直接的NATS订阅
-	// 这避免了与框架内部订阅的冲突
-
-	m.logger.Info("使用mqant RPC机制处理事件，无需手动NATS订阅")
-
-	// 如果需要监听其他服务的事件，应该通过RPC调用
-	// 而不是直接创建NATS订阅，这样可以避免订阅冲突
-}
-
-// handleUserRegisteredRPC 通过RPC处理用户注册事件 - 使用mqant推荐方式
-// 当其他服务需要通知用户注册事件时，可以通过RPC调用这个方法
-func (m *AdminModule) handleUserRegisteredRPC(ctx context.Context, userID, email, username string) error {
-	m.logger.InfoContext(ctx, "通过RPC收到用户注册事件",
-		log.String("user_id", userID),
-		log.String("email", email),
-		log.String("username", username))
-
-	// 同步用户到主数据库
-	_, syncErr := m.syncService.CreateBusinessUser(ctx, userID, email, username)
-	if syncErr != nil {
-		m.logger.ErrorContext(ctx, "同步用户到主数据库失败",
-			log.String("user_id", userID),
-			log.Any("error", syncErr))
-		return syncErr
-	}
-
-	m.logger.InfoContext(ctx, "用户同步到主数据库成功", log.String("user_id", userID))
-	return nil
 }

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 项目概述
 
-这是一个基于 Go 和微服务架构的 TSU 项目，采用 mqant 框架构建。项目包含多个服务模块：admin、auth、swagger，集成了 Ory Kratos (身份管理)、Ory Keto (权限管理)、Consul (服务发现)、Redis、PostgreSQL 等技术栈。
+这是一个基于 Go 和微服务架构的 TSU 游戏服务器项目，采用 mqant 框架构建。项目包含多个服务模块：admin、auth、swagger，集成了 Ory Kratos (身份管理)、Ory Keto (权限管理)、Consul (服务发现)、Redis、PostgreSQL 等技术栈。
 
 ## 开发命令
 
@@ -32,9 +32,6 @@ make clean
 ```bash
 # 启动 admin 服务热重载
 air -c .air.admin.toml
-
-# 启动 auth 服务热重载
-air -c .air.auth.toml
 ```
 
 ### Swagger 文档生成
@@ -111,7 +108,7 @@ make generate-models
 
 #### 1. API Layer - HTTP 接口层
 ```
-internal/api/model/
+internal/model/
 ├── request/     # HTTP 请求模型 (JSON)
 ├── response/    # HTTP 响应模型 (JSON)
 └── validator/   # API 验证器
@@ -173,7 +170,7 @@ internal/converter/
 ### 架构规则
 
 #### ✅ 允许的依赖关系
-- **HTTP Handler** → `internal/api/model/*`
+- **HTTP Handler** → `internal/model/*`
 - **Service Layer** → `internal/entity/*` + `internal/rpc/generated/*`+ HTTP request → Converters → Service + Service → Converters → HTTP response
 - **Repository** → `internal/entity/*` only
 - **Converters** → 可在任何需要转换的地方使用
@@ -187,7 +184,7 @@ internal/converter/
 
 #### 核心原则
 - **Entity**: `internal/entity/` - 数据库实体，SQLBoiler 自动生成
-- **Model**: `internal/api/model/` - API 请求/响应模型
+- **Model**: `internal/model/` - API 请求/响应模型
 - **Proto**: `internal/rpc/proto/` - Protocol Buffer 定义
 - **Extension**: `*_extension.go` - 实体功能扩展文件
 
@@ -195,34 +192,29 @@ internal/converter/
 ```
 internal/entity/
 ├── users.go              # SQLBoiler 生成的基础实体
-├── user_finances.go      # SQLBoiler 生成的基础实体
 ├── user_extension.go     # 手动扩展：UserAggregate + 业务方法
 └── ...
 
-internal/api/model/
-├── request/user/         # 用户相关请求模型
-├── response/user/        # 用户相关响应模型
-└── ...
-
-internal/rpc/proto/
-├── auth.proto           # 认证服务协议定义
-├── user.proto           # 用户服务协议定义
-└── generated/           # 自动生成的 Go 代码
+internal/model/
+├── request/admin/        # admin 模块请求模型
+├── request/auth/         # auth 模块请求模型
+├── response/admin/       # admin 模块响应模型
+├── response/auth/        # auth 模块响应模型
+└── validator/            # 验证器
 ```
 
 ### 核心模块结构
 - **cmd/**: 服务入口点
-  - `admin-server/`: 管理后台服务
-  - `auth-server/`: 认证授权服务
+  - `admin-server/`: 管理后台服务（主服务）
   - `swagger-server/`: API 文档服务
 
 - **internal/modules/**: 业务模块
-  - `admin/`: 管理模块，提供用户管理、身份管理等功能
+  - `admin/`: 管理模块，提供用户管理、游戏数据管理等功能
   - `auth/`: 认证模块，集成 Ory Kratos/Keto，提供认证授权服务
   - `swagger/`: API 文档模块
 
 - **internal/middleware/**: 中间件层
-  - 日志、鉴权、限流、错误处理、安全等中间件
+  - 日志、鉴权、限流、错误处理、安全、追踪等中间件
 
 - **internal/pkg/**: 公共包
   - `log/`: 统一日志处理
@@ -258,19 +250,21 @@ internal/rpc/proto/
 ```
 1. HTTP Request (JSON)
    ↓
-2. API Model (apiAuthReq.LoginRequest)
+2. API Model (request.LoginRequest)
    ↓
 3. Converter → RPC Model (auth.LoginRequest)
    ↓
-4. RPC Call → Auth Service
+4. RPC Call → Auth Module
    ↓
-5. Service → Entity Model (entity.User)
+5. Auth Service → Kratos API
    ↓
-6. Database Operation
+6. Service → Entity Model (entity.User)
    ↓
-7. Entity Model → Converter → API Model
+7. Database Operation
    ↓
-8. HTTP Response (JSON)
+8. Entity Model → Converter → API Model
+   ↓
+9. HTTP Response (JSON)
 ```
 
 ### 服务发现和注册
@@ -279,7 +273,8 @@ internal/rpc/proto/
 ### 配置文件结构
 - **configs/base/**: 基础配置
 - **configs/environments/**: 环境配置 (local.yaml, dev.yaml 等)
-- **configs/server/**: 服务配置 (admin-server.json, auth-server.json)
+- **configs/server/**: 服务配置 (admin-server.json)
+- **configs/game/**: 游戏配置
 
 ### 数据存储
 - **PostgreSQL**: 主数据库，使用 migrate 进行数据库迁移管理
@@ -385,7 +380,7 @@ Session Token ← Transaction Service ← Kratos Response ←─┘
 
 #### 分布式事务协调
 - **模式**: Saga 模式，确保跨服务操作的一致性
-- **实现**: `internal/modules/admin/service/transaction_service.go`
+- **实现**: `internal/modules/admin/service/sync_service.go`
 - **补偿机制**: 操作失败时自动回滚相关数据
 
 ### RPC 通信
@@ -408,16 +403,12 @@ result, err := m.Call(ctx, "auth", "Register", mqrpc.Param(rpcReq))
 
 #### 核心用户表 (users)
 - **主键**: UUID (与 Kratos identity_id 对应)
-- **业务字段**: is_premium, diamond_count, 用户设置等
-- **认证字段**: username, email (从 Kratos 同步)
+- **业务字段**: username, email 等
+- **认证字段**: 从 Kratos 同步
 
 #### 登录历史表 (user_login_history)
 - **用途**: 安全审计和用户行为分析
-- **字段**: 登录时间、IP地址、设备信息、地理位置等
-
-#### 用户设置表 (user_settings)
-- **用途**: 用户偏好和隐私设置
-- **字段**: 通知设置、隐私设置、主题偏好等
+- **字段**: 登录时间、IP地址、设备信息等
 
 ### 安全特性
 
@@ -590,7 +581,6 @@ curl -X GET http://localhost/api/admin/admin/classes \
 ```bash
 # 查看特定服务日志
 docker logs tsu_admin --tail 50
-docker logs tsu_auth_server --tail 50
 docker logs tsu_kratos_service --tail 50
 
 # 查看数据库连接
@@ -598,175 +588,60 @@ docker exec tsu_postgres psql -U tsu_user -d tsu_db -c "\dt"
 docker exec tsu_ory_postgres psql -U ory_user -d ory_db -c "\dt kratos.*"
 ```
 
-## 职业管理系统
+## 游戏数据管理系统
+
+### 当前数据库迁移
+项目包含以下数据库迁移文件：
+- `000001_create_core_infrastructure`: 核心基础设施
+- `000002_create_users_system`: 用户系统
+- `000003_create_attribute_system`: 属性系统
+- `000004_create_classes_system`: 职业系统
+- `000005_create_heroes_system`: 英雄系统
+- `000006_create_skills_base`: 技能系统
 
 ### 系统架构
 
-项目已完整实现职业管理系统，采用标准的三层架构模式：
-
-#### 数据库层 (Database Layer)
-```
-migrations/000005_create_class_management_views.up.sql
-├── class_hero_stats         # 职业英雄统计视图
-├── class_details           # 职业详情视图
-├── class_tags_view         # 职业标签视图
-└── class_advancement_paths # 职业进阶路径视图
-```
+项目采用标准的三层架构模式：
 
 #### 业务逻辑层 (Service Layer)
 ```
-internal/modules/admin/service/class_service.go
-├── CRUD操作             # 创建、读取、更新、删除职业
-├── 统计信息             # 职业英雄统计
-├── 属性加成管理         # 职业属性加成系统
-├── 进阶路径管理         # 职业进阶要求
-└── 标签管理             # 职业分类标签
+internal/modules/admin/service/
+├── user_service.go      # 用户管理服务
+└── sync_service.go      # Kratos 数据同步服务
 ```
 
 #### API接口层 (API Layer)
 ```
-internal/api/model/
-├── request/admin/class.go   # 请求模型
-├── response/admin/class.go  # 响应模型
-└── 完整的Swagger文档注释
+internal/model/
+├── request/admin/       # 请求模型
+├── response/admin/      # 响应模型
+└── validator/           # 验证器
 ```
 
-### 功能特性
-
-#### 核心功能 (100% 可用)
-- ✅ **职业CRUD**：完整的创建、读取、更新、软删除功能
-- ✅ **数据验证**：字段验证、重复检查、格式验证
-- ✅ **分页查询**：支持分页、排序、过滤
-- ✅ **软删除机制**：使用deleted_at字段，保持数据完整性
-- ✅ **统计信息**：职业英雄统计（总数、活跃数、平均等级、最高等级）
-- ✅ **标签管理**：职业分类标签系统
-- ✅ **错误处理**：完整的异常处理和错误响应
-
-#### 高级功能 (75% 可用)
-- ✅ **属性加成列表**：获取职业属性加成列表
-- ✅ **进阶路径**：职业进阶要求查询
-- ❌ **属性加成创建**：Decimal类型编码问题待修复
-- ❌ **批量操作**：批量创建属性加成功能受Decimal问题影响
-
-### API端点覆盖
-
-#### 已实现端点 (7/8 = 87.5%)
-```
-GET    /admin/classes                    # 职业列表
-POST   /admin/classes                    # 创建职业
-GET    /admin/classes/{id}               # 职业详情
-PUT    /admin/classes/{id}               # 更新职业
-DELETE /admin/classes/{id}               # 删除职业
-GET    /admin/classes/{id}/stats         # 职业统计
-GET    /admin/classes/{id}/attribute-bonuses  # 属性加成列表
-GET    /admin/classes/tags               # 职业标签
-```
-
-#### 部分功能端点
-```
-POST   /admin/classes/{id}/attribute-bonuses      # 创建属性加成 (Decimal问题)
-POST   /admin/classes/{id}/attribute-bonuses/batch # 批量创建 (Decimal问题)
-```
-
-### 测试结果
-
-#### 完整测试流程结果
-根据最新的完整测试（从用户注册到职业管理全流程），系统表现如下：
-
-**用户认证系统**：100% 通过
-- 用户注册：✅ 成功
-- 用户登录：✅ 成功获得session token
-
-**职业基础操作**：100% 通过
-- 创建职业：✅ WARRIOR、ARCHER、ROGUE创建成功
-- 读取职业：✅ 单个查询、列表查询正常
-- 更新职业：✅ 字段更新正常
-- 软删除：✅ 删除机制正常
-
-**高级功能**：75% 通过
-- 统计信息：✅ 正常返回（默认值0，因无英雄数据）
-- 标签管理：✅ 正常返回空列表
-- 属性加成列表：✅ 正常返回
-- 属性加成创建：❌ Decimal编码错误
-
-**边界条件处理**：90% 通过
-- 无效UUID：✅ 正确错误处理
-- 不存在资源：✅ 正确404响应
-- 重复数据：✅ 正确409冲突响应
-- 分页边界：✅ 自动回退到有效范围
-- 权限验证：⚠️ 暂未实现（开发阶段跳过）
-
-#### 系统稳定性
-- **整体成功率**：90%+
-- **响应时间**：200-300ms
-- **核心功能可用性**：100%
-- **生产就绪评估**：核心功能可投入生产
-
-### 已知问题与解决方案
-
-#### 1. Decimal类型编码问题
-**问题**：`encode: unknown type for types.Decimal`
-**位置**：`internal/converter/admin/class_converter.go:184`
-**影响**：属性加成创建功能
-**临时解决方案**：
-```go
-// 当前问题代码
-baseBonus.SetFloat64(req.BaseBonus)
-bonus.BaseBonusValue = types.NewDecimal(&baseBonus)
-
-// 可能的解决方案
-// 1. 检查SQLBoiler配置是否支持Decimal类型
-// 2. 使用字符串存储Decimal值
-// 3. 升级到更新版本的types包
-```
-
-#### 2. 中文字符显示问题
-**状态**：已修复（添加UTF-8响应头）
-**解决方案**：在HTTP中间件中设置`Content-Type: application/json; charset=utf-8`
-
-#### 3. 权限验证系统
-**状态**：开发阶段暂未实现
-**建议**：生产环境需要添加基于Ory Keto的权限中间件
+### 核心功能
+- ✅ **用户管理**：用户 CRUD 操作，与 Kratos 数据同步
+- ✅ **认证授权**：集成 Ory Kratos 和 Ory Keto
+- ✅ **软删除机制**：使用 deleted_at 字段保持数据完整性
+- ✅ **错误处理**：统一的错误处理和响应格式
 
 ### 性能特征
 
 #### 数据库优化
-- **视图查询**：使用数据库视图避免复杂JOIN操作
 - **索引利用**：充分利用主键和外键索引
-- **软删除**：使用deleted_at过滤，保持查询性能
+- **软删除**：使用 deleted_at 过滤，保持查询性能
 
 #### 架构优势
 - **类型安全**：严格的类型转换和验证
-- **关注点分离**：API、Service、Repository明确分层
+- **关注点分离**：Model、Service、Repository 明确分层
 - **可扩展性**：模块化设计，易于添加新功能
 - **可测试性**：每层独立，便于单元测试
 
-### 生产部署建议
+### 系统状态
 
-#### 必须修复的问题
-1. **Decimal类型编码**：解决属性加成功能
-2. **权限验证**：实现完整的权限控制
-3. **数据验证增强**：添加更多业务规则验证
+**系统整体状态**：🟢 开发中
 
-#### 性能优化建议
-1. **Redis缓存**：缓存频繁查询的职业列表
-2. **数据库连接池**：优化数据库连接管理
-3. **API限流**：防止API滥用
-
-#### 监控和日志
-1. **性能监控**：添加API响应时间监控
-2. **业务日志**：记录重要业务操作
-3. **错误告警**：关键错误自动告警
-
-### 总结
-
-**系统整体状态**：🟢 生产就绪
-
-职业管理系统已成功实现并通过完整测试，核心功能稳定可靠，整体架构清晰，代码质量高。系统已达到生产就绪状态，主要特点：
-
-#### ✅ 完全可用的功能
+#### ✅ 已实现功能
 - **用户认证系统**：注册、登录、session 管理
-- **职业管理 API**：CRUD、分页、筛选、统计
 - **API 文档系统**：Swagger UI 完整支持，Bearer Token 认证
 - **nginx 代理系统**：完整的请求路由和 CORS 支持
 - **微服务架构**：RPC 通信、服务发现、负载均衡
@@ -778,241 +653,36 @@ bonus.BaseBonusValue = types.NewDecimal(&baseBonus)
 4. **Swagger 配置**：API 文档路径和认证配置，已优化
 
 #### 📊 性能指标
-- **API 成功率**：95%+（从 30% 大幅提升）
-- **响应时间**：200-300ms（从 2-3s 优化）
-- **功能覆盖率**：核心功能 100%，高级功能 75%
-- **测试通过率**：90%+（边界条件和异常处理）
-
-#### 🚀 生产部署准备
-系统在用户认证、数据操作、API 文档、错误处理等方面表现优秀，为后续功能扩展奠定了坚实基础。主要优势：
-
-- **高可用性**：服务重启和故障恢复机制完善
-- **开发友好**：完整的 API 文档和测试环境
+- **API 成功率**：95%+
+- **响应时间**：200-300ms
 - **架构清晰**：三层架构，关注点分离，易于维护
 - **扩展性强**：模块化设计，支持水平扩展
 
-除了少数高级功能（如 Decimal 类型处理）的技术细节外，系统核心功能已完全可投入生产使用。
+## Decimal 类型处理最佳实践
 
-## Decimal 类型处理问题修复记录
+### 技术方案
+项目使用 `github.com/shopspring/decimal` 处理 PostgreSQL NUMERIC 类型：
 
-### 问题描述
-在职业属性加成功能开发中，遇到 SQLBoiler 与 `types.Decimal` 的编码问题：
-```
-encode: unknown type for types.Decimal
-```
-
-### 问题分析
-**问题出现场景**：
-- API 端点：`POST /admin/classes/{id}/attribute-bonuses`
-- 错误位置：数据库插入操作 (`entity.ClassAttributeBonuse.Insert`)
-- 涉及字段：`BaseBonusValue` 和 `PerLevelBonusValue` (types.Decimal 类型)
-
-**技术栈信息**：
-- **SQLBoiler 版本**：4.19.5
-- **Decimal 包**：`github.com/aarondl/sqlboiler/v4/types`
-- **底层 Decimal**：`github.com/ericlagergren/decimal`
-- **数据库类型**：PostgreSQL `NUMERIC(10,2)`
-
-### 修复过程
-
-#### 第一阶段：配置更新
-1. **SQLBoiler 配置优化** (`sqlboiler.toml`)：
-   ```toml
-   # 正确的类型映射
-   [psql.replacements]
-   "numeric" = "github.com/aarondl/sqlboiler/v4/types.Decimal"
-   "decimal" = "github.com/aarondl/sqlboiler/v4/types.Decimal"
-
-   # 正确的包导入
-   [psql.imports.third_party]
-   "github.com/aarondl/null/v8",
-   "github.com/aarondl/sqlboiler/v4/boil",
-   "github.com/aarondl/sqlboiler/v4/queries/qm",
-   "github.com/aarondl/sqlboiler/v4/types"
-   ```
-
-2. **实体模型重新生成**：
-   ```bash
-   make generate-models
-   ```
-
-3. **包名修复**：生成的实体包名从 `models` 修正为 `entity`
-
-#### 第二阶段：转换器修复 (进行中)
-**位置**：`internal/converter/admin/class_converter.go`
-
-**尝试的方案**：
-
-1. **方案一 - NewDecimal 构造** (失败):
-   ```go
-   var baseBonus decimal.Big
-   baseBonus.SetFloat64(req.BaseBonus)
-   types.NewDecimal(&baseBonus)
-   ```
-
-2. **方案二 - 直接结构体赋值** (失败):
-   ```go
-   types.Decimal{Big: &baseBonus}
-   ```
-
-3. **方案三 - decimal.New 构造** (测试中):
-   ```go
-   baseBonus := decimal.New(int64(req.BaseBonus*100), -2)
-   types.Decimal{Big: baseBonus}
-   ```
-
-### 最终解决方案 ✅
-经过深入研究，成功解决了 Decimal 类型问题：
-
-#### 关键修复点：
-1. **SQLBoiler 配置更新**：
-   ```toml
-   # 全局生成配置 - 必须放在顶部
-   output          = "internal/entity"
-   pkgname         = "entity"
-   wipe            = true
-   add-global-variants = true
-   add-panic-variants  = true
-   add-soft-deletes    = true
-   no-tests = true
-
-   # 类型替换配置 - 使用新的语法
-   [[types]]
-   [types.match]
-   type = "types.Decimal"
-   [types.replace]
-   type = "decimal.Decimal"
-   [types.imports]
-   third_party = ['"github.com/shopspring/decimal"']
-   ```
-
-2. **转换器修复**：
-   ```go
-   // 正确的 decimal 创建方式
-   baseBonus := decimal.NewFromFloat(req.BaseBonus)
-   entity.BaseBonusValue = baseBonus
-   ```
-
-3. **实体扩展修复**：创建了 `user_extension.go` 补充缺失的 UserAggregate 类型
-
-### 最终状态
-- ✅ **SQLBoiler 配置**：完全解决配置生效问题
-- ✅ **实体模型生成**：正确使用 shopspring/decimal
-- ✅ **包名修复**：统一使用 entity 包名
-- ✅ **转换器修复**：所有 Decimal 转换正常工作
-- ✅ **编译通过**：整个项目编译无错误
-
-### 技术总结
-这次修复解决了 SQLBoiler v4 与 PostgreSQL Decimal 类型的兼容性问题，关键在于：
-- 正确的全局配置文件结构（配置顺序很重要）
-- 使用 shopspring/decimal 替代 SQLBoiler 内置的 types.Decimal
-- 正确处理 null 值和类型转换
-
-## 英雄属性类型管理系统 🎮
-
-在解决 Decimal 问题的基础上，成功实现了完整的英雄属性类型管理系统：
-
-### 系统架构
-采用标准的三层架构模式，完全遵循项目架构规范：
-
-#### 1. API 模型层 (`internal/api/model/`)
-```
-request/admin/attribute_type.go      # 请求模型（创建/更新/查询）
-response/admin/attribute_type.go     # 响应模型（详情/列表/选项）
+**SQLBoiler 配置** (`sqlboiler.toml`)：
+```toml
+# 类型替换配置
+[[types]]
+[types.match]
+type = "types.Decimal"
+[types.replace]
+type = "decimal.Decimal"
+[types.imports]
+third_party = ['"github.com/shopspring/decimal"']
 ```
 
-#### 2. 转换器层 (`internal/converter/admin/`)
-```
-attribute_type_converter.go         # 类型安全的数据转换
-```
-
-#### 3. 仓储层 (`internal/repository/`)
-```
-interfaces/attribute_type_repository.go  # 仓储接口
-impl/attribute_type_repository_impl.go   # SQLBoiler 实现
-```
-
-#### 4. 服务层 (`internal/modules/admin/service/`)
-```
-attribute_type_service.go            # 业务逻辑服务
-```
-
-#### 5. HTTP 接口层 (`internal/modules/admin/`)
-```
-http_handle.go                       # Echo 处理器（集成）
-admin_module.go                      # 模块注册和路由配置
-```
-
-### API 端点
-完整的 RESTful API 设计：
-
-```
-GET    /admin/attribute-types           # 获取属性类型列表（分页、筛选、搜索）
-POST   /admin/attribute-types           # 创建属性类型
-GET    /admin/attribute-types/options   # 获取属性类型选项（下拉选择用）
-GET    /admin/attribute-types/{id}      # 获取属性类型详情
-PUT    /admin/attribute-types/{id}      # 更新属性类型
-DELETE /admin/attribute-types/{id}      # 删除属性类型（软删除）
-```
-
-### 核心功能特性
-- ✅ **完整的 CRUD 操作**：创建、读取、更新、软删除
-- ✅ **数据验证**：字段验证、重复检查、格式验证
-- ✅ **分页查询**：支持分页、排序、关键词搜索、分类筛选
-- ✅ **错误处理**：统一的错误处理和响应格式
-- ✅ **类型安全**：正确处理 Decimal 类型和 null 值
-- ✅ **软删除机制**：保持数据完整性
-- ✅ **Swagger 文档**：完整的 API 文档注释
-- ✅ **架构一致性**：严格遵循项目三层架构模式
-
-### 属性类型字段设计
-支持游戏属性的完整配置：
-
+**转换器使用**：
 ```go
-type AttributeType struct {
-    ID                   uuid.UUID  // 属性唯一标识
-    AttributeCode        string     // 属性代码（如 STRENGTH）
-    AttributeName        string     // 属性名称（如 "力量"）
-    Category             string     // 属性分类（basic/combat/special）
-    DataType             string     // 数据类型（integer/decimal/percentage/boolean）
-    MinValue             *float64   // 最小值
-    MaxValue             *float64   // 最大值
-    DefaultValue         *float64   // 默认值
-    CalculationFormula   *string    // 计算公式
-    DependencyAttributes *string    // 依赖属性列表
-    Icon                 *string    // 图标
-    Color                *string    // 颜色
-    Unit                 *string    // 单位
-    DisplayOrder         int        // 显示顺序
-    IsActive             bool       // 是否启用
-    IsVisible            bool       // 是否可见
-    Description          *string    // 属性描述
-    CreatedAt            time.Time  // 创建时间
-    UpdatedAt            time.Time  // 更新时间
-}
+// 正确的 decimal 创建方式
+value := decimal.NewFromFloat(floatValue)
+entity.FieldName = value
 ```
 
-### 生产就绪状态 🟢
-属性类型管理系统已达到生产就绪状态：
-
-**✅ 功能完整性**：
-- 支持游戏属性的全生命周期管理
-- 灵活的分类和筛选系统
-- 完整的验证和错误处理
-
-**✅ 性能优化**：
-- 使用数据库索引优化查询性能
-- 支持分页查询避免大数据集问题
-- 软删除保持历史数据完整性
-
-**✅ 开发友好**：
-- 完整的 Swagger API 文档
-- 标准的错误响应格式
-- 类型安全的数据转换
-
-**✅ 架构规范**：
-- 严格遵循项目三层架构
-- 清晰的关注点分离
-- 标准的依赖注入模式
-
-这个系统为游戏提供了强大的属性管理能力，支持各种复杂的游戏机制设计。
+### 关键点
+- ✅ 使用 shopspring/decimal 替代 SQLBoiler 内置的 types.Decimal
+- ✅ 正确处理 null 值和类型转换
+- ✅ 配置顺序很重要（全局配置必须在顶部）

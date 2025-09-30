@@ -15,7 +15,7 @@ migrate-up:
 migrate-down:
 	migrate -database $(MAIN_DB_URL) -path ./migrations down 1
 
-.PHONY: help swagger-gen swagger-admin dev-up dev-down dev-logs generate-models install-sqlboiler
+.PHONY: help swagger-gen swagger-admin dev-up dev-down dev-logs generate-models install-sqlboiler dev-rebuild clean sqlboiler install-swag
 
 help:
 	@echo "Available commands:"
@@ -25,6 +25,11 @@ help:
 	@echo "  dev-down        - Stop development environment"
 	@echo "  dev-logs        - Show logs from all services"
 	@echo "  dev-rebuild     - Rebuild and restart development environment"
+	@echo "  clean           - Clean up Docker resources"
+	@echo "  migrate-create  - Create a new migration file"
+	@echo "  migrate-up      - Apply all new migrations"
+	@echo "  migrate-down    - Rollback the last migration"
+	@echo "  sqlboiler       - Generate entity models using SQLBoiler"
 
 # 安装 swag 工具
 install-swag:
@@ -68,3 +73,8 @@ dev-rebuild:
 clean:
 	docker-compose -f deployments/docker-compose/docker-compose-main.local.yml down -v
 	docker system prune -f
+
+# 用sqlboiler生成entitys
+sqlboiler: install-sqlboiler
+	PATH="$(shell go env GOPATH)/bin:$$PATH" sqlboiler psql --config sqlboiler.toml
+	@echo "✅ 实体模型生成完成"
