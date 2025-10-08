@@ -1,0 +1,46 @@
+# SQLBoiler 配置文件 - Game Runtime Schema
+
+# 全局生成配置
+output          = "internal/entity/game_runtime"
+pkgname         = "game_runtime"
+wipe            = true
+add-global-variants = true
+add-panic-variants  = true
+add-soft-deletes    = true
+no-tests = true
+
+# 数据库连接配置
+[psql]
+  dbname  = "tsu_db"
+  host    = "localhost"
+  port    = 5432
+  user    = "tsu_user"
+  pass    = "tsu_test"
+  sslmode = "disable"
+  schema  = "game_runtime"
+
+# 导入配置
+[psql.imports]
+  third_party = [
+    "github.com/aarondl/null/v8",
+    "github.com/aarondl/sqlboiler/v4/boil",
+    "github.com/aarondl/sqlboiler/v4/queries/qm",
+    "github.com/shopspring/decimal"
+  ]
+
+# 类型替换配置
+[[psql.types]]
+[psql.types.match]
+  type = "numeric"
+[psql.types.replace]
+  type = "decimal.Decimal"
+[psql.types.imports]
+  third_party = ['"github.com/shopspring/decimal"']
+
+[[psql.types]]
+[psql.types.match]
+  type = "decimal"
+[psql.types.replace]
+  type = "decimal.Decimal"
+[psql.types.imports]
+  third_party = ['"github.com/shopspring/decimal"']

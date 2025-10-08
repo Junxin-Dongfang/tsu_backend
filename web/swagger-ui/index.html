@@ -30,16 +30,41 @@
                 showRequestHeaders: true,
                 showCommonExtensions: true,
                 persistAuthorization: true,
-                // 添加请求拦截器来处理CORS
+                // 添加请求拦截器自动处理 Bearer token
                 requestInterceptor: (request) => {
-                    console.log('Request:', request);
+                    console.log('🔍 原始请求:', JSON.stringify({
+                        url: request.url,
+                        method: request.method,
+                        headers: request.headers
+                    }, null, 2));
+                    
+                    // 检查 Authorization header
+                    if (request.headers && request.headers.Authorization) {
+                        let authValue = request.headers.Authorization;
+                        
+                        // 如果用户输入的 token 不包含 "Bearer " 前缀，自动添加
+                        if (!authValue.startsWith('Bearer ') && !authValue.startsWith('bearer ')) {
+                            authValue = 'Bearer ' + authValue.trim();
+                            request.headers.Authorization = authValue;
+                            console.log('✅ 自动添加 Bearer 前缀');
+                        }
+                        
+                        console.log('🔑 Authorization:', authValue);
+                    } else {
+                        console.warn('⚠️  没有 Authorization header');
+                    }
+                    
+                    console.log('📤 最终请求头:', JSON.stringify(request.headers, null, 2));
                     return request;
                 },
                 responseInterceptor: (response) => {
-                    console.log('Response:', response);
+                    console.log('📥 响应状态:', response.status);
+                    console.log('📥 响应头:', JSON.stringify(response.headers, null, 2));
                     return response;
                 },
                 onComplete: function() {
+                    console.log('✅ Swagger UI 加载完成');
+                    
                     // 添加服务器切换说明
                     setTimeout(() => {
                         const infoContainer = document.querySelector('.info');
@@ -47,12 +72,19 @@
                             const serverInfo = document.createElement('div');
                             serverInfo.id = 'server-info';
                             serverInfo.innerHTML = `
-                                <div style="margin: 15px 0; padding: 15px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px;">
-                                    <h4 style="margin: 0 0 10px 0;">🌐 服务器配置</h4>
-                                    <p style="margin: 5px 0;"><strong>当前使用：</strong> localhost (nginx代理)</p>
-                                    <p style="margin: 5px 0;"><strong>API基础路径：</strong> /api/admin</p>
-                                    <p style="margin: 5px 0; font-size: 12px; color: #666;">
-                                        💡 所有API测试将通过nginx代理到后端服务
+                                <div style="margin: 15px 0; padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+                                    <h4 style="margin: 0 0 10px 0;">🔐 认证说明</h4>
+                                    <ol style="margin: 5px 0; padding-left: 20px;">
+                                        <li>点击右上角 <strong>"Authorize" 🔓</strong> 按钮</li>
+                                        <li>在 Value 输入框中粘贴你的 session token（例如：<code>ory_st_xxx</code>）</li>
+                                        <li>点击 "Authorize" 和 "Close"</li>
+                                        <li>现在可以测试需要认证的 API 了</li>
+                                    </ol>
+                                    <p style="margin: 10px 0 0 0; font-size: 12px; color: #856404;">
+                                        💡 提示：不需要手动输入 "Bearer " 前缀，系统会自动添加
+                                    </p>
+                                    <p style="margin: 5px 0; font-size: 12px; color: #856404;">
+                                        � 调试：打开浏览器控制台（F12）查看请求详情
                                     </p>
                                 </div>
                             `;

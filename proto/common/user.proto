@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package common;
+
+option go_package = "tsu-self/internal/pb/common";
+
+// 跨模块共享的用户信息
+message UserInfo {
+    string user_id = 1;
+    string kratos_id = 2;
+    string email = 3;
+    string username = 4;
+    string nickname = 5;       // 可选字段,空字符串表示未设置
+    string avatar_url = 6;     // 可选字段,空字符串表示未设置
+    bool is_banned = 7;
+    int32 login_count = 8;
+    string last_login_at = 9;  // RFC3339 格式,空字符串表示从未登录
+    int64 created_at = 10;     // Unix 时间戳
+    int64 updated_at = 11;     // Unix 时间戳
+    string phone_number = 12;  // 手机号,可选
+    string ban_until = 13;     // 封禁截止时间 RFC3339 格式,空字符串表示永久封禁
+    string ban_reason = 14;    // 封禁原因,可选
+    string last_login_ip = 15; // 最后登录IP,可选
+    string bio = 16;           // 个人简介,可选
+    string birth_date = 17;    // 出生日期 RFC3339 格式,可选
+    string gender = 18;        // 性别: male/female/other/prefer_not_to_say,可选
+    string timezone = 19;      // 时区,可选
+    string language = 20;      // 语言偏好,可选
+}
+
+// 简化的用户信息(用于列表展示)
+message UserSummary {
+    string user_id = 1;
+    string email = 2;
+    string username = 3;
+    string nickname = 4;
+    bool is_banned = 5;
+}

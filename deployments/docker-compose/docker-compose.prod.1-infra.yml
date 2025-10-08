@@ -1,0 +1,171 @@
+name: tsu_prod_infra
+
+# ==========================================
+# 第一层：基础设施服务
+# ==========================================
+# 包含：数据库、缓存、消息队列、服务发现
+# 这一层是所有其他服务的基础
+
+services:
+  # ========================================
+  # 主数据库 - PostgreSQL (tsu_db)
+  # ========================================
+  tsu_postgres_main:
+    image: postgres:16-alpine
+    container_name: tsu_postgres_main
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=${DB_USER:-tsu_user}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME:-tsu_db}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_main_data:/var/lib/postgresql/data/pgdata
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-tsu_user} -d ${DB_NAME:-tsu_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - tsu_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # ========================================
+  # Ory 数据库 - PostgreSQL (ory_db)
+  # ========================================
+  tsu_postgres_ory:
+    image: postgres:16-alpine
+    container_name: tsu_postgres_ory
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_USER=${ORY_DB_USER:-ory_user}
+      - POSTGRES_PASSWORD=${ORY_DB_PASSWORD}
+      - POSTGRES_DB=${ORY_DB_NAME:-ory_db}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_ory_data:/var/lib/postgresql/data/pgdata
+      - ./infra/ory/init-schemas.sql:/docker-entrypoint-initdb.d/init-schemas.sql
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${ORY_DB_USER:-ory_user} -d ${ORY_DB_NAME:-ory_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - tsu_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # ========================================
+  # Redis 缓存
+  # ========================================
+  tsu_redis:
+    image: redis:7-alpine
+    container_name: tsu_redis
+    ports:
+      - "6379:6379"
+    command: [
+      "redis-server",
+      "--appendonly", "yes",
+      "--requirepass", "${REDIS_PASSWORD}",
+      "--maxmemory", "512mb",
+      "--maxmemory-policy", "allkeys-lru"
+    ]
+    volumes:
+      - redis_data:/data
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - tsu_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ========================================
+  # NATS 消息队列
+  # ========================================
+  tsu_nats:
+    image: nats:2.10-alpine
+    container_name: tsu_nats
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    restart: always
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8222/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - tsu_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ========================================
+  # Consul 服务发现
+  # ========================================
+  tsu_consul:
+    image: consul:1.15.4
+    container_name: tsu_consul
+    command: consul agent -server -bootstrap-expect=1 -ui -client=0.0.0.0 -data-dir=/consul/data
+    ports:
+      - "8500:8500"
+    volumes:
+      - consul_data:/consul/data
+    restart: always
+    healthcheck:
+      test: ["CMD", "consul", "members"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - tsu_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# ========================================
+# 数据卷定义
+# ========================================
+volumes:
+  postgres_main_data:
+    driver: local
+  postgres_ory_data:
+    driver: local
+  redis_data:
+    driver: local
+  consul_data:
+    driver: local
+
+# ========================================
+# 网络定义
+# ========================================
+networks:
+  tsu_network:
+    driver: bridge

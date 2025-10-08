@@ -72,7 +72,7 @@ services:
   #   image: ghcr.io/dfoxg/kratos-admin-ui:v2.5.0
   #   container_name: tsu_kratos_admin_ui
   #   ports:
-  #     - '8079:8080'
+  #     - '8079:8070'
   #   restart: unless-stopped
   #   environment:
   #     - KRATOS_ADMIN_URL=http://kratos:4434

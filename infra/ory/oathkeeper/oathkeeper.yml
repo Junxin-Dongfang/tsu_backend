@@ -2,6 +2,9 @@
 
 version: v0.40.8
 
+log:
+  leak_sensitive_values: true  # 启用敏感值日志以调试 Cookie 认证
+
 serve:
   proxy:
     port: 4456
@@ -26,18 +29,33 @@ access_rules:
     - file:///etc/config/oathkeeper/access-rules.json
 
 authenticators:
-  cookie_session:
-    enabled: true
-    config:
-      check_session_url: http://tsu_kratos_service:4433/sessions/whoami
-      preserve_query: true
-      preserve_path: true
+  # Bearer Token 认证器 - 从 Authorization header 读取 token
   bearer_token:
     enabled: true
     config:
       check_session_url: http://tsu_kratos_service:4433/sessions/whoami
+      subject_from: identity.id
+      extra_from: "@this"
       preserve_query: true
       preserve_path: true
+      force_method: GET
+      forward_http_headers:
+        - Authorization
+        - X-Session-Token
+  
+  # Cookie Session 认证器 - 禁用,因为自托管 Kratos 不支持 Cookie header 验证
+  # 使用 bearer_token_from_cookie 代替
+  cookie_session:
+    enabled: false
+    config:
+      check_session_url: http://tsu_kratos_service:4433/sessions/whoami
+      only:
+        - ory_kratos_session
+      subject_from: identity.id
+      extra_from: "@this"
+      preserve_path: true
+      preserve_query: true
+  
   noop:
     enabled: true
 

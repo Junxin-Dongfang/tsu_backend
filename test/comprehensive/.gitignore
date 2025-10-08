@@ -1,0 +1,9 @@
+# 测试报告目录
+reports/
+
+# 临时文件
+*.log
+*.tmp
+
+# 测试数据快照
+test_data_*.json

@@ -2,25 +2,49 @@ package interfaces
 
 import (
 	"context"
-	"tsu-self/internal/entity"
+
+	"tsu-self/internal/entity/auth"
 )
+
+// UserQueryParams 用户查询参数
+type UserQueryParams struct {
+	Page     int
+	PageSize int
+	Keyword  string
+	IsBanned *bool
+	SortBy   string
+	SortDir  string
+}
 
 // UserRepository 用户仓储接口
 type UserRepository interface {
-	// 基础CRUD
-	GetByID(ctx context.Context, id string) (*entity.User, error)
-	GetByEmail(ctx context.Context, email string) (*entity.User, error)
-	GetByUsername(ctx context.Context, username string) (*entity.User, error)
-	Create(ctx context.Context, user *entity.User) error
-	Update(ctx context.Context, user *entity.User) error
-	Delete(ctx context.Context, id string) error
+	// GetByID 根据ID获取用户
+	GetByID(ctx context.Context, userID string) (*auth.User, error)
 
-	// 业务查询
-	GetActiveUsers(ctx context.Context, limit, offset int) ([]*entity.User, error)
-	GetPremiumUsers(ctx context.Context) ([]*entity.User, error)
-	GetBannedUsers(ctx context.Context) ([]*entity.User, error)
+	// GetByUsername 根据用户名获取用户
+	GetByUsername(ctx context.Context, username string) (*auth.User, error)
 
-	// 统计查询
-	CountActiveUsers(ctx context.Context) (int, error)
-	CountPremiumUsers(ctx context.Context) (int, error)
+	// GetByEmail 根据邮箱获取用户
+	GetByEmail(ctx context.Context, email string) (*auth.User, error)
+
+	// List 获取用户列表（分页）
+	List(ctx context.Context, params UserQueryParams) ([]*auth.User, int64, error)
+
+	// Create 创建用户
+	Create(ctx context.Context, user *auth.User) error
+
+	// Update 更新用户信息
+	Update(ctx context.Context, user *auth.User) error
+
+	// BanUser 封禁用户
+	BanUser(ctx context.Context, userID string, banUntil *string, banReason string) error
+
+	// UnbanUser 解禁用户
+	UnbanUser(ctx context.Context, userID string) error
+
+	// UpdateLoginInfo 更新登录信息
+	UpdateLoginInfo(ctx context.Context, userID string, loginIP string) error
+
+	// Exists 检查用户是否存在
+	Exists(ctx context.Context, userID string) (bool, error)
 }

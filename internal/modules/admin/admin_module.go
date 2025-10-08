@@ -1,280 +1,494 @@
-// File: internal/modules/admin/admin_module.go
 package admin
 
 import (
-	"context"
+	"database/sql"
 	"fmt"
-	"net/http"
+	"os"
 	"time"
 
-	"github.com/go-playground/validator/v10"
-	"github.com/jmoiron/sqlx"
+	custommiddleware "tsu-self/internal/middleware"
+	"tsu-self/internal/modules/admin/handler"
+	"tsu-self/internal/pkg/log"
+	"tsu-self/internal/pkg/response"
+	"tsu-self/internal/pkg/validator"
+
+	_ "tsu-self/docs" // Swagger 生成的文档
+
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/module"
 	basemodule "github.com/liangdas/mqant/module/base"
-	_ "github.com/lib/pq" // PostgreSQL driver
+	"github.com/liangdas/mqant/server"
+	_ "github.com/lib/pq"
 	echoSwagger "github.com/swaggo/echo-swagger"
-
-	_ "tsu-self/docs"
-	custommiddleware "tsu-self/internal/middleware"
-	customvalidator "tsu-self/internal/model/validator"
-	"tsu-self/internal/modules/admin/service"
-	"tsu-self/internal/pkg/log"
-	"tsu-self/internal/pkg/response"
 )
 
-// CustomValidator 自定义验证器
-type CustomValidator struct {
-	validator *validator.Validate
-}
-
-func (cv *CustomValidator) Validate(i interface{}) error {
-	return cv.validator.Struct(i)
-}
-
-var Module = func() module.Module {
-	this := new(AdminModule)
-	return this
-}
-
+// Module Admin module
 type AdminModule struct {
 	basemodule.BaseModule
-	app         module.App
-	echoServer  *echo.Echo
-	respWriter  response.Writer
-	logger      log.Logger
-	db          *sqlx.DB
-	syncService *service.SyncService
-	userService *service.UserService
+	db                          *sql.DB
+	httpServer                  *echo.Echo
+	authHandler                 *handler.AuthHandler
+	permissionHandler           *handler.PermissionHandler
+	userHandler                 *handler.UserHandler
+	classHandler                *handler.ClassHandler
+	skillCategoryHandler        *handler.SkillCategoryHandler
+	actionCategoryHandler       *handler.ActionCategoryHandler
+	damageTypeHandler           *handler.DamageTypeHandler
+	heroAttributeTypeHandler    *handler.HeroAttributeTypeHandler
+	tagHandler                  *handler.TagHandler
+	tagRelationHandler          *handler.TagRelationHandler
+	effectTypeDefinitionHandler *handler.EffectTypeDefinitionHandler
+	formulaVariableHandler      *handler.FormulaVariableHandler
+	rangeConfigRuleHandler      *handler.RangeConfigRuleHandler
+	actionTypeDefinitionHandler *handler.ActionTypeDefinitionHandler
+	skillHandler                *handler.SkillHandler
+	skillLevelConfigHandler     *handler.SkillLevelConfigHandler         // Deprecated: 使用 skillUpgradeCostHandler 代替
+	skillUpgradeCostHandler     *handler.SkillUpgradeCostHandler         // 新增：全局升级消耗
+	advancedRequirementHandler  *handler.ClassAdvancedRequirementHandler // 新增：职业进阶要求
+	effectHandler               *handler.EffectHandler
+	buffHandler                 *handler.BuffHandler
+	buffEffectHandler           *handler.BuffEffectHandler
+	actionFlagHandler           *handler.ActionFlagHandler
+	actionHandler               *handler.ActionHandler
+	actionEffectHandler         *handler.ActionEffectHandler
+	skillUnlockActionHandler    *handler.SkillUnlockActionHandler
+	respWriter                  response.Writer
 }
 
+// GetType returns module type
 func (m *AdminModule) GetType() string {
 	return "admin"
 }
 
+// Version returns module version
 func (m *AdminModule) Version() string {
 	return "1.0.0"
 }
 
+// OnAppConfigurationLoaded 当App初始化时调用
 func (m *AdminModule) OnAppConfigurationLoaded(app module.App) {
-	//当App初始化时调用，这个接口不管这个模块是否在这个进程运行都会调用
 	m.BaseModule.OnAppConfigurationLoaded(app)
 }
 
+// OnInit module initialization
 func (m *AdminModule) OnInit(app module.App, settings *conf.ModuleSettings) {
-	m.BaseModule.OnInit(m, app, settings)
+	// 按照 mqant 官方推荐：在每个模块的 OnInit 中配置服务注册参数
+	// TTL = 30s, 心跳间隔 = 15s (TTL 必须大于心跳间隔)
+	m.BaseModule.OnInit(m, app, settings,
+		server.RegisterInterval(15*time.Second),
+		server.RegisterTTL(30*time.Second),
+	)
 
-	m.logger = log.GetLogger()
-	m.logger.Info("初始化 Admin 模块...")
+	// 1. Initialize response writer
+	m.initResponseWriter()
 
-	// 初始化数据库连接
-	if err := m.initDatabase(); err != nil {
-		panic("初始化数据库失败: " + err.Error())
+	// 2. Initialize database connection (optional for admin module)
+	if err := m.initDatabase(settings); err != nil {
+		fmt.Printf("[Admin Module] Warning: Database initialization failed: %v\n", err)
 	}
 
-	// 初始化服务
-	m.initServices()
+	// 3. Initialize HTTP server
+	m.initHTTPServer(settings)
 
-	// 初始化 Echo HTTP 服务器
-	m.echoServer = echo.New()
-	m.echoServer.HideBanner = true
-	m.echoServer.HidePort = true
+	// 4. Initialize handlers
+	m.initHandlers(app)
 
-	// 设置验证器
-	v := validator.New()
-	customvalidator.RegisterAuthValidators(v)
-	m.echoServer.Validator = &CustomValidator{validator: v}
-
-	// 设置HTTP响应头中间件（支持UTF-8）
-	m.echoServer.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			c.Response().Header().Set("Content-Type", "application/json; charset=utf-8")
-			return next(c)
-		}
-	})
-
-	// 设置中间件
-	m.setupMiddleware()
-
-	// 设置路由
+	// 5. Setup routes
 	m.setupRoutes()
 
-	// 注册 RPC 方法
-	m.setupRPCMethods()
+	// 6. Start HTTP server in background
+	go m.startHTTPServer(settings)
 
-	// 启动 HTTP 服务器
-	go m.startHTTPServer()
-
-	m.logger.Info("Admin 模块初始化完成")
+	m.GetServer().Options()
 }
 
-func (m *AdminModule) Run(closeSig chan bool) {
-	log.Info("%v模块运行中...", m.GetType())
-	<-closeSig
-	log.Info("%v模块已停止...", m.GetType())
-}
-
-func (m *AdminModule) OnDestroy() {
-	m.logger.Info("正在关闭 Admin 模块...")
-
-	if m.echoServer != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-
-		if err := m.echoServer.Shutdown(ctx); err != nil {
-			m.logger.Error("关闭 HTTP 服务器失败", err)
+// initDatabase initializes database connection
+func (m *AdminModule) initDatabase(settings *conf.ModuleSettings) error {
+	// Read from environment variable first
+	dbURL := os.Getenv("TSU_ADMIN_DATABASE_URL")
+	if dbURL == "" {
+		// Fallback to config file
+		if settings != nil && settings.Settings != nil {
+			dbURLInterface, ok := settings.Settings["database_url"]
+			if ok {
+				dbURL, _ = dbURLInterface.(string)
+			}
 		}
 	}
 
-	if m.db != nil {
-		m.db.Close()
+	if dbURL == "" {
+		return fmt.Errorf("database URL not configured")
 	}
 
-	m.BaseModule.OnDestroy()
-	m.logger.Info("Admin 模块已关闭")
-}
-
-func (m *AdminModule) initDatabase() error {
-	settings := m.GetModuleSettings().Settings
-	databaseURL := settings["database_url"].(string)
-	if databaseURL == "" {
-		return fmt.Errorf("database_url 配置缺失")
-	}
-
-	db, err := sqlx.Connect("postgres", databaseURL)
+	// Open database connection
+	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to open database connection: %w", err)
 	}
 
-	// 设置连接池
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(25)
-	db.SetConnMaxLifetime(5 * time.Minute)
-
-	// 测试连接
+	// Test connection
 	if err := db.Ping(); err != nil {
-		return err
+		return fmt.Errorf("failed to ping database: %w", err)
 	}
+
+	// Set connection pool parameters
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(5)
 
 	m.db = db
-	m.logger.Info("数据库连接初始化成功")
+	fmt.Println("[Admin Module] Database connected successfully")
 	return nil
 }
 
-func (m *AdminModule) initServices() {
-	// 从配置中获取参数
-	settings := m.GetModuleSettings().Settings
-	log.Info("初始化服务", log.Any("settings", settings))
-	environment := settings["environment"].(string)
+// initHTTPServer initializes HTTP server
+func (m *AdminModule) initHTTPServer(settings *conf.ModuleSettings) {
+	m.httpServer = echo.New()
 
-	// 初始化响应处理器
-	m.respWriter = response.NewResponseHandler(m.logger, environment)
+	// Hide banner
+	m.httpServer.HideBanner = true
+	m.httpServer.HidePort = true
 
-	// 初始化 SyncService
-	m.syncService = service.NewSyncService(m.db, m.logger)
+	// Register validator
+	m.httpServer.Validator = validator.New()
 
-	// 初始化 UserService
-	m.userService = service.NewUserService(m.db, m.logger)
-
-	m.app = m.GetApp()
+	// Middleware
+	m.httpServer.Use(middleware.Logger())
+	m.httpServer.Use(middleware.Recover())
+	m.httpServer.Use(middleware.CORS())
 }
 
-func (m *AdminModule) setupMiddleware() {
-	// 恢复中间件
-	m.echoServer.Use(middleware.Recover())
+// initResponseWriter initializes response writer
+func (m *AdminModule) initResponseWriter() {
+	environment := os.Getenv("ENVIRONMENT")
+	if environment == "" {
+		environment = "development"
+	}
 
-	// 使用项目统一的日志中间件，过滤健康检查请求
-	m.echoServer.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		loggingMiddleware := custommiddleware.LoggingMiddleware(m.logger)
-		return func(c echo.Context) error {
-			// 跳过健康检查请求的日志
-			if c.Request().URL.Path == "/health" {
-				return next(c)
-			}
+	// 使用全局 logger
+	logger := log.GetLogger()
+	m.respWriter = response.NewResponseHandler(logger, environment)
+	fmt.Println("[Admin Module] Response writer initialized")
+}
 
-			// 设置必要的context值，如果不存在的话
-			if c.Get("trace_id") == nil {
-				c.Set("trace_id", "")
-			}
-			if c.Get("request_id") == nil {
-				c.Set("request_id", "")
-			}
+// initHandlers initializes HTTP handlers
+func (m *AdminModule) initHandlers(app module.App) {
+	m.authHandler = handler.NewAuthHandler(app, m, m.respWriter)
+	m.permissionHandler = handler.NewPermissionHandler(app, m, m.respWriter)
+	m.userHandler = handler.NewUserHandler(app, m, m.respWriter)
+	m.classHandler = handler.NewClassHandler(m.db, m.respWriter)
+	m.skillCategoryHandler = handler.NewSkillCategoryHandler(m.db, m.respWriter)
+	m.actionCategoryHandler = handler.NewActionCategoryHandler(m.db, m.respWriter)
+	m.damageTypeHandler = handler.NewDamageTypeHandler(m.db, m.respWriter)
+	m.heroAttributeTypeHandler = handler.NewHeroAttributeTypeHandler(m.db, m.respWriter)
+	m.tagHandler = handler.NewTagHandler(m.db, m.respWriter)
+	m.tagRelationHandler = handler.NewTagRelationHandler(m.db, m.respWriter)
+	m.effectTypeDefinitionHandler = handler.NewEffectTypeDefinitionHandler(m.db, m.respWriter)
+	m.formulaVariableHandler = handler.NewFormulaVariableHandler(m.db, m.respWriter)
+	m.rangeConfigRuleHandler = handler.NewRangeConfigRuleHandler(m.db, m.respWriter)
+	m.actionTypeDefinitionHandler = handler.NewActionTypeDefinitionHandler(m.db, m.respWriter)
+	m.skillHandler = handler.NewSkillHandler(m.db, m.respWriter)
+	m.skillLevelConfigHandler = handler.NewSkillLevelConfigHandler(m.db, m.respWriter)            // Deprecated
+	m.skillUpgradeCostHandler = handler.NewSkillUpgradeCostHandler(m.db, m.respWriter)            // 新增
+	m.advancedRequirementHandler = handler.NewClassAdvancedRequirementHandler(m.db, m.respWriter) // 新增：职业进阶要求
+	m.effectHandler = handler.NewEffectHandler(m.db, m.respWriter)
+	m.buffHandler = handler.NewBuffHandler(m.db, m.respWriter)
+	m.buffEffectHandler = handler.NewBuffEffectHandler(m.db, m.respWriter)
+	m.actionFlagHandler = handler.NewActionFlagHandler(m.db, m.respWriter)
+	m.actionHandler = handler.NewActionHandler(m.db, m.respWriter)
+	m.actionEffectHandler = handler.NewActionEffectHandler(m.db, m.respWriter)
+	m.skillUnlockActionHandler = handler.NewSkillUnlockActionHandler(m.db, m.respWriter)
+}
 
-			return loggingMiddleware(next)(c)
+// setupRoutes sets up HTTP routes
+func (m *AdminModule) setupRoutes() {
+	// 获取全局 logger
+	logger := log.GetLogger()
+
+	// API v1 group
+	v1 := m.httpServer.Group("/api/v1")
+
+	// Auth routes (公开访问，不需要认证)
+	auth := v1.Group("/auth")
+	{
+		auth.POST("/register", m.authHandler.Register)
+		auth.POST("/login", m.authHandler.Login)
+		auth.POST("/logout", m.authHandler.Logout)
+		auth.GET("/users/:user_id", m.authHandler.GetUser)
+	}
+
+	// Admin routes (需要认证，应用认证中间件)
+	// 这些路由的请求必须经过 Oathkeeper 验证，并且会从 Header 中提取用户信息
+	admin := v1.Group("/admin")
+	admin.Use(custommiddleware.AuthMiddleware(m.respWriter, logger))
+	admin.Use(custommiddleware.UUIDValidationMiddleware(m.respWriter))
+	{
+		// 用户管理
+		admin.GET("/users/me", m.userHandler.GetCurrentUserProfile) // 🆕 示例：获取当前登录用户信息
+		admin.GET("/users", m.userHandler.GetUsers)
+		admin.GET("/users/:id", m.userHandler.GetUser)
+		admin.PUT("/users/:id", m.userHandler.UpdateUser)
+		admin.POST("/users/:id/ban", m.userHandler.BanUser)
+		admin.POST("/users/:id/unban", m.userHandler.UnbanUser)
+
+		// 角色管理
+		admin.GET("/roles", m.permissionHandler.GetRoles)
+		admin.POST("/roles", m.permissionHandler.CreateRole)
+		admin.PUT("/roles/:id", m.permissionHandler.UpdateRole)
+		admin.DELETE("/roles/:id", m.permissionHandler.DeleteRole)
+
+		// 角色-权限管理
+		admin.GET("/roles/:id/permissions", m.permissionHandler.GetRolePermissions)
+		admin.POST("/roles/:id/permissions", m.permissionHandler.AssignPermissionsToRole)
+
+		// 权限管理
+		admin.GET("/permissions", m.permissionHandler.GetPermissions)
+		admin.GET("/permission-groups", m.permissionHandler.GetPermissionGroups)
+
+		// 用户-角色管理
+		admin.GET("/users/:user_id/roles", m.permissionHandler.GetUserRoles)
+		admin.POST("/users/:user_id/roles", m.permissionHandler.AssignRolesToUser)
+		admin.DELETE("/users/:user_id/roles", m.permissionHandler.RevokeRolesFromUser)
+
+		// 用户-权限管理
+		admin.GET("/users/:user_id/permissions", m.permissionHandler.GetUserPermissions)
+		admin.POST("/users/:user_id/permissions", m.permissionHandler.GrantPermissionsToUser)
+		admin.DELETE("/users/:user_id/permissions", m.permissionHandler.RevokePermissionsFromUser)
+
+		// 职业管理
+		admin.GET("/classes", m.classHandler.GetClasses)
+		admin.POST("/classes", m.classHandler.CreateClass)
+		admin.GET("/classes/:id", m.classHandler.GetClass)
+		admin.PUT("/classes/:id", m.classHandler.UpdateClass)
+		admin.DELETE("/classes/:id", m.classHandler.DeleteClass)
+
+		// 职业属性加成管理
+		admin.GET("/classes/:id/attribute-bonuses", m.classHandler.GetClassAttributeBonuses)
+		admin.POST("/classes/:id/attribute-bonuses", m.classHandler.CreateAttributeBonus)
+		admin.POST("/classes/:id/attribute-bonuses/batch", m.classHandler.BatchSetAttributeBonuses)
+		admin.PUT("/classes/:id/attribute-bonuses/:bonus_id", m.classHandler.UpdateAttributeBonus)
+		admin.DELETE("/classes/:id/attribute-bonuses/:bonus_id", m.classHandler.DeleteAttributeBonus)
+
+		// 职业进阶路径查询（嵌套在职业下）
+		admin.GET("/classes/:id/advancement", m.classHandler.GetClassAdvancement)
+		admin.GET("/classes/:id/advancement-paths", m.classHandler.GetClassAdvancementPaths)
+		admin.GET("/classes/:id/advancement-sources", m.classHandler.GetClassAdvancementSources)
+
+		// 职业进阶要求管理（独立接口）
+		admin.GET("/advancement-requirements", m.advancedRequirementHandler.GetAdvancedRequirements)
+		admin.POST("/advancement-requirements", m.advancedRequirementHandler.CreateAdvancedRequirement)
+		admin.POST("/advancement-requirements/batch", m.advancedRequirementHandler.BatchCreateAdvancedRequirements)
+		admin.GET("/advancement-requirements/:id", m.advancedRequirementHandler.GetAdvancedRequirement)
+		admin.PUT("/advancement-requirements/:id", m.advancedRequirementHandler.UpdateAdvancedRequirement)
+		admin.DELETE("/advancement-requirements/:id", m.advancedRequirementHandler.DeleteAdvancedRequirement)
+
+		// 技能类别管理
+		admin.GET("/skill-categories", m.skillCategoryHandler.GetSkillCategories)
+		admin.POST("/skill-categories", m.skillCategoryHandler.CreateSkillCategory)
+		admin.GET("/skill-categories/:id", m.skillCategoryHandler.GetSkillCategory)
+		admin.PUT("/skill-categories/:id", m.skillCategoryHandler.UpdateSkillCategory)
+		admin.DELETE("/skill-categories/:id", m.skillCategoryHandler.DeleteSkillCategory)
+
+		// 动作类别管理
+		admin.GET("/action-categories", m.actionCategoryHandler.GetActionCategories)
+		admin.POST("/action-categories", m.actionCategoryHandler.CreateActionCategory)
+		admin.GET("/action-categories/:id", m.actionCategoryHandler.GetActionCategory)
+		admin.PUT("/action-categories/:id", m.actionCategoryHandler.UpdateActionCategory)
+		admin.DELETE("/action-categories/:id", m.actionCategoryHandler.DeleteActionCategory)
+
+		// 伤害类型管理
+		admin.GET("/damage-types", m.damageTypeHandler.GetDamageTypes)
+		admin.POST("/damage-types", m.damageTypeHandler.CreateDamageType)
+		admin.GET("/damage-types/:id", m.damageTypeHandler.GetDamageType)
+		admin.PUT("/damage-types/:id", m.damageTypeHandler.UpdateDamageType)
+		admin.DELETE("/damage-types/:id", m.damageTypeHandler.DeleteDamageType)
+
+		// 属性类型管理
+		admin.GET("/hero-attribute-types", m.heroAttributeTypeHandler.GetHeroAttributeTypes)
+		admin.POST("/hero-attribute-types", m.heroAttributeTypeHandler.CreateHeroAttributeType)
+		admin.GET("/hero-attribute-types/:id", m.heroAttributeTypeHandler.GetHeroAttributeType)
+		admin.PUT("/hero-attribute-types/:id", m.heroAttributeTypeHandler.UpdateHeroAttributeType)
+		admin.DELETE("/hero-attribute-types/:id", m.heroAttributeTypeHandler.DeleteHeroAttributeType)
+
+		// 标签管理
+		admin.GET("/tags", m.tagHandler.GetTags)
+		admin.POST("/tags", m.tagHandler.CreateTag)
+		admin.GET("/tags/:id", m.tagHandler.GetTag)
+		admin.PUT("/tags/:id", m.tagHandler.UpdateTag)
+		admin.DELETE("/tags/:id", m.tagHandler.DeleteTag)
+
+		// 标签关联管理
+		admin.GET("/tags/:tag_id/entities", m.tagRelationHandler.GetTagEntities)
+		admin.GET("/entities/:entity_type/:entity_id/tags", m.tagRelationHandler.GetEntityTags)
+		admin.POST("/entities/:entity_type/:entity_id/tags", m.tagRelationHandler.AddTagToEntity)
+		admin.POST("/entities/:entity_type/:entity_id/tags/batch", m.tagRelationHandler.BatchSetEntityTags)
+		admin.DELETE("/entities/:entity_type/:entity_id/tags/:tag_id", m.tagRelationHandler.RemoveTagFromEntity)
+
+		// 元数据管理 (需要认证)
+		metadata := admin.Group("/metadata")
+		{
+			// 元效果类型定义
+			metadata.GET("/effect-type-definitions", m.effectTypeDefinitionHandler.GetEffectTypeDefinitions)
+			metadata.GET("/effect-type-definitions/all", m.effectTypeDefinitionHandler.GetAllEffectTypeDefinitions)
+			metadata.GET("/effect-type-definitions/:id", m.effectTypeDefinitionHandler.GetEffectTypeDefinition)
+
+			// 公式变量
+			metadata.GET("/formula-variables", m.formulaVariableHandler.GetFormulaVariables)
+			metadata.GET("/formula-variables/all", m.formulaVariableHandler.GetAllFormulaVariables)
+			metadata.GET("/formula-variables/:id", m.formulaVariableHandler.GetFormulaVariable)
+
+			// 范围配置规则
+			metadata.GET("/range-config-rules", m.rangeConfigRuleHandler.GetRangeConfigRules)
+			metadata.GET("/range-config-rules/all", m.rangeConfigRuleHandler.GetAllRangeConfigRules)
+			metadata.GET("/range-config-rules/:id", m.rangeConfigRuleHandler.GetRangeConfigRule)
+
+			// 动作类型定义
+			metadata.GET("/action-type-definitions", m.actionTypeDefinitionHandler.GetActionTypeDefinitions)
+			metadata.GET("/action-type-definitions/all", m.actionTypeDefinitionHandler.GetAllActionTypeDefinitions)
+			metadata.GET("/action-type-definitions/:id", m.actionTypeDefinitionHandler.GetActionTypeDefinition)
 		}
+
+		// 技能管理
+		admin.GET("/skills", m.skillHandler.GetSkills)
+		admin.POST("/skills", m.skillHandler.CreateSkill)
+		admin.GET("/skills/:id", m.skillHandler.GetSkill)
+		admin.PUT("/skills/:id", m.skillHandler.UpdateSkill)
+		admin.DELETE("/skills/:id", m.skillHandler.DeleteSkill)
+
+		// 技能等级配置管理 (嵌套在技能下) - DEPRECATED: 已废弃，使用全局升级消耗代替
+		// admin.GET("/skills/:id/level-configs", m.skillLevelConfigHandler.GetSkillLevelConfigs)
+		// admin.POST("/skills/:id/level-configs", m.skillLevelConfigHandler.CreateSkillLevelConfig)
+		// admin.GET("/skills/:id/level-configs/:config_id", m.skillLevelConfigHandler.GetSkillLevelConfig)
+		// admin.PUT("/skills/:id/level-configs/:config_id", m.skillLevelConfigHandler.UpdateSkillLevelConfig)
+		// admin.DELETE("/skills/:id/level-configs/:config_id", m.skillLevelConfigHandler.DeleteSkillLevelConfig)
+
+		// 全局技能升级消耗管理 (新增)
+		admin.GET("/skill-upgrade-costs", m.skillUpgradeCostHandler.GetSkillUpgradeCosts)
+		admin.POST("/skill-upgrade-costs", m.skillUpgradeCostHandler.CreateSkillUpgradeCost)
+		admin.GET("/skill-upgrade-costs/level/:level", m.skillUpgradeCostHandler.GetSkillUpgradeCostByLevel)
+		admin.GET("/skill-upgrade-costs/:id", m.skillUpgradeCostHandler.GetSkillUpgradeCost)
+		admin.PUT("/skill-upgrade-costs/:id", m.skillUpgradeCostHandler.UpdateSkillUpgradeCost)
+		admin.DELETE("/skill-upgrade-costs/:id", m.skillUpgradeCostHandler.DeleteSkillUpgradeCost)
+
+		// 效果管理
+		admin.GET("/effects", m.effectHandler.GetEffects)
+		admin.POST("/effects", m.effectHandler.CreateEffect)
+		admin.GET("/effects/:id", m.effectHandler.GetEffect)
+		admin.PUT("/effects/:id", m.effectHandler.UpdateEffect)
+		admin.DELETE("/effects/:id", m.effectHandler.DeleteEffect)
+
+		// Buff管理
+		admin.GET("/buffs", m.buffHandler.GetBuffs)
+		admin.POST("/buffs", m.buffHandler.CreateBuff)
+		admin.GET("/buffs/:id", m.buffHandler.GetBuff)
+		admin.PUT("/buffs/:id", m.buffHandler.UpdateBuff)
+		admin.DELETE("/buffs/:id", m.buffHandler.DeleteBuff)
+
+		// Buff效果关联管理
+		admin.GET("/buffs/:buff_id/effects", m.buffEffectHandler.GetBuffEffects)
+		admin.POST("/buffs/:buff_id/effects", m.buffEffectHandler.AddBuffEffect)
+		admin.POST("/buffs/:buff_id/effects/batch", m.buffEffectHandler.BatchSetBuffEffects)
+		admin.DELETE("/buffs/:buff_id/effects/:effect_id", m.buffEffectHandler.RemoveBuffEffect)
+
+		// 动作Flag管理
+		admin.GET("/action-flags", m.actionFlagHandler.GetActionFlags)
+		admin.POST("/action-flags", m.actionFlagHandler.CreateActionFlag)
+		admin.GET("/action-flags/:id", m.actionFlagHandler.GetActionFlag)
+		admin.PUT("/action-flags/:id", m.actionFlagHandler.UpdateActionFlag)
+		admin.DELETE("/action-flags/:id", m.actionFlagHandler.DeleteActionFlag)
+
+		// 动作管理
+		admin.GET("/actions", m.actionHandler.GetActions)
+		admin.POST("/actions", m.actionHandler.CreateAction)
+		admin.GET("/actions/:id", m.actionHandler.GetAction)
+		admin.PUT("/actions/:id", m.actionHandler.UpdateAction)
+		admin.DELETE("/actions/:id", m.actionHandler.DeleteAction)
+
+		// 动作效果关联管理
+		admin.GET("/actions/:action_id/effects", m.actionEffectHandler.GetActionEffects)
+		admin.POST("/actions/:action_id/effects", m.actionEffectHandler.AddActionEffect)
+		admin.POST("/actions/:action_id/effects/batch", m.actionEffectHandler.BatchSetActionEffects)
+		admin.DELETE("/actions/:action_id/effects/:effect_id", m.actionEffectHandler.RemoveActionEffect)
+
+		// 技能解锁动作管理
+		admin.GET("/skills/:skill_id/unlock-actions", m.skillUnlockActionHandler.GetSkillUnlockActions)
+		admin.POST("/skills/:skill_id/unlock-actions", m.skillUnlockActionHandler.AddSkillUnlockAction)
+		admin.POST("/skills/:skill_id/unlock-actions/batch", m.skillUnlockActionHandler.BatchSetSkillUnlockActions)
+		admin.DELETE("/skills/:skill_id/unlock-actions/:action_id", m.skillUnlockActionHandler.RemoveSkillUnlockAction)
+	}
+
+	// Swagger UI
+	m.httpServer.GET("/swagger/*", echoSwagger.WrapHandler)
+
+	// Health check
+	m.httpServer.GET("/health", func(c echo.Context) error {
+		return c.JSON(200, map[string]interface{}{
+			"status": "ok",
+			"module": "admin",
+		})
 	})
 
-	// CORS 中间件
-	m.echoServer.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"*"},
-		AllowMethods: []string{
-			http.MethodGet,
-			http.MethodPost,
-			http.MethodPut,
-			http.MethodDelete,
-			http.MethodPatch,
-			http.MethodOptions, // 重要：支持预检请求
-		},
-		AllowHeaders: []string{
-			"*",
-			"Origin",
-			"Content-Type",
-			"Accept",
-			"Authorization",
-			"X-Requested-With",
-			"X-Session-Token",
-			"X-User-ID",
-		},
-		ExposeHeaders: []string{
-			"Content-Length",
-			"Content-Type",
-		},
-		AllowCredentials: true,  // 允许携带认证信息
-		MaxAge:           86400, // 预检请求缓存时间
-	}))
+	fmt.Println("[Admin Module] Routes configured successfully")
+	fmt.Println("[Admin Module] Swagger UI available at http://localhost:8071/swagger/index.html")
 }
 
-func (m *AdminModule) setupRoutes() {
-	// Swagger 文档 (开发环境)
-	environment := m.GetModuleSettings().Settings["environment"].(string)
-	if environment == "development" {
-		m.echoServer.GET("/swagger/*", echoSwagger.WrapHandler)
-		m.echoServer.GET("/docs", func(c echo.Context) error {
-			return c.Redirect(http.StatusMovedPermanently, "/swagger/index.html")
-		})
+// startHTTPServer starts HTTP server
+func (m *AdminModule) startHTTPServer(settings *conf.ModuleSettings) {
+	// Read HTTP port from environment variable first
+	port := os.Getenv("ADMIN_HTTP_PORT")
+	if port == "" {
+		// Fallback to config file
+		if settings != nil && settings.Settings != nil {
+			portInterface, ok := settings.Settings["http_port"]
+			if ok {
+				port, _ = portInterface.(string)
+			}
+		}
 	}
 
-	// 健康检查
-	// m.echoServer.GET("/health", m.healthCheck)
-	// m.echoServer.GET("/ready", m.readinessCheck)
-
-	// API 路由
-	api := m.echoServer.Group("")
-
-	// 认证路由
-	auth := api.Group("/auth")
-	{
-		auth.POST("/login", m.Login)
-		auth.POST("/register", m.Register)
+	if port == "" {
+		port = "8071" // Default port
 	}
 
+	fmt.Printf("[Admin Module] Starting HTTP server on port %s\n", port)
+
+	if err := m.httpServer.Start(":" + port); err != nil {
+		fmt.Printf("[Admin Module] HTTP server error: %v\n", err)
+	}
 }
 
-func (m *AdminModule) setupRPCMethods() {
-	// 注册 RPC 方法供其他模块调用
-	// m.GetServer().RegisterGO("ValidateSession", m.rpcValidateSession)
-	// m.GetServer().RegisterGO("GetUserInfo", m.rpcGetUserInfo)
-	// m.GetServer().RegisterGO("Login", m.rpcLogin)
+// Run module run
+func (m *AdminModule) Run(closeSig chan bool) {
+	fmt.Println("[Admin Module] Started successfully")
+	<-closeSig
 }
 
-func (m *AdminModule) startHTTPServer() {
-	httpPort := m.GetModuleSettings().Settings["http_port"].(string)
-	m.logger.Info("启动 HTTP 服务器", log.String("port", httpPort))
-
-	if err := m.echoServer.Start(":" + httpPort); err != nil && err != http.ErrServerClosed {
-		m.logger.Error("HTTP 服务器启动失败", err)
-		panic(err)
+// OnDestroy module destroy
+func (m *AdminModule) OnDestroy() {
+	// Close HTTP server
+	if m.httpServer != nil {
+		if err := m.httpServer.Close(); err != nil {
+			fmt.Printf("[Admin Module] Failed to close HTTP server: %v\n", err)
+		} else {
+			fmt.Println("[Admin Module] HTTP server closed")
+		}
 	}
+
+	// Close database connection
+	if m.db != nil {
+		if err := m.db.Close(); err != nil {
+			fmt.Printf("[Admin Module] Failed to close database: %v\n", err)
+		} else {
+			fmt.Println("[Admin Module] Database connection closed")
+		}
+	}
+
+	m.BaseModule.OnDestroy()
+	fmt.Println("[Admin Module] Destroyed")
+}
+
+// Module creates Admin module instance
+func Module() module.Module {
+	return new(AdminModule)
 }

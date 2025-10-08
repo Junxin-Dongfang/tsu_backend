@@ -1,23 +1,13 @@
-// @title Tsu Admin API
-// @version 1.0
-// @description Tsu 后台管理系统 API
-// @contact.name Tsu Team
-// @contact.email support@tsu.com
-// @host localhost
-// @BasePath /api/admin
-// @securityDefinitions.apikey BearerAuth
-// @in header
-// @name Authorization
-// @description Bearer token format: Bearer {token}
 package main
 
 import (
-	"log/slog"
+	"fmt"
 	"os"
 	"time"
+
+	docs "tsu-self/docs"
 	"tsu-self/internal/modules/admin"
 	"tsu-self/internal/modules/auth"
-	"tsu-self/internal/pkg/log"
 
 	"github.com/liangdas/mqant"
 	"github.com/liangdas/mqant/module"
@@ -26,83 +16,83 @@ import (
 	"github.com/nats-io/nats.go"
 )
 
-// @title Tsu Admin API
-// @version 1.0
-// @description Tsu 后台管理 服务 API 文档
-// @contact.name Tsu Team
-// @contact.email tsu@tsu.com
-// @host localhost
-// @BasePath /api/admin
-// @schemes http
+// @title           TSU Game Admin API
+// @version         1.0
+// @description     DnD RPG 游戏管理后台 API - 基于 mqant 微服务架构
+// @termsOfService  http://swagger.io/terms/
+
+// @contact.name   TSU API Support
+// @contact.url    https://github.com/your-org/tsu-server
+// @contact.email  support@example.com
+
+// @license.name  Apache 2.0
+// @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host      localhost
+// @BasePath  /api/v1
+
 // @securityDefinitions.apikey BearerAuth
 // @in header
 // @name Authorization
-// @description 输入格式为 Bearer {token}
+// @description 输入格式: Bearer {token}
 
 func main() {
-	log.Init(slog.LevelDebug, "development")
+	fmt.Println("==============================================")
+	fmt.Println("  TSU Admin Server")
+	fmt.Println("  Version: 1.0.0")
+	fmt.Println("==============================================")
+	fmt.Println()
 
-	log.Info("启动 TSU Admin Server...")
-
-	// Consul 注册
-	consulAddr := "consul:8500"
-	if envConsulAddr := os.Getenv("CONSUL_ADDRESS"); envConsulAddr != "" {
-		consulAddr = envConsulAddr
+	// Consul address
+	consulAddr := os.Getenv("CONSUL_ADDRESS")
+	if consulAddr == "" {
+		consulAddr = "localhost:8500"
 	}
+	fmt.Printf("[Main] Consul address: %s\n", consulAddr)
 
+	// NATS address
+	natsAddr := os.Getenv("NATS_ADDRESS")
+	if natsAddr == "" {
+		natsAddr = "localhost:4222"
+	}
+	fmt.Printf("[Main] NATS address: %s\n", natsAddr)
+
+	// Connect to NATS
+	nc, err := nats.Connect("nats://"+natsAddr,
+		nats.MaxReconnects(10),
+		nats.ReconnectWait(1*time.Second),
+	)
+	if err != nil {
+		fmt.Printf("[Main] Failed to connect to NATS: %v\n", err)
+		return
+	}
+	fmt.Println("[Main] Connected to NATS successfully")
+
+	// Configure Swagger to follow current request origin
+	docs.SwaggerInfo.Host = ""
+	docs.SwaggerInfo.BasePath = "/api/v1"
+	docs.SwaggerInfo.Schemes = []string{"http"}
+
+	// Create Consul registry
 	rs := consul.NewRegistry(func(options *registry.Options) {
 		options.Addrs = []string{consulAddr}
 	})
-	log.Info("Consul 地址: " + consulAddr)
 
-	//NATS地址
-	natsAddr := "nats:4222"
-	if envNatsAddr := os.Getenv("NATS_ADDRESS"); envNatsAddr != "" {
-		natsAddr = envNatsAddr
-	}
-
-	nc, err := nats.Connect(natsAddr,
-		nats.MaxReconnects(10000),
-		nats.ReconnectWait(1*time.Second), // 重连等待时间
-		nats.PingInterval(30*time.Second), // 心跳间隔
-		nats.MaxPingsOutstanding(3),       // 最大未响应心跳数
-		nats.DisconnectErrHandler(func(nc *nats.Conn, err error) {
-			log.Info("NATS 连接断开: " + err.Error())
-		}),
-		nats.ReconnectHandler(func(nc *nats.Conn) {
-			log.Info("NATS 重新连接成功")
-		}),
-		nats.ClosedHandler(func(nc *nats.Conn) {
-			log.Info("NATS 连接关闭")
-		}),
-	)
-	if err != nil {
-		log.Error("连接 NATS 失败", err)
-		return
-	}
-	log.Info("NATS 地址: " + natsAddr)
-
-	// 创建 mqant 应用
+	// Create mqant app with configuration
+	// 注意：RegisterTTL 和 RegisterInterval 应该在各个模块的 OnInit 中配置
+	// 而不是在全局 app 配置中设置（参考 mqant 官方文档）
 	app := mqant.CreateApp(
 		module.Configure("./configs/server/admin-server.json"),
-		module.KillWaitTTL(1*time.Minute),
-		module.Debug(true),
-		module.BILogDir("./logs/admin-server"),
+		module.Debug(false),
 		module.Nats(nc),
 		module.Registry(rs),
-		module.RegisterTTL(10*time.Second),
-		module.RegisterInterval(10*time.Second),
 	)
 
-	app.OnConfigurationLoaded(func(app module.App) {
-		log.Info("配置文件加载完成")
-	})
-	log.Info("应用配置加载完成", "settings", app.GetSettings().Settings)
+	fmt.Println("[Main] Configuration loaded")
 
-	// 注册模块
-	log.Info("注册模块...")
+	// Run with modules
 	app.Run(
-		&admin.AdminModule{},
-		&auth.AuthModule{},
+		auth.Module(),
+		admin.Module(),
 	)
 }

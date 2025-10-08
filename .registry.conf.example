@@ -1,0 +1,31 @@
+# ==========================================
+# Docker 镜像仓库配置文件
+# ==========================================
+# 说明：
+#   1. 复制此文件为 .registry.conf
+#   2. 填写你的 Docker Hub 用户名和密码
+#   3. .registry.conf 已加入 .gitignore，不会被提交到 Git
+#
+# 使用方法：
+#   cp .registry.conf.example .registry.conf
+#   vim .registry.conf  # 填写你的信息
+
+# ==========================================
+# 镜像仓库类型
+# ==========================================
+REGISTRY_TYPE=dockerhub
+
+# ==========================================
+# Docker Hub 配置
+# ==========================================
+DOCKERHUB_USERNAME=lilonyon
+DOCKERHUB_PASSWORD=lly2122634.
+DOCKERHUB_REGISTRY=docker.io
+DOCKERHUB_NAMESPACE=lilonyon
+
+# ==========================================
+# 镜像配置
+# ==========================================
+IMAGE_NAME=tsu-admin-server
+IMAGE_VERSION=latest
+PUSH_LATEST_TAG=true

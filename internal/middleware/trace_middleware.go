@@ -1,10 +1,7 @@
 package middleware
 
 import (
-	"context"
 	"net/http"
-
-	"tsu-self/internal/pkg/contextkeys" // 引入我们统一的 "钥匙保管处"
 
 	"github.com/google/uuid"
 )
@@ -24,8 +21,8 @@ func TraceID(next http.Handler) http.Handler {
 
 		// 3. 使用从 contextkeys 包导入的唯一键，将 Trace ID 存入请求的 context 中。
 		// 这样，后续的所有处理程序都可以安全地从中获取。
-		ctx := context.WithValue(r.Context(), contextkeys.TraceIDKey, traceID)
-		r = r.WithContext(ctx)
+		// ctx := context.WithValue(r.Context(), contextkeys.TraceIDKey, traceID)
+		// r = r.WithContext(ctx)
 
 		// 4. 将 Trace ID 设置到响应头中，方便前端或调用方进行问题追踪。
 		w.Header().Set("X-Request-ID", traceID)

@@ -1,0 +1,87 @@
+# ==========================================
+# ORY Oathkeeper 生产环境配置
+# ==========================================
+
+version: v0.40.9
+
+log:
+  level: info
+  format: json
+  leak_sensitive_values: false
+
+serve:
+  proxy:
+    port: 4456
+    cors:
+      enabled: true
+      allowed_origins:
+        - http://47.239.139.109
+        - http://47.239.139.109:80
+      allowed_methods:
+        - POST
+        - GET
+        - PUT
+        - PATCH
+        - DELETE
+      allowed_headers:
+        - Authorization
+        - Content-Type
+        - X-Session-Token
+      exposed_headers:
+        - Content-Type
+      allow_credentials: true
+  api:
+    port: 4457
+
+errors:
+  handlers:
+    json:
+      enabled: true
+      config:
+        verbose: false
+    redirect:
+      enabled: true
+      config:
+        to: http://47.239.139.109/user/login
+
+access_rules:
+  repositories:
+    - file:///etc/config/oathkeeper/access-rules.prod.json
+
+authenticators:
+  bearer_token:
+    enabled: true
+    config:
+      check_session_url: http://tsu_kratos:4433/sessions/whoami
+      subject_from: identity.id
+      extra_from: "@this"
+      preserve_query: true
+      preserve_path: true
+      force_method: GET
+      forward_http_headers:
+        - Authorization
+        - X-Session-Token
+  
+  cookie_session:
+    enabled: false
+  
+  noop:
+    enabled: true
+
+authorizers:
+  allow:
+    enabled: true
+  deny:
+    enabled: true
+
+mutators:
+  noop:
+    enabled: true
+  header:
+    enabled: true
+    config:
+      headers:
+        X-Session-Token: '{{ print .Extra.ory_kratos_session }}'
+        X-User-ID: '{{ print .Subject }}'
+  id_token:
+    enabled: false

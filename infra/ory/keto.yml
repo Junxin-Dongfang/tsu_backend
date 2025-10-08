@@ -11,10 +11,13 @@ serve:
 
 # DSN is provided via environment variable in docker-compose
 
-# 如果需要，可以配置日志等级等
-# log:
-#  level: debug
+# 日志配置
+log:
+  level: info
 
+# 命名空间定义(简化YAML配置)
 namespaces:
-  - id: 1 # <-- id 是必须的，并且必须是唯一的整数
-    name: "tsu_game" # <-- name 是一个可选的描述性名称
+  - id: 0
+    name: roles
+  - id: 1
+    name: permissions

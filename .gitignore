@@ -17,7 +17,14 @@ build/
 
 # Local env
 .env
+.env.prod
+.env.local
+.env.*.local
 .devops/config.env
+
+# Registry and deployment
+.registry.conf
+.last-build.info
 
 .postgres-data/
 infra/.ory-postgres-data/

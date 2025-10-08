@@ -1,162 +1,105 @@
-// internal/middleware/auth_middleware.go - 修正版本
 package middleware
 
 import (
 	"context"
-	"strings"
-	"time"
 
 	"github.com/labstack/echo/v4"
-	"github.com/liangdas/mqant/module"
-	mqrpc "github.com/liangdas/mqant/rpc"
-	"github.com/redis/go-redis/v9"
 
-	"tsu-self/internal/pkg/contextkeys"
 	"tsu-self/internal/pkg/log"
 	"tsu-self/internal/pkg/response"
 	"tsu-self/internal/pkg/xerrors"
-	authpb "tsu-self/internal/rpc/generated/auth"
-	commonpb "tsu-self/internal/rpc/generated/common"
 )
 
-type AuthMiddleware struct {
-	app         module.App // mqant app用于RPC调用
-	redis       *redis.Client
-	logger      log.Logger
-	respHandler response.Writer
+// UserContextKey 用户信息在 Context 中的 Key
+const UserContextKey = "current_user"
 
-	// 权限缓存
-	permissionCache map[string]*CachedPermissions
+// CurrentUser 当前请求的用户信息（从 Oathkeeper 传递）
+type CurrentUser struct {
+	UserID       string // Kratos Identity ID (从 X-User-ID header)
+	SessionToken string // Kratos Session Token (从 X-Session-Token header)
 }
 
-type CachedPermissions struct {
-	Permissions []string  `json:"permissions"`
-	CachedAt    time.Time `json:"cached_at"`
-}
-
-func NewAuthMiddleware(app module.App, redis *redis.Client, logger log.Logger) *AuthMiddleware {
-	middleware := &AuthMiddleware{
-		app:             app,
-		redis:           redis,
-		logger:          logger,
-		respHandler:     response.DefaultResponseHandler(),
-		permissionCache: make(map[string]*CachedPermissions),
-	}
-
-	return middleware
-}
-
-// RequireAuth Token验证中间件
-func (m *AuthMiddleware) RequireAuth() echo.MiddlewareFunc {
+// AuthMiddleware 认证中间件 - 从 Oathkeeper 传递的 Header 提取用户信息
+// 这个中间件假设请求已经通过 Oathkeeper 验证，只需从 Header 提取用户信息
+func AuthMiddleware(respWriter response.Writer, logger log.Logger) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			token := m.extractToken(c)
-			if token == "" {
-				return m.respHandler.WriteError(c.Request().Context(), c.Response().Writer,
-					xerrors.FromCode(xerrors.CodeInvalidToken).WithMetadata("reason", "missing_token"))
-			}
-
-			// 调用 auth module 验证 token
-			validateReq := &authpb.ValidateTokenRequest{Token: token}
-
-			result, err := m.app.Call(context.Background(), "auth", "ValidateToken", mqrpc.Param(validateReq))
-			if err != "" {
-				m.logger.ErrorContext(c.Request().Context(), "Token验证失败", log.Any("error", err))
-				return m.respHandler.WriteError(c.Request().Context(), c.Response().Writer,
-					xerrors.FromCode(xerrors.CodeInvalidToken))
-			}
-
-			validateResp, ok := result.(*authpb.ValidateTokenResponse)
-			if !ok || !validateResp.Valid {
-				return m.respHandler.WriteError(c.Request().Context(), c.Response().Writer,
-					xerrors.FromCode(xerrors.CodeInvalidToken))
-			}
-
-			// 将用户信息添加到context
 			ctx := c.Request().Context()
-			ctx = context.WithValue(ctx, contextkeys.UserIDKey, validateResp.UserId)
+
+			// 从 Oathkeeper 传递的 Header 中提取用户信息
+			userID := c.Request().Header.Get("X-User-ID")
+			sessionToken := c.Request().Header.Get("X-Session-Token")
+
+			// 验证必要信息是否存在
+			if userID == "" {
+				logger.WarnContext(ctx, "认证失败: 缺少 X-User-ID header")
+				err := xerrors.New(
+					xerrors.CodeAuthenticationFailed,
+					"未授权访问: 缺少用户身份信息",
+				).WithService("middleware", "auth")
+
+				return respWriter.WriteError(ctx, c.Response().Writer, err)
+			}
+
+			// 构建当前用户对象
+			currentUser := &CurrentUser{
+				UserID:       userID,
+				SessionToken: sessionToken,
+			}
+
+			// 将用户信息注入到 Context
+			ctx = context.WithValue(ctx, UserContextKey, currentUser)
 			c.SetRequest(c.Request().WithContext(ctx))
 
-			return next(c)
-		}
-	}
-}
+			// 也可以设置到 Echo Context，便于直接访问
+			c.Set(UserContextKey, currentUser)
 
-// RequirePermission 权限检查中间件
-func (m *AuthMiddleware) RequirePermission(resource, action string) echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			userID, ok := c.Request().Context().Value(contextkeys.UserIDKey).(string)
-			if !ok {
-				return m.respHandler.WriteError(c.Request().Context(), c.Response().Writer,
-					xerrors.FromCode(xerrors.CodeAuthenticationFailed).WithMetadata("reason", "no_user_context"))
-			}
-
-			// 检查权限
-			if !m.checkPermission(c.Request().Context(), userID, resource, action) {
-				return m.respHandler.WriteError(c.Request().Context(), c.Response().Writer,
-					xerrors.FromCode(xerrors.CodePermissionDenied).WithMetadata("resource", resource).WithMetadata("action", action))
-			}
+			logger.DebugContext(ctx,
+				"用户认证成功",
+				log.String("user_id", userID),
+				log.Bool("has_session_token", sessionToken != ""),
+			)
 
 			return next(c)
 		}
 	}
 }
 
-func (m *AuthMiddleware) checkPermission(ctx context.Context, userID, resource, action string) bool {
-	permission := resource + ":" + action
-
-	// 1. 检查缓存
-	if cached, exists := m.permissionCache[userID]; exists {
-		if time.Since(cached.CachedAt) < 5*time.Minute { // 5分钟缓存
-			for _, perm := range cached.Permissions {
-				if perm == permission {
-					return true
-				}
-			}
-			return false
-		}
+// GetCurrentUser 从 Echo Context 中获取当前用户
+func GetCurrentUser(c echo.Context) (*CurrentUser, error) {
+	user := c.Get(UserContextKey)
+	if user == nil {
+		return nil, xerrors.New(
+			xerrors.CodeAuthenticationFailed,
+			"未找到用户信息",
+		)
 	}
 
-	// 2. 调用 auth module 检查权限
-	checkReq := &commonpb.CheckPermissionRequest{
-		UserId:   userID,
-		Resource: resource,
-		Action:   action,
-	}
-
-	result, err := m.app.Call(context.Background(), "auth", "CheckPermission", mqrpc.Param(checkReq))
-	if err != "" {
-		m.logger.ErrorContext(ctx, "权限检查调用失败", log.Any("error", err))
-		return false
-	}
-
-	checkResp, ok := result.(*commonpb.CheckPermissionResponse)
+	currentUser, ok := user.(*CurrentUser)
 	if !ok {
-		m.logger.ErrorContext(ctx, "权限检查响应类型错误")
-		return false
+		return nil, xerrors.New(
+			xerrors.CodeInternalError,
+			"用户信息类型错误",
+		)
 	}
 
-	return checkResp.Allowed
+	return currentUser, nil
 }
 
-// ClearUserPermissionCache 清理指定用户的权限缓存 - 通过RPC调用
-func (m *AuthMiddleware) ClearUserPermissionCache(userID string) {
-	delete(m.permissionCache, userID)
-	m.logger.InfoContext(context.Background(), "清理用户权限缓存",
-		log.String("user_id", userID))
+// GetCurrentUserID 从 Echo Context 中获取当前用户 ID（快捷方法）
+func GetCurrentUserID(c echo.Context) (string, error) {
+	user, err := GetCurrentUser(c)
+	if err != nil {
+		return "", err
+	}
+	return user.UserID, nil
 }
 
-func (m *AuthMiddleware) extractToken(c echo.Context) string {
-	auth := c.Request().Header.Get("Authorization")
-	if auth == "" {
-		return ""
+// MustGetCurrentUser 获取当前用户，如果不存在则 panic（用于明确需要认证的地方）
+func MustGetCurrentUser(c echo.Context) *CurrentUser {
+	user, err := GetCurrentUser(c)
+	if err != nil {
+		panic(err)
 	}
-
-	const bearer = "Bearer "
-	if !strings.HasPrefix(auth, bearer) {
-		return ""
-	}
-
-	return auth[len(bearer):]
+	return user
 }

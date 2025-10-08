@@ -1,300 +1,278 @@
-// internal/modules/auth/auth_module.go - 完整版本
 package auth
 
 import (
-	"context"
+	"database/sql"
 	"fmt"
-	"net"
-	"net/http"
-	"strconv"
+	"os"
 	"time"
 
-	"github.com/hashicorp/consul/api"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	"tsu-self/internal/modules/auth/client"
+	"tsu-self/internal/modules/auth/handler"
+	"tsu-self/internal/modules/auth/service"
+
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/module"
 	basemodule "github.com/liangdas/mqant/module/base"
-	"github.com/redis/go-redis/v9"
-
-	custommiddleware "tsu-self/internal/middleware"
-	"tsu-self/internal/modules/auth/service"
-	"tsu-self/internal/pkg/log"
+	"github.com/liangdas/mqant/server"
+	_ "github.com/lib/pq"
 )
 
+// Module Auth module
 type AuthModule struct {
 	basemodule.BaseModule
-
-	// Services
-	kratosService       *service.KratosService
-	ketoService         *service.KetoService
-	sessionService      *service.SessionService
-	notificationService *service.NotificationService
-
-	// Infrastructure
-	redis      *redis.Client
-	logger     log.Logger
-	echoServer *echo.Echo
+	db                   *sql.DB
+	authService          *service.AuthService
+	permissionService    *service.PermissionService
+	userService          *service.UserService
+	rpcHandler           *handler.RPCHandler
+	permissionRPCHandler *handler.PermissionRPCHandler
+	userRPCHandler       *handler.UserRPCHandler
 }
 
-func (m *AuthModule) Version() string {
-	return "1.0.0"
-}
-
+// GetType returns module type
 func (m *AuthModule) GetType() string {
 	return "auth"
 }
 
+// Version returns module version
+func (m *AuthModule) Version() string {
+	return "1.0.0"
+}
+
+// OnAppConfigurationLoaded 当App初始化时调用
 func (m *AuthModule) OnAppConfigurationLoaded(app module.App) {
-	//当App初始化时调用，这个接口不管这个模块是否在这个进程运行都会调用
 	m.BaseModule.OnAppConfigurationLoaded(app)
 }
 
+// OnInit module initialization
 func (m *AuthModule) OnInit(app module.App, settings *conf.ModuleSettings) {
-	m.BaseModule.OnInit(m, app, settings)
-
-	// 初始化日志
-	m.logger = log.GetLogger().WithGroup("auth-module")
-
-	// 初始化 Redis
-	if err := m.initRedis(); err != nil {
-		panic("初始化 Redis 失败: " + err.Error())
-	}
-
-	// 初始化服务
-	m.initServices()
-
-	// 初始化 Echo 服务器
-	m.initEchoServer()
-
-	// 检查是否配置了HTTP端口，如果配置了就启动HTTP服务器
-	if httpPort, exists := m.GetModuleSettings().Settings["http_port"]; exists && httpPort != "" {
-		// 启动 HTTP 服务器
-		go m.startHTTPServer()
-
-		// 注册 HTTP 服务到 Consul
-		go m.registerHTTPService()
-	}
-
-	m.logger.Info("Auth Module 初始化完成")
-}
-
-func (m *AuthModule) Run(closeSig chan bool) {
-	m.logger.Info("Auth Module 开始运行")
-
-	// 注册RPC处理器
-	rpcHandler := NewAuthRPCHandler(
-		m.kratosService,
-		m.ketoService,
-		m.sessionService,
-		m.notificationService,
-		m.logger,
+	// 按照 mqant 官方推荐：在每个模块的 OnInit 中配置服务注册参数
+	// TTL = 30s, 心跳间隔 = 15s (TTL 必须大于心跳间隔)
+	m.BaseModule.OnInit(m, app, settings,
+		server.RegisterInterval(15*time.Second),
+		server.RegisterTTL(30*time.Second),
 	)
 
-	// 注册所有 RPC 方法
-	m.GetServer().RegisterGO("Login", rpcHandler.Login)
-	m.GetServer().RegisterGO("Register", rpcHandler.Register)
-	m.GetServer().RegisterGO("ValidateToken", rpcHandler.ValidateToken)
-	m.GetServer().RegisterGO("Logout", rpcHandler.Logout)
-	m.GetServer().RegisterGO("CheckPermission", rpcHandler.CheckPermission)
-	m.GetServer().RegisterGO("GetUserInfo", rpcHandler.GetUserInfo)
-	m.GetServer().RegisterGO("UpdateUserTraits", rpcHandler.UpdateUserTraits)
-	m.GetServer().RegisterGO("AssignRole", rpcHandler.AssignRole)
-	m.GetServer().RegisterGO("RevokeRole", rpcHandler.RevokeRole)
-	m.GetServer().RegisterGO("CreateRole", rpcHandler.CreateRole)
-
-	m.logger.Info("Auth Module RPC 处理器注册完成")
-
-	<-closeSig
-}
-
-func (m *AuthModule) OnDestroy() {
-	m.logger.Info("Auth Module 正在关闭")
-
-	if m.redis != nil {
-		m.redis.Close()
+	// 1. Initialize database connection
+	if err := m.initDatabase(settings); err != nil {
+		panic(fmt.Sprintf("Failed to initialize database: %v", err))
 	}
 
-	m.BaseModule.OnDestroy()
+	// 2. Initialize Kratos Client
+	kratosClient := m.initKratosClient(settings)
+
+	// 3. Initialize Keto Client
+	ketoClient := m.initKetoClient(settings)
+
+	// 4. Initialize Services
+	m.authService = service.NewAuthService(m.db, kratosClient)
+	m.permissionService = service.NewPermissionService(m.db, ketoClient)
+	m.userService = service.NewUserService(m.db)
+
+	// 5. Initialize RPC Handlers
+	m.rpcHandler = handler.NewRPCHandler(m.authService)
+	m.permissionRPCHandler = handler.NewPermissionRPCHandler(m.db, m.permissionService)
+	m.userRPCHandler = handler.NewUserRPCHandler(m.db, m.userService)
+
+	// 6. Register RPC methods
+	m.setupRPCMethods()
+
+	m.GetServer().Options()
 }
 
-
-func (m *AuthModule) initRedis() error {
-	settings := m.GetModuleSettings().Settings
-	redisAddr := settings["redis_addr"].(string)
-	redisPassword := settings["redis_password"].(string)
-	redisDB := settings["redis_db"].(float64)
-
-	m.redis = redis.NewClient(&redis.Options{
-		Addr:     redisAddr,
-		Password: redisPassword,
-		DB:       int(redisDB),
-	})
-
-	// 测试连接
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	if err := m.redis.Ping(ctx).Err(); err != nil {
-		return err
+// initDatabase initializes database connection
+func (m *AuthModule) initDatabase(settings *conf.ModuleSettings) error {
+	// Read from environment variable first
+	dbURL := os.Getenv("TSU_AUTH_DATABASE_URL")
+	if dbURL == "" {
+		// Fallback to config file
+		if settings != nil && settings.Settings != nil {
+			dbURLInterface, ok := settings.Settings["database_url"]
+			if ok {
+				dbURL, _ = dbURLInterface.(string)
+			}
+		}
 	}
 
-	m.logger.Info("Redis 连接初始化成功", log.String("addr", redisAddr))
+	if dbURL == "" {
+		return fmt.Errorf("database URL not configured, please set TSU_AUTH_DATABASE_URL environment variable")
+	}
+
+	// Open database connection
+	db, err := sql.Open("postgres", dbURL)
+	if err != nil {
+		return fmt.Errorf("failed to open database connection: %w", err)
+	}
+
+	// Test connection
+	if err := db.Ping(); err != nil {
+		return fmt.Errorf("failed to ping database: %w", err)
+	}
+
+	// Set connection pool parameters
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(5)
+
+	m.db = db
+	fmt.Println("[Auth Module] Database connected successfully")
 	return nil
 }
 
-func (m *AuthModule) initServices() {
-	// 初始化 KratosService
-	kratosPublicURL := m.GetModuleSettings().Settings["kratos_public_url"].(string)
-	kratosAdminURL := m.GetModuleSettings().Settings["kratos_admin_url"].(string)
-
-	var err error
-	m.kratosService, err = service.NewKratosService(kratosPublicURL, kratosAdminURL, m.logger)
-	if err != nil {
-		panic("初始化 Kratos Service 失败: " + err.Error())
-	}
-
-	// 初始化 SessionService
-	jwtSecret := m.GetModuleSettings().Settings["jwt_secret"].(string)
-	tokenTTL := time.Duration(m.GetModuleSettings().Settings["token_ttl_minutes"].(float64)) * time.Minute
-	m.sessionService = service.NewSessionService(m.redis, jwtSecret, tokenTTL, m.logger)
-
-	// 初始化 KetoService
-	ketoReadURL := m.GetModuleSettings().Settings["keto_read_url"].(string)
-	ketoWriteURL := m.GetModuleSettings().Settings["keto_write_url"].(string)
-	m.ketoService = service.NewKetoService(ketoReadURL, ketoWriteURL, m.logger)
-
-	// 初始化 NotificationService
-	app := m.GetApp()
-	m.notificationService = service.NewNotificationService(app.Options().Nats, m.logger)
-
-	m.logger.Info("所有服务初始化完成")
-}
-
-// 初始化 Echo 服务器
-func (m *AuthModule) initEchoServer() {
-	m.echoServer = echo.New()
-	m.echoServer.HideBanner = true
-	m.echoServer.HidePort = true
-
-	// 添加中间件
-	m.echoServer.Use(middleware.Recover())
-	m.echoServer.Use(middleware.CORS())
-
-	// 使用项目统一的日志中间件，过滤健康检查请求
-	m.echoServer.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		loggingMiddleware := custommiddleware.LoggingMiddleware(m.logger)
-		return func(c echo.Context) error {
-			// 跳过健康检查请求的日志
-			if c.Request().URL.Path == "/health" {
-				return next(c)
-			}
-
-			// 设置必要的context值，如果不存在的话
-			if c.Get("trace_id") == nil {
-				c.Set("trace_id", "")
-			}
-			if c.Get("request_id") == nil {
-				c.Set("request_id", "")
-			}
-
-			return loggingMiddleware(next)(c)
-		}
-	})
-
-	// 注册路由
-	m.setupHTTPRoutes()
-}
-
-// 设置 HTTP 路由
-func (m *AuthModule) setupHTTPRoutes() {
-	// 创建健康检查处理器
-	healthHandler := &HealthHandler{module: m}
-
-	// 注册路由
-	m.echoServer.GET("/health", healthHandler.Health)
-}
-
-// 启动 HTTP 服务器
-func (m *AuthModule) startHTTPServer() {
-	httpPort := m.GetModuleSettings().Settings["http_port"].(string)
-	m.logger.Info("启动 HTTP 服务器", log.String("port", httpPort))
-
-	if err := m.echoServer.Start(":" + httpPort); err != nil && err != http.ErrServerClosed {
-		m.logger.Error("HTTP 服务器启动失败", err)
-		panic(err)
-	}
-}
-
-// 注册 HTTP 服务到 Consul
-func (m *AuthModule) registerHTTPService() {
-	time.Sleep(2 * time.Second) // 等待 HTTP 服务器启动
-
-	// 创建 Consul 客户端
-	consulConfig := api.DefaultConfig()
-	consulConfig.Address = "consul:8500" // 使用容器名
-
-	consulClient, err := api.NewClient(consulConfig)
-	if err != nil {
-		m.logger.Error("创建 Consul 客户端失败", err)
-		return
-	}
-
-	// 获取容器 IP
-	containerIP := m.getContainerIP()
-	if containerIP == "" {
-		m.logger.Error("无法获取容器 IP", err)
-		return
-	}
-
-	// 获取HTTP端口
-	httpPortStr := m.GetModuleSettings().Settings["http_port"].(string)
-	portInt := 8082 // 默认端口
-	if port, err := strconv.Atoi(httpPortStr); err == nil {
-		portInt = port
-	}
-
-	// 注册 HTTP 服务
-	registration := &api.AgentServiceRegistration{
-		ID:      "auth-http",
-		Name:    "auth-http",
-		Port:    portInt,
-		Address: containerIP,
-		Tags:    []string{"http", "auth", "authentication"},
-		Check: &api.AgentServiceCheck{
-			HTTP:                           fmt.Sprintf("http://%s:%d/health", containerIP, portInt),
-			Interval:                       "10s",
-			Timeout:                        "5s",
-			DeregisterCriticalServiceAfter: "30s",
-		},
-	}
-
-	err = consulClient.Agent().ServiceRegister(registration)
-	if err != nil {
-		m.logger.Error("注册 HTTP 服务到 Consul 失败", err)
-		return
-	}
-
-	m.logger.Info("HTTP 服务已注册到 Consul",
-		log.String("address", containerIP),
-		log.Int("port", portInt))
-}
-
-// 获取容器 IP 地址
-func (m *AuthModule) getContainerIP() string {
-	// 通过网络接口获取
-	addrs, err := net.InterfaceAddrs()
-	if err != nil {
-		return ""
-	}
-
-	for _, addr := range addrs {
-		if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-			if ipnet.IP.To4() != nil {
-				return ipnet.IP.String()
+// initKratosClient initializes Kratos client
+func (m *AuthModule) initKratosClient(settings *conf.ModuleSettings) *client.KratosClient {
+	// Read Admin URL from environment variable first
+	kratosAdminURL := os.Getenv("KRATOS_ADMIN_URL")
+	if kratosAdminURL == "" {
+		// Fallback to config file
+		if settings != nil && settings.Settings != nil {
+			kratosAdminURLInterface, ok := settings.Settings["kratos_admin_url"]
+			if ok {
+				kratosAdminURL, _ = kratosAdminURLInterface.(string)
 			}
 		}
 	}
 
-	return ""
+	if kratosAdminURL == "" {
+		kratosAdminURL = "http://localhost:4434" // Default value
+	}
+
+	// Read Public URL from environment variable
+	kratosPublicURL := os.Getenv("KRATOS_PUBLIC_URL")
+	if kratosPublicURL == "" {
+		// Fallback to config file
+		if settings != nil && settings.Settings != nil {
+			kratosPublicURLInterface, ok := settings.Settings["kratos_public_url"]
+			if ok {
+				kratosPublicURL, _ = kratosPublicURLInterface.(string)
+			}
+		}
+	}
+
+	if kratosPublicURL == "" {
+		kratosPublicURL = "http://localhost:4433" // Default value
+	}
+
+	fmt.Printf("[Auth Module] Kratos Admin URL: %s\n", kratosAdminURL)
+	fmt.Printf("[Auth Module] Kratos Public URL: %s\n", kratosPublicURL)
+
+	kratosClient := client.NewKratosClient(kratosAdminURL)
+	kratosClient.SetPublicURL(kratosPublicURL)
+	return kratosClient
+}
+
+// initKetoClient initializes Keto client
+func (m *AuthModule) initKetoClient(settings *conf.ModuleSettings) *client.KetoClient {
+	// Read from environment variable first
+	ketoReadURL := os.Getenv("KETO_READ_URL")
+	ketoWriteURL := os.Getenv("KETO_WRITE_URL")
+
+	if ketoReadURL == "" {
+		// Fallback to config file
+		if settings != nil && settings.Settings != nil {
+			ketoReadURLInterface, ok := settings.Settings["keto_read_url"]
+			if ok {
+				ketoReadURL, _ = ketoReadURLInterface.(string)
+			}
+		}
+	}
+
+	if ketoWriteURL == "" {
+		// Fallback to config file
+		if settings != nil && settings.Settings != nil {
+			ketoWriteURLInterface, ok := settings.Settings["keto_write_url"]
+			if ok {
+				ketoWriteURL, _ = ketoWriteURLInterface.(string)
+			}
+		}
+	}
+
+	// Default values
+	if ketoReadURL == "" {
+		ketoReadURL = "localhost:4466"
+	}
+	if ketoWriteURL == "" {
+		ketoWriteURL = "localhost:4467"
+	}
+
+	fmt.Printf("[Auth Module] Keto Read URL: %s, Write URL: %s\n", ketoReadURL, ketoWriteURL)
+
+	ketoClient, err := client.NewKetoClient(ketoReadURL, ketoWriteURL)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to initialize Keto client: %v", err))
+	}
+
+	return ketoClient
+}
+
+// setupRPCMethods registers RPC methods
+func (m *AuthModule) setupRPCMethods() {
+	// ==================== 用户认证 RPC ====================
+	m.GetServer().RegisterGO("Register", m.rpcHandler.Register)
+	m.GetServer().RegisterGO("GetUser", m.rpcHandler.GetUser)
+	m.GetServer().RegisterGO("UpdateLoginInfo", m.rpcHandler.UpdateLoginInfo)
+	m.GetServer().RegisterGO("SyncUserFromKratos", m.rpcHandler.SyncUserFromKratos)
+	m.GetServer().RegisterGO("Login", m.rpcHandler.Login)
+	m.GetServer().RegisterGO("Logout", m.rpcHandler.Logout)
+
+	// ==================== 权限检查 RPC ====================
+	m.GetServer().RegisterGO("CheckUserPermission", m.permissionRPCHandler.CheckUserPermission)
+
+	// ==================== 角色管理 RPC ====================
+	m.GetServer().RegisterGO("GetRoles", m.permissionRPCHandler.GetRoles)
+	m.GetServer().RegisterGO("CreateRole", m.permissionRPCHandler.CreateRole)
+	m.GetServer().RegisterGO("UpdateRole", m.permissionRPCHandler.UpdateRole)
+	m.GetServer().RegisterGO("DeleteRole", m.permissionRPCHandler.DeleteRole)
+
+	// ==================== 权限管理 RPC ====================
+	m.GetServer().RegisterGO("GetPermissions", m.permissionRPCHandler.GetPermissions)
+	m.GetServer().RegisterGO("GetPermissionGroups", m.permissionRPCHandler.GetPermissionGroups)
+
+	// ==================== 角色-权限管理 RPC ====================
+	m.GetServer().RegisterGO("GetRolePermissions", m.permissionRPCHandler.GetRolePermissions)
+	m.GetServer().RegisterGO("AssignPermissionsToRole", m.permissionRPCHandler.AssignPermissionsToRole)
+
+	// ==================== 用户-角色管理 RPC ====================
+	m.GetServer().RegisterGO("GetUserRoles", m.permissionRPCHandler.GetUserRoles)
+	m.GetServer().RegisterGO("AssignRolesToUser", m.permissionRPCHandler.AssignRolesToUser)
+	m.GetServer().RegisterGO("RevokeRolesFromUser", m.permissionRPCHandler.RevokeRolesFromUser)
+
+	// ==================== 用户-权限管理 RPC ====================
+	m.GetServer().RegisterGO("GetUserPermissions", m.permissionRPCHandler.GetUserPermissions)
+	m.GetServer().RegisterGO("GrantPermissionsToUser", m.permissionRPCHandler.GrantPermissionsToUser)
+	m.GetServer().RegisterGO("RevokePermissionsFromUser", m.permissionRPCHandler.RevokePermissionsFromUser)
+
+	// ==================== 用户管理 RPC ====================
+	m.GetServer().RegisterGO("GetUsers", m.userRPCHandler.GetUsers)
+	m.GetServer().RegisterGO("UpdateUser", m.userRPCHandler.UpdateUser)
+	m.GetServer().RegisterGO("BanUser", m.userRPCHandler.BanUser)
+	m.GetServer().RegisterGO("UnbanUser", m.userRPCHandler.UnbanUser)
+
+	fmt.Println("[Auth Module] RPC methods registered successfully")
+}
+
+// Run module run
+func (m *AuthModule) Run(closeSig chan bool) {
+	fmt.Println("[Auth Module] Started successfully")
+	<-closeSig
+}
+
+// OnDestroy module destroy
+func (m *AuthModule) OnDestroy() {
+	// Close database connection
+	if m.db != nil {
+		if err := m.db.Close(); err != nil {
+			fmt.Printf("[Auth Module] Failed to close database: %v\n", err)
+		} else {
+			fmt.Println("[Auth Module] Database connection closed")
+		}
+	}
+
+	m.BaseModule.OnDestroy()
+	fmt.Println("[Auth Module] Destroyed")
+}
+
+// Module creates Auth module instance
+var Module = func() module.Module {
+	this := new(AuthModule)
+	return this
 }

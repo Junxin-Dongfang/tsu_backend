@@ -1,0 +1,175 @@
+syntax = "proto3";
+
+package auth;
+
+option go_package = "tsu-self/internal/pb/auth";
+
+import "proto/common/user.proto";
+import "proto/common/common.proto";
+
+// Auth RPC 服务定义
+service AuthService {
+    // 用户注册
+    rpc Register(RegisterRequest) returns (RegisterResponse);
+
+    // 获取用户信息
+    rpc GetUser(GetUserRequest) returns (GetUserResponse);
+
+    // 更新登录信息
+    rpc UpdateLoginInfo(UpdateLoginInfoRequest) returns (UpdateLoginInfoResponse);
+
+    // 同步 Kratos 用户到业务数据库
+    rpc SyncUserFromKratos(SyncUserFromKratosRequest) returns (SyncUserFromKratosResponse);
+
+    // 用户登录
+    rpc Login(LoginRequest) returns (LoginResponse);
+
+    // 用户登出
+    rpc Logout(LogoutRequest) returns (LogoutResponse);
+
+    // ==================== 用户管理 ====================
+    // 获取用户列表
+    rpc GetUsers(GetUsersRequest) returns (GetUsersResponse);
+
+    // 更新用户信息
+    rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse);
+
+    // 封禁用户
+    rpc BanUser(BanUserRequest) returns (BanUserResponse);
+
+    // 解禁用户
+    rpc UnbanUser(UnbanUserRequest) returns (UnbanUserResponse);
+}
+
+// ==================== Register ====================
+
+message RegisterRequest {
+    string email = 1;
+    string username = 2;
+    string password = 3;
+}
+
+message RegisterResponse {
+    string user_id = 1;
+    string kratos_id = 2;
+    string email = 3;
+    string username = 4;
+    bool need_verify = 5;  // 是否需要邮箱验证
+}
+
+// ==================== GetUser ====================
+
+message GetUserRequest {
+    string user_id = 1;
+}
+
+message GetUserResponse {
+    common.UserInfo user = 1;
+}
+
+// ==================== UpdateLoginInfo ====================
+
+message UpdateLoginInfoRequest {
+    string user_id = 1;
+    string login_ip = 2;
+}
+
+message UpdateLoginInfoResponse {
+    common.Status status = 1;
+}
+
+// ==================== SyncUserFromKratos ====================
+
+message SyncUserFromKratosRequest {
+    string kratos_id = 1;
+}
+
+message SyncUserFromKratosResponse {
+    common.Status status = 1;
+    common.UserInfo user = 2;  // 同步后的用户信息
+}
+
+// ==================== GetUsers (用户列表) ====================
+
+message GetUsersRequest {
+    int32 page = 1;
+    int32 page_size = 2;
+    string keyword = 3;
+    optional bool is_banned = 4;
+    string sort_by = 5;
+    string sort_dir = 6;
+}
+
+message GetUsersResponse {
+    repeated common.UserInfo users = 1;
+    int64 total = 2;
+    int32 page = 3;
+    int32 page_size = 4;
+    int32 total_pages = 5;
+}
+
+// ==================== UpdateUser ====================
+
+message UpdateUserRequest {
+    string user_id = 1;
+    optional string username = 2;
+    optional string email = 3;
+    optional string nickname = 4;
+    optional string phone_number = 5;
+    optional string avatar_url = 6;
+    optional string bio = 7;
+    optional string birth_date = 8;
+    optional string gender = 9;
+    optional string timezone = 10;
+    optional string language = 11;
+}
+
+message UpdateUserResponse {
+    common.Status status = 1;
+}
+
+// ==================== BanUser ====================
+
+message BanUserRequest {
+    string user_id = 1;
+    optional string ban_until = 2;
+    string ban_reason = 3;
+}
+
+message BanUserResponse {
+    common.Status status = 1;
+}
+
+// ==================== UnbanUser ====================
+
+message UnbanUserRequest {
+    string user_id = 1;
+}
+
+message UnbanUserResponse {
+    common.Status status = 1;
+}
+
+// ==================== Login ====================
+
+message LoginRequest {
+    string identifier = 1;  // 可以是 email, username, 或 phone_number
+    string password = 2;
+}
+
+message LoginResponse {
+    string session_token = 1;
+    string user_id = 2;
+    string email = 3;
+    string username = 4;
+}
+
+// ==================== Logout ====================
+
+message LogoutRequest {
+    string session_token = 1;
+}
+
+message LogoutResponse {
+    common.Status status = 1;
+}

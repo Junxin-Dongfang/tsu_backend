@@ -19,11 +19,16 @@ type Writer interface {
 	WriteSuccess(ctx context.Context, w http.ResponseWriter, data interface{}) error
 }
 
-// Logger 接口定义（简化的日志接口）
+// Logger 接口定义（与 internal/pkg/log 的 Logger 接口兼容）
 type Logger interface {
 	InfoContext(ctx context.Context, msg string, args ...any)
 	WarnContext(ctx context.Context, msg string, args ...any)
 	ErrorContext(ctx context.Context, msg string, args ...any)
+	// 为了兼容 internal/pkg/log.Logger,添加其他方法（可选实现）
+	// Debug(msg string, args ...any)
+	// Info(msg string, args ...any)
+	// Warn(msg string, args ...any)
+	// Error(msg string, err error, args ...any)
 }
 
 // EmptyData 用于在 API 成功响应中表示"无数据"
@@ -36,6 +41,15 @@ type APIResponse[T any] struct {
 	Data      *T     `json:"data,omitempty"`     // 响应数据，成功时返回
 	Timestamp int64  `json:"timestamp"`          // Unix时间戳
 	TraceID   string `json:"trace_id,omitempty"` // 请求追踪ID
+}
+
+// Response Swagger 文档用的通用响应结构（非泛型版本，用于 API 文档生成）
+type Response struct {
+	Code      int         `json:"code" example:"100000"`                    // 业务响应码
+	Message   string      `json:"message" example:"操作成功"`                  // 面向用户的响应消息
+	Data      interface{} `json:"data,omitempty"`                           // 响应数据
+	Timestamp int64       `json:"timestamp" example:"1759501201"`           // Unix时间戳
+	TraceID   string      `json:"trace_id,omitempty" example:"abc-123-xyz"` // 请求追踪ID
 }
 
 // ErrorDetail 错误详情（仅在开发环境的特殊端点返回，用于调试）

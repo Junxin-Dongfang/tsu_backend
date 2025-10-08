@@ -1,0 +1,145 @@
+name: tsu_prod_ory
+
+# ==========================================
+# 第二层：Ory 认证授权服务
+# ==========================================
+# 包含：Kratos（认证）、Keto（权限）、Oathkeeper（网关）
+# 依赖：第一层的 tsu_postgres_ory 数据库
+
+services:
+  # ========================================
+  # Kratos 数据库迁移
+  # ========================================
+  tsu_kratos_migrate:
+    image: oryd/kratos:v1.3.1
+    container_name: tsu_kratos_migrate
+    environment:
+      - DSN=postgres://ory_user:ZcFIvVi3ZRZoQZebrs1KmKibOzm7AFpw@tsu_postgres_ory:5432/ory_db?sslmode=disable&search_path=kratos
+    command: migrate sql -e --yes
+    restart: on-failure
+    networks:
+      - tsu_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ========================================
+  # Kratos 认证服务
+  # ========================================
+  tsu_kratos:
+    image: oryd/kratos:v1.3.1
+    container_name: tsu_kratos
+    ports:
+      - "4433:4433"  # Public API
+      - "4434:4434"  # Admin API
+    environment:
+      - DSN=postgres://ory_user:ZcFIvVi3ZRZoQZebrs1KmKibOzm7AFpw@tsu_postgres_ory:5432/ory_db?sslmode=disable&search_path=kratos
+      - SECRETS_COOKIE=A7B8C9D0E1F2G3H4I5J6K7L8M9N0O1P2
+      - SECRETS_CIPHER=Q2R3S4T5U6V7W8X9Y0Z1A2B3C4D5E6F7
+    command: serve -c /etc/config/kratos/kratos.prod.yml --dev --watch-courier --sqa-opt-out
+    volumes:
+      - /opt/tsu/infra/ory/prod:/etc/config/kratos
+      - /opt/tsu/infra/ory/identity.schema.json:/etc/config/kratos/identity.schema.json
+    restart: always
+    depends_on:
+      tsu_kratos_migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4433/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - tsu_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # ========================================
+  # Keto 数据库迁移
+  # ========================================
+  tsu_keto_migrate:
+    image: oryd/keto:v0.14.0
+    container_name: tsu_keto_migrate
+    environment:
+      - DSN=postgres://ory_user:ZcFIvVi3ZRZoQZebrs1KmKibOzm7AFpw@tsu_postgres_ory:5432/ory_db?sslmode=disable&search_path=keto
+    command: migrate up -c /etc/config/keto/keto.prod.yml -y
+    volumes:
+      - /opt/tsu/infra/ory/prod:/etc/config/keto
+    restart: on-failure
+    networks:
+      - tsu_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ========================================
+  # Keto 权限服务
+  # ========================================
+  tsu_keto:
+    image: oryd/keto:v0.14.0
+    container_name: tsu_keto
+    ports:
+      - "4466:4466"  # Read API
+      - "4467:4467"  # Write API
+    environment:
+      - DSN=postgres://ory_user:ZcFIvVi3ZRZoQZebrs1KmKibOzm7AFpw@tsu_postgres_ory:5432/ory_db?sslmode=disable&search_path=keto
+    command: serve -c /etc/config/keto/keto.prod.yml
+    volumes:
+      - /opt/tsu/infra/ory/prod:/etc/config/keto
+    restart: always
+    depends_on:
+      tsu_keto_migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4466/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - tsu_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # ========================================
+  # Oathkeeper API 网关
+  # ========================================
+  tsu_oathkeeper:
+    image: oryd/oathkeeper:v0.40.9
+    container_name: tsu_oathkeeper
+    ports:
+      - "4456:4456"  # Proxy API
+      - "4457:4457"  # Management API
+    command: serve -c /etc/config/oathkeeper/oathkeeper.prod.yml
+    volumes:
+      - /opt/tsu/infra/ory/prod:/etc/config/oathkeeper
+    restart: always
+    depends_on:
+      tsu_kratos:
+        condition: service_healthy
+    networks:
+      - tsu_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+# ========================================
+# 网络定义（使用已存在的网络）
+# ========================================
+networks:
+  tsu_network:
+    external: true
+    name: tsu_prod_infra_tsu_network

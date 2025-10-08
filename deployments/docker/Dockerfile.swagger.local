@@ -34,7 +34,7 @@ RUN echo '[build]' > .air.toml && \
     echo '  build = "yellow"' >> .air.toml && \
     echo '  runner = "green"' >> .air.toml
 
-EXPOSE 8080
+EXPOSE 8070
 
 # 使用 air 启动，实现热重载
 CMD ["air"]

@@ -236,6 +236,12 @@ func NewValidationError(field, message string) *AppError {
 		WithMetadata("validation_message", message)
 }
 
+func NewInvalidArgumentError(field, message string) *AppError {
+	return FromCode(CodeInvalidParams).
+		WithMetadata("field", field).
+		WithMetadata("validation_message", message)
+}
+
 func NewAuthError(message string) *AppError {
 	return FromCode(CodeAuthenticationFailed).
 		WithMetadata("auth_message", message)
@@ -314,4 +320,101 @@ func NewDatabaseError(operation, table string, err error) *AppError {
 		appErr.Err = err
 	}
 	return appErr
+}
+
+// 游戏业务错误快捷构造器
+func NewHeroNotFoundError(heroID string) *AppError {
+	return FromCode(CodeHeroNotFound).
+		WithMetadata("hero_id", heroID)
+}
+
+func NewHeroNameExistsError(heroName string) *AppError {
+	return FromCode(CodeHeroNameExists).
+		WithMetadata("hero_name", heroName)
+}
+
+func NewSkillNotFoundError(skillID string) *AppError {
+	return FromCode(CodeSkillNotFound).
+		WithMetadata("skill_id", skillID)
+}
+
+func NewSkillCooldownError(skillID string, remainingSeconds int) *AppError {
+	return FromCode(CodeSkillCooldown).
+		WithMetadata("skill_id", skillID).
+		WithMetadata("cooldown_seconds", fmt.Sprintf("%d", remainingSeconds))
+}
+
+func NewClassNotFoundError(classID string) *AppError {
+	return FromCode(CodeClassNotFound).
+		WithMetadata("class_id", classID)
+}
+
+// 通用错误包装函数
+// Wrap 包装标准错误为 AppError(保留堆栈)
+func Wrap(err error, code int, message string) *AppError {
+	if err == nil {
+		return nil
+	}
+
+	// 如果已经是 AppError,直接返回
+	if appErr, ok := err.(*AppError); ok {
+		return appErr
+	}
+
+	return NewWithError(code, message, err)
+}
+
+// WrapWithContext 包装错误并添加上下文
+func WrapWithContext(err error, code int, message string, ctx *ErrorContext) *AppError {
+	appErr := Wrap(err, code, message)
+	if appErr != nil {
+		appErr.Context = ctx
+	}
+	return appErr
+}
+
+// Must 如果 err 不为 nil 就 panic (用于配置初始化等必须成功的场景)
+func Must(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
+// ErrorList 错误列表(批量操作时收集多个错误)
+type ErrorList struct {
+	Errors []*AppError `json:"errors"`
+}
+
+func (e *ErrorList) Error() string {
+	if len(e.Errors) == 0 {
+		return "no errors"
+	}
+	if len(e.Errors) == 1 {
+		return e.Errors[0].Error()
+	}
+	return fmt.Sprintf("%d errors occurred", len(e.Errors))
+}
+
+func (e *ErrorList) Add(err *AppError) {
+	if err != nil {
+		e.Errors = append(e.Errors, err)
+	}
+}
+
+func (e *ErrorList) HasErrors() bool {
+	return len(e.Errors) > 0
+}
+
+func (e *ErrorList) First() *AppError {
+	if len(e.Errors) > 0 {
+		return e.Errors[0]
+	}
+	return nil
+}
+
+// NewErrorList 创建错误列表
+func NewErrorList() *ErrorList {
+	return &ErrorList{
+		Errors: make([]*AppError, 0),
+	}
 }

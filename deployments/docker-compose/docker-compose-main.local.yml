@@ -45,10 +45,7 @@ services:
     container_name: tsu_postgres
     
     # 环境变量，用于初始化数据库
-    environment:
-      - POSTGRES_USER=tsu_user      
-      - POSTGRES_PASSWORD=tsu_test  
-      - POSTGRES_DB=tsu_db          
+    environment:    
       - PGDATA=/var/lib/postgresql/data/pgdata # 指定数据存储目录
     ports:
       - "5432:5432"
@@ -86,10 +83,12 @@ services:
   admin:
     container_name: tsu_admin
     build:
-      context: ../.. 
+      context: ../..
       dockerfile: ./deployments/docker/Dockerfile.admin.local
     ports:
-    - "8081:8081" # 暴露端口以便直接调试
+    - "8071:8071" # 暴露端口以便直接调试
+    env_file:
+      - ../../.env  # 从 .env 文件加载环境变量
     environment:
       - CONSUL_ADDRESS=consul:8500
       - NATS_ADDRESS=nats:4222
@@ -113,7 +112,7 @@ services:
       context: ../../
       dockerfile: deployments/docker/Dockerfile.swagger.local
     ports:
-      - "8080:8080"
+      - "8070:8070"
     volumes:
       - ../../web/swagger-ui:/app/web/swagger-ui
     environment:

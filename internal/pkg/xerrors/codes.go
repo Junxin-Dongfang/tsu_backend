@@ -59,6 +59,26 @@ const (
 	CodeDatabaseError        = 700003 // 数据库错误
 	CodeCacheError           = 700004 // 缓存服务错误
 	CodeMessageQueueError    = 700005 // 消息队列错误
+
+	// 8xxxxx: 游戏业务错误码
+	// 角色相关 (80xxxx)
+	CodeHeroNotFound    = 800001 // 角色不存在
+	CodeHeroLevelTooLow = 800002 // 角色等级不足
+	CodeHeroMaxCount    = 800003 // 角色数量已达上限
+	CodeHeroNameExists  = 800004 // 角色名已存在
+	CodeHeroStatInvalid = 800005 // 角色属性无效
+
+	// 技能相关 (81xxxx)
+	CodeSkillNotFound   = 810001 // 技能不存在
+	CodeSkillNotLearned = 810002 // 技能未学习
+	CodeSkillCooldown   = 810003 // 技能冷却中
+	CodeSkillManaCost   = 810004 // 法力值不足
+	CodeSkillInvalidUse = 810005 // 技能使用条件不满足
+
+	// 职业相关 (82xxxx)
+	CodeClassNotFound       = 820001 // 职业不存在
+	CodeClassNotMeetReq     = 820002 // 不满足职业要求
+	CodeClassAlreadyAdvaced = 820003 // 职业已进阶
 )
 
 // -----------------------------------------------------------------------------
@@ -136,6 +156,21 @@ var codeMessages = map[int]string{
 	CodeDatabaseError:        "数据库错误",
 	CodeCacheError:           "缓存服务错误",
 	CodeMessageQueueError:    "消息队列错误",
+
+	// 游戏业务错误消息
+	CodeHeroNotFound:        "角色不存在",
+	CodeHeroLevelTooLow:     "角色等级不足",
+	CodeHeroMaxCount:        "角色数量已达上限",
+	CodeHeroNameExists:      "角色名已被使用",
+	CodeHeroStatInvalid:     "角色属性无效",
+	CodeSkillNotFound:       "技能不存在",
+	CodeSkillNotLearned:     "技能未学习",
+	CodeSkillCooldown:       "技能冷却中",
+	CodeSkillManaCost:       "法力值不足",
+	CodeSkillInvalidUse:     "技能使用条件不满足",
+	CodeClassNotFound:       "职业不存在",
+	CodeClassNotMeetReq:     "不满足职业要求",
+	CodeClassAlreadyAdvaced: "职业已进阶",
 }
 
 // GetHTTPStatus 根据业务错误码获取HTTP状态码

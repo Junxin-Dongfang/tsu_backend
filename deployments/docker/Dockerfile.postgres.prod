@@ -1,0 +1,29 @@
+# 生产环境 PostgreSQL 镜像
+FROM postgres:16-alpine
+
+# 设置时区
+ENV TZ=Asia/Shanghai
+RUN apk add --no-cache tzdata
+
+# 复制初始化脚本
+COPY infra/ory/init-schemas.sql /docker-entrypoint-initdb.d/
+
+# 设置数据库配置
+ENV POSTGRES_USER=tsu_user
+ENV POSTGRES_PASSWORD=tsu_prod_password_change_me
+ENV POSTGRES_DB=tsu_db
+
+# 优化生产环境配置
+RUN echo "shared_buffers = 256MB" >> /usr/local/share/postgresql/postgresql.conf.sample && \
+    echo "effective_cache_size = 1GB" >> /usr/local/share/postgresql/postgresql.conf.sample && \
+    echo "maintenance_work_mem = 64MB" >> /usr/local/share/postgresql/postgresql.conf.sample && \
+    echo "checkpoint_completion_target = 0.9" >> /usr/local/share/postgresql/postgresql.conf.sample && \
+    echo "wal_buffers = 16MB" >> /usr/local/share/postgresql/postgresql.conf.sample && \
+    echo "default_statistics_target = 100" >> /usr/local/share/postgresql/postgresql.conf.sample && \
+    echo "random_page_cost = 1.1" >> /usr/local/share/postgresql/postgresql.conf.sample && \
+    echo "effective_io_concurrency = 200" >> /usr/local/share/postgresql/postgresql.conf.sample && \
+    echo "work_mem = 2621kB" >> /usr/local/share/postgresql/postgresql.conf.sample && \
+    echo "min_wal_size = 1GB" >> /usr/local/share/postgresql/postgresql.conf.sample && \
+    echo "max_wal_size = 4GB" >> /usr/local/share/postgresql/postgresql.conf.sample
+
+EXPOSE 5432

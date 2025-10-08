@@ -1,0 +1,52 @@
+# ==========================================
+# ORY Keto 生产环境配置
+# ==========================================
+
+serve:
+  read:
+    host: 0.0.0.0
+    port: 4466
+    cors:
+      enabled: true
+      allowed_origins:
+        - http://47.239.139.109
+        - http://47.239.139.109:80
+      allowed_methods:
+        - POST
+        - GET
+        - PUT
+        - PATCH
+        - DELETE
+      allowed_headers:
+        - Authorization
+        - Content-Type
+  write:
+    host: 0.0.0.0
+    port: 4467
+    cors:
+      enabled: true
+      allowed_origins:
+        - http://47.239.139.109
+        - http://47.239.139.109:80
+      allowed_methods:
+        - POST
+        - GET
+        - PUT
+        - PATCH
+        - DELETE
+      allowed_headers:
+        - Authorization
+        - Content-Type
+
+# DSN 从环境变量读取
+# DSN: postgres://ory_user:password@tsu_postgres_ory:5432/ory_db?sslmode=disable&search_path=keto
+
+log:
+  level: info
+  format: json
+
+namespaces:
+  - id: 0
+    name: roles
+  - id: 1
+    name: permissions

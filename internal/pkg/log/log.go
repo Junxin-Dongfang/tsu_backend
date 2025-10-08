@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"os"
 
-	"tsu-self/internal/pkg/contextkeys"
 	"tsu-self/internal/pkg/xerrors"
 )
 
@@ -139,21 +138,21 @@ func (h *ContextHandler) Enabled(ctx context.Context, level slog.Level) bool {
 
 func (h *ContextHandler) Handle(ctx context.Context, r slog.Record) error {
 	// 从context中提取通用字段
-	if traceID, ok := ctx.Value(contextkeys.TraceIDKey).(string); ok && traceID != "" {
-		r.AddAttrs(slog.String("trace_id", traceID))
-	}
+	// if traceID, ok := ctx.Value(contextkeys.TraceIDKey).(string); ok && traceID != "" {
+	// 	r.AddAttrs(slog.String("trace_id", traceID))
+	// }
 
-	if spanID, ok := ctx.Value(contextkeys.SpanIDKey).(string); ok && spanID != "" {
-		r.AddAttrs(slog.String("span_id", spanID))
-	}
+	// if spanID, ok := ctx.Value(contextkeys.SpanIDKey).(string); ok && spanID != "" {
+	// 	r.AddAttrs(slog.String("span_id", spanID))
+	// }
 
-	if userID, ok := ctx.Value(contextkeys.UserIDKey).(string); ok && userID != "" {
-		r.AddAttrs(slog.String("user_id", userID))
-	}
+	// if userID, ok := ctx.Value(contextkeys.UserIDKey).(string); ok && userID != "" {
+	// 	r.AddAttrs(slog.String("user_id", userID))
+	// }
 
-	if requestID, ok := ctx.Value(contextkeys.RequestIDKey).(string); ok && requestID != "" {
-		r.AddAttrs(slog.String("request_id", requestID))
-	}
+	// if requestID, ok := ctx.Value(contextkeys.RequestIDKey).(string); ok && requestID != "" {
+	// 	r.AddAttrs(slog.String("request_id", requestID))
+	// }
 
 	// 可以添加其他通用字段的提取逻辑
 

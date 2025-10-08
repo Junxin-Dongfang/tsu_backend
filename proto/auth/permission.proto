@@ -1,0 +1,244 @@
+syntax = "proto3";
+
+package auth;
+
+option go_package = "tsu-self/internal/pb/auth";
+
+import "proto/common/common.proto";
+
+// Permission RPC 服务定义
+service PermissionService {
+    // ==================== 权限检查 ====================
+    // 检查用户是否拥有指定权限
+    rpc CheckUserPermission(CheckUserPermissionRequest) returns (CheckUserPermissionResponse);
+
+    // ==================== 角色管理 ====================
+    // 获取角色列表
+    rpc GetRoles(GetRolesRequest) returns (GetRolesResponse);
+    // 创建角色
+    rpc CreateRole(CreateRoleRequest) returns (CreateRoleResponse);
+    // 更新角色
+    rpc UpdateRole(UpdateRoleRequest) returns (UpdateRoleResponse);
+    // 删除角色
+    rpc DeleteRole(DeleteRoleRequest) returns (DeleteRoleResponse);
+
+    // ==================== 权限管理 ====================
+    // 获取权限列表
+    rpc GetPermissions(GetPermissionsRequest) returns (GetPermissionsResponse);
+    // 获取权限分组列表
+    rpc GetPermissionGroups(GetPermissionGroupsRequest) returns (GetPermissionGroupsResponse);
+
+    // ==================== 角色-权限管理 ====================
+    // 获取角色的权限列表
+    rpc GetRolePermissions(GetRolePermissionsRequest) returns (GetRolePermissionsResponse);
+    // 为角色分配权限
+    rpc AssignPermissionsToRole(AssignPermissionsToRoleRequest) returns (AssignPermissionsToRoleResponse);
+
+    // ==================== 用户-角色管理 ====================
+    // 获取用户的角色列表
+    rpc GetUserRoles(GetUserRolesRequest) returns (GetUserRolesResponse);
+    // 为用户分配角色
+    rpc AssignRolesToUser(AssignRolesToUserRequest) returns (AssignRolesToUserResponse);
+    // 撤销用户角色
+    rpc RevokeRolesFromUser(RevokeRolesFromUserRequest) returns (RevokeRolesFromUserResponse);
+
+    // ==================== 用户-权限管理 ====================
+    // 获取用户的所有权限(包括角色权限和直接权限)
+    rpc GetUserPermissions(GetUserPermissionsRequest) returns (GetUserPermissionsResponse);
+    // 直接授予用户权限(绕过角色)
+    rpc GrantPermissionsToUser(GrantPermissionsToUserRequest) returns (GrantPermissionsToUserResponse);
+    // 撤销用户直接权限
+    rpc RevokePermissionsFromUser(RevokePermissionsFromUserRequest) returns (RevokePermissionsFromUserResponse);
+}
+
+// ==================== 数据结构 ====================
+
+// 角色信息
+message RoleInfo {
+    string id = 1;
+    string code = 2;
+    string name = 3;
+    string description = 4;
+    bool is_system = 5;
+    bool is_default = 6;
+    int64 created_at = 7;
+    int64 updated_at = 8;
+}
+
+// 权限信息
+message PermissionInfo {
+    string id = 1;
+    string code = 2;
+    string name = 3;
+    string description = 4;
+    string resource = 5;
+    string action = 6;
+    bool is_system = 7;
+    int64 created_at = 8;
+}
+
+// 权限分组信息
+message PermissionGroupInfo {
+    string id = 1;
+    string code = 2;
+    string name = 3;
+    string description = 4;
+    string icon = 5;
+    string color = 6;
+    int32 sort_order = 7;
+    int32 level = 8;
+    repeated PermissionInfo permissions = 9;  // 该分组下的权限列表
+}
+
+// ==================== 权限检查 ====================
+
+message CheckUserPermissionRequest {
+    string user_id = 1;
+    string permission_code = 2;
+}
+
+message CheckUserPermissionResponse {
+    bool allowed = 1;
+}
+
+// ==================== 角色管理 ====================
+
+message GetRolesRequest {
+    string keyword = 1;  // 搜索关键词(角色名称或 code)
+    common.PaginationRequest pagination = 2;
+}
+
+message GetRolesResponse {
+    repeated RoleInfo roles = 1;
+    common.PaginationMetadata pagination = 2;
+}
+
+message CreateRoleRequest {
+    string code = 1;
+    string name = 2;
+    string description = 3;
+    bool is_system = 4;
+    bool is_default = 5;
+}
+
+message CreateRoleResponse {
+    RoleInfo role = 1;
+}
+
+message UpdateRoleRequest {
+    string role_id = 1;
+    string name = 2;
+    string description = 3;
+}
+
+message UpdateRoleResponse {
+    RoleInfo role = 1;
+}
+
+message DeleteRoleRequest {
+    string role_id = 1;
+}
+
+message DeleteRoleResponse {
+    common.Status status = 1;
+}
+
+// ==================== 权限管理 ====================
+
+message GetPermissionsRequest {
+    string keyword = 1;  // 搜索关键词(权限名称或 code)
+    string resource = 2;  // 资源过滤
+    string action = 3;    // 操作过滤
+    common.PaginationRequest pagination = 4;
+}
+
+message GetPermissionsResponse {
+    repeated PermissionInfo permissions = 1;
+    common.PaginationMetadata pagination = 2;
+}
+
+message GetPermissionGroupsRequest {
+    string keyword = 1;  // 搜索关键词(分组名称或 code)
+    common.PaginationRequest pagination = 2;
+}
+
+message GetPermissionGroupsResponse {
+    repeated PermissionGroupInfo groups = 1;
+    common.PaginationMetadata pagination = 2;
+}
+
+// ==================== 角色-权限管理 ====================
+
+message GetRolePermissionsRequest {
+    string role_id = 1;
+}
+
+message GetRolePermissionsResponse {
+    repeated PermissionInfo permissions = 1;
+}
+
+message AssignPermissionsToRoleRequest {
+    string role_id = 1;
+    repeated string permission_ids = 2;
+    string operator_id = 3;  // 操作人 ID(用于审计)
+}
+
+message AssignPermissionsToRoleResponse {
+    common.Status status = 1;
+}
+
+// ==================== 用户-角色管理 ====================
+
+message GetUserRolesRequest {
+    string user_id = 1;
+}
+
+message GetUserRolesResponse {
+    repeated RoleInfo roles = 1;
+}
+
+message AssignRolesToUserRequest {
+    string user_id = 1;
+    repeated string role_codes = 2;
+}
+
+message AssignRolesToUserResponse {
+    common.Status status = 1;
+}
+
+message RevokeRolesFromUserRequest {
+    string user_id = 1;
+    repeated string role_codes = 2;
+}
+
+message RevokeRolesFromUserResponse {
+    common.Status status = 1;
+}
+
+// ==================== 用户-权限管理 ====================
+
+message GetUserPermissionsRequest {
+    string user_id = 1;
+}
+
+message GetUserPermissionsResponse {
+    repeated PermissionInfo permissions = 1;
+}
+
+message GrantPermissionsToUserRequest {
+    string user_id = 1;
+    repeated string permission_codes = 2;
+}
+
+message GrantPermissionsToUserResponse {
+    common.Status status = 1;
+}
+
+message RevokePermissionsFromUserRequest {
+    string user_id = 1;
+    repeated string permission_codes = 2;
+}
+
+message RevokePermissionsFromUserResponse {
+    common.Status status = 1;
+}

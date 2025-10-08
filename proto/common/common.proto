@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package common;
+
+option go_package = "tsu-self/internal/pb/common";
+
+// 通用响应状态
+message Status {
+    bool success = 1;
+    string message = 2;
+}
+
+// 分页请求
+message PaginationRequest {
+    int32 page = 1;
+    int32 page_size = 2;
+}
+
+// 分页响应元数据
+message PaginationMetadata {
+    int32 page = 1;
+    int32 page_size = 2;
+    int32 total = 3;
+    int32 total_pages = 4;
+}

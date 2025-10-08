@@ -6,7 +6,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 
-	"tsu-self/internal/pkg/contextkeys"
 	"tsu-self/internal/pkg/log"
 	"tsu-self/internal/pkg/response"
 )
@@ -40,8 +39,8 @@ func TraceMiddleware() echo.MiddlewareFunc {
 
 			// 更新 request context
 			ctx := c.Request().Context()
-			ctx = contextkeys.WithTraceID(ctx, traceID)
-			ctx = contextkeys.WithRequestID(ctx, requestID)
+			// ctx = contextkeys.WithTraceID(ctx, traceID)
+			// ctx = contextkeys.WithRequestID(ctx, requestID)
 			c.SetRequest(c.Request().WithContext(ctx))
 
 			return next(c)
