@@ -2,15 +2,30 @@
 
 ## 概述
 
-`import_game_config.py` 是用于将游戏配置Excel文件（`configs/game/游戏配置表_v2.0.0.xlsx`）导入到PostgreSQL数据库的工具。
+`import_game_config.py` 是用于将游戏配置Excel文件（`configs/game/游戏配置表_v1.0.0.0.xlsx`）导入到PostgreSQL数据库的工具。
 
 ## 功能特性
+
+### 导入模式
+
+工具支持两种导入模式：
+
+1. **truncate（清空模式）** - 默认模式
+   - 删除表中所有现有数据
+   - 重新导入所有配置
+   - 适用于：初始化数据库、完全重置配置
+
+2. **incremental（增量模式）**
+   - 保留现有数据
+   - 使用 `ON CONFLICT DO UPDATE` 更新已存在的记录
+   - 插入新记录
+   - 适用于：部分更新配置、追加新配置
 
 ### 已实现的导入模块
 
 1. **角色数据类型** (`hero_attribute_type`) - ✅ 完成
    - 导入角色的属性类型定义（如 STR、DEX、CON 等）
-   - 成功导入：10条记录
+   - 支持增量更新
 
 2. **伤害类型** (`damage_types`) - ✅ 完成
    - 导入游戏中的伤害类型配置（物理、魔法、火焰等）
@@ -50,22 +65,74 @@
 
 ## 使用方法
 
-### 基本用法
+### 本地开发环境
+
+#### 基本用法
 
 ```bash
-# 使用默认凭证（从环境变量读取）
+# 使用默认模式（清空导入）
+./scripts/import-game-config-local.sh
+
+# 增量导入
+./scripts/import-game-config-local.sh --mode incremental
+
+# 查看帮助
+./scripts/import-game-config-local.sh --help
+```
+
+#### 自动确认模式
+
+```bash
+# 跳过确认提示
+AUTO_CONFIRM=yes ./scripts/import-game-config-local.sh
+```
+
+### Python 脚本直接调用
+
+```bash
+# 清空导入（默认）
 python3 scripts/import_game_config.py
 
-# 指定数据库凭证
-python3 scripts/import_game_config.py --user tsu_user --password tsu_test
+# 增量导入
+python3 scripts/import_game_config.py --mode incremental
 
-# 指定Excel文件路径（可选）
-python3 scripts/import_game_config.py --file configs/game/游戏配置表_v2.0.0.xlsx
+# 指定数据库凭证
+python3 scripts/import_game_config.py \
+  --host localhost \
+  --port 5432 \
+  --user tsu_user \
+  --password tsu_password \
+  --mode incremental
+
+# 查看帮助
+python3 scripts/import_game_config.py --help
+```
+
+### 生产环境
+
+```bash
+# 清空导入（默认）
+./scripts/import-game-config-prod.sh
+
+# 增量导入
+./scripts/import-game-config-prod.sh --mode incremental
+
+# 自动确认模式
+AUTO_CONFIRM=yes ./scripts/import-game-config-prod.sh --mode incremental
 ```
 
 ### 参数说明
 
-- `--file`: Excel文件路径（默认：`configs/game/游戏配置表_v2.0.0.xlsx`）
+#### Shell 脚本参数
+
+- `--mode <truncate|incremental>`: 导入模式
+  - `truncate`: 清空现有数据后导入（默认）
+  - `incremental`: 增量导入，保留现有数据
+- `--help`, `-h`: 显示帮助信息
+
+#### Python 脚本参数
+
+- `--file`: Excel文件路径（默认：`configs/game/游戏配置表_v1.0.0.0.xlsx`）
 - `--user`: 数据库用户名（默认：从环境变量读取）
 - `--password`: 数据库密码（默认：从环境变量读取）
 - `--host`: 数据库主机（默认：`localhost`）

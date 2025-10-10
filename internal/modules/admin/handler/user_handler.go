@@ -1,8 +1,12 @@
 package handler
 
 import (
+	"context"
+	"time"
+
 	"github.com/labstack/echo/v4"
 	"github.com/liangdas/mqant/module"
+	"github.com/liangdas/mqant/rpc"
 	"google.golang.org/protobuf/proto"
 
 	custommiddleware "tsu-self/internal/middleware"
@@ -13,16 +17,14 @@ import (
 
 // UserHandler 用户管理处理器
 type UserHandler struct {
-	app        module.App
-	thisModule module.RPCModule
+	rpcCaller  module.RPCModule
 	respWriter response.Writer
 }
 
 // NewUserHandler 创建用户管理处理器
-func NewUserHandler(app module.App, thisModule module.RPCModule, respWriter response.Writer) *UserHandler {
+func NewUserHandler(rpcCaller module.RPCModule, respWriter response.Writer) *UserHandler {
 	return &UserHandler{
-		app:        app,
-		thisModule: thisModule,
+		rpcCaller:  rpcCaller,
 		respWriter: respWriter,
 	}
 }
@@ -160,8 +162,21 @@ func (h *UserHandler) GetUsers(c echo.Context) error {
 		return response.EchoError(c, h.respWriter, appErr)
 	}
 
-	result, errStr := h.app.Invoke(h.thisModule, "auth", "GetUsers", rpcReqBytes)
+	ctx, cancel := context.WithTimeout(c.Request().Context(), 3*time.Second)
+	defer cancel()
+
+	result, errStr := h.rpcCaller.Call(
+		ctx,
+		"auth",
+		"GetUsers",
+		mqrpc.Param(rpcReqBytes),
+	)
+
 	if errStr != "" {
+		if ctx.Err() == context.DeadlineExceeded {
+			appErr := xerrors.New(xerrors.CodeExternalServiceError, "Auth服务超时")
+			return response.EchoError(c, h.respWriter, appErr)
+		}
 		appErr := xerrors.New(xerrors.CodeExternalServiceError, errStr)
 		return response.EchoError(c, h.respWriter, appErr)
 	}
@@ -272,8 +287,21 @@ func (h *UserHandler) GetUser(c echo.Context) error {
 	}
 
 	// 调用 RPC
-	result, errStr := h.app.Invoke(h.thisModule, "auth", "GetUser", rpcReqBytes)
+	ctx, cancel := context.WithTimeout(c.Request().Context(), 2*time.Second)
+	defer cancel()
+
+	result, errStr := h.rpcCaller.Call(
+		ctx,
+		"auth",
+		"GetUser",
+		mqrpc.Param(rpcReqBytes),
+	)
+
 	if errStr != "" {
+		if ctx.Err() == context.DeadlineExceeded {
+			appErr := xerrors.New(xerrors.CodeExternalServiceError, "Auth服务超时")
+			return response.EchoError(c, h.respWriter, appErr)
+		}
 		appErr := xerrors.NewUserNotFoundError(userID)
 		return response.EchoError(c, h.respWriter, appErr)
 	}
@@ -415,8 +443,21 @@ func (h *UserHandler) UpdateUser(c echo.Context) error {
 	}
 
 	// 调用 RPC
-	result, errStr := h.app.Invoke(h.thisModule, "auth", "UpdateUser", rpcReqBytes)
+	ctx, cancel := context.WithTimeout(c.Request().Context(), 3*time.Second)
+	defer cancel()
+
+	result, errStr := h.rpcCaller.Call(
+		ctx,
+		"auth",
+		"UpdateUser",
+		mqrpc.Param(rpcReqBytes),
+	)
+
 	if errStr != "" {
+		if ctx.Err() == context.DeadlineExceeded {
+			appErr := xerrors.New(xerrors.CodeExternalServiceError, "Auth服务超时")
+			return response.EchoError(c, h.respWriter, appErr)
+		}
 		appErr := xerrors.New(xerrors.CodeExternalServiceError, errStr)
 		return response.EchoError(c, h.respWriter, appErr)
 	}
@@ -487,8 +528,21 @@ func (h *UserHandler) BanUser(c echo.Context) error {
 	}
 
 	// 调用 RPC
-	result, errStr := h.app.Invoke(h.thisModule, "auth", "BanUser", rpcReqBytes)
+	ctx, cancel := context.WithTimeout(c.Request().Context(), 3*time.Second)
+	defer cancel()
+
+	result, errStr := h.rpcCaller.Call(
+		ctx,
+		"auth",
+		"BanUser",
+		mqrpc.Param(rpcReqBytes),
+	)
+
 	if errStr != "" {
+		if ctx.Err() == context.DeadlineExceeded {
+			appErr := xerrors.New(xerrors.CodeExternalServiceError, "Auth服务超时")
+			return response.EchoError(c, h.respWriter, appErr)
+		}
 		appErr := xerrors.New(xerrors.CodeExternalServiceError, errStr)
 		return response.EchoError(c, h.respWriter, appErr)
 	}
@@ -543,8 +597,21 @@ func (h *UserHandler) UnbanUser(c echo.Context) error {
 	}
 
 	// 调用 RPC
-	result, errStr := h.app.Invoke(h.thisModule, "auth", "UnbanUser", rpcReqBytes)
+	ctx, cancel := context.WithTimeout(c.Request().Context(), 3*time.Second)
+	defer cancel()
+
+	result, errStr := h.rpcCaller.Call(
+		ctx,
+		"auth",
+		"UnbanUser",
+		mqrpc.Param(rpcReqBytes),
+	)
+
 	if errStr != "" {
+		if ctx.Err() == context.DeadlineExceeded {
+			appErr := xerrors.New(xerrors.CodeExternalServiceError, "Auth服务超时")
+			return response.EchoError(c, h.respWriter, appErr)
+		}
 		appErr := xerrors.New(xerrors.CodeExternalServiceError, errStr)
 		return response.EchoError(c, h.respWriter, appErr)
 	}
@@ -607,8 +674,21 @@ func (h *UserHandler) GetCurrentUserProfile(c echo.Context) error {
 	}
 
 	// 调用 Auth RPC
-	result, errStr := h.app.Invoke(h.thisModule, "auth", "GetUser", rpcReqBytes)
+	ctx, cancel := context.WithTimeout(c.Request().Context(), 2*time.Second)
+	defer cancel()
+
+	result, errStr := h.rpcCaller.Call(
+		ctx,
+		"auth",
+		"GetUser",
+		mqrpc.Param(rpcReqBytes),
+	)
+
 	if errStr != "" {
+		if ctx.Err() == context.DeadlineExceeded {
+			appErr := xerrors.New(xerrors.CodeExternalServiceError, "Auth服务超时")
+			return response.EchoError(c, h.respWriter, appErr)
+		}
 		appErr := xerrors.New(xerrors.CodeExternalServiceError, errStr)
 		return response.EchoError(c, h.respWriter, appErr)
 	}

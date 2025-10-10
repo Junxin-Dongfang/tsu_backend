@@ -31,83 +31,86 @@ func NewActionHandler(db *sql.DB, respWriter response.Writer) *ActionHandler {
 
 // CreateActionRequest 创建动作请求
 type CreateActionRequest struct {
-	ActionCode       string   `json:"action_code" validate:"required,max=50" example:"attack"`                     // 动作唯一代码
-	ActionName       string   `json:"action_name" validate:"required,max=100" example:"普通攻击"`                      // 动作名称
-	ActionType       string   `json:"action_type" validate:"required" example:"main"`                              // 动作类型(main/minor/reaction)
-	ActionCategoryID string   `json:"action_category_id" example:"550e8400-e29b-41d4-a716-446655440000"`           // 动作类别ID
-	RelatedSkillID   string   `json:"related_skill_id" example:"550e8400-e29b-41d4-a716-446655440000"`             // 关联技能ID
-	FeatureTags      []string `json:"feature_tags" example:"melee,physical"`                                       // 特性标签数组
-	RangeConfig      string   `json:"range_config" validate:"required" example:"{\"type\":\"melee\",\"range\":5}"` // 范围配置JSON(必需)
-	TargetConfig     string   `json:"target_config" example:"{\"type\":\"single\",\"target\":\"enemy\"}"`          // 目标配置JSON
-	AreaConfig       string   `json:"area_config" example:"{\"shape\":\"circle\",\"radius\":3}"`                   // 区域配置JSON
-	ActionPointCost  int      `json:"action_point_cost" example:"1"`                                               // 行动点消耗
-	ManaCost         int      `json:"mana_cost" example:"10"`                                                      // 法力消耗
-	ManaCostFormula  string   `json:"mana_cost_formula" example:"base_cost + level * 2"`                           // 法力消耗公式
-	CooldownTurns    int      `json:"cooldown_turns" example:"3"`                                                  // 冷却回合数
-	UsesPerBattle    int      `json:"uses_per_battle" example:"5"`                                                 // 每场战斗可用次数
-	HitRateConfig    string   `json:"hit_rate_config" example:"{\"base\":85,\"modifier\":\"dex\"}"`                // 命中率配置JSON
-	Requirements     string   `json:"requirements" example:"{\"min_level\":5,\"class\":\"warrior\"}"`              // 需求配置JSON
-	StartFlags       []string `json:"start_flags" example:"combat_start,first_round"`                              // 起始标记数组
-	AnimationConfig  string   `json:"animation_config" example:"{\"animation\":\"swing\",\"duration\":1000}"`      // 动画配置JSON
-	VisualEffects    string   `json:"visual_effects" example:"{\"effect\":\"slash\",\"color\":\"red\"}"`           // 视觉效果JSON
-	SoundEffects     string   `json:"sound_effects" example:"{\"sound\":\"sword_swing.mp3\"}"`                     // 音效配置JSON
-	Description      string   `json:"description" example:"使用武器进行近战攻击"`                                            // 动作描述
-	IsActive         bool     `json:"is_active" example:"true"`                                                    // 是否启用
+	ActionCode         string   `json:"action_code" validate:"required,max=50" example:"attack"`                     // 动作唯一代码
+	ActionName         string   `json:"action_name" validate:"required,max=100" example:"普通攻击"`                      // 动作名称
+	ActionType         string   `json:"action_type" validate:"required" example:"main"`                              // 动作类型(main/minor/reaction)
+	ActionCategoryID   string   `json:"action_category_id" example:"550e8400-e29b-41d4-a716-446655440000"`           // 动作类别ID
+	RelatedSkillID     string   `json:"related_skill_id" example:"550e8400-e29b-41d4-a716-446655440000"`             // 关联技能ID
+	FeatureTags        []string `json:"feature_tags" example:"melee,physical"`                                       // 特性标签数组
+	RangeConfig        string   `json:"range_config" validate:"required" example:"{\"type\":\"melee\",\"range\":5}"` // 范围配置JSON(必需)
+	TargetConfig       string   `json:"target_config" example:"{\"type\":\"single\",\"target\":\"enemy\"}"`          // 目标配置JSON
+	AreaConfig         string   `json:"area_config" example:"{\"shape\":\"circle\",\"radius\":3}"`                   // 区域配置JSON
+	ActionPointCost    int      `json:"action_point_cost" example:"1"`                                               // 行动点消耗
+	ManaCost           int      `json:"mana_cost" example:"10"`                                                      // 法力消耗
+	ManaCostFormula    string   `json:"mana_cost_formula" example:"base_cost + level * 2"`                           // 法力消耗公式
+	CooldownTurns      int      `json:"cooldown_turns" example:"3"`                                                  // 冷却回合数
+	UsesPerBattle      int      `json:"uses_per_battle" example:"5"`                                                 // 每场战斗可用次数
+	HitRateConfig      string   `json:"hit_rate_config" example:"{\"base\":85,\"modifier\":\"dex\"}"`                // 命中率配置JSON
+	LegacyEffectConfig string   `json:"legacy_effect_config" example:"{\"damage\":\"2d6+3\"}"`                       // Excel原始效果配置（用于兼容导入）
+	Requirements       string   `json:"requirements" example:"{\"min_level\":5,\"class\":\"warrior\"}"`              // 需求配置JSON
+	StartFlags         []string `json:"start_flags" example:"combat_start,first_round"`                              // 起始标记数组
+	AnimationConfig    string   `json:"animation_config" example:"{\"animation\":\"swing\",\"duration\":1000}"`      // 动画配置JSON
+	VisualEffects      string   `json:"visual_effects" example:"{\"effect\":\"slash\",\"color\":\"red\"}"`           // 视觉效果JSON
+	SoundEffects       string   `json:"sound_effects" example:"{\"sound\":\"sword_swing.mp3\"}"`                     // 音效配置JSON
+	Description        string   `json:"description" example:"使用武器进行近战攻击"`                                            // 动作描述
+	IsActive           bool     `json:"is_active" example:"true"`                                                    // 是否启用
 }
 
 // UpdateActionRequest 更新动作请求
 type UpdateActionRequest struct {
-	ActionCode       string   `json:"action_code" example:"attack"`                                      // 动作唯一代码
-	ActionName       string   `json:"action_name" example:"普通攻击"`                                        // 动作名称
-	ActionType       string   `json:"action_type" example:"main"`                                        // 动作类型(main/minor/reaction)
-	ActionCategoryID string   `json:"action_category_id" example:"550e8400-e29b-41d4-a716-446655440000"` // 动作类别ID
-	RelatedSkillID   string   `json:"related_skill_id" example:"550e8400-e29b-41d4-a716-446655440000"`   // 关联技能ID
-	FeatureTags      []string `json:"feature_tags" example:"melee,physical"`                             // 特性标签数组
-	RangeConfig      string   `json:"range_config" example:"{\"type\":\"melee\",\"range\":5}"`           // 范围配置JSON
-	TargetConfig     string   `json:"target_config" example:"{\"type\":\"single\"}"`                     // 目标配置JSON
-	AreaConfig       string   `json:"area_config" example:"{\"shape\":\"circle\",\"radius\":3}"`         // 区域配置JSON
-	ActionPointCost  int      `json:"action_point_cost" example:"1"`                                     // 行动点消耗
-	ManaCost         int      `json:"mana_cost" example:"10"`                                            // 法力消耗
-	ManaCostFormula  string   `json:"mana_cost_formula" example:"base_cost + level * 2"`                 // 法力消耗公式
-	CooldownTurns    int      `json:"cooldown_turns" example:"3"`                                        // 冷却回合数
-	UsesPerBattle    int      `json:"uses_per_battle" example:"5"`                                       // 每场战斗可用次数
-	HitRateConfig    string   `json:"hit_rate_config" example:"{\"base\":85}"`                           // 命中率配置JSON
-	Requirements     string   `json:"requirements" example:"{\"min_level\":5}"`                          // 需求配置JSON
-	StartFlags       []string `json:"start_flags" example:"combat_start"`                                // 起始标记数组
-	AnimationConfig  string   `json:"animation_config" example:"{\"animation\":\"swing\"}"`              // 动画配置JSON
-	VisualEffects    string   `json:"visual_effects" example:"{\"effect\":\"slash\"}"`                   // 视觉效果JSON
-	SoundEffects     string   `json:"sound_effects" example:"{\"sound\":\"sword_swing.mp3\"}"`           // 音效配置JSON
-	Description      string   `json:"description" example:"使用武器进行近战攻击"`                                  // 动作描述
-	IsActive         bool     `json:"is_active" example:"true"`                                          // 是否启用
+	ActionCode         string   `json:"action_code" example:"attack"`                                      // 动作唯一代码
+	ActionName         string   `json:"action_name" example:"普通攻击"`                                        // 动作名称
+	ActionType         string   `json:"action_type" example:"main"`                                        // 动作类型(main/minor/reaction)
+	ActionCategoryID   string   `json:"action_category_id" example:"550e8400-e29b-41d4-a716-446655440000"` // 动作类别ID
+	RelatedSkillID     string   `json:"related_skill_id" example:"550e8400-e29b-41d4-a716-446655440000"`   // 关联技能ID
+	FeatureTags        []string `json:"feature_tags" example:"melee,physical"`                             // 特性标签数组
+	RangeConfig        string   `json:"range_config" example:"{\"type\":\"melee\",\"range\":5}"`           // 范围配置JSON
+	TargetConfig       string   `json:"target_config" example:"{\"type\":\"single\"}"`                     // 目标配置JSON
+	AreaConfig         string   `json:"area_config" example:"{\"shape\":\"circle\",\"radius\":3}"`         // 区域配置JSON
+	ActionPointCost    int      `json:"action_point_cost" example:"1"`                                     // 行动点消耗
+	ManaCost           int      `json:"mana_cost" example:"10"`                                            // 法力消耗
+	ManaCostFormula    string   `json:"mana_cost_formula" example:"base_cost + level * 2"`                 // 法力消耗公式
+	CooldownTurns      int      `json:"cooldown_turns" example:"3"`                                        // 冷却回合数
+	UsesPerBattle      int      `json:"uses_per_battle" example:"5"`                                       // 每场战斗可用次数
+	HitRateConfig      string   `json:"hit_rate_config" example:"{\"base\":85}"`                           // 命中率配置JSON
+	LegacyEffectConfig string   `json:"legacy_effect_config" example:"{\"damage\":\"2d6+3\"}"`             // Excel原始效果配置（用于兼容导入）
+	Requirements       string   `json:"requirements" example:"{\"min_level\":5}"`                          // 需求配置JSON
+	StartFlags         []string `json:"start_flags" example:"combat_start"`                                // 起始标记数组
+	AnimationConfig    string   `json:"animation_config" example:"{\"animation\":\"swing\"}"`              // 动画配置JSON
+	VisualEffects      string   `json:"visual_effects" example:"{\"effect\":\"slash\"}"`                   // 视觉效果JSON
+	SoundEffects       string   `json:"sound_effects" example:"{\"sound\":\"sword_swing.mp3\"}"`           // 音效配置JSON
+	Description        string   `json:"description" example:"使用武器进行近战攻击"`                                  // 动作描述
+	IsActive           bool     `json:"is_active" example:"true"`                                          // 是否启用
 }
 
 // ActionInfo 动作信息响应
 type ActionInfo struct {
-	ID               string   `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`                 // 动作ID
-	ActionCode       string   `json:"action_code" example:"attack"`                                      // 动作唯一代码
-	ActionName       string   `json:"action_name" example:"普通攻击"`                                        // 动作名称
-	ActionType       string   `json:"action_type" example:"main"`                                        // 动作类型(main/minor/reaction)
-	ActionCategoryID string   `json:"action_category_id" example:"550e8400-e29b-41d4-a716-446655440000"` // 动作类别ID
-	RelatedSkillID   string   `json:"related_skill_id" example:"550e8400-e29b-41d4-a716-446655440000"`   // 关联技能ID
-	FeatureTags      []string `json:"feature_tags" example:"melee,physical"`                             // 特性标签数组
-	RangeConfig      string   `json:"range_config" example:"{\"type\":\"melee\",\"range\":5}"`           // 范围配置JSON
-	TargetConfig     string   `json:"target_config" example:"{\"type\":\"single\"}"`                     // 目标配置JSON
-	AreaConfig       string   `json:"area_config" example:"{\"shape\":\"circle\",\"radius\":3}"`         // 区域配置JSON
-	ActionPointCost  int      `json:"action_point_cost" example:"1"`                                     // 行动点消耗
-	ManaCost         int      `json:"mana_cost" example:"10"`                                            // 法力消耗
-	ManaCostFormula  string   `json:"mana_cost_formula" example:"base_cost + level * 2"`                 // 法力消耗公式
-	CooldownTurns    int      `json:"cooldown_turns" example:"3"`                                        // 冷却回合数
-	UsesPerBattle    int      `json:"uses_per_battle" example:"5"`                                       // 每场战斗可用次数
-	HitRateConfig    string   `json:"hit_rate_config" example:"{\"base\":85}"`                           // 命中率配置JSON
-	Requirements     string   `json:"requirements" example:"{\"min_level\":5}"`                          // 需求配置JSON
-	StartFlags       []string `json:"start_flags" example:"combat_start"`                                // 起始标记数组
-	AnimationConfig  string   `json:"animation_config" example:"{\"animation\":\"swing\"}"`              // 动画配置JSON
-	VisualEffects    string   `json:"visual_effects" example:"{\"effect\":\"slash\"}"`                   // 视觉效果JSON
-	SoundEffects     string   `json:"sound_effects" example:"{\"sound\":\"sword_swing.mp3\"}"`           // 音效配置JSON
-	Description      string   `json:"description" example:"使用武器进行近战攻击"`                                  // 动作描述
-	IsActive         bool     `json:"is_active" example:"true"`                                          // 是否启用
-	CreatedAt        int64    `json:"created_at" example:"1633024800"`                                   // 创建时间戳
-	UpdatedAt        int64    `json:"updated_at" example:"1633024800"`                                   // 更新时间戳
+	ID                 string   `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`                 // 动作ID
+	ActionCode         string   `json:"action_code" example:"attack"`                                      // 动作唯一代码
+	ActionName         string   `json:"action_name" example:"普通攻击"`                                        // 动作名称
+	ActionType         string   `json:"action_type" example:"main"`                                        // 动作类型(main/minor/reaction)
+	ActionCategoryID   string   `json:"action_category_id" example:"550e8400-e29b-41d4-a716-446655440000"` // 动作类别ID
+	RelatedSkillID     string   `json:"related_skill_id" example:"550e8400-e29b-41d4-a716-446655440000"`   // 关联技能ID
+	FeatureTags        []string `json:"feature_tags" example:"melee,physical"`                             // 特性标签数组
+	RangeConfig        string   `json:"range_config" example:"{\"type\":\"melee\",\"range\":5}"`           // 范围配置JSON
+	TargetConfig       string   `json:"target_config" example:"{\"type\":\"single\"}"`                     // 目标配置JSON
+	AreaConfig         string   `json:"area_config" example:"{\"shape\":\"circle\",\"radius\":3}"`         // 区域配置JSON
+	ActionPointCost    int      `json:"action_point_cost" example:"1"`                                     // 行动点消耗
+	ManaCost           int      `json:"mana_cost" example:"10"`                                            // 法力消耗
+	ManaCostFormula    string   `json:"mana_cost_formula" example:"base_cost + level * 2"`                 // 法力消耗公式
+	CooldownTurns      int      `json:"cooldown_turns" example:"3"`                                        // 冷却回合数
+	UsesPerBattle      int      `json:"uses_per_battle" example:"5"`                                       // 每场战斗可用次数
+	HitRateConfig      string   `json:"hit_rate_config" example:"{\"base\":85}"`                           // 命中率配置JSON
+	LegacyEffectConfig string   `json:"legacy_effect_config" example:"{\"damage\":\"2d6+3\"}"`             // Excel原始效果配置（用于兼容导入）
+	Requirements       string   `json:"requirements" example:"{\"min_level\":5}"`                          // 需求配置JSON
+	StartFlags         []string `json:"start_flags" example:"combat_start"`                                // 起始标记数组
+	AnimationConfig    string   `json:"animation_config" example:"{\"animation\":\"swing\"}"`              // 动画配置JSON
+	VisualEffects      string   `json:"visual_effects" example:"{\"effect\":\"slash\"}"`                   // 视觉效果JSON
+	SoundEffects       string   `json:"sound_effects" example:"{\"sound\":\"sword_swing.mp3\"}"`           // 音效配置JSON
+	Description        string   `json:"description" example:"使用武器进行近战攻击"`                                  // 动作描述
+	IsActive           bool     `json:"is_active" example:"true"`                                          // 是否启用
+	CreatedAt          int64    `json:"created_at" example:"1633024800"`                                   // 创建时间戳
+	UpdatedAt          int64    `json:"updated_at" example:"1633024800"`                                   // 更新时间戳
 }
 
 // ==================== HTTP Handlers ====================
@@ -123,7 +126,7 @@ type ActionInfo struct {
 // @Param is_active query bool false "是否启用筛选"
 // @Param limit query int false "每页数量"
 // @Param offset query int false "偏移量"
-// @Success 200 {object} response.Response{data=map[string]interface{}}
+// @Success 200 {object} response.Response{data=object{list=[]ActionInfo,total=int}}
 // @Failure 400 {object} response.Response "参数错误"
 // @Failure 500 {object} response.Response "服务器内部错误"
 // @Security BearerAuth
@@ -275,6 +278,10 @@ func (h *ActionHandler) CreateAction(c echo.Context) error {
 		action.HitRateConfig.UnmarshalJSON([]byte(req.HitRateConfig))
 	}
 
+	if req.LegacyEffectConfig != "" {
+		action.LegacyEffectConfig.UnmarshalJSON([]byte(req.LegacyEffectConfig))
+	}
+
 	if req.Requirements != "" {
 		action.Requirements.UnmarshalJSON([]byte(req.Requirements))
 	}
@@ -365,6 +372,7 @@ func (h *ActionHandler) UpdateAction(c echo.Context) error {
 	updates["related_skill_id"] = req.RelatedSkillID
 	updates["description"] = req.Description
 	updates["mana_cost_formula"] = req.ManaCostFormula
+	updates["legacy_effect_config"] = req.LegacyEffectConfig
 	updates["is_active"] = req.IsActive
 
 	// 更新动作
@@ -452,6 +460,11 @@ func (h *ActionHandler) convertToActionInfo(action *game_config.Action) ActionIn
 	if action.HitRateConfig.Valid {
 		hitRateBytes, _ := action.HitRateConfig.MarshalJSON()
 		info.HitRateConfig = string(hitRateBytes)
+	}
+
+	if action.LegacyEffectConfig.Valid {
+		legacyBytes, _ := action.LegacyEffectConfig.MarshalJSON()
+		info.LegacyEffectConfig = string(legacyBytes)
 	}
 
 	if action.Requirements.Valid {

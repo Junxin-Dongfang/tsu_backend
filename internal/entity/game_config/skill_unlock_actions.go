@@ -31,65 +31,73 @@ type SkillUnlockAction struct {
 	IsDefault   null.Bool `boil:"is_default" json:"is_default,omitempty" toml:"is_default" yaml:"is_default,omitempty"`
 	CreatedAt   null.Time `boil:"created_at" json:"created_at,omitempty" toml:"created_at" yaml:"created_at,omitempty"`
 	DeletedAt   null.Time `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
+	// 动作升级加成配置，JSON格式存储各属性的基础值和增长规则。每个属性有独立的type(linear/percentage/fixed)、base、value配置
+	LevelScalingConfig null.JSON `boil:"level_scaling_config" json:"level_scaling_config,omitempty" toml:"level_scaling_config" yaml:"level_scaling_config,omitempty"`
 
 	R *skillUnlockActionR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L skillUnlockActionL  `boil:"-" json:"-" toml:"-" yaml:"-"`
 }
 
 var SkillUnlockActionColumns = struct {
-	ID          string
-	SkillID     string
-	ActionID    string
-	UnlockLevel string
-	IsDefault   string
-	CreatedAt   string
-	DeletedAt   string
+	ID                 string
+	SkillID            string
+	ActionID           string
+	UnlockLevel        string
+	IsDefault          string
+	CreatedAt          string
+	DeletedAt          string
+	LevelScalingConfig string
 }{
-	ID:          "id",
-	SkillID:     "skill_id",
-	ActionID:    "action_id",
-	UnlockLevel: "unlock_level",
-	IsDefault:   "is_default",
-	CreatedAt:   "created_at",
-	DeletedAt:   "deleted_at",
+	ID:                 "id",
+	SkillID:            "skill_id",
+	ActionID:           "action_id",
+	UnlockLevel:        "unlock_level",
+	IsDefault:          "is_default",
+	CreatedAt:          "created_at",
+	DeletedAt:          "deleted_at",
+	LevelScalingConfig: "level_scaling_config",
 }
 
 var SkillUnlockActionTableColumns = struct {
-	ID          string
-	SkillID     string
-	ActionID    string
-	UnlockLevel string
-	IsDefault   string
-	CreatedAt   string
-	DeletedAt   string
+	ID                 string
+	SkillID            string
+	ActionID           string
+	UnlockLevel        string
+	IsDefault          string
+	CreatedAt          string
+	DeletedAt          string
+	LevelScalingConfig string
 }{
-	ID:          "skill_unlock_actions.id",
-	SkillID:     "skill_unlock_actions.skill_id",
-	ActionID:    "skill_unlock_actions.action_id",
-	UnlockLevel: "skill_unlock_actions.unlock_level",
-	IsDefault:   "skill_unlock_actions.is_default",
-	CreatedAt:   "skill_unlock_actions.created_at",
-	DeletedAt:   "skill_unlock_actions.deleted_at",
+	ID:                 "skill_unlock_actions.id",
+	SkillID:            "skill_unlock_actions.skill_id",
+	ActionID:           "skill_unlock_actions.action_id",
+	UnlockLevel:        "skill_unlock_actions.unlock_level",
+	IsDefault:          "skill_unlock_actions.is_default",
+	CreatedAt:          "skill_unlock_actions.created_at",
+	DeletedAt:          "skill_unlock_actions.deleted_at",
+	LevelScalingConfig: "skill_unlock_actions.level_scaling_config",
 }
 
 // Generated where
 
 var SkillUnlockActionWhere = struct {
-	ID          whereHelperstring
-	SkillID     whereHelperstring
-	ActionID    whereHelperstring
-	UnlockLevel whereHelperint
-	IsDefault   whereHelpernull_Bool
-	CreatedAt   whereHelpernull_Time
-	DeletedAt   whereHelpernull_Time
+	ID                 whereHelperstring
+	SkillID            whereHelperstring
+	ActionID           whereHelperstring
+	UnlockLevel        whereHelperint
+	IsDefault          whereHelpernull_Bool
+	CreatedAt          whereHelpernull_Time
+	DeletedAt          whereHelpernull_Time
+	LevelScalingConfig whereHelpernull_JSON
 }{
-	ID:          whereHelperstring{field: "\"game_config\".\"skill_unlock_actions\".\"id\""},
-	SkillID:     whereHelperstring{field: "\"game_config\".\"skill_unlock_actions\".\"skill_id\""},
-	ActionID:    whereHelperstring{field: "\"game_config\".\"skill_unlock_actions\".\"action_id\""},
-	UnlockLevel: whereHelperint{field: "\"game_config\".\"skill_unlock_actions\".\"unlock_level\""},
-	IsDefault:   whereHelpernull_Bool{field: "\"game_config\".\"skill_unlock_actions\".\"is_default\""},
-	CreatedAt:   whereHelpernull_Time{field: "\"game_config\".\"skill_unlock_actions\".\"created_at\""},
-	DeletedAt:   whereHelpernull_Time{field: "\"game_config\".\"skill_unlock_actions\".\"deleted_at\""},
+	ID:                 whereHelperstring{field: "\"game_config\".\"skill_unlock_actions\".\"id\""},
+	SkillID:            whereHelperstring{field: "\"game_config\".\"skill_unlock_actions\".\"skill_id\""},
+	ActionID:           whereHelperstring{field: "\"game_config\".\"skill_unlock_actions\".\"action_id\""},
+	UnlockLevel:        whereHelperint{field: "\"game_config\".\"skill_unlock_actions\".\"unlock_level\""},
+	IsDefault:          whereHelpernull_Bool{field: "\"game_config\".\"skill_unlock_actions\".\"is_default\""},
+	CreatedAt:          whereHelpernull_Time{field: "\"game_config\".\"skill_unlock_actions\".\"created_at\""},
+	DeletedAt:          whereHelpernull_Time{field: "\"game_config\".\"skill_unlock_actions\".\"deleted_at\""},
+	LevelScalingConfig: whereHelpernull_JSON{field: "\"game_config\".\"skill_unlock_actions\".\"level_scaling_config\""},
 }
 
 // SkillUnlockActionRels is where relationship names are stored.
@@ -148,9 +156,9 @@ func (r *skillUnlockActionR) GetSkill() *Skill {
 type skillUnlockActionL struct{}
 
 var (
-	skillUnlockActionAllColumns            = []string{"id", "skill_id", "action_id", "unlock_level", "is_default", "created_at", "deleted_at"}
+	skillUnlockActionAllColumns            = []string{"id", "skill_id", "action_id", "unlock_level", "is_default", "created_at", "deleted_at", "level_scaling_config"}
 	skillUnlockActionColumnsWithoutDefault = []string{"skill_id", "action_id"}
-	skillUnlockActionColumnsWithDefault    = []string{"id", "unlock_level", "is_default", "created_at", "deleted_at"}
+	skillUnlockActionColumnsWithDefault    = []string{"id", "unlock_level", "is_default", "created_at", "deleted_at", "level_scaling_config"}
 	skillUnlockActionPrimaryKeyColumns     = []string{"id"}
 	skillUnlockActionGeneratedColumns      = []string{}
 )

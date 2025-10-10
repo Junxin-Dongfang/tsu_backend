@@ -44,9 +44,8 @@ type AdminModule struct {
 	rangeConfigRuleHandler      *handler.RangeConfigRuleHandler
 	actionTypeDefinitionHandler *handler.ActionTypeDefinitionHandler
 	skillHandler                *handler.SkillHandler
-	skillLevelConfigHandler     *handler.SkillLevelConfigHandler         // Deprecated: 使用 skillUpgradeCostHandler 代替
-	skillUpgradeCostHandler     *handler.SkillUpgradeCostHandler         // 新增：全局升级消耗
-	advancedRequirementHandler  *handler.ClassAdvancedRequirementHandler // 新增：职业进阶要求
+	skillUpgradeCostHandler     *handler.SkillUpgradeCostHandler
+	advancedRequirementHandler  *handler.ClassAdvancedRequirementHandler
 	effectHandler               *handler.EffectHandler
 	buffHandler                 *handler.BuffHandler
 	buffEffectHandler           *handler.BuffEffectHandler
@@ -54,6 +53,7 @@ type AdminModule struct {
 	actionHandler               *handler.ActionHandler
 	actionEffectHandler         *handler.ActionEffectHandler
 	skillUnlockActionHandler    *handler.SkillUnlockActionHandler
+	classSkillPoolHandler       *handler.ClassSkillPoolHandler
 	respWriter                  response.Writer
 }
 
@@ -90,10 +90,10 @@ func (m *AdminModule) OnInit(app module.App, settings *conf.ModuleSettings) {
 	}
 
 	// 3. Initialize HTTP server
-	m.initHTTPServer(settings)
+	m.initHTTPServer()
 
 	// 4. Initialize handlers
-	m.initHandlers(app)
+	m.initHandlers()
 
 	// 5. Setup routes
 	m.setupRoutes()
@@ -143,7 +143,7 @@ func (m *AdminModule) initDatabase(settings *conf.ModuleSettings) error {
 }
 
 // initHTTPServer initializes HTTP server
-func (m *AdminModule) initHTTPServer(settings *conf.ModuleSettings) {
+func (m *AdminModule) initHTTPServer() {
 	m.httpServer = echo.New()
 
 	// Hide banner
@@ -173,10 +173,10 @@ func (m *AdminModule) initResponseWriter() {
 }
 
 // initHandlers initializes HTTP handlers
-func (m *AdminModule) initHandlers(app module.App) {
-	m.authHandler = handler.NewAuthHandler(app, m, m.respWriter)
-	m.permissionHandler = handler.NewPermissionHandler(app, m, m.respWriter)
-	m.userHandler = handler.NewUserHandler(app, m, m.respWriter)
+func (m *AdminModule) initHandlers() {
+	m.authHandler = handler.NewAuthHandler(m, m.respWriter)
+	m.permissionHandler = handler.NewPermissionHandler(m, m.respWriter)
+	m.userHandler = handler.NewUserHandler(m, m.respWriter)
 	m.classHandler = handler.NewClassHandler(m.db, m.respWriter)
 	m.skillCategoryHandler = handler.NewSkillCategoryHandler(m.db, m.respWriter)
 	m.actionCategoryHandler = handler.NewActionCategoryHandler(m.db, m.respWriter)
@@ -189,9 +189,8 @@ func (m *AdminModule) initHandlers(app module.App) {
 	m.rangeConfigRuleHandler = handler.NewRangeConfigRuleHandler(m.db, m.respWriter)
 	m.actionTypeDefinitionHandler = handler.NewActionTypeDefinitionHandler(m.db, m.respWriter)
 	m.skillHandler = handler.NewSkillHandler(m.db, m.respWriter)
-	m.skillLevelConfigHandler = handler.NewSkillLevelConfigHandler(m.db, m.respWriter)            // Deprecated
-	m.skillUpgradeCostHandler = handler.NewSkillUpgradeCostHandler(m.db, m.respWriter)            // 新增
-	m.advancedRequirementHandler = handler.NewClassAdvancedRequirementHandler(m.db, m.respWriter) // 新增：职业进阶要求
+	m.skillUpgradeCostHandler = handler.NewSkillUpgradeCostHandler(m.db, m.respWriter)
+	m.advancedRequirementHandler = handler.NewClassAdvancedRequirementHandler(m.db, m.respWriter)
 	m.effectHandler = handler.NewEffectHandler(m.db, m.respWriter)
 	m.buffHandler = handler.NewBuffHandler(m.db, m.respWriter)
 	m.buffEffectHandler = handler.NewBuffEffectHandler(m.db, m.respWriter)
@@ -199,6 +198,7 @@ func (m *AdminModule) initHandlers(app module.App) {
 	m.actionHandler = handler.NewActionHandler(m.db, m.respWriter)
 	m.actionEffectHandler = handler.NewActionEffectHandler(m.db, m.respWriter)
 	m.skillUnlockActionHandler = handler.NewSkillUnlockActionHandler(m.db, m.respWriter)
+	m.classSkillPoolHandler = handler.NewClassSkillPoolHandler(m.db, m.respWriter)
 }
 
 // setupRoutes sets up HTTP routes
@@ -283,6 +283,16 @@ func (m *AdminModule) setupRoutes() {
 		admin.PUT("/advancement-requirements/:id", m.advancedRequirementHandler.UpdateAdvancedRequirement)
 		admin.DELETE("/advancement-requirements/:id", m.advancedRequirementHandler.DeleteAdvancedRequirement)
 
+		// 职业技能池管理（嵌套在职业下）
+		admin.GET("/classes/:class_id/skill-pools", m.classSkillPoolHandler.GetClassSkillPoolsByClassID)
+
+		// 职业技能池管理（独立接口）
+		admin.GET("/class-skill-pools", m.classSkillPoolHandler.GetClassSkillPools)
+		admin.POST("/class-skill-pools", m.classSkillPoolHandler.CreateClassSkillPool)
+		admin.GET("/class-skill-pools/:id", m.classSkillPoolHandler.GetClassSkillPool)
+		admin.PUT("/class-skill-pools/:id", m.classSkillPoolHandler.UpdateClassSkillPool)
+		admin.DELETE("/class-skill-pools/:id", m.classSkillPoolHandler.DeleteClassSkillPool)
+
 		// 技能类别管理
 		admin.GET("/skill-categories", m.skillCategoryHandler.GetSkillCategories)
 		admin.POST("/skill-categories", m.skillCategoryHandler.CreateSkillCategory)
@@ -356,14 +366,7 @@ func (m *AdminModule) setupRoutes() {
 		admin.PUT("/skills/:id", m.skillHandler.UpdateSkill)
 		admin.DELETE("/skills/:id", m.skillHandler.DeleteSkill)
 
-		// 技能等级配置管理 (嵌套在技能下) - DEPRECATED: 已废弃，使用全局升级消耗代替
-		// admin.GET("/skills/:id/level-configs", m.skillLevelConfigHandler.GetSkillLevelConfigs)
-		// admin.POST("/skills/:id/level-configs", m.skillLevelConfigHandler.CreateSkillLevelConfig)
-		// admin.GET("/skills/:id/level-configs/:config_id", m.skillLevelConfigHandler.GetSkillLevelConfig)
-		// admin.PUT("/skills/:id/level-configs/:config_id", m.skillLevelConfigHandler.UpdateSkillLevelConfig)
-		// admin.DELETE("/skills/:id/level-configs/:config_id", m.skillLevelConfigHandler.DeleteSkillLevelConfig)
-
-		// 全局技能升级消耗管理 (新增)
+		// 全局技能升级消耗管理
 		admin.GET("/skill-upgrade-costs", m.skillUpgradeCostHandler.GetSkillUpgradeCosts)
 		admin.POST("/skill-upgrade-costs", m.skillUpgradeCostHandler.CreateSkillUpgradeCost)
 		admin.GET("/skill-upgrade-costs/level/:level", m.skillUpgradeCostHandler.GetSkillUpgradeCostByLevel)

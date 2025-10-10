@@ -33,170 +33,133 @@ type Skill struct {
 	MaxLevel    null.Int          `boil:"max_level" json:"max_level,omitempty" toml:"max_level" yaml:"max_level,omitempty"`
 	FeatureTags types.StringArray `boil:"feature_tags" json:"feature_tags,omitempty" toml:"feature_tags" yaml:"feature_tags,omitempty"`
 	// 被动效果配置（JSONB格式）
-	PassiveEffects         null.JSON         `boil:"passive_effects" json:"passive_effects,omitempty" toml:"passive_effects" yaml:"passive_effects,omitempty"`
-	RequiredLevel          null.Int          `boil:"required_level" json:"required_level,omitempty" toml:"required_level" yaml:"required_level,omitempty"`
-	RequiredClassCodes     types.StringArray `boil:"required_class_codes" json:"required_class_codes,omitempty" toml:"required_class_codes" yaml:"required_class_codes,omitempty"`
-	PrerequisiteSkillCodes types.StringArray `boil:"prerequisite_skill_codes" json:"prerequisite_skill_codes,omitempty" toml:"prerequisite_skill_codes" yaml:"prerequisite_skill_codes,omitempty"`
-	Description            null.String       `boil:"description" json:"description,omitempty" toml:"description" yaml:"description,omitempty"`
-	DetailedDescription    null.String       `boil:"detailed_description" json:"detailed_description,omitempty" toml:"detailed_description" yaml:"detailed_description,omitempty"`
-	Icon                   null.String       `boil:"icon" json:"icon,omitempty" toml:"icon" yaml:"icon,omitempty"`
-	IsActive               null.Bool         `boil:"is_active" json:"is_active,omitempty" toml:"is_active" yaml:"is_active,omitempty"`
-	CreatedAt              null.Time         `boil:"created_at" json:"created_at,omitempty" toml:"created_at" yaml:"created_at,omitempty"`
-	UpdatedAt              null.Time         `boil:"updated_at" json:"updated_at,omitempty" toml:"updated_at" yaml:"updated_at,omitempty"`
-	DeletedAt              null.Time         `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
-	// 升级加成类型: linear(线性增长), fixed(固定不变), percentage(百分比增长)
-	LevelScalingType null.String `boil:"level_scaling_type" json:"level_scaling_type,omitempty" toml:"level_scaling_type" yaml:"level_scaling_type,omitempty"`
-	// 升级加成配置，JSON格式存储各属性的基础值和增长规则
-	LevelScalingConfig null.JSON `boil:"level_scaling_config" json:"level_scaling_config,omitempty" toml:"level_scaling_config" yaml:"level_scaling_config,omitempty"`
+	PassiveEffects      null.JSON   `boil:"passive_effects" json:"passive_effects,omitempty" toml:"passive_effects" yaml:"passive_effects,omitempty"`
+	Description         null.String `boil:"description" json:"description,omitempty" toml:"description" yaml:"description,omitempty"`
+	DetailedDescription null.String `boil:"detailed_description" json:"detailed_description,omitempty" toml:"detailed_description" yaml:"detailed_description,omitempty"`
+	Icon                null.String `boil:"icon" json:"icon,omitempty" toml:"icon" yaml:"icon,omitempty"`
+	IsActive            null.Bool   `boil:"is_active" json:"is_active,omitempty" toml:"is_active" yaml:"is_active,omitempty"`
+	CreatedAt           null.Time   `boil:"created_at" json:"created_at,omitempty" toml:"created_at" yaml:"created_at,omitempty"`
+	UpdatedAt           null.Time   `boil:"updated_at" json:"updated_at,omitempty" toml:"updated_at" yaml:"updated_at,omitempty"`
+	DeletedAt           null.Time   `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
 
 	R *skillR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L skillL  `boil:"-" json:"-" toml:"-" yaml:"-"`
 }
 
 var SkillColumns = struct {
-	ID                     string
-	SkillCode              string
-	SkillName              string
-	SkillType              string
-	CategoryID             string
-	MaxLevel               string
-	FeatureTags            string
-	PassiveEffects         string
-	RequiredLevel          string
-	RequiredClassCodes     string
-	PrerequisiteSkillCodes string
-	Description            string
-	DetailedDescription    string
-	Icon                   string
-	IsActive               string
-	CreatedAt              string
-	UpdatedAt              string
-	DeletedAt              string
-	LevelScalingType       string
-	LevelScalingConfig     string
+	ID                  string
+	SkillCode           string
+	SkillName           string
+	SkillType           string
+	CategoryID          string
+	MaxLevel            string
+	FeatureTags         string
+	PassiveEffects      string
+	Description         string
+	DetailedDescription string
+	Icon                string
+	IsActive            string
+	CreatedAt           string
+	UpdatedAt           string
+	DeletedAt           string
 }{
-	ID:                     "id",
-	SkillCode:              "skill_code",
-	SkillName:              "skill_name",
-	SkillType:              "skill_type",
-	CategoryID:             "category_id",
-	MaxLevel:               "max_level",
-	FeatureTags:            "feature_tags",
-	PassiveEffects:         "passive_effects",
-	RequiredLevel:          "required_level",
-	RequiredClassCodes:     "required_class_codes",
-	PrerequisiteSkillCodes: "prerequisite_skill_codes",
-	Description:            "description",
-	DetailedDescription:    "detailed_description",
-	Icon:                   "icon",
-	IsActive:               "is_active",
-	CreatedAt:              "created_at",
-	UpdatedAt:              "updated_at",
-	DeletedAt:              "deleted_at",
-	LevelScalingType:       "level_scaling_type",
-	LevelScalingConfig:     "level_scaling_config",
+	ID:                  "id",
+	SkillCode:           "skill_code",
+	SkillName:           "skill_name",
+	SkillType:           "skill_type",
+	CategoryID:          "category_id",
+	MaxLevel:            "max_level",
+	FeatureTags:         "feature_tags",
+	PassiveEffects:      "passive_effects",
+	Description:         "description",
+	DetailedDescription: "detailed_description",
+	Icon:                "icon",
+	IsActive:            "is_active",
+	CreatedAt:           "created_at",
+	UpdatedAt:           "updated_at",
+	DeletedAt:           "deleted_at",
 }
 
 var SkillTableColumns = struct {
-	ID                     string
-	SkillCode              string
-	SkillName              string
-	SkillType              string
-	CategoryID             string
-	MaxLevel               string
-	FeatureTags            string
-	PassiveEffects         string
-	RequiredLevel          string
-	RequiredClassCodes     string
-	PrerequisiteSkillCodes string
-	Description            string
-	DetailedDescription    string
-	Icon                   string
-	IsActive               string
-	CreatedAt              string
-	UpdatedAt              string
-	DeletedAt              string
-	LevelScalingType       string
-	LevelScalingConfig     string
+	ID                  string
+	SkillCode           string
+	SkillName           string
+	SkillType           string
+	CategoryID          string
+	MaxLevel            string
+	FeatureTags         string
+	PassiveEffects      string
+	Description         string
+	DetailedDescription string
+	Icon                string
+	IsActive            string
+	CreatedAt           string
+	UpdatedAt           string
+	DeletedAt           string
 }{
-	ID:                     "skills.id",
-	SkillCode:              "skills.skill_code",
-	SkillName:              "skills.skill_name",
-	SkillType:              "skills.skill_type",
-	CategoryID:             "skills.category_id",
-	MaxLevel:               "skills.max_level",
-	FeatureTags:            "skills.feature_tags",
-	PassiveEffects:         "skills.passive_effects",
-	RequiredLevel:          "skills.required_level",
-	RequiredClassCodes:     "skills.required_class_codes",
-	PrerequisiteSkillCodes: "skills.prerequisite_skill_codes",
-	Description:            "skills.description",
-	DetailedDescription:    "skills.detailed_description",
-	Icon:                   "skills.icon",
-	IsActive:               "skills.is_active",
-	CreatedAt:              "skills.created_at",
-	UpdatedAt:              "skills.updated_at",
-	DeletedAt:              "skills.deleted_at",
-	LevelScalingType:       "skills.level_scaling_type",
-	LevelScalingConfig:     "skills.level_scaling_config",
+	ID:                  "skills.id",
+	SkillCode:           "skills.skill_code",
+	SkillName:           "skills.skill_name",
+	SkillType:           "skills.skill_type",
+	CategoryID:          "skills.category_id",
+	MaxLevel:            "skills.max_level",
+	FeatureTags:         "skills.feature_tags",
+	PassiveEffects:      "skills.passive_effects",
+	Description:         "skills.description",
+	DetailedDescription: "skills.detailed_description",
+	Icon:                "skills.icon",
+	IsActive:            "skills.is_active",
+	CreatedAt:           "skills.created_at",
+	UpdatedAt:           "skills.updated_at",
+	DeletedAt:           "skills.deleted_at",
 }
 
 // Generated where
 
 var SkillWhere = struct {
-	ID                     whereHelperstring
-	SkillCode              whereHelperstring
-	SkillName              whereHelperstring
-	SkillType              whereHelperstring
-	CategoryID             whereHelpernull_String
-	MaxLevel               whereHelpernull_Int
-	FeatureTags            whereHelpertypes_StringArray
-	PassiveEffects         whereHelpernull_JSON
-	RequiredLevel          whereHelpernull_Int
-	RequiredClassCodes     whereHelpertypes_StringArray
-	PrerequisiteSkillCodes whereHelpertypes_StringArray
-	Description            whereHelpernull_String
-	DetailedDescription    whereHelpernull_String
-	Icon                   whereHelpernull_String
-	IsActive               whereHelpernull_Bool
-	CreatedAt              whereHelpernull_Time
-	UpdatedAt              whereHelpernull_Time
-	DeletedAt              whereHelpernull_Time
-	LevelScalingType       whereHelpernull_String
-	LevelScalingConfig     whereHelpernull_JSON
+	ID                  whereHelperstring
+	SkillCode           whereHelperstring
+	SkillName           whereHelperstring
+	SkillType           whereHelperstring
+	CategoryID          whereHelpernull_String
+	MaxLevel            whereHelpernull_Int
+	FeatureTags         whereHelpertypes_StringArray
+	PassiveEffects      whereHelpernull_JSON
+	Description         whereHelpernull_String
+	DetailedDescription whereHelpernull_String
+	Icon                whereHelpernull_String
+	IsActive            whereHelpernull_Bool
+	CreatedAt           whereHelpernull_Time
+	UpdatedAt           whereHelpernull_Time
+	DeletedAt           whereHelpernull_Time
 }{
-	ID:                     whereHelperstring{field: "\"game_config\".\"skills\".\"id\""},
-	SkillCode:              whereHelperstring{field: "\"game_config\".\"skills\".\"skill_code\""},
-	SkillName:              whereHelperstring{field: "\"game_config\".\"skills\".\"skill_name\""},
-	SkillType:              whereHelperstring{field: "\"game_config\".\"skills\".\"skill_type\""},
-	CategoryID:             whereHelpernull_String{field: "\"game_config\".\"skills\".\"category_id\""},
-	MaxLevel:               whereHelpernull_Int{field: "\"game_config\".\"skills\".\"max_level\""},
-	FeatureTags:            whereHelpertypes_StringArray{field: "\"game_config\".\"skills\".\"feature_tags\""},
-	PassiveEffects:         whereHelpernull_JSON{field: "\"game_config\".\"skills\".\"passive_effects\""},
-	RequiredLevel:          whereHelpernull_Int{field: "\"game_config\".\"skills\".\"required_level\""},
-	RequiredClassCodes:     whereHelpertypes_StringArray{field: "\"game_config\".\"skills\".\"required_class_codes\""},
-	PrerequisiteSkillCodes: whereHelpertypes_StringArray{field: "\"game_config\".\"skills\".\"prerequisite_skill_codes\""},
-	Description:            whereHelpernull_String{field: "\"game_config\".\"skills\".\"description\""},
-	DetailedDescription:    whereHelpernull_String{field: "\"game_config\".\"skills\".\"detailed_description\""},
-	Icon:                   whereHelpernull_String{field: "\"game_config\".\"skills\".\"icon\""},
-	IsActive:               whereHelpernull_Bool{field: "\"game_config\".\"skills\".\"is_active\""},
-	CreatedAt:              whereHelpernull_Time{field: "\"game_config\".\"skills\".\"created_at\""},
-	UpdatedAt:              whereHelpernull_Time{field: "\"game_config\".\"skills\".\"updated_at\""},
-	DeletedAt:              whereHelpernull_Time{field: "\"game_config\".\"skills\".\"deleted_at\""},
-	LevelScalingType:       whereHelpernull_String{field: "\"game_config\".\"skills\".\"level_scaling_type\""},
-	LevelScalingConfig:     whereHelpernull_JSON{field: "\"game_config\".\"skills\".\"level_scaling_config\""},
+	ID:                  whereHelperstring{field: "\"game_config\".\"skills\".\"id\""},
+	SkillCode:           whereHelperstring{field: "\"game_config\".\"skills\".\"skill_code\""},
+	SkillName:           whereHelperstring{field: "\"game_config\".\"skills\".\"skill_name\""},
+	SkillType:           whereHelperstring{field: "\"game_config\".\"skills\".\"skill_type\""},
+	CategoryID:          whereHelpernull_String{field: "\"game_config\".\"skills\".\"category_id\""},
+	MaxLevel:            whereHelpernull_Int{field: "\"game_config\".\"skills\".\"max_level\""},
+	FeatureTags:         whereHelpertypes_StringArray{field: "\"game_config\".\"skills\".\"feature_tags\""},
+	PassiveEffects:      whereHelpernull_JSON{field: "\"game_config\".\"skills\".\"passive_effects\""},
+	Description:         whereHelpernull_String{field: "\"game_config\".\"skills\".\"description\""},
+	DetailedDescription: whereHelpernull_String{field: "\"game_config\".\"skills\".\"detailed_description\""},
+	Icon:                whereHelpernull_String{field: "\"game_config\".\"skills\".\"icon\""},
+	IsActive:            whereHelpernull_Bool{field: "\"game_config\".\"skills\".\"is_active\""},
+	CreatedAt:           whereHelpernull_Time{field: "\"game_config\".\"skills\".\"created_at\""},
+	UpdatedAt:           whereHelpernull_Time{field: "\"game_config\".\"skills\".\"updated_at\""},
+	DeletedAt:           whereHelpernull_Time{field: "\"game_config\".\"skills\".\"deleted_at\""},
 }
 
 // SkillRels is where relationship names are stored.
 var SkillRels = struct {
 	Category            string
 	RelatedSkillActions string
-	SkillLevelConfigs   string
+	ClassSkillPools     string
 	SkillUnlockActions  string
 }{
 	Category:            "Category",
 	RelatedSkillActions: "RelatedSkillActions",
-	SkillLevelConfigs:   "SkillLevelConfigs",
+	ClassSkillPools:     "ClassSkillPools",
 	SkillUnlockActions:  "SkillUnlockActions",
 }
 
@@ -204,7 +167,7 @@ var SkillRels = struct {
 type skillR struct {
 	Category            *SkillCategory         `boil:"Category" json:"Category" toml:"Category" yaml:"Category"`
 	RelatedSkillActions ActionSlice            `boil:"RelatedSkillActions" json:"RelatedSkillActions" toml:"RelatedSkillActions" yaml:"RelatedSkillActions"`
-	SkillLevelConfigs   SkillLevelConfigSlice  `boil:"SkillLevelConfigs" json:"SkillLevelConfigs" toml:"SkillLevelConfigs" yaml:"SkillLevelConfigs"`
+	ClassSkillPools     ClassSkillPoolSlice    `boil:"ClassSkillPools" json:"ClassSkillPools" toml:"ClassSkillPools" yaml:"ClassSkillPools"`
 	SkillUnlockActions  SkillUnlockActionSlice `boil:"SkillUnlockActions" json:"SkillUnlockActions" toml:"SkillUnlockActions" yaml:"SkillUnlockActions"`
 }
 
@@ -245,20 +208,20 @@ func (r *skillR) GetRelatedSkillActions() ActionSlice {
 	return r.RelatedSkillActions
 }
 
-func (o *Skill) GetSkillLevelConfigs() SkillLevelConfigSlice {
+func (o *Skill) GetClassSkillPools() ClassSkillPoolSlice {
 	if o == nil {
 		return nil
 	}
 
-	return o.R.GetSkillLevelConfigs()
+	return o.R.GetClassSkillPools()
 }
 
-func (r *skillR) GetSkillLevelConfigs() SkillLevelConfigSlice {
+func (r *skillR) GetClassSkillPools() ClassSkillPoolSlice {
 	if r == nil {
 		return nil
 	}
 
-	return r.SkillLevelConfigs
+	return r.ClassSkillPools
 }
 
 func (o *Skill) GetSkillUnlockActions() SkillUnlockActionSlice {
@@ -281,9 +244,9 @@ func (r *skillR) GetSkillUnlockActions() SkillUnlockActionSlice {
 type skillL struct{}
 
 var (
-	skillAllColumns            = []string{"id", "skill_code", "skill_name", "skill_type", "category_id", "max_level", "feature_tags", "passive_effects", "required_level", "required_class_codes", "prerequisite_skill_codes", "description", "detailed_description", "icon", "is_active", "created_at", "updated_at", "deleted_at", "level_scaling_type", "level_scaling_config"}
+	skillAllColumns            = []string{"id", "skill_code", "skill_name", "skill_type", "category_id", "max_level", "feature_tags", "passive_effects", "description", "detailed_description", "icon", "is_active", "created_at", "updated_at", "deleted_at"}
 	skillColumnsWithoutDefault = []string{"skill_code", "skill_name"}
-	skillColumnsWithDefault    = []string{"id", "skill_type", "category_id", "max_level", "feature_tags", "passive_effects", "required_level", "required_class_codes", "prerequisite_skill_codes", "description", "detailed_description", "icon", "is_active", "created_at", "updated_at", "deleted_at", "level_scaling_type", "level_scaling_config"}
+	skillColumnsWithDefault    = []string{"id", "skill_type", "category_id", "max_level", "feature_tags", "passive_effects", "description", "detailed_description", "icon", "is_active", "created_at", "updated_at", "deleted_at"}
 	skillPrimaryKeyColumns     = []string{"id"}
 	skillGeneratedColumns      = []string{}
 )
@@ -718,18 +681,18 @@ func (o *Skill) RelatedSkillActions(mods ...qm.QueryMod) actionQuery {
 	return Actions(queryMods...)
 }
 
-// SkillLevelConfigs retrieves all the skill_level_config's SkillLevelConfigs with an executor.
-func (o *Skill) SkillLevelConfigs(mods ...qm.QueryMod) skillLevelConfigQuery {
+// ClassSkillPools retrieves all the class_skill_pool's ClassSkillPools with an executor.
+func (o *Skill) ClassSkillPools(mods ...qm.QueryMod) classSkillPoolQuery {
 	var queryMods []qm.QueryMod
 	if len(mods) != 0 {
 		queryMods = append(queryMods, mods...)
 	}
 
 	queryMods = append(queryMods,
-		qm.Where("\"game_config\".\"skill_level_configs\".\"skill_id\"=?", o.ID),
+		qm.Where("\"game_config\".\"class_skill_pools\".\"skill_id\"=?", o.ID),
 	)
 
-	return SkillLevelConfigs(queryMods...)
+	return ClassSkillPools(queryMods...)
 }
 
 // SkillUnlockActions retrieves all the skill_unlock_action's SkillUnlockActions with an executor.
@@ -985,9 +948,9 @@ func (skillL) LoadRelatedSkillActions(ctx context.Context, e boil.ContextExecuto
 	return nil
 }
 
-// LoadSkillLevelConfigs allows an eager lookup of values, cached into the
+// LoadClassSkillPools allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
-func (skillL) LoadSkillLevelConfigs(ctx context.Context, e boil.ContextExecutor, singular bool, maybeSkill interface{}, mods queries.Applicator) error {
+func (skillL) LoadClassSkillPools(ctx context.Context, e boil.ContextExecutor, singular bool, maybeSkill interface{}, mods queries.Applicator) error {
 	var slice []*Skill
 	var object *Skill
 
@@ -1040,9 +1003,9 @@ func (skillL) LoadSkillLevelConfigs(ctx context.Context, e boil.ContextExecutor,
 	}
 
 	query := NewQuery(
-		qm.From(`game_config.skill_level_configs`),
-		qm.WhereIn(`game_config.skill_level_configs.skill_id in ?`, argsSlice...),
-		qmhelper.WhereIsNull(`game_config.skill_level_configs.deleted_at`),
+		qm.From(`game_config.class_skill_pools`),
+		qm.WhereIn(`game_config.class_skill_pools.skill_id in ?`, argsSlice...),
+		qmhelper.WhereIsNull(`game_config.class_skill_pools.deleted_at`),
 	)
 	if mods != nil {
 		mods.Apply(query)
@@ -1050,22 +1013,22 @@ func (skillL) LoadSkillLevelConfigs(ctx context.Context, e boil.ContextExecutor,
 
 	results, err := query.QueryContext(ctx, e)
 	if err != nil {
-		return errors.Wrap(err, "failed to eager load skill_level_configs")
+		return errors.Wrap(err, "failed to eager load class_skill_pools")
 	}
 
-	var resultSlice []*SkillLevelConfig
+	var resultSlice []*ClassSkillPool
 	if err = queries.Bind(results, &resultSlice); err != nil {
-		return errors.Wrap(err, "failed to bind eager loaded slice skill_level_configs")
+		return errors.Wrap(err, "failed to bind eager loaded slice class_skill_pools")
 	}
 
 	if err = results.Close(); err != nil {
-		return errors.Wrap(err, "failed to close results in eager load on skill_level_configs")
+		return errors.Wrap(err, "failed to close results in eager load on class_skill_pools")
 	}
 	if err = results.Err(); err != nil {
-		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for skill_level_configs")
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for class_skill_pools")
 	}
 
-	if len(skillLevelConfigAfterSelectHooks) != 0 {
+	if len(classSkillPoolAfterSelectHooks) != 0 {
 		for _, obj := range resultSlice {
 			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
 				return err
@@ -1073,10 +1036,10 @@ func (skillL) LoadSkillLevelConfigs(ctx context.Context, e boil.ContextExecutor,
 		}
 	}
 	if singular {
-		object.R.SkillLevelConfigs = resultSlice
+		object.R.ClassSkillPools = resultSlice
 		for _, foreign := range resultSlice {
 			if foreign.R == nil {
-				foreign.R = &skillLevelConfigR{}
+				foreign.R = &classSkillPoolR{}
 			}
 			foreign.R.Skill = object
 		}
@@ -1086,9 +1049,9 @@ func (skillL) LoadSkillLevelConfigs(ctx context.Context, e boil.ContextExecutor,
 	for _, foreign := range resultSlice {
 		for _, local := range slice {
 			if local.ID == foreign.SkillID {
-				local.R.SkillLevelConfigs = append(local.R.SkillLevelConfigs, foreign)
+				local.R.ClassSkillPools = append(local.R.ClassSkillPools, foreign)
 				if foreign.R == nil {
-					foreign.R = &skillLevelConfigR{}
+					foreign.R = &classSkillPoolR{}
 				}
 				foreign.R.Skill = local
 				break
@@ -1572,42 +1535,42 @@ func (o *Skill) RemoveRelatedSkillActions(ctx context.Context, exec boil.Context
 	return nil
 }
 
-// AddSkillLevelConfigsG adds the given related objects to the existing relationships
+// AddClassSkillPoolsG adds the given related objects to the existing relationships
 // of the skill, optionally inserting them as new records.
-// Appends related to o.R.SkillLevelConfigs.
+// Appends related to o.R.ClassSkillPools.
 // Sets related.R.Skill appropriately.
 // Uses the global database handle.
-func (o *Skill) AddSkillLevelConfigsG(ctx context.Context, insert bool, related ...*SkillLevelConfig) error {
-	return o.AddSkillLevelConfigs(ctx, boil.GetContextDB(), insert, related...)
+func (o *Skill) AddClassSkillPoolsG(ctx context.Context, insert bool, related ...*ClassSkillPool) error {
+	return o.AddClassSkillPools(ctx, boil.GetContextDB(), insert, related...)
 }
 
-// AddSkillLevelConfigsP adds the given related objects to the existing relationships
+// AddClassSkillPoolsP adds the given related objects to the existing relationships
 // of the skill, optionally inserting them as new records.
-// Appends related to o.R.SkillLevelConfigs.
+// Appends related to o.R.ClassSkillPools.
 // Sets related.R.Skill appropriately.
 // Panics on error.
-func (o *Skill) AddSkillLevelConfigsP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*SkillLevelConfig) {
-	if err := o.AddSkillLevelConfigs(ctx, exec, insert, related...); err != nil {
+func (o *Skill) AddClassSkillPoolsP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*ClassSkillPool) {
+	if err := o.AddClassSkillPools(ctx, exec, insert, related...); err != nil {
 		panic(boil.WrapErr(err))
 	}
 }
 
-// AddSkillLevelConfigsGP adds the given related objects to the existing relationships
+// AddClassSkillPoolsGP adds the given related objects to the existing relationships
 // of the skill, optionally inserting them as new records.
-// Appends related to o.R.SkillLevelConfigs.
+// Appends related to o.R.ClassSkillPools.
 // Sets related.R.Skill appropriately.
 // Uses the global database handle and panics on error.
-func (o *Skill) AddSkillLevelConfigsGP(ctx context.Context, insert bool, related ...*SkillLevelConfig) {
-	if err := o.AddSkillLevelConfigs(ctx, boil.GetContextDB(), insert, related...); err != nil {
+func (o *Skill) AddClassSkillPoolsGP(ctx context.Context, insert bool, related ...*ClassSkillPool) {
+	if err := o.AddClassSkillPools(ctx, boil.GetContextDB(), insert, related...); err != nil {
 		panic(boil.WrapErr(err))
 	}
 }
 
-// AddSkillLevelConfigs adds the given related objects to the existing relationships
+// AddClassSkillPools adds the given related objects to the existing relationships
 // of the skill, optionally inserting them as new records.
-// Appends related to o.R.SkillLevelConfigs.
+// Appends related to o.R.ClassSkillPools.
 // Sets related.R.Skill appropriately.
-func (o *Skill) AddSkillLevelConfigs(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*SkillLevelConfig) error {
+func (o *Skill) AddClassSkillPools(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*ClassSkillPool) error {
 	var err error
 	for _, rel := range related {
 		if insert {
@@ -1617,9 +1580,9 @@ func (o *Skill) AddSkillLevelConfigs(ctx context.Context, exec boil.ContextExecu
 			}
 		} else {
 			updateQuery := fmt.Sprintf(
-				"UPDATE \"game_config\".\"skill_level_configs\" SET %s WHERE %s",
+				"UPDATE \"game_config\".\"class_skill_pools\" SET %s WHERE %s",
 				strmangle.SetParamNames("\"", "\"", 1, []string{"skill_id"}),
-				strmangle.WhereClause("\"", "\"", 2, skillLevelConfigPrimaryKeyColumns),
+				strmangle.WhereClause("\"", "\"", 2, classSkillPoolPrimaryKeyColumns),
 			)
 			values := []interface{}{o.ID, rel.ID}
 
@@ -1638,15 +1601,15 @@ func (o *Skill) AddSkillLevelConfigs(ctx context.Context, exec boil.ContextExecu
 
 	if o.R == nil {
 		o.R = &skillR{
-			SkillLevelConfigs: related,
+			ClassSkillPools: related,
 		}
 	} else {
-		o.R.SkillLevelConfigs = append(o.R.SkillLevelConfigs, related...)
+		o.R.ClassSkillPools = append(o.R.ClassSkillPools, related...)
 	}
 
 	for _, rel := range related {
 		if rel.R == nil {
-			rel.R = &skillLevelConfigR{
+			rel.R = &classSkillPoolR{
 				Skill: o,
 			}
 		} else {

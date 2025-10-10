@@ -194,7 +194,7 @@ DB_CONFIG = {
 
 **命令**:
 ```bash
-docker exec tsu_postgres python3 /tmp/import_game_config.py --file /tmp/游戏配置表_v2.0.0.xlsx
+docker exec tsu_postgres python3 /tmp/import_game_config.py --file /tmp/游戏配置表_v1.0.0.0.xlsx
 ```
 
 ### 导入结果统计

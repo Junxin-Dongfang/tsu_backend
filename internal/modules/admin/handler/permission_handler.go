@@ -4,9 +4,11 @@ import (
 	"context"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/liangdas/mqant/module"
+	"github.com/liangdas/mqant/rpc"
 	"google.golang.org/protobuf/proto"
 
 	authpb "tsu-self/internal/pb/auth"
@@ -17,16 +19,14 @@ import (
 
 // PermissionHandler 权限管理 HTTP 处理器
 type PermissionHandler struct {
-	app        module.App
-	thisModule module.RPCModule
+	rpcCaller  module.RPCModule
 	respWriter response.Writer
 }
 
 // NewPermissionHandler 创建权限处理器
-func NewPermissionHandler(app module.App, thisModule module.RPCModule, respWriter response.Writer) *PermissionHandler {
+func NewPermissionHandler(rpcCaller module.RPCModule, respWriter response.Writer) *PermissionHandler {
 	return &PermissionHandler{
-		app:        app,
-		thisModule: thisModule,
+		rpcCaller:  rpcCaller,
 		respWriter: respWriter,
 	}
 }
@@ -292,7 +292,7 @@ func (h *PermissionHandler) UpdateRole(c echo.Context) error {
 // @Accept json
 // @Produce json
 // @Param id path string true "角色ID"
-// @Success 200 {object} response.Response{data=map[string]interface{}} "删除成功"
+// @Success 200 {object} response.Response{data=object{message=string}} "删除成功"
 // @Failure 400 {object} response.Response "请求参数错误"
 // @Failure 404 {object} response.Response "角色不存在"
 // @Failure 500 {object} response.Response "服务器内部错误"
@@ -490,7 +490,7 @@ func (h *PermissionHandler) GetRolePermissions(c echo.Context) error {
 // @Produce json
 // @Param id path string true "角色ID"
 // @Param request body AssignPermissionsRequest true "分配请求"
-// @Success 200 {object} response.Response{data=map[string]interface{}} "分配成功"
+// @Success 200 {object} response.Response{data=object{message=string}} "分配成功"
 // @Failure 400 {object} response.Response "请求参数错误"
 // @Failure 404 {object} response.Response "角色不存在"
 // @Failure 500 {object} response.Response "服务器内部错误"
@@ -595,7 +595,7 @@ func (h *PermissionHandler) GetUserRoles(c echo.Context) error {
 // @Produce json
 // @Param user_id path string true "用户ID"
 // @Param request body AssignRolesRequest true "分配请求"
-// @Success 200 {object} response.Response{data=map[string]interface{}} "分配成功"
+// @Success 200 {object} response.Response{data=object{message=string}} "分配成功"
 // @Failure 400 {object} response.Response "请求参数错误"
 // @Failure 404 {object} response.Response "用户不存在"
 // @Failure 500 {object} response.Response "服务器内部错误"
@@ -649,7 +649,7 @@ func (h *PermissionHandler) AssignRolesToUser(c echo.Context) error {
 // @Produce json
 // @Param user_id path string true "用户ID"
 // @Param request body AssignRolesRequest true "撤销请求"
-// @Success 200 {object} response.Response{data=map[string]interface{}} "撤销成功"
+// @Success 200 {object} response.Response{data=object{message=string}} "撤销成功"
 // @Failure 400 {object} response.Response "请求参数错误"
 // @Failure 404 {object} response.Response "用户不存在"
 // @Failure 500 {object} response.Response "服务器内部错误"
@@ -747,7 +747,7 @@ func (h *PermissionHandler) GetUserPermissions(c echo.Context) error {
 // @Produce json
 // @Param user_id path string true "用户ID"
 // @Param request body GrantPermissionsRequest true "授予请求"
-// @Success 200 {object} response.Response{data=map[string]interface{}} "授予成功"
+// @Success 200 {object} response.Response{data=object{message=string}} "授予成功"
 // @Failure 400 {object} response.Response "请求参数错误"
 // @Failure 404 {object} response.Response "用户不存在"
 // @Failure 500 {object} response.Response "服务器内部错误"
@@ -801,7 +801,7 @@ func (h *PermissionHandler) GrantPermissionsToUser(c echo.Context) error {
 // @Produce json
 // @Param user_id path string true "用户ID"
 // @Param request body GrantPermissionsRequest true "撤销请求"
-// @Success 200 {object} response.Response{data=map[string]interface{}} "撤销成功"
+// @Success 200 {object} response.Response{data=object{message=string}} "撤销成功"
 // @Failure 400 {object} response.Response "请求参数错误"
 // @Failure 404 {object} response.Response "用户不存在"
 // @Failure 500 {object} response.Response "服务器内部错误"
@@ -850,20 +850,34 @@ func (h *PermissionHandler) RevokePermissionsFromUser(c echo.Context) error {
 // ==================== 内部辅助方法 ====================
 
 // callAuthRPC 调用 Auth 模块 RPC
-func (h *PermissionHandler) callAuthRPC(_ context.Context, method string, req proto.Message) ([]byte, error) {
+func (h *PermissionHandler) callAuthRPC(ctx context.Context, method string, req proto.Message) ([]byte, error) {
 	// 1. 序列化请求
 	reqBytes, err := proto.Marshal(req)
 	if err != nil {
 		return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "序列化RPC请求失败")
 	}
 
-	// 2. 调用 RPC (使用 Invoke 代替 RpcInvoke)
-	result, errStr := h.app.Invoke(h.thisModule, "auth", method, reqBytes)
+	// 2. 设置超时 (如果 ctx 没有超时则设置默认值)
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+
+	// 3. 调用 RPC (使用 Call 方法)
+	result, errStr := h.rpcCaller.Call(
+		ctxWithTimeout,
+		"auth",
+		method,
+		mqrpc.Param(reqBytes),
+	)
+
 	if errStr != "" {
+		// 检查超时
+		if ctxWithTimeout.Err() == context.DeadlineExceeded {
+			return nil, xerrors.New(xerrors.CodeExternalServiceError, "Auth服务超时")
+		}
 		return nil, xerrors.New(xerrors.CodeExternalServiceError, errStr)
 	}
 
-	// 3. 类型断言
+	// 4. 类型断言
 	respBytes, ok := result.([]byte)
 	if !ok {
 		return nil, xerrors.New(xerrors.CodeInternalError, "RPC响应类型错误")

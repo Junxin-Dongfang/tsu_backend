@@ -61,12 +61,14 @@ BEGIN
             'physical',  -- 物理技能
             'usage',     -- 使用物品技能
             'reaction',   -- 反应技能
-            'guard'       -- 防御技能
+            'guard',       -- 防御技能
+            'movement',    -- 移动技能
+            'command'     -- 指挥技能
         );
     END IF;
 END $$;
 
--- 标签类型枚举
+-- 标签类型枚举 TODO：添加buff，动作action，修改怪物标签为单位unit标签，团队team标签
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'tag_type_enum') THEN

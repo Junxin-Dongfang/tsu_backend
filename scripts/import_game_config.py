@@ -4,7 +4,14 @@
 从 Excel 文件导入游戏配置到数据库
 
 使用方法:
-    python3 scripts/import_game_config.py --file configs/game/游戏配置表_v2.0.0.xlsx
+    # 本地开发环境（使用 docker exec 在容器内执行）
+    docker exec -it tsu_postgres python3 /scripts/import_game_config.py
+    
+    # 或从主机直接连接
+    python3 scripts/import_game_config.py --host localhost --port 5432 --user tsu_user --password tsu_password
+    
+    # 生产环境
+    python3 scripts/import_game_config.py --host <db_host> --port 5432 --user <user> --password <password>
 """
 
 import openpyxl
@@ -12,17 +19,20 @@ import psycopg2
 import json
 import argparse
 import sys
+import os
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 
-# 数据库配置（默认容器内连接）
-DB_CONFIG = {
-    'host': '127.0.0.1',  # 容器内使用127.0.0.1可以trust认证
-    'port': 5432,
-    'database': 'tsu_db',
-    'user': 'tsu_user',
-    'password': ''  # 容器内127.0.0.1无密码认证
-}
+# 数据库配置（默认从环境变量读取）
+def get_default_db_config():
+    """从环境变量获取数据库配置"""
+    return {
+        'host': os.getenv('DB_HOST', 'localhost'),
+        'port': int(os.getenv('DB_PORT', '5432')),
+        'database': os.getenv('DB_NAME', 'tsu_db'),
+        'user': os.getenv('DB_USER', 'tsu_user'),
+        'password': os.getenv('DB_PASSWORD', '')
+    }
 
 # Sheet 到数据库表的映射
 SHEET_MAPPING = {
@@ -60,9 +70,10 @@ IMPORT_ORDER = [
 
 
 class ConfigImporter:
-    def __init__(self, excel_file: str, db_config: Dict):
+    def __init__(self, excel_file: str, db_config: Dict, mode: str = 'truncate'):
         self.excel_file = excel_file
         self.db_config = db_config
+        self.mode = mode  # 'truncate' or 'incremental'
         self.conn = None
         self.cursor = None
         self.stats = {
@@ -70,18 +81,30 @@ class ConfigImporter:
             'success': 0,
             'failed': 0,
             'skipped': 0,
+            'updated': 0,
             'details': {}
         }
     
     def connect_db(self):
         """连接数据库"""
         try:
+            print(f"🔌 正在连接数据库...")
+            print(f"   主机: {self.db_config['host']}:{self.db_config['port']}")
+            print(f"   数据库: {self.db_config['database']}")
+            print(f"   用户: {self.db_config['user']}")
+            
             self.conn = psycopg2.connect(**self.db_config)
             self.cursor = self.conn.cursor()
-            print("✅ 数据库连接成功")
+            
+            # 测试连接
+            self.cursor.execute("SELECT version()")
+            version = self.cursor.fetchone()[0]
+            print(f"✅ 数据库连接成功")
+            print(f"   版本: {version.split(',')[0]}")
             return True
         except Exception as e:
             print(f"❌ 数据库连接失败: {e}")
+            print(f"   请检查数据库配置是否正确")
             return False
     
     def close_db(self):
@@ -90,6 +113,55 @@ class ConfigImporter:
             self.cursor.close()
         if self.conn:
             self.conn.close()
+    
+    def clear_table(self, table: str):
+        """清空表数据"""
+        if self.mode == 'truncate':
+            self.cursor.execute(f"DELETE FROM {table}")
+            print(f"   🗑️  已清空表 {table}")
+        else:
+            print(f"   📝 增量导入模式，保留现有数据")
+    
+    def upsert_record(self, table: str, data: Dict, key_fields: List[str], sql: str, values: tuple) -> str:
+        """
+        插入或更新记录
+        返回: 'inserted', 'updated', 'skipped', 'failed'
+        """
+        try:
+            if self.mode == 'incremental':
+                # 增量模式：检查记录是否存在
+                where_clause = ' AND '.join([f"{field} = %s" for field in key_fields])
+                check_sql = f"SELECT COUNT(*) FROM {table} WHERE {where_clause}"
+                key_values = tuple(data[field] for field in key_fields)
+                
+                self.cursor.execute(check_sql, key_values)
+                exists = self.cursor.fetchone()[0] > 0
+                
+                if exists:
+                    # 记录存在，执行更新
+                    # 构建 UPDATE 语句
+                    update_fields = [k for k in data.keys() if k not in key_fields]
+                    if not update_fields:
+                        return 'skipped'  # 没有可更新的字段
+                    
+                    set_clause = ', '.join([f"{field} = %s" for field in update_fields])
+                    update_sql = f"UPDATE {table} SET {set_clause}, updated_at = NOW() WHERE {where_clause}"
+                    update_values = tuple(data[field] for field in update_fields) + key_values
+                    
+                    self.cursor.execute(update_sql, update_values)
+                    return 'updated'
+            
+            # 插入新记录（truncate 模式或 incremental 模式下记录不存在）
+            self.cursor.execute(sql, values)
+            return 'inserted'
+            
+        except Exception as e:
+            # 如果是唯一键冲突且是 truncate 模式，这是异常情况
+            if 'unique' in str(e).lower() or 'duplicate' in str(e).lower():
+                if self.mode == 'truncate':
+                    print(f"     ⚠️ 唯一键冲突（这不应该发生在truncate模式）: {e}")
+                return 'failed'
+            raise e
     
     def load_excel(self) -> Optional[openpyxl.Workbook]:
         """加载 Excel 文件"""
@@ -134,16 +206,17 @@ class ConfigImporter:
     
     def import_hero_attribute_types(self, sheet):
         """导入角色数据类型"""
-        print("\n📋 导入角色数据类型...")
+        print(f"\n📋 导入角色数据类型... (模式: {self.mode})")
         table = 'game_config.hero_attribute_type'  # 注意：表名是单数
         
         # 读取表头
         headers = [cell.value for cell in sheet[1] if cell.value]
         
-        # 清空现有数据
-        self.cursor.execute(f"DELETE FROM {table}")
+        # 清空现有数据（如果是 truncate 模式）
+        self.clear_table(table)
         
         count = 0
+        updated = 0
         for row_idx in range(2, sheet.max_row + 1):
             row = sheet[row_idx]
             data = {}
@@ -184,6 +257,17 @@ class ConfigImporter:
                     ) VALUES (
                         %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW()
                     )
+                    ON CONFLICT (attribute_code) DO UPDATE SET
+                        attribute_name = EXCLUDED.attribute_name,
+                        category = EXCLUDED.category,
+                        data_type = EXCLUDED.data_type,
+                        min_value = EXCLUDED.min_value,
+                        max_value = EXCLUDED.max_value,
+                        default_value = EXCLUDED.default_value,
+                        unit = EXCLUDED.unit,
+                        description = EXCLUDED.description,
+                        is_active = EXCLUDED.is_active,
+                        updated_at = NOW()
                 """
                 self.cursor.execute(sql, (
                     data['attribute_code'], data['attribute_name'], data['category'],
@@ -191,13 +275,22 @@ class ConfigImporter:
                     data.get('default_value'), data.get('unit'), data.get('description'),
                     data.get('is_active', True)
                 ))
-                count += 1
+                
+                # 检查是插入还是更新
+                if self.cursor.rowcount > 0:
+                    if self.mode == 'incremental':
+                        # 在增量模式下，可能是更新
+                        updated += 1
+                    count += 1
             except Exception as e:
                 print(f"  ⚠️ 行 {row_idx} 导入失败: {e}")
                 continue
         
         self.conn.commit()
-        print(f"  ✅ 成功导入 {count} 条记录")
+        if self.mode == 'incremental':
+            print(f"  ✅ 成功处理 {count} 条记录 (新增/更新: {count}, 其中更新: {updated})")
+        else:
+            print(f"  ✅ 成功导入 {count} 条记录")
         return count
     
     def import_damage_types(self, sheet):
@@ -347,12 +440,6 @@ class ConfigImporter:
                     data['feature_tags'] = self.parse_tags(cell_value)
                 elif header == '被动效果':
                     data['passive_effects'] = self.parse_json(cell_value)
-                elif header == '升级类型':
-                    # 新增：linear/percentage/fixed
-                    data['level_scaling_type'] = cell_value.lower() if cell_value else 'linear'
-                elif header == '升级配置':
-                    # 新增：JSON格式的升级规则
-                    data['level_scaling_config'] = self.parse_json(cell_value)
                 elif header == '描述':
                     data['description'] = cell_value
                 elif header == '是否启用':
@@ -361,26 +448,17 @@ class ConfigImporter:
             if not data.get('skill_code'):
                 continue
             
-            # 设置默认值
-            if 'level_scaling_type' not in data:
-                data['level_scaling_type'] = 'linear'
-            if 'level_scaling_config' not in data:
-                data['level_scaling_config'] = {}
-            
             try:
                 sql = f"""
                     INSERT INTO {table} (
                         skill_code, skill_name, skill_type, max_level, feature_tags,
-                        passive_effects, level_scaling_type, level_scaling_config,
-                        description, is_active, created_at, updated_at
-                    ) VALUES (%s, %s, %s::skill_type_enum, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+                        passive_effects, description, is_active, created_at, updated_at
+                    ) VALUES (%s, %s, %s::skill_type_enum, %s, %s, %s, %s, %s, NOW(), NOW())
                 """
                 self.cursor.execute(sql, (
                     data['skill_code'], data['skill_name'], data.get('skill_type', 'weapon'),
                     data.get('max_level', 10), data.get('feature_tags'),
                     json.dumps(data.get('passive_effects')) if data.get('passive_effects') else None,
-                    data.get('level_scaling_type', 'linear'),
-                    json.dumps(data.get('level_scaling_config', {})),
                     data.get('description'), data.get('is_active', True)
                 ))
                 count += 1
@@ -589,11 +667,11 @@ class ConfigImporter:
     
     def import_effect_type_definitions(self, sheet):
         """导入元效果类型定义"""
-        print("\n📋 导入元效果类型定义...")
+        print(f"\n📋 导入元效果类型定义... (模式: {self.mode})")
         table = 'game_config.effect_type_definitions'
         
         headers = [cell.value for cell in sheet[1] if cell.value]
-        self.cursor.execute(f"DELETE FROM {table}")
+        self.clear_table(table)
         
         count = 0
         for row_idx in range(2, sheet.max_row + 1):
@@ -603,9 +681,10 @@ class ConfigImporter:
             for idx, header in enumerate(headers):
                 cell_value = row[idx].value
                 
-                if header == '效果类型代码':
+                # 支持两种字段名
+                if header in ['效果类型代码', '元效果代码']:
                     data['effect_type_code'] = cell_value
-                elif header == '效果类型名称':
+                elif header in ['效果类型名称', '名称']:
                     data['effect_type_name'] = cell_value
                 elif header == '描述':
                     data['description'] = cell_value
@@ -633,6 +712,42 @@ class ConfigImporter:
                 continue
             
             try:
+                # 先检查记录是否存在（适用于增量模式）
+                if self.mode == 'incremental':
+                    check_sql = "SELECT id FROM game_config.effect_type_definitions WHERE effect_type_code = %s AND deleted_at IS NULL"
+                    self.cursor.execute(check_sql, (data['effect_type_code'],))
+                    exists = self.cursor.fetchone()
+                    
+                    if exists:
+                        # 更新现有记录
+                        update_sql = f"""
+                            UPDATE {table} SET
+                                effect_type_name = %s,
+                                description = %s,
+                                parameter_list = %s,
+                                parameter_descriptions = %s,
+                                parameter_definitions = %s,
+                                failure_handling = %s,
+                                json_template = %s,
+                                example = %s,
+                                notes = %s,
+                                is_active = %s,
+                                updated_at = NOW()
+                            WHERE effect_type_code = %s AND deleted_at IS NULL
+                        """
+                        self.cursor.execute(update_sql, (
+                            data.get('effect_type_name'), data.get('description'),
+                            data.get('parameter_list'), data.get('parameter_descriptions'),
+                            json.dumps(data.get('parameter_definitions')) if data.get('parameter_definitions') else None,
+                            data.get('failure_handling'),
+                            json.dumps(data.get('json_template')) if data.get('json_template') else None,
+                            data.get('example'), data.get('notes'), data.get('is_active', True),
+                            data['effect_type_code']
+                        ))
+                        count += 1
+                        continue
+                
+                # 插入新记录
                 sql = f"""
                     INSERT INTO {table} (
                         effect_type_code, effect_type_name, description, parameter_list,
@@ -641,7 +756,7 @@ class ConfigImporter:
                     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
                 """
                 self.cursor.execute(sql, (
-                    data['effect_type_code'], data['effect_type_name'], data.get('description'),
+                    data['effect_type_code'], data.get('effect_type_name'), data.get('description'),
                     data.get('parameter_list'), data.get('parameter_descriptions'),
                     json.dumps(data.get('parameter_definitions')) if data.get('parameter_definitions') else None,
                     data.get('failure_handling'),
@@ -787,10 +902,20 @@ class ConfigImporter:
                 
                 if header == '动作类型':
                     data['action_type'] = cell_value
-                elif header == '描述':
+                elif header in ['描述', '说明']:
                     data['description'] = cell_value
                 elif header == '每回合限制':
-                    data['per_turn_limit'] = cell_value if cell_value else None
+                    # 解析文本到数字: "通常1次" -> 1, "不限制" -> None
+                    if cell_value:
+                        if '不限制' in str(cell_value) or '不限' in str(cell_value):
+                            data['per_turn_limit'] = None
+                        else:
+                            # 提取数字
+                            import re
+                            match = re.search(r'\d+', str(cell_value))
+                            data['per_turn_limit'] = int(match.group()) if match else None
+                    else:
+                        data['per_turn_limit'] = None
                 elif header == '使用时机':
                     data['usage_timing'] = cell_value
                 elif header == '示例':
@@ -1061,7 +1186,10 @@ class ConfigImporter:
             
             print("\n" + "="*80)
             print("📊 导入统计:")
+            print(f"  导入模式: {self.mode}")
             print(f"  总计导入: {self.stats['total']} 条记录")
+            if self.mode == 'incremental' and self.stats.get('updated', 0) > 0:
+                print(f"  其中更新: {self.stats['updated']} 条记录")
             print("="*80)
             
             return True
@@ -1075,14 +1203,31 @@ class ConfigImporter:
 
 
 def main():
-    parser = argparse.ArgumentParser(description='游戏配置表导入工具')
-    parser.add_argument('--file', default='configs/game/游戏配置表_v2.0.0.xlsx',
+    parser = argparse.ArgumentParser(
+        description='游戏配置表导入工具',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog='''
+导入模式:
+  truncate    清空现有数据后导入（默认）
+  incremental 增量导入，保留现有数据，仅更新已存在的记录或插入新记录
+
+示例:
+  # 清空导入（默认）
+  python3 import_game_config.py --mode truncate
+  
+  # 增量导入
+  python3 import_game_config.py --mode incremental
+        '''
+    )
+    parser.add_argument('--file', default='configs/game/游戏配置表_v1.0.0.0.xlsx',
                         help='Excel 配置文件路径')
     parser.add_argument('--host', default='localhost', help='数据库主机')
     parser.add_argument('--port', default=5432, type=int, help='数据库端口')
     parser.add_argument('--user', default='tsu_user', help='数据库用户')
     parser.add_argument('--password', default='tsu_password', help='数据库密码')
     parser.add_argument('--database', default='tsu_db', help='数据库名')
+    parser.add_argument('--mode', default='truncate', choices=['truncate', 'incremental'],
+                        help='导入模式: truncate(清空) 或 incremental(增量)')
     
     args = parser.parse_args()
     
@@ -1096,7 +1241,7 @@ def main():
     }
     
     # 创建导入器并执行
-    importer = ConfigImporter(args.file, db_config)
+    importer = ConfigImporter(args.file, db_config, mode=args.mode)
     success = importer.run()
     
     sys.exit(0 if success else 1)

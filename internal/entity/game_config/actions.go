@@ -43,7 +43,9 @@ type Action struct {
 	UsesPerBattle   null.Int    `boil:"uses_per_battle" json:"uses_per_battle,omitempty" toml:"uses_per_battle" yaml:"uses_per_battle,omitempty"`
 	// 命中率计算配置
 	HitRateConfig null.JSON `boil:"hit_rate_config" json:"hit_rate_config,omitempty" toml:"hit_rate_config" yaml:"hit_rate_config,omitempty"`
-	Requirements  null.JSON `boil:"requirements" json:"requirements,omitempty" toml:"requirements" yaml:"requirements,omitempty"`
+	// Excel原始效果配置（用于兼容导入）
+	LegacyEffectConfig null.JSON `boil:"legacy_effect_config" json:"legacy_effect_config,omitempty" toml:"legacy_effect_config" yaml:"legacy_effect_config,omitempty"`
+	Requirements       null.JSON `boil:"requirements" json:"requirements,omitempty" toml:"requirements" yaml:"requirements,omitempty"`
 	// 开始标记数组（如STARTING_ATTACK_ACTION）
 	StartFlags      types.StringArray `boil:"start_flags" json:"start_flags,omitempty" toml:"start_flags" yaml:"start_flags,omitempty"`
 	AnimationConfig null.JSON         `boil:"animation_config" json:"animation_config,omitempty" toml:"animation_config" yaml:"animation_config,omitempty"`
@@ -60,115 +62,119 @@ type Action struct {
 }
 
 var ActionColumns = struct {
-	ID               string
-	ActionCode       string
-	ActionName       string
-	ActionCategoryID string
-	ActionType       string
-	RelatedSkillID   string
-	FeatureTags      string
-	RangeConfig      string
-	TargetConfig     string
-	AreaConfig       string
-	ActionPointCost  string
-	ManaCost         string
-	ManaCostFormula  string
-	CooldownTurns    string
-	UsesPerBattle    string
-	HitRateConfig    string
-	Requirements     string
-	StartFlags       string
-	AnimationConfig  string
-	VisualEffects    string
-	SoundEffects     string
-	Description      string
-	IsActive         string
-	CreatedAt        string
-	UpdatedAt        string
-	DeletedAt        string
+	ID                 string
+	ActionCode         string
+	ActionName         string
+	ActionCategoryID   string
+	ActionType         string
+	RelatedSkillID     string
+	FeatureTags        string
+	RangeConfig        string
+	TargetConfig       string
+	AreaConfig         string
+	ActionPointCost    string
+	ManaCost           string
+	ManaCostFormula    string
+	CooldownTurns      string
+	UsesPerBattle      string
+	HitRateConfig      string
+	LegacyEffectConfig string
+	Requirements       string
+	StartFlags         string
+	AnimationConfig    string
+	VisualEffects      string
+	SoundEffects       string
+	Description        string
+	IsActive           string
+	CreatedAt          string
+	UpdatedAt          string
+	DeletedAt          string
 }{
-	ID:               "id",
-	ActionCode:       "action_code",
-	ActionName:       "action_name",
-	ActionCategoryID: "action_category_id",
-	ActionType:       "action_type",
-	RelatedSkillID:   "related_skill_id",
-	FeatureTags:      "feature_tags",
-	RangeConfig:      "range_config",
-	TargetConfig:     "target_config",
-	AreaConfig:       "area_config",
-	ActionPointCost:  "action_point_cost",
-	ManaCost:         "mana_cost",
-	ManaCostFormula:  "mana_cost_formula",
-	CooldownTurns:    "cooldown_turns",
-	UsesPerBattle:    "uses_per_battle",
-	HitRateConfig:    "hit_rate_config",
-	Requirements:     "requirements",
-	StartFlags:       "start_flags",
-	AnimationConfig:  "animation_config",
-	VisualEffects:    "visual_effects",
-	SoundEffects:     "sound_effects",
-	Description:      "description",
-	IsActive:         "is_active",
-	CreatedAt:        "created_at",
-	UpdatedAt:        "updated_at",
-	DeletedAt:        "deleted_at",
+	ID:                 "id",
+	ActionCode:         "action_code",
+	ActionName:         "action_name",
+	ActionCategoryID:   "action_category_id",
+	ActionType:         "action_type",
+	RelatedSkillID:     "related_skill_id",
+	FeatureTags:        "feature_tags",
+	RangeConfig:        "range_config",
+	TargetConfig:       "target_config",
+	AreaConfig:         "area_config",
+	ActionPointCost:    "action_point_cost",
+	ManaCost:           "mana_cost",
+	ManaCostFormula:    "mana_cost_formula",
+	CooldownTurns:      "cooldown_turns",
+	UsesPerBattle:      "uses_per_battle",
+	HitRateConfig:      "hit_rate_config",
+	LegacyEffectConfig: "legacy_effect_config",
+	Requirements:       "requirements",
+	StartFlags:         "start_flags",
+	AnimationConfig:    "animation_config",
+	VisualEffects:      "visual_effects",
+	SoundEffects:       "sound_effects",
+	Description:        "description",
+	IsActive:           "is_active",
+	CreatedAt:          "created_at",
+	UpdatedAt:          "updated_at",
+	DeletedAt:          "deleted_at",
 }
 
 var ActionTableColumns = struct {
-	ID               string
-	ActionCode       string
-	ActionName       string
-	ActionCategoryID string
-	ActionType       string
-	RelatedSkillID   string
-	FeatureTags      string
-	RangeConfig      string
-	TargetConfig     string
-	AreaConfig       string
-	ActionPointCost  string
-	ManaCost         string
-	ManaCostFormula  string
-	CooldownTurns    string
-	UsesPerBattle    string
-	HitRateConfig    string
-	Requirements     string
-	StartFlags       string
-	AnimationConfig  string
-	VisualEffects    string
-	SoundEffects     string
-	Description      string
-	IsActive         string
-	CreatedAt        string
-	UpdatedAt        string
-	DeletedAt        string
+	ID                 string
+	ActionCode         string
+	ActionName         string
+	ActionCategoryID   string
+	ActionType         string
+	RelatedSkillID     string
+	FeatureTags        string
+	RangeConfig        string
+	TargetConfig       string
+	AreaConfig         string
+	ActionPointCost    string
+	ManaCost           string
+	ManaCostFormula    string
+	CooldownTurns      string
+	UsesPerBattle      string
+	HitRateConfig      string
+	LegacyEffectConfig string
+	Requirements       string
+	StartFlags         string
+	AnimationConfig    string
+	VisualEffects      string
+	SoundEffects       string
+	Description        string
+	IsActive           string
+	CreatedAt          string
+	UpdatedAt          string
+	DeletedAt          string
 }{
-	ID:               "actions.id",
-	ActionCode:       "actions.action_code",
-	ActionName:       "actions.action_name",
-	ActionCategoryID: "actions.action_category_id",
-	ActionType:       "actions.action_type",
-	RelatedSkillID:   "actions.related_skill_id",
-	FeatureTags:      "actions.feature_tags",
-	RangeConfig:      "actions.range_config",
-	TargetConfig:     "actions.target_config",
-	AreaConfig:       "actions.area_config",
-	ActionPointCost:  "actions.action_point_cost",
-	ManaCost:         "actions.mana_cost",
-	ManaCostFormula:  "actions.mana_cost_formula",
-	CooldownTurns:    "actions.cooldown_turns",
-	UsesPerBattle:    "actions.uses_per_battle",
-	HitRateConfig:    "actions.hit_rate_config",
-	Requirements:     "actions.requirements",
-	StartFlags:       "actions.start_flags",
-	AnimationConfig:  "actions.animation_config",
-	VisualEffects:    "actions.visual_effects",
-	SoundEffects:     "actions.sound_effects",
-	Description:      "actions.description",
-	IsActive:         "actions.is_active",
-	CreatedAt:        "actions.created_at",
-	UpdatedAt:        "actions.updated_at",
-	DeletedAt:        "actions.deleted_at",
+	ID:                 "actions.id",
+	ActionCode:         "actions.action_code",
+	ActionName:         "actions.action_name",
+	ActionCategoryID:   "actions.action_category_id",
+	ActionType:         "actions.action_type",
+	RelatedSkillID:     "actions.related_skill_id",
+	FeatureTags:        "actions.feature_tags",
+	RangeConfig:        "actions.range_config",
+	TargetConfig:       "actions.target_config",
+	AreaConfig:         "actions.area_config",
+	ActionPointCost:    "actions.action_point_cost",
+	ManaCost:           "actions.mana_cost",
+	ManaCostFormula:    "actions.mana_cost_formula",
+	CooldownTurns:      "actions.cooldown_turns",
+	UsesPerBattle:      "actions.uses_per_battle",
+	HitRateConfig:      "actions.hit_rate_config",
+	LegacyEffectConfig: "actions.legacy_effect_config",
+	Requirements:       "actions.requirements",
+	StartFlags:         "actions.start_flags",
+	AnimationConfig:    "actions.animation_config",
+	VisualEffects:      "actions.visual_effects",
+	SoundEffects:       "actions.sound_effects",
+	Description:        "actions.description",
+	IsActive:           "actions.is_active",
+	CreatedAt:          "actions.created_at",
+	UpdatedAt:          "actions.updated_at",
+	DeletedAt:          "actions.deleted_at",
 }
 
 // Generated where
@@ -195,59 +201,61 @@ func (w whereHelpertypes_JSON) GTE(x types.JSON) qm.QueryMod {
 }
 
 var ActionWhere = struct {
-	ID               whereHelperstring
-	ActionCode       whereHelperstring
-	ActionName       whereHelperstring
-	ActionCategoryID whereHelpernull_String
-	ActionType       whereHelperstring
-	RelatedSkillID   whereHelpernull_String
-	FeatureTags      whereHelpertypes_StringArray
-	RangeConfig      whereHelpertypes_JSON
-	TargetConfig     whereHelpernull_JSON
-	AreaConfig       whereHelpernull_JSON
-	ActionPointCost  whereHelpernull_Int
-	ManaCost         whereHelpernull_Int
-	ManaCostFormula  whereHelpernull_String
-	CooldownTurns    whereHelpernull_Int
-	UsesPerBattle    whereHelpernull_Int
-	HitRateConfig    whereHelpernull_JSON
-	Requirements     whereHelpernull_JSON
-	StartFlags       whereHelpertypes_StringArray
-	AnimationConfig  whereHelpernull_JSON
-	VisualEffects    whereHelpernull_JSON
-	SoundEffects     whereHelpernull_JSON
-	Description      whereHelpernull_String
-	IsActive         whereHelpernull_Bool
-	CreatedAt        whereHelpernull_Time
-	UpdatedAt        whereHelpernull_Time
-	DeletedAt        whereHelpernull_Time
+	ID                 whereHelperstring
+	ActionCode         whereHelperstring
+	ActionName         whereHelperstring
+	ActionCategoryID   whereHelpernull_String
+	ActionType         whereHelperstring
+	RelatedSkillID     whereHelpernull_String
+	FeatureTags        whereHelpertypes_StringArray
+	RangeConfig        whereHelpertypes_JSON
+	TargetConfig       whereHelpernull_JSON
+	AreaConfig         whereHelpernull_JSON
+	ActionPointCost    whereHelpernull_Int
+	ManaCost           whereHelpernull_Int
+	ManaCostFormula    whereHelpernull_String
+	CooldownTurns      whereHelpernull_Int
+	UsesPerBattle      whereHelpernull_Int
+	HitRateConfig      whereHelpernull_JSON
+	LegacyEffectConfig whereHelpernull_JSON
+	Requirements       whereHelpernull_JSON
+	StartFlags         whereHelpertypes_StringArray
+	AnimationConfig    whereHelpernull_JSON
+	VisualEffects      whereHelpernull_JSON
+	SoundEffects       whereHelpernull_JSON
+	Description        whereHelpernull_String
+	IsActive           whereHelpernull_Bool
+	CreatedAt          whereHelpernull_Time
+	UpdatedAt          whereHelpernull_Time
+	DeletedAt          whereHelpernull_Time
 }{
-	ID:               whereHelperstring{field: "\"game_config\".\"actions\".\"id\""},
-	ActionCode:       whereHelperstring{field: "\"game_config\".\"actions\".\"action_code\""},
-	ActionName:       whereHelperstring{field: "\"game_config\".\"actions\".\"action_name\""},
-	ActionCategoryID: whereHelpernull_String{field: "\"game_config\".\"actions\".\"action_category_id\""},
-	ActionType:       whereHelperstring{field: "\"game_config\".\"actions\".\"action_type\""},
-	RelatedSkillID:   whereHelpernull_String{field: "\"game_config\".\"actions\".\"related_skill_id\""},
-	FeatureTags:      whereHelpertypes_StringArray{field: "\"game_config\".\"actions\".\"feature_tags\""},
-	RangeConfig:      whereHelpertypes_JSON{field: "\"game_config\".\"actions\".\"range_config\""},
-	TargetConfig:     whereHelpernull_JSON{field: "\"game_config\".\"actions\".\"target_config\""},
-	AreaConfig:       whereHelpernull_JSON{field: "\"game_config\".\"actions\".\"area_config\""},
-	ActionPointCost:  whereHelpernull_Int{field: "\"game_config\".\"actions\".\"action_point_cost\""},
-	ManaCost:         whereHelpernull_Int{field: "\"game_config\".\"actions\".\"mana_cost\""},
-	ManaCostFormula:  whereHelpernull_String{field: "\"game_config\".\"actions\".\"mana_cost_formula\""},
-	CooldownTurns:    whereHelpernull_Int{field: "\"game_config\".\"actions\".\"cooldown_turns\""},
-	UsesPerBattle:    whereHelpernull_Int{field: "\"game_config\".\"actions\".\"uses_per_battle\""},
-	HitRateConfig:    whereHelpernull_JSON{field: "\"game_config\".\"actions\".\"hit_rate_config\""},
-	Requirements:     whereHelpernull_JSON{field: "\"game_config\".\"actions\".\"requirements\""},
-	StartFlags:       whereHelpertypes_StringArray{field: "\"game_config\".\"actions\".\"start_flags\""},
-	AnimationConfig:  whereHelpernull_JSON{field: "\"game_config\".\"actions\".\"animation_config\""},
-	VisualEffects:    whereHelpernull_JSON{field: "\"game_config\".\"actions\".\"visual_effects\""},
-	SoundEffects:     whereHelpernull_JSON{field: "\"game_config\".\"actions\".\"sound_effects\""},
-	Description:      whereHelpernull_String{field: "\"game_config\".\"actions\".\"description\""},
-	IsActive:         whereHelpernull_Bool{field: "\"game_config\".\"actions\".\"is_active\""},
-	CreatedAt:        whereHelpernull_Time{field: "\"game_config\".\"actions\".\"created_at\""},
-	UpdatedAt:        whereHelpernull_Time{field: "\"game_config\".\"actions\".\"updated_at\""},
-	DeletedAt:        whereHelpernull_Time{field: "\"game_config\".\"actions\".\"deleted_at\""},
+	ID:                 whereHelperstring{field: "\"game_config\".\"actions\".\"id\""},
+	ActionCode:         whereHelperstring{field: "\"game_config\".\"actions\".\"action_code\""},
+	ActionName:         whereHelperstring{field: "\"game_config\".\"actions\".\"action_name\""},
+	ActionCategoryID:   whereHelpernull_String{field: "\"game_config\".\"actions\".\"action_category_id\""},
+	ActionType:         whereHelperstring{field: "\"game_config\".\"actions\".\"action_type\""},
+	RelatedSkillID:     whereHelpernull_String{field: "\"game_config\".\"actions\".\"related_skill_id\""},
+	FeatureTags:        whereHelpertypes_StringArray{field: "\"game_config\".\"actions\".\"feature_tags\""},
+	RangeConfig:        whereHelpertypes_JSON{field: "\"game_config\".\"actions\".\"range_config\""},
+	TargetConfig:       whereHelpernull_JSON{field: "\"game_config\".\"actions\".\"target_config\""},
+	AreaConfig:         whereHelpernull_JSON{field: "\"game_config\".\"actions\".\"area_config\""},
+	ActionPointCost:    whereHelpernull_Int{field: "\"game_config\".\"actions\".\"action_point_cost\""},
+	ManaCost:           whereHelpernull_Int{field: "\"game_config\".\"actions\".\"mana_cost\""},
+	ManaCostFormula:    whereHelpernull_String{field: "\"game_config\".\"actions\".\"mana_cost_formula\""},
+	CooldownTurns:      whereHelpernull_Int{field: "\"game_config\".\"actions\".\"cooldown_turns\""},
+	UsesPerBattle:      whereHelpernull_Int{field: "\"game_config\".\"actions\".\"uses_per_battle\""},
+	HitRateConfig:      whereHelpernull_JSON{field: "\"game_config\".\"actions\".\"hit_rate_config\""},
+	LegacyEffectConfig: whereHelpernull_JSON{field: "\"game_config\".\"actions\".\"legacy_effect_config\""},
+	Requirements:       whereHelpernull_JSON{field: "\"game_config\".\"actions\".\"requirements\""},
+	StartFlags:         whereHelpertypes_StringArray{field: "\"game_config\".\"actions\".\"start_flags\""},
+	AnimationConfig:    whereHelpernull_JSON{field: "\"game_config\".\"actions\".\"animation_config\""},
+	VisualEffects:      whereHelpernull_JSON{field: "\"game_config\".\"actions\".\"visual_effects\""},
+	SoundEffects:       whereHelpernull_JSON{field: "\"game_config\".\"actions\".\"sound_effects\""},
+	Description:        whereHelpernull_String{field: "\"game_config\".\"actions\".\"description\""},
+	IsActive:           whereHelpernull_Bool{field: "\"game_config\".\"actions\".\"is_active\""},
+	CreatedAt:          whereHelpernull_Time{field: "\"game_config\".\"actions\".\"created_at\""},
+	UpdatedAt:          whereHelpernull_Time{field: "\"game_config\".\"actions\".\"updated_at\""},
+	DeletedAt:          whereHelpernull_Time{field: "\"game_config\".\"actions\".\"deleted_at\""},
 }
 
 // ActionRels is where relationship names are stored.
@@ -344,9 +352,9 @@ func (r *actionR) GetSkillUnlockActions() SkillUnlockActionSlice {
 type actionL struct{}
 
 var (
-	actionAllColumns            = []string{"id", "action_code", "action_name", "action_category_id", "action_type", "related_skill_id", "feature_tags", "range_config", "target_config", "area_config", "action_point_cost", "mana_cost", "mana_cost_formula", "cooldown_turns", "uses_per_battle", "hit_rate_config", "requirements", "start_flags", "animation_config", "visual_effects", "sound_effects", "description", "is_active", "created_at", "updated_at", "deleted_at"}
+	actionAllColumns            = []string{"id", "action_code", "action_name", "action_category_id", "action_type", "related_skill_id", "feature_tags", "range_config", "target_config", "area_config", "action_point_cost", "mana_cost", "mana_cost_formula", "cooldown_turns", "uses_per_battle", "hit_rate_config", "legacy_effect_config", "requirements", "start_flags", "animation_config", "visual_effects", "sound_effects", "description", "is_active", "created_at", "updated_at", "deleted_at"}
 	actionColumnsWithoutDefault = []string{"action_code", "action_name"}
-	actionColumnsWithDefault    = []string{"id", "action_category_id", "action_type", "related_skill_id", "feature_tags", "range_config", "target_config", "area_config", "action_point_cost", "mana_cost", "mana_cost_formula", "cooldown_turns", "uses_per_battle", "hit_rate_config", "requirements", "start_flags", "animation_config", "visual_effects", "sound_effects", "description", "is_active", "created_at", "updated_at", "deleted_at"}
+	actionColumnsWithDefault    = []string{"id", "action_category_id", "action_type", "related_skill_id", "feature_tags", "range_config", "target_config", "area_config", "action_point_cost", "mana_cost", "mana_cost_formula", "cooldown_turns", "uses_per_battle", "hit_rate_config", "legacy_effect_config", "requirements", "start_flags", "animation_config", "visual_effects", "sound_effects", "description", "is_active", "created_at", "updated_at", "deleted_at"}
 	actionPrimaryKeyColumns     = []string{"id"}
 	actionGeneratedColumns      = []string{}
 )

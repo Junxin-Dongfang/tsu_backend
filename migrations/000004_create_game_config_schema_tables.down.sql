@@ -9,7 +9,7 @@
 DROP TABLE IF EXISTS game_config.buff_effects;
 DROP TABLE IF EXISTS game_config.action_effects;
 DROP TABLE IF EXISTS game_config.skill_unlock_actions;
-DROP TABLE IF EXISTS game_config.skill_level_configs;
+DROP TABLE IF EXISTS game_config.class_skill_pools;
 DROP TABLE IF EXISTS game_config.class_attribute_bonuses;
 DROP TABLE IF EXISTS game_config.class_advanced_requirements;
 DROP TABLE IF EXISTS game_config.tags_relations;

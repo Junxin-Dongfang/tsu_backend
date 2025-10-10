@@ -13,6 +13,7 @@ var TableNames = struct {
 	Buffs                     string
 	ClassAdvancedRequirements string
 	ClassAttributeBonuses     string
+	ClassSkillPools           string
 	Classes                   string
 	DamageTypes               string
 	EffectTypeDefinitions     string
@@ -21,7 +22,6 @@ var TableNames = struct {
 	HeroAttributeType         string
 	RangeConfigRules          string
 	SkillCategories           string
-	SkillLevelConfigs         string
 	SkillUnlockActions        string
 	SkillUpgradeCosts         string
 	Skills                    string
@@ -37,6 +37,7 @@ var TableNames = struct {
 	Buffs:                     "buffs",
 	ClassAdvancedRequirements: "class_advanced_requirements",
 	ClassAttributeBonuses:     "class_attribute_bonuses",
+	ClassSkillPools:           "class_skill_pools",
 	Classes:                   "classes",
 	DamageTypes:               "damage_types",
 	EffectTypeDefinitions:     "effect_type_definitions",
@@ -45,7 +46,6 @@ var TableNames = struct {
 	HeroAttributeType:         "hero_attribute_type",
 	RangeConfigRules:          "range_config_rules",
 	SkillCategories:           "skill_categories",
-	SkillLevelConfigs:         "skill_level_configs",
 	SkillUnlockActions:        "skill_unlock_actions",
 	SkillUpgradeCosts:         "skill_upgrade_costs",
 	Skills:                    "skills",

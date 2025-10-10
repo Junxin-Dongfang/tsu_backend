@@ -46,7 +46,7 @@ type APIResponse[T any] struct {
 // Response Swagger 文档用的通用响应结构（非泛型版本，用于 API 文档生成）
 type Response struct {
 	Code      int         `json:"code" example:"100000"`                    // 业务响应码
-	Message   string      `json:"message" example:"操作成功"`                  // 面向用户的响应消息
+	Message   string      `json:"message" example:"操作成功"`                   // 面向用户的响应消息
 	Data      interface{} `json:"data,omitempty"`                           // 响应数据
 	Timestamp int64       `json:"timestamp" example:"1759501201"`           // Unix时间戳
 	TraceID   string      `json:"trace_id,omitempty" example:"abc-123-xyz"` // 请求追踪ID
@@ -220,11 +220,6 @@ func (h *ResponseHandler) logError(ctx context.Context, appErr *xerrors.AppError
 	} else {
 		h.logger.InfoContext(ctx, "error occurred", slog.Any("error", appErr))
 	}
-}
-
-// mapHTTPStatus 映射业务错误码到HTTP状态码（使用你的GetHTTPStatus函数）
-func (h *ResponseHandler) mapHTTPStatus(code int) int {
-	return xerrors.GetHTTPStatus(code)
 }
 
 // extractTraceID 从context中提取trace_id

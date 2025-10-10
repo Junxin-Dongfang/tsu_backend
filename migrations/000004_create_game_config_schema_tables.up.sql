@@ -692,11 +692,6 @@ CREATE TABLE IF NOT EXISTS game_config.skills (
     feature_tags TEXT[],
     passive_effects JSONB,  -- 新增：被动效果配置
 
-    -- 学习要求
-    required_level INTEGER DEFAULT 1 CHECK (required_level >= 1),
-    required_class_codes VARCHAR(32)[],
-    prerequisite_skill_codes VARCHAR(50)[],
-
     -- 显示配置
     description TEXT,
     detailed_description TEXT,
@@ -725,46 +720,68 @@ COMMENT ON TABLE game_config.skills IS '技能定义表';
 COMMENT ON COLUMN game_config.skills.passive_effects IS '被动效果配置（JSONB格式）';
 
 -- --------------------------------------------------------------------------------
--- 技能等级配置表
+-- 职业技能池表
+-- 定义每个职业可以学习哪些技能,以及学习的具体要求和条件
 -- --------------------------------------------------------------------------------
 
-CREATE TABLE IF NOT EXISTS game_config.skill_level_configs (
+CREATE TABLE IF NOT EXISTS game_config.class_skill_pools (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
+
+    -- 关联关系
+    class_id UUID NOT NULL REFERENCES game_config.classes(id) ON DELETE CASCADE,
     skill_id UUID NOT NULL REFERENCES game_config.skills(id) ON DELETE CASCADE,
 
-    level_number INTEGER NOT NULL CHECK (level_number >= 1),
+    -- 学习要求 (差异化配置)
+    required_level INTEGER NOT NULL DEFAULT 1 CHECK (required_level >= 1),
+    required_attributes JSONB,                      -- 所需属性要求, 格式: {"STR": 15, "INT": 10}
+    prerequisite_skill_ids UUID[],                  -- 前置技能 ID 数组
 
-    -- 对动作/效果的加成
-    damage_multiplier DECIMAL(5,2) DEFAULT 1.0,
-    healing_multiplier DECIMAL(5,2) DEFAULT 1.0,
-    duration_modifier INTEGER DEFAULT 0,
-    range_modifier INTEGER DEFAULT 0,
-    cooldown_modifier INTEGER DEFAULT 0,
-    mana_cost_modifier INTEGER DEFAULT 0,
+    -- 学习成本
+    learn_cost_xp INTEGER DEFAULT 0 CHECK (learn_cost_xp >= 0),
 
-    -- 其他加成配置
-    effect_modifiers JSONB,
+    -- 技能特性
+    skill_tier INTEGER DEFAULT 1 CHECK (skill_tier >= 1 AND skill_tier <= 5),  -- 1基础/2进阶/3高级/4大师/5传说
+    is_core BOOLEAN DEFAULT FALSE,                  -- 是否核心技能 (推荐优先学习)
+    is_exclusive BOOLEAN DEFAULT FALSE,             -- 是否职业专属 (只有该职业能学)
+    max_learnable_level INTEGER,                    -- 该职业可学到的最大等级 (NULL=继承技能的max_level)
 
-    -- 升级消耗
-    upgrade_cost_xp INTEGER DEFAULT 0,
-    upgrade_cost_gold INTEGER DEFAULT 0,
-    upgrade_materials JSONB,
+    -- 显示配置
+    display_order INTEGER DEFAULT 0,
+    is_visible BOOLEAN DEFAULT TRUE,                -- 是否在技能树中显示
+    custom_icon VARCHAR(256),                       -- 职业特定图标 (覆盖技能默认图标)
+    custom_description TEXT,                        -- 职业特定描述
 
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    -- 时间戳
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_at TIMESTAMPTZ,
 
-    UNIQUE(skill_id, level_number)
+    -- 唯一约束: 每个职业的每个技能只能有一个配置
+    UNIQUE(class_id, skill_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_skill_level_configs_skill
-    ON game_config.skill_level_configs(skill_id) WHERE deleted_at IS NULL;
+-- 职业技能池索引
+CREATE INDEX IF NOT EXISTS idx_class_skill_pools_class_id
+    ON game_config.class_skill_pools(class_id) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_class_skill_pools_skill_id
+    ON game_config.class_skill_pools(skill_id) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_class_skill_pools_tier
+    ON game_config.class_skill_pools(skill_tier) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_class_skill_pools_core
+    ON game_config.class_skill_pools(is_core) WHERE is_core = TRUE AND deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_class_skill_pools_exclusive
+    ON game_config.class_skill_pools(is_exclusive) WHERE is_exclusive = TRUE AND deleted_at IS NULL;
 
-CREATE TRIGGER update_skill_level_configs_updated_at
-    BEFORE UPDATE ON game_config.skill_level_configs
+-- 职业技能池触发器
+CREATE TRIGGER update_class_skill_pools_updated_at
+    BEFORE UPDATE ON game_config.class_skill_pools
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-COMMENT ON TABLE game_config.skill_level_configs IS '技能等级配置表 - 每个技能每个等级的具体数值';
+COMMENT ON TABLE game_config.class_skill_pools IS '职业技能池表 - 定义每个职业可学习的技能及其差异化要求';
+COMMENT ON COLUMN game_config.class_skill_pools.required_attributes IS '所需属性要求 (JSONB), 格式: {"STR": 15, "INT": 10}';
+COMMENT ON COLUMN game_config.class_skill_pools.prerequisite_skill_ids IS '前置技能ID数组, 需要先学习这些技能';
+COMMENT ON COLUMN game_config.class_skill_pools.max_learnable_level IS '该职业可学到的最大等级, NULL表示继承技能的max_level';
+COMMENT ON COLUMN game_config.class_skill_pools.is_exclusive IS '是否职业专属技能, TRUE表示只有该职业能学';
 
 -- --------------------------------------------------------------------------------
 -- 动作定义表
@@ -894,9 +911,7 @@ CREATE TABLE IF NOT EXISTS game_config.skill_unlock_actions (
     is_default BOOLEAN DEFAULT FALSE,
 
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    deleted_at TIMESTAMPTZ,
-
-    UNIQUE(skill_id, action_id)
+    deleted_at TIMESTAMPTZ
 );
 
 CREATE INDEX IF NOT EXISTS idx_skill_unlock_actions_skill
@@ -905,6 +920,8 @@ CREATE INDEX IF NOT EXISTS idx_skill_unlock_actions_action
     ON game_config.skill_unlock_actions(action_id) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_skill_unlock_actions_level
     ON game_config.skill_unlock_actions(unlock_level);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_skill_unlock_actions_skill_action_unique
+    ON game_config.skill_unlock_actions(skill_id, action_id) WHERE deleted_at IS NULL;
 
 COMMENT ON TABLE game_config.skill_unlock_actions IS '技能解锁动作关联表';
 

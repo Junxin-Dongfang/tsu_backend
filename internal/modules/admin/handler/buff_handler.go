@@ -2,6 +2,7 @@ package handler
 
 import (
 	"database/sql"
+	"encoding/json"
 	"strconv"
 
 	"github.com/labstack/echo/v4"
@@ -30,35 +31,44 @@ func NewBuffHandler(db *sql.DB, respWriter response.Writer) *BuffHandler {
 
 // CreateBuffRequest 创建Buff请求
 type CreateBuffRequest struct {
-	BuffCode    string `json:"buff_code" validate:"required,max=50" example:"bless"`    // Buff唯一代码
-	BuffName    string `json:"buff_name" validate:"required,max=100" example:"祝福术"`     // Buff名称
-	BuffType    string `json:"buff_type" validate:"required,max=50" example:"positive"` // Buff类型(positive/negative/neutral)
-	Category    string `json:"category" example:"blessing"`                             // Buff分类
-	Description string `json:"description" example:"提升攻击力和防御力"`                         // Buff描述
-	IsActive    bool   `json:"is_active" example:"true"`                                // 是否启用
+	BuffCode             string   `json:"buff_code" validate:"required,max=50" example:"bless"`                                    // Buff唯一代码
+	BuffName             string   `json:"buff_name" validate:"required,max=100" example:"祝福术"`                                     // Buff名称
+	BuffType             string   `json:"buff_type" validate:"required,max=50" example:"positive"`                                 // Buff类型(positive/negative/neutral)
+	Category             string   `json:"category" example:"blessing"`                                                             // Buff分类
+	EffectDescription    string   `json:"effect_description" example:"攻击力提升N%"`                                                    // 效果描述（面向玩家）
+	ParameterList        []string `json:"parameter_list" example:"N"`                                                              // 参数名称列表
+	ParameterDefinitions string   `json:"parameter_definitions" example:"{\"N\":{\"type\":\"percentage\",\"min\":0,\"max\":100}}"` // 参数详细定义(JSONB)
+	Description          string   `json:"description" example:"提升攻击力和防御力"`                                                         // Buff描述
+	IsActive             bool     `json:"is_active" example:"true"`                                                                // 是否启用
 }
 
 // UpdateBuffRequest 更新Buff请求
 type UpdateBuffRequest struct {
-	BuffCode    string `json:"buff_code" example:"bless"`       // Buff唯一代码
-	BuffName    string `json:"buff_name" example:"祝福术"`         // Buff名称
-	BuffType    string `json:"buff_type" example:"positive"`    // Buff类型(positive/negative/neutral)
-	Category    string `json:"category" example:"blessing"`     // Buff分类
-	Description string `json:"description" example:"提升攻击力和防御力"` // Buff描述
-	IsActive    bool   `json:"is_active" example:"true"`        // 是否启用
+	BuffCode             string   `json:"buff_code" example:"bless"`                                                               // Buff唯一代码
+	BuffName             string   `json:"buff_name" example:"祝福术"`                                                                 // Buff名称
+	BuffType             string   `json:"buff_type" example:"positive"`                                                            // Buff类型(positive/negative/neutral)
+	Category             string   `json:"category" example:"blessing"`                                                             // Buff分类
+	EffectDescription    string   `json:"effect_description" example:"攻击力提升N%"`                                                    // 效果描述（面向玩家）
+	ParameterList        []string `json:"parameter_list" example:"N"`                                                              // 参数名称列表
+	ParameterDefinitions string   `json:"parameter_definitions" example:"{\"N\":{\"type\":\"percentage\",\"min\":0,\"max\":100}}"` // 参数详细定义(JSONB)
+	Description          string   `json:"description" example:"提升攻击力和防御力"`                                                         // Buff描述
+	IsActive             bool     `json:"is_active" example:"true"`                                                                // 是否启用
 }
 
 // BuffInfo Buff信息响应
 type BuffInfo struct {
-	ID          string `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"` // Buff ID
-	BuffCode    string `json:"buff_code" example:"bless"`                         // Buff唯一代码
-	BuffName    string `json:"buff_name" example:"祝福术"`                           // Buff名称
-	BuffType    string `json:"buff_type" example:"positive"`                      // Buff类型(positive/negative/neutral)
-	Category    string `json:"category" example:"blessing"`                       // Buff分类
-	Description string `json:"description" example:"提升攻击力和防御力"`                   // Buff描述
-	IsActive    bool   `json:"is_active" example:"true"`                          // 是否启用
-	CreatedAt   int64  `json:"created_at" example:"1633024800"`                   // 创建时间戳
-	UpdatedAt   int64  `json:"updated_at" example:"1633024800"`                   // 更新时间戳
+	ID                   string   `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`                                       // Buff ID
+	BuffCode             string   `json:"buff_code" example:"bless"`                                                               // Buff唯一代码
+	BuffName             string   `json:"buff_name" example:"祝福术"`                                                                 // Buff名称
+	BuffType             string   `json:"buff_type" example:"positive"`                                                            // Buff类型(positive/negative/neutral)
+	Category             string   `json:"category" example:"blessing"`                                                             // Buff分类
+	EffectDescription    string   `json:"effect_description" example:"攻击力提升N%"`                                                    // 效果描述（面向玩家）
+	ParameterList        []string `json:"parameter_list" example:"N"`                                                              // 参数名称列表
+	ParameterDefinitions string   `json:"parameter_definitions" example:"{\"N\":{\"type\":\"percentage\",\"min\":0,\"max\":100}}"` // 参数详细定义(JSONB)
+	Description          string   `json:"description" example:"提升攻击力和防御力"`                                                         // Buff描述
+	IsActive             bool     `json:"is_active" example:"true"`                                                                // 是否启用
+	CreatedAt            int64    `json:"created_at" example:"1633024800"`                                                         // 创建时间戳
+	UpdatedAt            int64    `json:"updated_at" example:"1633024800"`                                                         // 更新时间戳
 }
 
 // ==================== HTTP Handlers ====================
@@ -74,7 +84,7 @@ type BuffInfo struct {
 // @Param is_active query bool false "是否启用，true或false"
 // @Param limit query int false "每页数量，默认10"
 // @Param offset query int false "偏移量，默认0"
-// @Success 200 {object} response.Response{data=map[string]interface{}} "成功返回Buff列表和总数"
+// @Success 200 {object} response.Response{data=object{list=[]BuffInfo,total=int}} "成功返回Buff列表和总数"
 // @Failure 400 {object} response.Response "参数错误"
 // @Failure 500 {object} response.Response "服务器错误"
 // @Router /admin/buffs [get]
@@ -185,6 +195,23 @@ func (h *BuffHandler) CreateBuff(c echo.Context) error {
 		buff.Category.SetValid(req.Category)
 	}
 
+	if req.EffectDescription != "" {
+		buff.EffectDescription.SetValid(req.EffectDescription)
+	}
+
+	if len(req.ParameterList) > 0 {
+		buff.ParameterList = req.ParameterList
+	}
+
+	if req.ParameterDefinitions != "" {
+		// 验证 JSON 格式
+		var jsonData interface{}
+		if err := json.Unmarshal([]byte(req.ParameterDefinitions), &jsonData); err != nil {
+			return response.EchoBadRequest(c, h.respWriter, "parameter_definitions 必须是有效的 JSON")
+		}
+		buff.ParameterDefinitions.UnmarshalJSON([]byte(req.ParameterDefinitions))
+	}
+
 	if req.Description != "" {
 		buff.Description.SetValid(req.Description)
 	}
@@ -236,6 +263,9 @@ func (h *BuffHandler) UpdateBuff(c echo.Context) error {
 		updates["buff_type"] = req.BuffType
 	}
 	updates["category"] = req.Category
+	updates["effect_description"] = req.EffectDescription
+	updates["parameter_list"] = req.ParameterList
+	updates["parameter_definitions"] = req.ParameterDefinitions
 	updates["description"] = req.Description
 	updates["is_active"] = req.IsActive
 
@@ -287,6 +317,23 @@ func (h *BuffHandler) convertToBuffInfo(buff *game_config.Buff) BuffInfo {
 
 	if buff.Category.Valid {
 		info.Category = buff.Category.String
+	}
+
+	if buff.EffectDescription.Valid {
+		info.EffectDescription = buff.EffectDescription.String
+	}
+
+	// ParameterList 处理
+	if len(buff.ParameterList) > 0 {
+		info.ParameterList = buff.ParameterList
+	} else {
+		info.ParameterList = []string{}
+	}
+
+	// ParameterDefinitions 处理 (JSONB)
+	if buff.ParameterDefinitions.Valid {
+		paramBytes, _ := buff.ParameterDefinitions.MarshalJSON()
+		info.ParameterDefinitions = string(paramBytes)
 	}
 
 	if buff.Description.Valid {

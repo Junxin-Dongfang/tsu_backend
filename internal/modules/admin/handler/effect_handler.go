@@ -97,7 +97,7 @@ type EffectInfo struct {
 // @Param is_active query bool false "是否启用，true或false"
 // @Param limit query int false "每页数量，默认10"
 // @Param offset query int false "偏移量，默认0"
-// @Success 200 {object} response.Response{data=map[string]interface{}} "成功返回效果列表和总数"
+// @Success 200 {object} response.Response{data=object{list=[]EffectInfo,total=int}} "成功返回效果列表和总数"
 // @Failure 400 {object} response.Response "参数错误"
 // @Failure 500 {object} response.Response "服务器错误"
 // @Router /admin/effects [get]

@@ -55,7 +55,7 @@ type EffectTypeDefinitionInfo struct {
 // @Param is_active query bool false "是否启用"
 // @Param limit query int false "每页数量"
 // @Param offset query int false "偏移量"
-// @Success 200 {object} response.Response{data=map[string]interface{}} "返回 list 和 total 字段"
+// @Success 200 {object} response.Response{data=object{list=[]EffectTypeDefinitionInfo,total=int}} "返回 list 和 total 字段"
 // @Failure 400 {object} response.Response "参数错误"
 // @Failure 500 {object} response.Response "服务器内部错误"
 // @Router /admin/metadata/effect-type-definitions [get]

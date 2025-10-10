@@ -1,10 +1,13 @@
 package handler
 
 import (
+	"context"
 	"net/http"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/liangdas/mqant/module"
+	mqrpc "github.com/liangdas/mqant/rpc"
 	"google.golang.org/protobuf/proto"
 
 	authpb "tsu-self/internal/pb/auth"
@@ -14,16 +17,14 @@ import (
 
 // AuthHandler handles authentication HTTP requests
 type AuthHandler struct {
-	app        module.App
-	thisModule module.RPCModule
+	rpcCaller  module.RPCModule
 	respWriter response.Writer
 }
 
 // NewAuthHandler creates a new auth handler
-func NewAuthHandler(app module.App, thisModule module.RPCModule, respWriter response.Writer) *AuthHandler {
+func NewAuthHandler(rpcCaller module.RPCModule, respWriter response.Writer) *AuthHandler {
 	return &AuthHandler{
-		app:        app,
-		thisModule: thisModule,
+		rpcCaller:  rpcCaller,
 		respWriter: respWriter,
 	}
 }
@@ -97,9 +98,23 @@ func (h *AuthHandler) Register(c echo.Context) error {
 		return response.EchoError(c, h.respWriter, appErr)
 	}
 
-	// 4. 调用 Auth RPC (mqant)
-	result, errStr := h.app.Invoke(h.thisModule, "auth", "Register", rpcReqBytes)
+	// 4. 调用 Auth RPC (使用 Call 方法，支持超时控制)
+	ctx, cancel := context.WithTimeout(c.Request().Context(), 3*time.Second)
+	defer cancel()
+
+	result, errStr := h.rpcCaller.Call(
+		ctx,
+		"auth",
+		"Register",
+		mqrpc.Param(rpcReqBytes),
+	)
+
 	if errStr != "" {
+		// 检查超时
+		if ctx.Err() == context.DeadlineExceeded {
+			appErr := xerrors.New(xerrors.CodeExternalServiceError, "Auth服务超时")
+			return response.EchoError(c, h.respWriter, appErr)
+		}
 		// RPC 错误,可能是业务错误
 		appErr := xerrors.New(xerrors.CodeExternalServiceError, errStr)
 		return response.EchoError(c, h.respWriter, appErr)
@@ -161,9 +176,21 @@ func (h *AuthHandler) GetUser(c echo.Context) error {
 		return response.EchoError(c, h.respWriter, appErr)
 	}
 
-	// 调用 Auth RPC
-	result, errStr := h.app.Invoke(h.thisModule, "auth", "GetUser", rpcReqBytes)
+	// 调用 Auth RPC (使用 Call 方法)
+	ctx, cancel := context.WithTimeout(c.Request().Context(), 2*time.Second)
+	defer cancel()
+
+	result, errStr := h.rpcCaller.Call(
+		ctx,
+		"auth",
+		"GetUser",
+		mqrpc.Param(rpcReqBytes),
+	)
 	if errStr != "" {
+		if ctx.Err() == context.DeadlineExceeded {
+			appErr := xerrors.New(xerrors.CodeExternalServiceError, "Auth服务超时")
+			return response.EchoError(c, h.respWriter, appErr)
+		}
 		// 用户不存在
 		appErr := xerrors.NewUserNotFoundError(userID)
 		return response.EchoError(c, h.respWriter, appErr)
@@ -255,9 +282,22 @@ func (h *AuthHandler) Login(c echo.Context) error {
 		return response.EchoError(c, h.respWriter, appErr)
 	}
 
-	// 调用 Auth RPC
-	result, errStr := h.app.Invoke(h.thisModule, "auth", "Login", rpcReqBytes)
+	// 调用 Auth RPC (使用 Call 方法)
+	ctx, cancel := context.WithTimeout(c.Request().Context(), 3*time.Second)
+	defer cancel()
+
+	result, errStr := h.rpcCaller.Call(
+		ctx,
+		"auth",
+		"Login",
+		mqrpc.Param(rpcReqBytes),
+	)
+
 	if errStr != "" {
+		if ctx.Err() == context.DeadlineExceeded {
+			appErr := xerrors.New(xerrors.CodeExternalServiceError, "Auth服务超时")
+			return response.EchoError(c, h.respWriter, appErr)
+		}
 		// 登录失败
 		appErr := xerrors.NewAuthError("用户名或密码错误")
 		return response.EchoError(c, h.respWriter, appErr)
@@ -339,9 +379,22 @@ func (h *AuthHandler) Logout(c echo.Context) error {
 		return response.EchoError(c, h.respWriter, appErr)
 	}
 
-	// 调用 Auth RPC
-	_, errStr := h.app.Invoke(h.thisModule, "auth", "Logout", rpcReqBytes)
+	// 调用 Auth RPC (使用 Call 方法)
+	ctx, cancel := context.WithTimeout(c.Request().Context(), 2*time.Second)
+	defer cancel()
+
+	_, errStr := h.rpcCaller.Call(
+		ctx,
+		"auth",
+		"Logout",
+		mqrpc.Param(rpcReqBytes),
+	)
+
 	if errStr != "" {
+		if ctx.Err() == context.DeadlineExceeded {
+			appErr := xerrors.New(xerrors.CodeExternalServiceError, "Auth服务超时")
+			return response.EchoError(c, h.respWriter, appErr)
+		}
 		appErr := xerrors.New(xerrors.CodeExternalServiceError, "登出失败: "+errStr)
 		return response.EchoError(c, h.respWriter, appErr)
 	}

@@ -87,7 +87,7 @@ type HeroAttributeTypeInfo struct {
 // @Param is_visible query bool false "是否可见"
 // @Param limit query int false "每页数量(默认20)"
 // @Param offset query int false "偏移量(默认0)"
-// @Success 200 {object} response.Response{data=map[string]interface{}} "成功返回属性类型列表和总数"
+// @Success 200 {object} response.Response{data=object{list=[]HeroAttributeTypeInfo,total=int}} "成功返回属性类型列表和总数"
 // @Failure 400 {object} response.Response "请求参数错误"
 // @Failure 500 {object} response.Response "服务器内部错误"
 // @Router /admin/hero-attribute-types [get]

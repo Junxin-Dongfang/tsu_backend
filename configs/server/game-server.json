@@ -1,0 +1,45 @@
+{
+    "Settings": {
+        "ConsulAddr":"consul:8500",
+        "NatsAddr":"nats:4222"
+    },
+    "Module": {
+        "game":[
+            {
+                "Id":"game",
+                "ProcessID":"development",
+                "Settings": {
+                    "kratos_public_url": "http://tsu_kratos_service:4433",
+                    "kratos_admin_url": "http://tsu_kratos_service:4434",
+                    "environment": "development",
+                    "http_port": "8061",
+                    "database_url": "",
+                    "_comment_database_url": "从环境变量 TSU_ADMIN_DATABASE_URL 读取，格式：postgres://user:password@host:port/dbname?sslmode=disable&search_path=admin,game_config,public"
+                }
+            }
+        ],
+        "auth":[
+            {
+                "Id":"auth",
+                "ProcessID":"development",
+                "Settings": {
+                    "kratos_public_url": "http://tsu_kratos_service:4433",
+                    "kratos_admin_url": "http://tsu_kratos_service:4434",
+                    "keto_read_url": "http://tsu_keto_service:4466",
+                    "keto_write_url": "http://tsu_keto_service:4467",
+                    "redis_addr": "tsu_redis:6379",
+                    "redis_password": "",
+                    "_comment_redis_password": "从环境变量 REDIS_PASSWORD 读取",
+                    "redis_db": 0,
+                    "jwt_secret": "",
+                    "_comment_jwt_secret": "从环境变量 JWT_SECRET 读取",
+                    "token_ttl_minutes": 30,
+                    "environment": "development",
+                    "http_port": "8062",
+                    "database_url": "",
+                    "_comment_auth_database_url": "从环境变量 TSU_AUTH_DATABASE_URL 读取，格式：postgres://user:password@host:port/dbname?sslmode=disable&search_path=auth,public"
+                }
+            }
+        ]
+    }
+}
