@@ -30,6 +30,7 @@ type AdminModule struct {
 	db                          *sql.DB
 	httpServer                  *echo.Echo
 	authHandler                 *handler.AuthHandler
+	passwordRecoveryHandler     *handler.PasswordRecoveryHandler
 	permissionHandler           *handler.PermissionHandler
 	userHandler                 *handler.UserHandler
 	classHandler                *handler.ClassHandler
@@ -175,6 +176,7 @@ func (m *AdminModule) initResponseWriter() {
 // initHandlers initializes HTTP handlers
 func (m *AdminModule) initHandlers() {
 	m.authHandler = handler.NewAuthHandler(m, m.respWriter)
+	m.passwordRecoveryHandler = handler.NewPasswordRecoveryHandler(m, m.respWriter)
 	m.permissionHandler = handler.NewPermissionHandler(m, m.respWriter)
 	m.userHandler = handler.NewUserHandler(m, m.respWriter)
 	m.classHandler = handler.NewClassHandler(m.db, m.respWriter)
@@ -216,6 +218,11 @@ func (m *AdminModule) setupRoutes() {
 		auth.POST("/login", m.authHandler.Login)
 		auth.POST("/logout", m.authHandler.Logout)
 		auth.GET("/users/:user_id", m.authHandler.GetUser)
+
+		// 密码重置 (公开访问)
+		auth.POST("/recovery/initiate", m.passwordRecoveryHandler.InitiateRecovery)
+		auth.POST("/recovery/verify", m.passwordRecoveryHandler.VerifyRecoveryCode)
+		auth.POST("/password/reset", m.passwordRecoveryHandler.ResetPassword)
 	}
 
 	// Admin routes (需要认证，应用认证中间件)
@@ -231,6 +238,10 @@ func (m *AdminModule) setupRoutes() {
 		admin.PUT("/users/:id", m.userHandler.UpdateUser)
 		admin.POST("/users/:id/ban", m.userHandler.BanUser)
 		admin.POST("/users/:id/unban", m.userHandler.UnbanUser)
+		admin.DELETE("/users/:user_id", m.authHandler.DeleteUser) // 删除用户
+
+		// 用户密码重置 (管理员功能)
+		admin.POST("/users/recovery-code", m.passwordRecoveryHandler.AdminCreateRecoveryCode)
 
 		// 角色管理
 		admin.GET("/roles", m.permissionHandler.GetRoles)

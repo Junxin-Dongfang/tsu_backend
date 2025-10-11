@@ -46,11 +46,12 @@ func (h *RPCHandler) Register(reqBytes []byte) ([]byte, error) {
 
 	// 构造 Protobuf 响应
 	resp := &authpb.RegisterResponse{
-		UserId:     result.UserID,
-		KratosId:   result.KratosID,
-		Email:      result.Email,
-		Username:   result.Username,
-		NeedVerify: result.NeedVerify,
+		UserId:       result.UserID,
+		KratosId:     result.KratosID,
+		Email:        result.Email,
+		Username:     result.Username,
+		NeedVerify:   result.NeedVerify,
+		SessionToken: result.SessionToken,
 	}
 
 	// 序列化 Protobuf 响应
@@ -248,5 +249,141 @@ func (h *RPCHandler) Logout(reqBytes []byte) ([]byte, error) {
 	}
 
 	// 序列化 Protobuf 响应
+	return proto.Marshal(resp)
+}
+
+// ==================== 密码重置功能 ====================
+
+// InitiateRecovery 用户发起密码恢复
+func (h *RPCHandler) InitiateRecovery(reqBytes []byte) ([]byte, error) {
+	ctx := context.Background()
+
+	req := &authpb.InitiateRecoveryRequest{}
+	if err := proto.Unmarshal(reqBytes, req); err != nil {
+		return nil, err
+	}
+
+	err := h.authService.InitiatePasswordRecovery(ctx, req.Email)
+
+	resp := &authpb.InitiateRecoveryResponse{
+		CodeSent: err == nil,
+		Message:  "验证码已发送到您的邮箱",
+	}
+
+	if err != nil {
+		resp.Message = err.Error()
+		resp.CodeSent = false
+	}
+
+	return proto.Marshal(resp)
+}
+
+// VerifyRecoveryCode 验证恢复验证码
+func (h *RPCHandler) VerifyRecoveryCode(reqBytes []byte) ([]byte, error) {
+	ctx := context.Background()
+
+	req := &authpb.VerifyRecoveryCodeRequest{}
+	if err := proto.Unmarshal(reqBytes, req); err != nil {
+		return nil, err
+	}
+
+	flowToken, err := h.authService.VerifyRecoveryCode(ctx, req.Email, req.Code)
+
+	resp := &authpb.VerifyRecoveryCodeResponse{
+		Verified:     err == nil,
+		Message:      "验证码验证成功,请设置新密码",
+		SessionToken: flowToken, // 注意：这实际上是特权 settings flow ID
+	}
+
+	if err != nil {
+		resp.Message = err.Error()
+		resp.Verified = false
+	}
+
+	return proto.Marshal(resp)
+}
+
+// ResetPassword 重置密码
+func (h *RPCHandler) ResetPassword(reqBytes []byte) ([]byte, error) {
+	ctx := context.Background()
+
+	req := &authpb.ResetPasswordRequest{}
+	if err := proto.Unmarshal(reqBytes, req); err != nil {
+		return nil, err
+	}
+
+	err := h.authService.ResetPassword(ctx, req.SessionToken, req.Email, req.NewPassword)
+
+	resp := &authpb.ResetPasswordResponse{
+		Status: &commonpb.Status{
+			Success: err == nil,
+			Message: "密码重置成功",
+		},
+		Message: "密码重置成功,请使用新密码登录",
+	}
+
+	if err != nil {
+		resp.Status.Message = err.Error()
+		resp.Status.Success = false
+		resp.Message = err.Error()
+	}
+
+	return proto.Marshal(resp)
+}
+
+// AdminCreateRecoveryCode 管理员为用户创建恢复码
+func (h *RPCHandler) AdminCreateRecoveryCode(reqBytes []byte) ([]byte, error) {
+	ctx := context.Background()
+
+	req := &authpb.AdminCreateRecoveryCodeRequest{}
+	if err := proto.Unmarshal(reqBytes, req); err != nil {
+		return nil, err
+	}
+
+	// 设置默认过期时间
+	expiresIn := req.ExpiresIn
+	if expiresIn == "" {
+		expiresIn = "12h"
+	}
+
+	code, link, err := h.authService.AdminCreateRecoveryCodeForUser(ctx, req.UserId, expiresIn)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &authpb.AdminCreateRecoveryCodeResponse{
+		RecoveryCode: code,
+		RecoveryLink: link,
+		ExpiresAt:    expiresIn,
+	}
+
+	return proto.Marshal(resp)
+}
+
+// DeleteUser 删除用户
+func (h *RPCHandler) DeleteUser(reqBytes []byte) ([]byte, error) {
+	ctx := context.Background()
+
+	req := &authpb.DeleteUserRequest{}
+	if err := proto.Unmarshal(reqBytes, req); err != nil {
+		return nil, err
+	}
+
+	err := h.authService.DeleteUser(ctx, req.UserId)
+
+	resp := &authpb.DeleteUserResponse{
+		Status: &commonpb.Status{
+			Success: err == nil,
+			Message: "用户删除成功",
+		},
+		Message: "用户删除成功",
+	}
+
+	if err != nil {
+		resp.Status.Message = err.Error()
+		resp.Status.Success = false
+		resp.Message = err.Error()
+	}
+
 	return proto.Marshal(resp)
 }

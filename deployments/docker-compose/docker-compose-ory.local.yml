@@ -55,7 +55,7 @@ services:
       - "4434:4434" # Admin API 端口，供后端服务间调用
     environment:
       - DSN=postgres://ory_user:ory_test@tsu_ory_postgres:5432/ory_db?sslmode=disable&search_path=kratos
-      # - courier.smtp.connection_uri=smtps://test:test@mailslurper:1025/?skip_ssl_verify=true
+      # SMTP 配置直接在 kratos.yml 中配置
     command: serve -c /etc/kratos/kratos.yml --dev --watch-courier --sqa-opt-out # 启动服务并监控配置文件
     volumes:
       - ../../infra/ory:/etc/kratos

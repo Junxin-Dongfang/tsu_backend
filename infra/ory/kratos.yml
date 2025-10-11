@@ -24,6 +24,9 @@ identity:
 
 selfservice:
   default_browser_return_url: "http://127.0.0.1:3000/dashboard"
+  allowed_return_urls:
+    - "http://127.0.0.1:3000"
+    - "http://localhost:3000"
   flows:
     error:
       ui_url: "http://127.0.0.1:3000/error"
@@ -36,7 +39,18 @@ selfservice:
           hooks:
             - hook: session
     recovery:
+      enabled: true
+      use: code  # 使用 code 方法 (推荐，官方默认)
+      lifespan: 1h  # 整个恢复流程的超时时间
+
+      # 通知配置(发送恢复验证码邮件)
+      notify_unknown_recipients: false
+
       ui_url: "http://127.0.0.1:3000/recovery"
+
+      # 恢复成功后的跳转
+      after:
+        default_browser_return_url: "http://127.0.0.1:3000/login"
     verification:
       ui_url: "http://127.0.0.1:3000/verification"
   methods:
@@ -47,6 +61,11 @@ selfservice:
         min_password_length: 6
     profile:
       enabled: true
+    code:
+      enabled: true
+      config:
+        # 验证码有效期
+        lifespan: 15m
     webauthn:
       enabled: false
 
@@ -58,6 +77,10 @@ session:
     persistent: false
   lifespan: 24h
   earliest_possible_extend: 1h
+
+# Feature Flags - 启用 Native App 支持
+feature_flags:
+  use_continue_with_transitions: true
   
 log:
   level: debug
@@ -72,4 +95,7 @@ secrets:
 
 courier:
   smtp:
-    connection_uri: "smtps://test:test@mailslurper:1025/?skip_ssl_verify=true"
+    # SMTP 配置 - 直接在这里配置 QQ 邮箱
+    connection_uri: smtps://1902104816@qq.com:jxlumrydpmiocfdj@smtp.qq.com:465/?skip_ssl_verify=false
+    from_address: 1902104816@qq.com
+    from_name: "TSU游戏 - 密码重置"

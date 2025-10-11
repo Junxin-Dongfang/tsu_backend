@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"tsu-self/internal/entity/auth"
@@ -17,13 +18,23 @@ import (
 type AuthService struct {
 	db           *sql.DB
 	kratosClient *client.KratosClient
+	redis        RedisClient
+}
+
+// RedisClient Redis 客户端接口（用于测试时 mock）
+type RedisClient interface {
+	SetWithTTL(ctx context.Context, key string, value interface{}, ttl time.Duration) error
+	GetString(ctx context.Context, key string) (string, error)
+	Exists(ctx context.Context, key string) (bool, error)
+	DeleteKey(ctx context.Context, keys ...string) error
 }
 
 // NewAuthService 创建认证服务实例
-func NewAuthService(db *sql.DB, kratosClient *client.KratosClient) *AuthService {
+func NewAuthService(db *sql.DB, kratosClient *client.KratosClient, redis RedisClient) *AuthService {
 	return &AuthService{
 		db:           db,
 		kratosClient: kratosClient,
+		redis:        redis,
 	}
 }
 
@@ -36,18 +47,92 @@ type RegisterInput struct {
 
 // RegisterResult 注册结果
 type RegisterResult struct {
-	UserID     string
-	KratosID   string
-	Email      string
-	Username   string
-	NeedVerify bool
+	UserID       string
+	KratosID     string
+	Email        string
+	Username     string
+	SessionToken string // 新增：Registration Flow 返回的 session token
+	NeedVerify   bool
 }
 
-// Register 用户注册
-// 流程：
-// 1. 在 Kratos 中创建 identity（失败则直接返回）
-// 2. 同步数据到 auth.users 表（失败则尝试删除 Kratos identity）
+// Register 用户自助注册（使用 Kratos Registration Flow）
+// 这是正确的、符合 Kratos 最佳实践的注册方式
+// 前端只需要提供 email + password，后端自动完成整个流程（隐藏 flow_id）
 func (s *AuthService) Register(ctx context.Context, input RegisterInput) (*RegisterResult, error) {
+	// 1. 验证输入
+	if err := s.validateRegisterInput(input); err != nil {
+		return nil, fmt.Errorf("输入验证失败: %w", err)
+	}
+
+	// 2. 检查用户是否已存在（提前检查，避免浪费 Kratos 资源）
+	exists, err := auth.Users(
+		auth.UserWhere.Email.EQ(input.Email),
+		auth.UserWhere.DeletedAt.IsNull(),
+	).Exists(ctx, s.db)
+	if err != nil {
+		return nil, fmt.Errorf("检查用户是否存在失败: %w", err)
+	}
+	if exists {
+		return nil, fmt.Errorf("邮箱已被注册")
+	}
+
+	// 3. 创建 Registration Flow（前端不感知）
+	flow, err := s.kratosClient.CreateRegistrationFlow(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("创建注册流程失败: %w", err)
+	}
+
+	// 4. 提交注册（完成整个 Registration Flow）
+	sessionToken, kratosID, err := s.kratosClient.Register(ctx, flow.Id, input.Email, input.Username, input.Password)
+	if err != nil {
+		// 直接返回 Kratos 的错误信息，不再重复包装
+		return nil, err
+	}
+
+	// 5. 获取 Kratos Identity 详情
+	kratosIdentity, err := s.kratosClient.GetIdentity(ctx, kratosID)
+	if err != nil {
+		return nil, fmt.Errorf("获取 identity 详情失败: %w", err)
+	}
+
+	// 提取 traits
+	email, username, err := client.GetIdentityTraits(kratosIdentity)
+	if err != nil {
+		return nil, fmt.Errorf("提取 identity traits 失败: %w", err)
+	}
+
+	// 6. 同步数据到业务数据库
+	user := &auth.User{
+		ID:         kratosID,
+		Email:      email,
+		Username:   username,
+		Nickname:   null.String{},
+		IsBanned:   false,
+		LoginCount: 0,
+		CreatedAt:  time.Now(),
+		UpdatedAt:  time.Now(),
+	}
+
+	err = user.Insert(ctx, s.db, boil.Infer())
+	if err != nil {
+		// 数据库插入失败，记录日志（Kratos 已创建用户，无法完全回滚）
+		// 这是一个一致性问题，应该通过后台同步任务修复
+		return nil, fmt.Errorf("保存用户数据失败: %w", err)
+	}
+
+	return &RegisterResult{
+		UserID:       user.ID,
+		KratosID:     kratosID,
+		Email:        user.Email,
+		Username:     user.Username,
+		SessionToken: sessionToken,
+		NeedVerify:   false,
+	}, nil
+}
+
+// RegisterViaAdminAPI 通过 Admin API 注册用户（仅用于后台管理）
+// ⚠️ 注意：这不是推荐的用户注册方式，仅用于管理员批量创建用户等场景
+func (s *AuthService) RegisterViaAdminAPI(ctx context.Context, input RegisterInput) (*RegisterResult, error) {
 	// 1. 验证输入
 	if err := s.validateRegisterInput(input); err != nil {
 		return nil, fmt.Errorf("输入验证失败: %w", err)
@@ -65,7 +150,7 @@ func (s *AuthService) Register(ctx context.Context, input RegisterInput) (*Regis
 		return nil, fmt.Errorf("邮箱已被注册")
 	}
 
-	// 3. 在 Kratos 中创建 identity
+	// 3. 在 Kratos 中创建 identity（使用 Admin API）
 	kratosIdentity, err := s.kratosClient.CreateIdentity(ctx, input.Email, input.Username, input.Password)
 	if err != nil {
 		return nil, fmt.Errorf("创建 Kratos identity 失败: %w", err)
@@ -99,11 +184,12 @@ func (s *AuthService) Register(ctx context.Context, input RegisterInput) (*Regis
 	}
 
 	return &RegisterResult{
-		UserID:     user.ID,
-		KratosID:   kratosIdentity.Id,
-		Email:      user.Email,
-		Username:   user.Username,
-		NeedVerify: false,
+		UserID:       user.ID,
+		KratosID:     kratosIdentity.Id,
+		Email:        user.Email,
+		Username:     user.Username,
+		SessionToken: "", // Admin API 创建不返回 session token
+		NeedVerify:   false,
 	}, nil
 }
 
@@ -180,12 +266,12 @@ func (s *AuthService) UpdateLoginInfo(ctx context.Context, userID string, loginI
 
 	// Record login history
 	loginHistory := &auth.UserLoginHistory{
-		UserID:      userID,
-		LoginTime:   time.Now(),
-		IPAddress:   loginIP,
-		UserAgent:   null.String{},
-		LoginMethod: "password",
-		Status:      "active",
+		UserID:       userID,
+		LoginTime:    time.Now(),
+		IPAddress:    loginIP,
+		UserAgent:    null.String{},
+		LoginMethod:  "password",
+		Status:       "active",
 		IsSuspicious: false,
 	}
 
@@ -357,6 +443,187 @@ func (s *AuthService) Logout(ctx context.Context, input LogoutInput) error {
 	// 调用 Kratos API 撤销 Session
 	if err := s.kratosClient.RevokeSession(ctx, input.SessionToken); err != nil {
 		return fmt.Errorf("登出失败: %w", err)
+	}
+
+	return nil
+}
+
+// ==================== 密码重置功能 ====================
+
+// InitiatePasswordRecovery 用户发起密码恢复 (步骤1)
+func (s *AuthService) InitiatePasswordRecovery(ctx context.Context, email string) error {
+	// 1. 创建恢复流程
+	flow, err := s.kratosClient.CreateRecoveryFlow(ctx)
+	if err != nil {
+		return fmt.Errorf("创建恢复流程失败: %w", err)
+	}
+
+	// 2. 提交邮箱,请求发送验证码
+	_, err = s.kratosClient.UpdateRecoveryFlowWithCode(ctx, flow.Id, email)
+	if err != nil {
+		return fmt.Errorf("发送恢复验证码失败: %w", err)
+	}
+
+	// 3. 将 email → flow_id 映射存储到 Redis（10分钟过期）
+	cacheKey := fmt.Sprintf("recovery:flow:%s", email)
+	err = s.redis.SetWithTTL(ctx, cacheKey, flow.Id, 10*time.Minute)
+	if err != nil {
+		return fmt.Errorf("缓存 flow_id 失败: %w", err)
+	}
+
+	return nil
+}
+
+// VerifyRecoveryCode 用户验证恢复码 (步骤2)
+// email: 用户邮箱（用于从 Redis 获取 flow_id）
+// code: 验证码
+// 返回：Kratos 特权 settings flow ID（用于步骤3重置密码）
+func (s *AuthService) VerifyRecoveryCode(ctx context.Context, email, code string) (privilegedFlowID string, err error) {
+	// 1. 从 Redis 获取 flow_id
+	cacheKey := fmt.Sprintf("recovery:flow:%s", email)
+	flowID, err := s.redis.GetString(ctx, cacheKey)
+	if err != nil {
+		return "", fmt.Errorf("恢复流程已过期，请重新发送验证码")
+	}
+
+	// 2. 验证验证码（调用 Kratos）
+	// 启用 use_continue_with_transitions 后，Kratos 会：
+	// - 验证验证码
+	// - 在 ContinueWith 中返回 session token 和 settings flow ID
+	sessionToken, privilegedFlowID, err := s.kratosClient.VerifyRecoveryCodeAndGetSessionToken(ctx, flowID, code)
+	if err != nil {
+		// 提供更友好的错误信息
+		errMsg := err.Error()
+		if strings.Contains(errMsg, "401") || strings.Contains(errMsg, "Unauthorized") {
+			return "", fmt.Errorf("验证码错误或已过期，请重新获取")
+		}
+		if strings.Contains(errMsg, "410") {
+			return "", fmt.Errorf("恢复流程已过期，请重新发起密码恢复")
+		}
+		if strings.Contains(errMsg, "400") {
+			return "", fmt.Errorf("验证码格式错误，请输入6位数字验证码")
+		}
+		return "", fmt.Errorf("验证失败: %s", errMsg)
+	}
+
+	// 3. 将 privileged flow ID 与 email + session token 关联（5分钟有效）
+	// 格式: email:sessionToken
+	tokenKey := fmt.Sprintf("recovery:flow_token:%s", privilegedFlowID)
+	tokenData := fmt.Sprintf("%s:%s", email, sessionToken)
+	err = s.redis.SetWithTTL(ctx, tokenKey, tokenData, 5*time.Minute)
+	if err != nil {
+		return "", fmt.Errorf("缓存flow token失败: %w", err)
+	}
+
+	// 4. 清理 recovery flow_id 缓存（已完成验证，不再需要）
+	s.redis.DeleteKey(ctx, cacheKey)
+
+	return privilegedFlowID, nil
+}
+
+// ResetPassword 重置密码 (步骤3)
+// flowToken: 从步骤2返回的 Kratos 特权 settings flow ID
+// email: 用户邮箱（用于验证）
+// newPassword: 新密码
+// 🔒 安全性：完全遵循 Kratos 流程，使用特权 settings flow + session token 更新密码
+func (s *AuthService) ResetPassword(ctx context.Context, flowToken, email, newPassword string) error {
+	// 1. 验证 flow token 是否有效且与 email 匹配
+	tokenKey := fmt.Sprintf("recovery:flow_token:%s", flowToken)
+	cachedData, err := s.redis.GetString(ctx, tokenKey)
+	if err != nil {
+		return fmt.Errorf("验证凭证已过期或无效，请重新发起密码恢复")
+	}
+
+	// 2. 解析缓存数据（格式: email:sessionToken）
+	parts := strings.SplitN(cachedData, ":", 2)
+	if len(parts) != 2 {
+		return fmt.Errorf("验证数据异常，请重新发起密码恢复")
+	}
+	cachedEmail := parts[0]
+	sessionToken := parts[1]
+
+	if cachedEmail != email {
+		return fmt.Errorf("验证信息与邮箱不匹配，请确认邮箱地址是否正确")
+	}
+
+	if sessionToken == "" {
+		return fmt.Errorf("会话凭证无效，请重新发起密码恢复流程")
+	}
+
+	// 3. 验证密码强度（前端验证的补充）
+	if len(newPassword) < 6 {
+		return fmt.Errorf("密码长度至少为6位")
+	}
+	if len(newPassword) > 72 {
+		return fmt.Errorf("密码长度不能超过72位")
+	}
+
+	// 4. 使用 Kratos 特权 Settings Flow 更新密码（正确的方式）
+	// Kratos 会：
+	// - 验证特权 session token（确保用户已通过 recovery 验证）
+	// - 更新密码
+	// - 记录审计日志
+	err = s.kratosClient.UpdatePasswordWithPrivilegedFlow(ctx, flowToken, sessionToken, newPassword)
+	if err != nil {
+		// 直接返回 KratosClient 的错误信息（已经是用户友好的格式）
+		return err
+	}
+
+	// 5. 清理缓存（密码已成功更新，flow token 已使用，防止重复使用）
+	s.redis.DeleteKey(ctx, tokenKey)
+
+	return nil
+}
+
+// AdminCreateRecoveryCodeForUser 管理员为用户创建恢复码
+func (s *AuthService) AdminCreateRecoveryCodeForUser(ctx context.Context, userID string, expiresIn string) (code, link string, err error) {
+	// 1. 从业务 DB 获取用户信息
+	user, err := s.GetUserByID(ctx, userID)
+	if err != nil {
+		return "", "", fmt.Errorf("用户不存在: %w", err)
+	}
+
+	// 2. 使用 user.ID 作为 Kratos Identity ID
+	// (在你的架构中,auth.users.id == kratos.identity.id)
+	kratosID := user.ID
+
+	// 3. 调用 Kratos Admin API 创建恢复码
+	result, err := s.kratosClient.AdminCreateRecoveryCode(ctx, kratosID, expiresIn)
+	if err != nil {
+		return "", "", fmt.Errorf("创建恢复码失败: %w", err)
+	}
+
+	return result.RecoveryCode, result.RecoveryLink, nil
+}
+
+// DeleteUser 删除用户（软删除业务 DB + 删除 Kratos identity）
+// ⚠️ 注意：这是不可逆操作，会同时删除 Kratos identity 和业务数据
+func (s *AuthService) DeleteUser(ctx context.Context, userID string) error {
+	// 1. 检查用户是否存在
+	user, err := s.GetUserByID(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("用户不存在: %w", err)
+	}
+
+	// 2. 先软删除业务数据库（设置 deleted_at）
+	// 使用软删除而不是硬删除，保留审计记录
+	user.DeletedAt = null.TimeFrom(time.Now())
+	user.UpdatedAt = time.Now()
+
+	_, err = user.Update(ctx, s.db, boil.Infer())
+	if err != nil {
+		return fmt.Errorf("软删除业务数据失败: %w", err)
+	}
+
+	// 3. 再删除 Kratos identity
+	// 注意：如果 Kratos 删除失败，业务 DB 已经标记为删除
+	// 这是可以接受的，因为用户在业务层面已经"删除"了
+	err = s.kratosClient.DeleteIdentity(ctx, user.ID)
+	if err != nil {
+		// 记录错误但不回滚业务 DB 的软删除
+		// 可以通过后台任务重试 Kratos 删除
+		fmt.Printf("[WARN] 删除 Kratos identity 失败 (user_id=%s): %v\n", userID, err)
+		// 不返回错误，因为业务层面用户已删除
 	}
 
 	return nil

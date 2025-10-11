@@ -39,6 +39,9 @@ service AuthService {
 
     // 解禁用户
     rpc UnbanUser(UnbanUserRequest) returns (UnbanUserResponse);
+
+    // 删除用户 (软删除 + Kratos identity 删除)
+    rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse);
 }
 
 // ==================== Register ====================
@@ -54,7 +57,8 @@ message RegisterResponse {
     string kratos_id = 2;
     string email = 3;
     string username = 4;
-    bool need_verify = 5;  // 是否需要邮箱验证
+    bool need_verify = 5;      // 是否需要邮箱验证
+    string session_token = 6;  // Registration Flow 返回的 session token（用户可直接登录）
 }
 
 // ==================== GetUser ====================
@@ -172,4 +176,65 @@ message LogoutRequest {
 
 message LogoutResponse {
     common.Status status = 1;
+}
+
+// ==================== 密码重置 ====================
+
+// 密码恢复 - 请求验证码
+message InitiateRecoveryRequest {
+    string email = 1;
+}
+
+message InitiateRecoveryResponse {
+    bool code_sent = 1;  // 验证码是否发送成功
+    string message = 2;  // 提示信息
+    // flow_id 已移除：后端通过 Redis 管理，前端不需要知道
+}
+
+// 密码恢复 - 验证验证码
+message VerifyRecoveryCodeRequest {
+    string email = 1;  // 用户邮箱（后端通过 email 从 Redis 获取 flow_id）
+    string code = 2;    // 验证码
+    // flow_id 已移除：后端通过 Redis 管理
+}
+
+message VerifyRecoveryCodeResponse {
+    bool verified = 1;
+    string message = 2;
+    string session_token = 3;  // Kratos 特权 session token（用于步骤3重置密码）
+}
+
+// 重置密码
+message ResetPasswordRequest {
+    string session_token = 1; // 从步骤2返回的 Kratos 特权 session token
+    string email = 2;         // 用户邮箱（用于验证）
+    string new_password = 3;  // 新密码
+}
+
+message ResetPasswordResponse {
+    common.Status status = 1;
+    string message = 2;
+}
+
+// 管理员为用户创建恢复码
+message AdminCreateRecoveryCodeRequest {
+    string user_id = 1;
+    string expires_in = 2;  // 例如: "12h", "1h"
+}
+
+message AdminCreateRecoveryCodeResponse {
+    string recovery_code = 1;
+    string recovery_link = 2;
+    string expires_at = 3;
+}
+
+// ==================== DeleteUser ====================
+
+message DeleteUserRequest {
+    string user_id = 1;
+}
+
+message DeleteUserResponse {
+    common.Status status = 1;
+    string message = 2;
 }

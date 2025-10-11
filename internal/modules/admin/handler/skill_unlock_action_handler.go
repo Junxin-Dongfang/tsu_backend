@@ -119,7 +119,7 @@ func (h *SkillUnlockActionHandler) AddSkillUnlockAction(c echo.Context) error {
 	unlockAction.IsDefault.SetValid(req.IsDefault)
 
 	// 处理成长配置
-	if req.LevelScalingConfig != nil && len(req.LevelScalingConfig) > 0 {
+	if len(req.LevelScalingConfig) > 0 {
 		configJSON, err := json.Marshal(req.LevelScalingConfig)
 		if err != nil {
 			return response.EchoBadRequest(c, h.respWriter, "level_scaling_config 格式错误")
@@ -198,7 +198,7 @@ func (h *SkillUnlockActionHandler) BatchSetSkillUnlockActions(c echo.Context) er
 		unlockAction.IsDefault.SetValid(a.IsDefault)
 
 		// 处理成长配置
-		if a.LevelScalingConfig != nil && len(a.LevelScalingConfig) > 0 {
+		if len(a.LevelScalingConfig) > 0 {
 			configJSON, err := json.Marshal(a.LevelScalingConfig)
 			if err != nil {
 				return response.EchoBadRequest(c, h.respWriter, "level_scaling_config 格式错误")

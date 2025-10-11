@@ -44,7 +44,7 @@
   {
     "id": "tsu-auth-public-apis",
     "match": {
-      "url": "http://<.*>/api/v1/auth/<(register|login|logout)>",
+      "url": "http://<.*>/api/v1/auth/<(register|login|logout|recovery/initiate|recovery/verify|password/reset)>",
       "methods": ["POST"]
     },
     "authenticators": [{ "handler": "noop" }],

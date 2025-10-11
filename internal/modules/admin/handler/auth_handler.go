@@ -41,11 +41,12 @@ type RegisterRequest struct {
 
 // RegisterResponse HTTP registration response
 type RegisterResponse struct {
-	UserID     string `json:"user_id"`
-	KratosID   string `json:"kratos_id"`
-	Email      string `json:"email"`
-	Username   string `json:"username"`
-	NeedVerify bool   `json:"need_verify"`
+	UserID       string `json:"user_id"`
+	KratosID     string `json:"kratos_id"`
+	Email        string `json:"email"`
+	Username     string `json:"username"`
+	SessionToken string `json:"session_token"` // Registration Flow 返回的 session token
+	NeedVerify   bool   `json:"need_verify"`
 }
 
 // GetUserResponse HTTP get user response
@@ -135,11 +136,12 @@ func (h *AuthHandler) Register(c echo.Context) error {
 
 	// 6. 转换为 HTTP Response Model
 	resp := RegisterResponse{
-		UserID:     rpcResp.UserId,
-		KratosID:   rpcResp.KratosId,
-		Email:      rpcResp.Email,
-		Username:   rpcResp.Username,
-		NeedVerify: rpcResp.NeedVerify,
+		UserID:       rpcResp.UserId,
+		KratosID:     rpcResp.KratosId,
+		Email:        rpcResp.Email,
+		Username:     rpcResp.Username,
+		SessionToken: rpcResp.SessionToken,
+		NeedVerify:   rpcResp.NeedVerify,
 	}
 
 	return response.EchoOK(c, h.respWriter, resp)
@@ -410,5 +412,76 @@ func (h *AuthHandler) Logout(c echo.Context) error {
 
 	return response.EchoOK(c, h.respWriter, map[string]interface{}{
 		"message": "登出成功",
+	})
+}
+
+// DeleteUser 删除用户（管理员操作）
+// @Summary 删除用户
+// @Description 删除指定用户（软删除业务数据 + 删除 Kratos identity）
+// @Tags 管理员-用户管理
+// @Accept json
+// @Produce json
+// @Param user_id path string true "用户ID"
+// @Success 200 {object} response.Response "删除成功"
+// @Failure 400 {object} response.Response "请求参数错误"
+// @Failure 404 {object} response.Response "用户不存在"
+// @Failure 500 {object} response.Response "服务器内部错误"
+// @Router /admin/users/{user_id} [delete]
+// @Security BearerAuth
+func (h *AuthHandler) DeleteUser(c echo.Context) error {
+	userID := c.Param("user_id")
+	if userID == "" {
+		return response.EchoBadRequest(c, h.respWriter, "用户ID不能为空")
+	}
+
+	// 构造 Protobuf RPC 请求
+	rpcReq := &authpb.DeleteUserRequest{
+		UserId: userID,
+	}
+
+	// 序列化 Protobuf 请求
+	rpcReqBytes, err := proto.Marshal(rpcReq)
+	if err != nil {
+		appErr := xerrors.Wrap(err, xerrors.CodeInternalError, "序列化RPC请求失败")
+		return response.EchoError(c, h.respWriter, appErr)
+	}
+
+	// 调用 Auth RPC
+	ctx, cancel := context.WithTimeout(c.Request().Context(), 3*time.Second)
+	defer cancel()
+
+	result, errStr := h.rpcCaller.Call(
+		ctx,
+		"auth",
+		"DeleteUser",
+		mqrpc.Param(rpcReqBytes),
+	)
+
+	if errStr != "" {
+		if ctx.Err() == context.DeadlineExceeded {
+			appErr := xerrors.New(xerrors.CodeExternalServiceError, "Auth服务超时")
+			return response.EchoError(c, h.respWriter, appErr)
+		}
+		// 用户不存在或删除失败
+		appErr := xerrors.New(xerrors.CodeExternalServiceError, "删除用户失败: "+errStr)
+		return response.EchoError(c, h.respWriter, appErr)
+	}
+
+	// 反序列化 Protobuf 响应
+	resultBytes, ok := result.([]byte)
+	if !ok {
+		appErr := xerrors.New(xerrors.CodeInternalError, "RPC响应类型错误")
+		return response.EchoError(c, h.respWriter, appErr)
+	}
+
+	rpcResp := &authpb.DeleteUserResponse{}
+	if err := proto.Unmarshal(resultBytes, rpcResp); err != nil {
+		appErr := xerrors.Wrap(err, xerrors.CodeInternalError, "解析RPC响应失败")
+		return response.EchoError(c, h.respWriter, appErr)
+	}
+
+	return response.EchoOK(c, h.respWriter, map[string]interface{}{
+		"message": rpcResp.Message,
+		"success": rpcResp.Status.Success,
 	})
 }

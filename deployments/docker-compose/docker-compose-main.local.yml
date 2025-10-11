@@ -80,6 +80,15 @@ services:
     networks:
       - tsu_network
 
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: tsu_redisinsight
+    ports:
+      - "5540:5540"
+    networks:
+      - tsu_network
+
+  # Admin 服务
   admin:
     container_name: tsu_admin
     build:

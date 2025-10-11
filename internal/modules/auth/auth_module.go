@@ -4,11 +4,13 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	"tsu-self/internal/modules/auth/client"
 	"tsu-self/internal/modules/auth/handler"
 	"tsu-self/internal/modules/auth/service"
+	redisClient "tsu-self/internal/pkg/redis"
 
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/module"
@@ -21,6 +23,7 @@ import (
 type AuthModule struct {
 	basemodule.BaseModule
 	db                   *sql.DB
+	redis                *redisClient.Client
 	authService          *service.AuthService
 	permissionService    *service.PermissionService
 	userService          *service.UserService
@@ -58,14 +61,19 @@ func (m *AuthModule) OnInit(app module.App, settings *conf.ModuleSettings) {
 		panic(fmt.Sprintf("Failed to initialize database: %v", err))
 	}
 
-	// 2. Initialize Kratos Client
+	// 2. Initialize Redis
+	if err := m.initRedis(settings); err != nil {
+		panic(fmt.Sprintf("Failed to initialize Redis: %v", err))
+	}
+
+	// 3. Initialize Kratos Client
 	kratosClient := m.initKratosClient(settings)
 
-	// 3. Initialize Keto Client
+	// 4. Initialize Keto Client
 	ketoClient := m.initKetoClient(settings)
 
-	// 4. Initialize Services
-	m.authService = service.NewAuthService(m.db, kratosClient)
+	// 5. Initialize Services
+	m.authService = service.NewAuthService(m.db, kratosClient, m.redis)
 	m.permissionService = service.NewPermissionService(m.db, ketoClient)
 	m.userService = service.NewUserService(m.db)
 
@@ -115,6 +123,49 @@ func (m *AuthModule) initDatabase(settings *conf.ModuleSettings) error {
 
 	m.db = db
 	fmt.Println("[Auth Module] Database connected successfully")
+	return nil
+}
+
+// initRedis initializes Redis client
+func (m *AuthModule) initRedis(settings *conf.ModuleSettings) error {
+	// Read Redis configuration from environment variables
+	host := os.Getenv("REDIS_HOST")
+	if host == "" {
+		host = "localhost" // Default value
+	}
+
+	portStr := os.Getenv("REDIS_PORT")
+	port := 6379 // Default port
+	if portStr != "" {
+		if p, err := strconv.Atoi(portStr); err == nil {
+			port = p
+		}
+	}
+
+	password := os.Getenv("REDIS_PASSWORD")
+	// 密码可以为空（本地开发）
+
+	dbStr := os.Getenv("REDIS_DB")
+	db := 0 // Default DB
+	if dbStr != "" {
+		if d, err := strconv.Atoi(dbStr); err == nil {
+			db = d
+		}
+	}
+
+	// Create Redis client
+	redisClient, err := redisClient.NewClient(redisClient.Config{
+		Host:     host,
+		Port:     port,
+		Password: password,
+		DB:       db,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to connect to Redis: %w", err)
+	}
+
+	m.redis = redisClient
+	fmt.Printf("[Auth Module] Redis connected successfully (Host: %s:%d, DB: %d)\n", host, port, db)
 	return nil
 }
 
@@ -214,6 +265,12 @@ func (m *AuthModule) setupRPCMethods() {
 	m.GetServer().RegisterGO("Login", m.rpcHandler.Login)
 	m.GetServer().RegisterGO("Logout", m.rpcHandler.Logout)
 
+	// ==================== 密码重置 RPC ====================
+	m.GetServer().RegisterGO("InitiateRecovery", m.rpcHandler.InitiateRecovery)
+	m.GetServer().RegisterGO("VerifyRecoveryCode", m.rpcHandler.VerifyRecoveryCode)
+	m.GetServer().RegisterGO("ResetPassword", m.rpcHandler.ResetPassword)
+	m.GetServer().RegisterGO("AdminCreateRecoveryCode", m.rpcHandler.AdminCreateRecoveryCode)
+
 	// ==================== 权限检查 RPC ====================
 	m.GetServer().RegisterGO("CheckUserPermission", m.permissionRPCHandler.CheckUserPermission)
 
@@ -264,6 +321,15 @@ func (m *AuthModule) OnDestroy() {
 			fmt.Printf("[Auth Module] Failed to close database: %v\n", err)
 		} else {
 			fmt.Println("[Auth Module] Database connection closed")
+		}
+	}
+
+	// Close Redis connection
+	if m.redis != nil {
+		if err := m.redis.Close(); err != nil {
+			fmt.Printf("[Auth Module] Failed to close Redis: %v\n", err)
+		} else {
+			fmt.Println("[Auth Module] Redis connection closed")
 		}
 	}
 

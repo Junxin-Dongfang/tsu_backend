@@ -15,6 +15,7 @@ require (
 	github.com/nats-io/nats.go v1.46.1
 	github.com/ory/keto/proto v0.13.0-alpha.0
 	github.com/ory/kratos-client-go v1.3.8
+	github.com/redis/go-redis/v9 v9.14.0
 	github.com/swaggo/echo-swagger v1.4.1
 	github.com/swaggo/swag v1.16.6
 	google.golang.org/grpc v1.59.0
@@ -26,6 +27,8 @@ require (
 	github.com/aarondl/inflect v0.0.2 // indirect
 	github.com/aarondl/randomize v0.0.2 // indirect
 	github.com/armon/go-metrics v0.3.10 // indirect
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/ericlagergren/decimal v0.0.0-20190420051523-6335edbaa640 // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.8 // indirect

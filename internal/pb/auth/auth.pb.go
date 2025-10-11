@@ -88,7 +88,8 @@ type RegisterResponse struct {
 	KratosId      string                 `protobuf:"bytes,2,opt,name=kratos_id,json=kratosId,proto3" json:"kratos_id,omitempty"`
 	Email         string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
 	Username      string                 `protobuf:"bytes,4,opt,name=username,proto3" json:"username,omitempty"`
-	NeedVerify    bool                   `protobuf:"varint,5,opt,name=need_verify,json=needVerify,proto3" json:"need_verify,omitempty"` // 是否需要邮箱验证
+	NeedVerify    bool                   `protobuf:"varint,5,opt,name=need_verify,json=needVerify,proto3" json:"need_verify,omitempty"`      // 是否需要邮箱验证
+	SessionToken  string                 `protobuf:"bytes,6,opt,name=session_token,json=sessionToken,proto3" json:"session_token,omitempty"` // Registration Flow 返回的 session token（用户可直接登录）
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -156,6 +157,13 @@ func (x *RegisterResponse) GetNeedVerify() bool {
 		return x.NeedVerify
 	}
 	return false
+}
+
+func (x *RegisterResponse) GetSessionToken() string {
+	if x != nil {
+		return x.SessionToken
+	}
+	return ""
 }
 
 type GetUserRequest struct {
@@ -1166,6 +1174,538 @@ func (x *LogoutResponse) GetStatus() *common.Status {
 	return nil
 }
 
+// 密码恢复 - 请求验证码
+type InitiateRecoveryRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Email         string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InitiateRecoveryRequest) Reset() {
+	*x = InitiateRecoveryRequest{}
+	mi := &file_proto_auth_auth_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InitiateRecoveryRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InitiateRecoveryRequest) ProtoMessage() {}
+
+func (x *InitiateRecoveryRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_auth_auth_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InitiateRecoveryRequest.ProtoReflect.Descriptor instead.
+func (*InitiateRecoveryRequest) Descriptor() ([]byte, []int) {
+	return file_proto_auth_auth_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *InitiateRecoveryRequest) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+type InitiateRecoveryResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CodeSent      bool                   `protobuf:"varint,1,opt,name=code_sent,json=codeSent,proto3" json:"code_sent,omitempty"` // 验证码是否发送成功
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`                    // 提示信息
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InitiateRecoveryResponse) Reset() {
+	*x = InitiateRecoveryResponse{}
+	mi := &file_proto_auth_auth_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InitiateRecoveryResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InitiateRecoveryResponse) ProtoMessage() {}
+
+func (x *InitiateRecoveryResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_auth_auth_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InitiateRecoveryResponse.ProtoReflect.Descriptor instead.
+func (*InitiateRecoveryResponse) Descriptor() ([]byte, []int) {
+	return file_proto_auth_auth_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *InitiateRecoveryResponse) GetCodeSent() bool {
+	if x != nil {
+		return x.CodeSent
+	}
+	return false
+}
+
+func (x *InitiateRecoveryResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+// 密码恢复 - 验证验证码
+type VerifyRecoveryCodeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Email         string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"` // 用户邮箱（后端通过 email 从 Redis 获取 flow_id）
+	Code          string                 `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`   // 验证码
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *VerifyRecoveryCodeRequest) Reset() {
+	*x = VerifyRecoveryCodeRequest{}
+	mi := &file_proto_auth_auth_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *VerifyRecoveryCodeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*VerifyRecoveryCodeRequest) ProtoMessage() {}
+
+func (x *VerifyRecoveryCodeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_auth_auth_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use VerifyRecoveryCodeRequest.ProtoReflect.Descriptor instead.
+func (*VerifyRecoveryCodeRequest) Descriptor() ([]byte, []int) {
+	return file_proto_auth_auth_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *VerifyRecoveryCodeRequest) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+func (x *VerifyRecoveryCodeRequest) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+type VerifyRecoveryCodeResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Verified      bool                   `protobuf:"varint,1,opt,name=verified,proto3" json:"verified,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	SessionToken  string                 `protobuf:"bytes,3,opt,name=session_token,json=sessionToken,proto3" json:"session_token,omitempty"` // Kratos 特权 session token（用于步骤3重置密码）
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *VerifyRecoveryCodeResponse) Reset() {
+	*x = VerifyRecoveryCodeResponse{}
+	mi := &file_proto_auth_auth_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *VerifyRecoveryCodeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*VerifyRecoveryCodeResponse) ProtoMessage() {}
+
+func (x *VerifyRecoveryCodeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_auth_auth_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use VerifyRecoveryCodeResponse.ProtoReflect.Descriptor instead.
+func (*VerifyRecoveryCodeResponse) Descriptor() ([]byte, []int) {
+	return file_proto_auth_auth_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *VerifyRecoveryCodeResponse) GetVerified() bool {
+	if x != nil {
+		return x.Verified
+	}
+	return false
+}
+
+func (x *VerifyRecoveryCodeResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *VerifyRecoveryCodeResponse) GetSessionToken() string {
+	if x != nil {
+		return x.SessionToken
+	}
+	return ""
+}
+
+// 重置密码
+type ResetPasswordRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionToken  string                 `protobuf:"bytes,1,opt,name=session_token,json=sessionToken,proto3" json:"session_token,omitempty"` // 从步骤2返回的 Kratos 特权 session token
+	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`                                   // 用户邮箱（用于验证）
+	NewPassword   string                 `protobuf:"bytes,3,opt,name=new_password,json=newPassword,proto3" json:"new_password,omitempty"`    // 新密码
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResetPasswordRequest) Reset() {
+	*x = ResetPasswordRequest{}
+	mi := &file_proto_auth_auth_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResetPasswordRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResetPasswordRequest) ProtoMessage() {}
+
+func (x *ResetPasswordRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_auth_auth_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResetPasswordRequest.ProtoReflect.Descriptor instead.
+func (*ResetPasswordRequest) Descriptor() ([]byte, []int) {
+	return file_proto_auth_auth_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *ResetPasswordRequest) GetSessionToken() string {
+	if x != nil {
+		return x.SessionToken
+	}
+	return ""
+}
+
+func (x *ResetPasswordRequest) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+func (x *ResetPasswordRequest) GetNewPassword() string {
+	if x != nil {
+		return x.NewPassword
+	}
+	return ""
+}
+
+type ResetPasswordResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Status        *common.Status         `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResetPasswordResponse) Reset() {
+	*x = ResetPasswordResponse{}
+	mi := &file_proto_auth_auth_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResetPasswordResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResetPasswordResponse) ProtoMessage() {}
+
+func (x *ResetPasswordResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_auth_auth_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResetPasswordResponse.ProtoReflect.Descriptor instead.
+func (*ResetPasswordResponse) Descriptor() ([]byte, []int) {
+	return file_proto_auth_auth_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *ResetPasswordResponse) GetStatus() *common.Status {
+	if x != nil {
+		return x.Status
+	}
+	return nil
+}
+
+func (x *ResetPasswordResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+// 管理员为用户创建恢复码
+type AdminCreateRecoveryCodeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	ExpiresIn     string                 `protobuf:"bytes,2,opt,name=expires_in,json=expiresIn,proto3" json:"expires_in,omitempty"` // 例如: "12h", "1h"
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AdminCreateRecoveryCodeRequest) Reset() {
+	*x = AdminCreateRecoveryCodeRequest{}
+	mi := &file_proto_auth_auth_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdminCreateRecoveryCodeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdminCreateRecoveryCodeRequest) ProtoMessage() {}
+
+func (x *AdminCreateRecoveryCodeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_auth_auth_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdminCreateRecoveryCodeRequest.ProtoReflect.Descriptor instead.
+func (*AdminCreateRecoveryCodeRequest) Descriptor() ([]byte, []int) {
+	return file_proto_auth_auth_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *AdminCreateRecoveryCodeRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *AdminCreateRecoveryCodeRequest) GetExpiresIn() string {
+	if x != nil {
+		return x.ExpiresIn
+	}
+	return ""
+}
+
+type AdminCreateRecoveryCodeResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RecoveryCode  string                 `protobuf:"bytes,1,opt,name=recovery_code,json=recoveryCode,proto3" json:"recovery_code,omitempty"`
+	RecoveryLink  string                 `protobuf:"bytes,2,opt,name=recovery_link,json=recoveryLink,proto3" json:"recovery_link,omitempty"`
+	ExpiresAt     string                 `protobuf:"bytes,3,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AdminCreateRecoveryCodeResponse) Reset() {
+	*x = AdminCreateRecoveryCodeResponse{}
+	mi := &file_proto_auth_auth_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdminCreateRecoveryCodeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdminCreateRecoveryCodeResponse) ProtoMessage() {}
+
+func (x *AdminCreateRecoveryCodeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_auth_auth_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdminCreateRecoveryCodeResponse.ProtoReflect.Descriptor instead.
+func (*AdminCreateRecoveryCodeResponse) Descriptor() ([]byte, []int) {
+	return file_proto_auth_auth_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *AdminCreateRecoveryCodeResponse) GetRecoveryCode() string {
+	if x != nil {
+		return x.RecoveryCode
+	}
+	return ""
+}
+
+func (x *AdminCreateRecoveryCodeResponse) GetRecoveryLink() string {
+	if x != nil {
+		return x.RecoveryLink
+	}
+	return ""
+}
+
+func (x *AdminCreateRecoveryCodeResponse) GetExpiresAt() string {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return ""
+}
+
+type DeleteUserRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteUserRequest) Reset() {
+	*x = DeleteUserRequest{}
+	mi := &file_proto_auth_auth_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteUserRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteUserRequest) ProtoMessage() {}
+
+func (x *DeleteUserRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_auth_auth_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteUserRequest.ProtoReflect.Descriptor instead.
+func (*DeleteUserRequest) Descriptor() ([]byte, []int) {
+	return file_proto_auth_auth_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *DeleteUserRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+type DeleteUserResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Status        *common.Status         `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteUserResponse) Reset() {
+	*x = DeleteUserResponse{}
+	mi := &file_proto_auth_auth_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteUserResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteUserResponse) ProtoMessage() {}
+
+func (x *DeleteUserResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_auth_auth_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteUserResponse.ProtoReflect.Descriptor instead.
+func (*DeleteUserResponse) Descriptor() ([]byte, []int) {
+	return file_proto_auth_auth_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *DeleteUserResponse) GetStatus() *common.Status {
+	if x != nil {
+		return x.Status
+	}
+	return nil
+}
+
+func (x *DeleteUserResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
 var File_proto_auth_auth_proto protoreflect.FileDescriptor
 
 const file_proto_auth_auth_proto_rawDesc = "" +
@@ -1174,14 +1714,15 @@ const file_proto_auth_auth_proto_rawDesc = "" +
 	"\x0fRegisterRequest\x12\x14\n" +
 	"\x05email\x18\x01 \x01(\tR\x05email\x12\x1a\n" +
 	"\busername\x18\x02 \x01(\tR\busername\x12\x1a\n" +
-	"\bpassword\x18\x03 \x01(\tR\bpassword\"\x9b\x01\n" +
+	"\bpassword\x18\x03 \x01(\tR\bpassword\"\xc0\x01\n" +
 	"\x10RegisterResponse\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1b\n" +
 	"\tkratos_id\x18\x02 \x01(\tR\bkratosId\x12\x14\n" +
 	"\x05email\x18\x03 \x01(\tR\x05email\x12\x1a\n" +
 	"\busername\x18\x04 \x01(\tR\busername\x12\x1f\n" +
 	"\vneed_verify\x18\x05 \x01(\bR\n" +
-	"needVerify\")\n" +
+	"needVerify\x12#\n" +
+	"\rsession_token\x18\x06 \x01(\tR\fsessionToken\")\n" +
 	"\x0eGetUserRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\"7\n" +
 	"\x0fGetUserResponse\x12$\n" +
@@ -1265,7 +1806,40 @@ const file_proto_auth_auth_proto_rawDesc = "" +
 	"\rLogoutRequest\x12#\n" +
 	"\rsession_token\x18\x01 \x01(\tR\fsessionToken\"8\n" +
 	"\x0eLogoutResponse\x12&\n" +
-	"\x06status\x18\x01 \x01(\v2\x0e.common.StatusR\x06status2\x82\x05\n" +
+	"\x06status\x18\x01 \x01(\v2\x0e.common.StatusR\x06status\"/\n" +
+	"\x17InitiateRecoveryRequest\x12\x14\n" +
+	"\x05email\x18\x01 \x01(\tR\x05email\"Q\n" +
+	"\x18InitiateRecoveryResponse\x12\x1b\n" +
+	"\tcode_sent\x18\x01 \x01(\bR\bcodeSent\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"E\n" +
+	"\x19VerifyRecoveryCodeRequest\x12\x14\n" +
+	"\x05email\x18\x01 \x01(\tR\x05email\x12\x12\n" +
+	"\x04code\x18\x02 \x01(\tR\x04code\"w\n" +
+	"\x1aVerifyRecoveryCodeResponse\x12\x1a\n" +
+	"\bverified\x18\x01 \x01(\bR\bverified\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\x12#\n" +
+	"\rsession_token\x18\x03 \x01(\tR\fsessionToken\"t\n" +
+	"\x14ResetPasswordRequest\x12#\n" +
+	"\rsession_token\x18\x01 \x01(\tR\fsessionToken\x12\x14\n" +
+	"\x05email\x18\x02 \x01(\tR\x05email\x12!\n" +
+	"\fnew_password\x18\x03 \x01(\tR\vnewPassword\"Y\n" +
+	"\x15ResetPasswordResponse\x12&\n" +
+	"\x06status\x18\x01 \x01(\v2\x0e.common.StatusR\x06status\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"X\n" +
+	"\x1eAdminCreateRecoveryCodeRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1d\n" +
+	"\n" +
+	"expires_in\x18\x02 \x01(\tR\texpiresIn\"\x8a\x01\n" +
+	"\x1fAdminCreateRecoveryCodeResponse\x12#\n" +
+	"\rrecovery_code\x18\x01 \x01(\tR\frecoveryCode\x12#\n" +
+	"\rrecovery_link\x18\x02 \x01(\tR\frecoveryLink\x12\x1d\n" +
+	"\n" +
+	"expires_at\x18\x03 \x01(\tR\texpiresAt\",\n" +
+	"\x11DeleteUserRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\"V\n" +
+	"\x12DeleteUserResponse\x12&\n" +
+	"\x06status\x18\x01 \x01(\v2\x0e.common.StatusR\x06status\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage2\xc3\x05\n" +
 	"\vAuthService\x129\n" +
 	"\bRegister\x12\x15.auth.RegisterRequest\x1a\x16.auth.RegisterResponse\x126\n" +
 	"\aGetUser\x12\x14.auth.GetUserRequest\x1a\x15.auth.GetUserResponse\x12N\n" +
@@ -1277,7 +1851,9 @@ const file_proto_auth_auth_proto_rawDesc = "" +
 	"\n" +
 	"UpdateUser\x12\x17.auth.UpdateUserRequest\x1a\x18.auth.UpdateUserResponse\x126\n" +
 	"\aBanUser\x12\x14.auth.BanUserRequest\x1a\x15.auth.BanUserResponse\x12<\n" +
-	"\tUnbanUser\x12\x16.auth.UnbanUserRequest\x1a\x17.auth.UnbanUserResponseB\x1bZ\x19tsu-self/internal/pb/authb\x06proto3"
+	"\tUnbanUser\x12\x16.auth.UnbanUserRequest\x1a\x17.auth.UnbanUserResponse\x12?\n" +
+	"\n" +
+	"DeleteUser\x12\x17.auth.DeleteUserRequest\x1a\x18.auth.DeleteUserResponseB\x1bZ\x19tsu-self/internal/pb/authb\x06proto3"
 
 var (
 	file_proto_auth_auth_proto_rawDescOnce sync.Once
@@ -1291,66 +1867,80 @@ func file_proto_auth_auth_proto_rawDescGZIP() []byte {
 	return file_proto_auth_auth_proto_rawDescData
 }
 
-var file_proto_auth_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
+var file_proto_auth_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 30)
 var file_proto_auth_auth_proto_goTypes = []any{
-	(*RegisterRequest)(nil),            // 0: auth.RegisterRequest
-	(*RegisterResponse)(nil),           // 1: auth.RegisterResponse
-	(*GetUserRequest)(nil),             // 2: auth.GetUserRequest
-	(*GetUserResponse)(nil),            // 3: auth.GetUserResponse
-	(*UpdateLoginInfoRequest)(nil),     // 4: auth.UpdateLoginInfoRequest
-	(*UpdateLoginInfoResponse)(nil),    // 5: auth.UpdateLoginInfoResponse
-	(*SyncUserFromKratosRequest)(nil),  // 6: auth.SyncUserFromKratosRequest
-	(*SyncUserFromKratosResponse)(nil), // 7: auth.SyncUserFromKratosResponse
-	(*GetUsersRequest)(nil),            // 8: auth.GetUsersRequest
-	(*GetUsersResponse)(nil),           // 9: auth.GetUsersResponse
-	(*UpdateUserRequest)(nil),          // 10: auth.UpdateUserRequest
-	(*UpdateUserResponse)(nil),         // 11: auth.UpdateUserResponse
-	(*BanUserRequest)(nil),             // 12: auth.BanUserRequest
-	(*BanUserResponse)(nil),            // 13: auth.BanUserResponse
-	(*UnbanUserRequest)(nil),           // 14: auth.UnbanUserRequest
-	(*UnbanUserResponse)(nil),          // 15: auth.UnbanUserResponse
-	(*LoginRequest)(nil),               // 16: auth.LoginRequest
-	(*LoginResponse)(nil),              // 17: auth.LoginResponse
-	(*LogoutRequest)(nil),              // 18: auth.LogoutRequest
-	(*LogoutResponse)(nil),             // 19: auth.LogoutResponse
-	(*common.UserInfo)(nil),            // 20: common.UserInfo
-	(*common.Status)(nil),              // 21: common.Status
+	(*RegisterRequest)(nil),                 // 0: auth.RegisterRequest
+	(*RegisterResponse)(nil),                // 1: auth.RegisterResponse
+	(*GetUserRequest)(nil),                  // 2: auth.GetUserRequest
+	(*GetUserResponse)(nil),                 // 3: auth.GetUserResponse
+	(*UpdateLoginInfoRequest)(nil),          // 4: auth.UpdateLoginInfoRequest
+	(*UpdateLoginInfoResponse)(nil),         // 5: auth.UpdateLoginInfoResponse
+	(*SyncUserFromKratosRequest)(nil),       // 6: auth.SyncUserFromKratosRequest
+	(*SyncUserFromKratosResponse)(nil),      // 7: auth.SyncUserFromKratosResponse
+	(*GetUsersRequest)(nil),                 // 8: auth.GetUsersRequest
+	(*GetUsersResponse)(nil),                // 9: auth.GetUsersResponse
+	(*UpdateUserRequest)(nil),               // 10: auth.UpdateUserRequest
+	(*UpdateUserResponse)(nil),              // 11: auth.UpdateUserResponse
+	(*BanUserRequest)(nil),                  // 12: auth.BanUserRequest
+	(*BanUserResponse)(nil),                 // 13: auth.BanUserResponse
+	(*UnbanUserRequest)(nil),                // 14: auth.UnbanUserRequest
+	(*UnbanUserResponse)(nil),               // 15: auth.UnbanUserResponse
+	(*LoginRequest)(nil),                    // 16: auth.LoginRequest
+	(*LoginResponse)(nil),                   // 17: auth.LoginResponse
+	(*LogoutRequest)(nil),                   // 18: auth.LogoutRequest
+	(*LogoutResponse)(nil),                  // 19: auth.LogoutResponse
+	(*InitiateRecoveryRequest)(nil),         // 20: auth.InitiateRecoveryRequest
+	(*InitiateRecoveryResponse)(nil),        // 21: auth.InitiateRecoveryResponse
+	(*VerifyRecoveryCodeRequest)(nil),       // 22: auth.VerifyRecoveryCodeRequest
+	(*VerifyRecoveryCodeResponse)(nil),      // 23: auth.VerifyRecoveryCodeResponse
+	(*ResetPasswordRequest)(nil),            // 24: auth.ResetPasswordRequest
+	(*ResetPasswordResponse)(nil),           // 25: auth.ResetPasswordResponse
+	(*AdminCreateRecoveryCodeRequest)(nil),  // 26: auth.AdminCreateRecoveryCodeRequest
+	(*AdminCreateRecoveryCodeResponse)(nil), // 27: auth.AdminCreateRecoveryCodeResponse
+	(*DeleteUserRequest)(nil),               // 28: auth.DeleteUserRequest
+	(*DeleteUserResponse)(nil),              // 29: auth.DeleteUserResponse
+	(*common.UserInfo)(nil),                 // 30: common.UserInfo
+	(*common.Status)(nil),                   // 31: common.Status
 }
 var file_proto_auth_auth_proto_depIdxs = []int32{
-	20, // 0: auth.GetUserResponse.user:type_name -> common.UserInfo
-	21, // 1: auth.UpdateLoginInfoResponse.status:type_name -> common.Status
-	21, // 2: auth.SyncUserFromKratosResponse.status:type_name -> common.Status
-	20, // 3: auth.SyncUserFromKratosResponse.user:type_name -> common.UserInfo
-	20, // 4: auth.GetUsersResponse.users:type_name -> common.UserInfo
-	21, // 5: auth.UpdateUserResponse.status:type_name -> common.Status
-	21, // 6: auth.BanUserResponse.status:type_name -> common.Status
-	21, // 7: auth.UnbanUserResponse.status:type_name -> common.Status
-	21, // 8: auth.LogoutResponse.status:type_name -> common.Status
-	0,  // 9: auth.AuthService.Register:input_type -> auth.RegisterRequest
-	2,  // 10: auth.AuthService.GetUser:input_type -> auth.GetUserRequest
-	4,  // 11: auth.AuthService.UpdateLoginInfo:input_type -> auth.UpdateLoginInfoRequest
-	6,  // 12: auth.AuthService.SyncUserFromKratos:input_type -> auth.SyncUserFromKratosRequest
-	16, // 13: auth.AuthService.Login:input_type -> auth.LoginRequest
-	18, // 14: auth.AuthService.Logout:input_type -> auth.LogoutRequest
-	8,  // 15: auth.AuthService.GetUsers:input_type -> auth.GetUsersRequest
-	10, // 16: auth.AuthService.UpdateUser:input_type -> auth.UpdateUserRequest
-	12, // 17: auth.AuthService.BanUser:input_type -> auth.BanUserRequest
-	14, // 18: auth.AuthService.UnbanUser:input_type -> auth.UnbanUserRequest
-	1,  // 19: auth.AuthService.Register:output_type -> auth.RegisterResponse
-	3,  // 20: auth.AuthService.GetUser:output_type -> auth.GetUserResponse
-	5,  // 21: auth.AuthService.UpdateLoginInfo:output_type -> auth.UpdateLoginInfoResponse
-	7,  // 22: auth.AuthService.SyncUserFromKratos:output_type -> auth.SyncUserFromKratosResponse
-	17, // 23: auth.AuthService.Login:output_type -> auth.LoginResponse
-	19, // 24: auth.AuthService.Logout:output_type -> auth.LogoutResponse
-	9,  // 25: auth.AuthService.GetUsers:output_type -> auth.GetUsersResponse
-	11, // 26: auth.AuthService.UpdateUser:output_type -> auth.UpdateUserResponse
-	13, // 27: auth.AuthService.BanUser:output_type -> auth.BanUserResponse
-	15, // 28: auth.AuthService.UnbanUser:output_type -> auth.UnbanUserResponse
-	19, // [19:29] is the sub-list for method output_type
-	9,  // [9:19] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	30, // 0: auth.GetUserResponse.user:type_name -> common.UserInfo
+	31, // 1: auth.UpdateLoginInfoResponse.status:type_name -> common.Status
+	31, // 2: auth.SyncUserFromKratosResponse.status:type_name -> common.Status
+	30, // 3: auth.SyncUserFromKratosResponse.user:type_name -> common.UserInfo
+	30, // 4: auth.GetUsersResponse.users:type_name -> common.UserInfo
+	31, // 5: auth.UpdateUserResponse.status:type_name -> common.Status
+	31, // 6: auth.BanUserResponse.status:type_name -> common.Status
+	31, // 7: auth.UnbanUserResponse.status:type_name -> common.Status
+	31, // 8: auth.LogoutResponse.status:type_name -> common.Status
+	31, // 9: auth.ResetPasswordResponse.status:type_name -> common.Status
+	31, // 10: auth.DeleteUserResponse.status:type_name -> common.Status
+	0,  // 11: auth.AuthService.Register:input_type -> auth.RegisterRequest
+	2,  // 12: auth.AuthService.GetUser:input_type -> auth.GetUserRequest
+	4,  // 13: auth.AuthService.UpdateLoginInfo:input_type -> auth.UpdateLoginInfoRequest
+	6,  // 14: auth.AuthService.SyncUserFromKratos:input_type -> auth.SyncUserFromKratosRequest
+	16, // 15: auth.AuthService.Login:input_type -> auth.LoginRequest
+	18, // 16: auth.AuthService.Logout:input_type -> auth.LogoutRequest
+	8,  // 17: auth.AuthService.GetUsers:input_type -> auth.GetUsersRequest
+	10, // 18: auth.AuthService.UpdateUser:input_type -> auth.UpdateUserRequest
+	12, // 19: auth.AuthService.BanUser:input_type -> auth.BanUserRequest
+	14, // 20: auth.AuthService.UnbanUser:input_type -> auth.UnbanUserRequest
+	28, // 21: auth.AuthService.DeleteUser:input_type -> auth.DeleteUserRequest
+	1,  // 22: auth.AuthService.Register:output_type -> auth.RegisterResponse
+	3,  // 23: auth.AuthService.GetUser:output_type -> auth.GetUserResponse
+	5,  // 24: auth.AuthService.UpdateLoginInfo:output_type -> auth.UpdateLoginInfoResponse
+	7,  // 25: auth.AuthService.SyncUserFromKratos:output_type -> auth.SyncUserFromKratosResponse
+	17, // 26: auth.AuthService.Login:output_type -> auth.LoginResponse
+	19, // 27: auth.AuthService.Logout:output_type -> auth.LogoutResponse
+	9,  // 28: auth.AuthService.GetUsers:output_type -> auth.GetUsersResponse
+	11, // 29: auth.AuthService.UpdateUser:output_type -> auth.UpdateUserResponse
+	13, // 30: auth.AuthService.BanUser:output_type -> auth.BanUserResponse
+	15, // 31: auth.AuthService.UnbanUser:output_type -> auth.UnbanUserResponse
+	29, // 32: auth.AuthService.DeleteUser:output_type -> auth.DeleteUserResponse
+	22, // [22:33] is the sub-list for method output_type
+	11, // [11:22] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_proto_auth_auth_proto_init() }
@@ -1367,7 +1957,7 @@ func file_proto_auth_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_auth_auth_proto_rawDesc), len(file_proto_auth_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   20,
+			NumMessages:   30,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
