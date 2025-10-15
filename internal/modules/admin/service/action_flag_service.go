@@ -1,6 +1,7 @@
 package service
 
 import (
+	"tsu-self/internal/pkg/xerrors"
 	"context"
 	"database/sql"
 	"fmt"
@@ -40,7 +41,7 @@ func (s *ActionFlagService) CreateActionFlag(ctx context.Context, flag *game_con
 		return err
 	}
 	if exists {
-		return fmt.Errorf("动作Flag代码已存在: %s", flag.FlagCode)
+		return xerrors.New(xerrors.CodeDuplicateResource, fmt.Sprintf("动作Flag代码已存在: %s", flag.FlagCode))
 	}
 
 	return s.repo.Create(ctx, flag)
@@ -57,7 +58,7 @@ func (s *ActionFlagService) UpdateActionFlag(ctx context.Context, flagID string,
 	if flagCode, ok := updates["flag_code"].(string); ok && flagCode != "" {
 		existing, err := s.repo.GetByCode(ctx, flagCode)
 		if err == nil && existing.ID != flagID {
-			return fmt.Errorf("动作Flag代码已被使用: %s", flagCode)
+			return xerrors.New(xerrors.CodeDuplicateResource, fmt.Sprintf("动作Flag代码已被使用: %s", flagCode))
 		}
 		flag.FlagCode = flagCode
 	}

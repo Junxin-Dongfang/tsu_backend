@@ -90,7 +90,7 @@ type EffectInfo struct {
 // GetEffects 获取效果列表
 // @Summary 获取效果列表
 // @Description 分页查询效果列表，支持按效果类型和启用状态筛选
-// @Tags 效果系统
+// @Tags 效果
 // @Accept json
 // @Produce json
 // @Param effect_type query string false "效果类型，例如: damage, heal, buff"
@@ -146,7 +146,7 @@ func (h *EffectHandler) GetEffects(c echo.Context) error {
 // GetEffect 获取效果详情
 // @Summary 获取效果详情
 // @Description 根据效果ID获取效果的详细信息
-// @Tags 效果系统
+// @Tags 效果
 // @Accept json
 // @Produce json
 // @Param id path string true "效果ID (UUID格式)"
@@ -171,7 +171,7 @@ func (h *EffectHandler) GetEffect(c echo.Context) error {
 // CreateEffect 创建效果
 // @Summary 创建效果
 // @Description 创建新的游戏效果，包括伤害、治疗、Buff等类型
-// @Tags 效果系统
+// @Tags 效果
 // @Accept json
 // @Produce json
 // @Param request body CreateEffectRequest true "创建效果请求参数"
@@ -275,7 +275,7 @@ func (h *EffectHandler) CreateEffect(c echo.Context) error {
 // UpdateEffect 更新效果
 // @Summary 更新效果
 // @Description 更新已有效果的信息
-// @Tags 效果系统
+// @Tags 效果
 // @Accept json
 // @Produce json
 // @Param id path string true "效果ID (UUID格式)"
@@ -325,7 +325,7 @@ func (h *EffectHandler) UpdateEffect(c echo.Context) error {
 // DeleteEffect 删除效果
 // @Summary 删除效果
 // @Description 软删除指定的效果（设置deleted_at字段）
-// @Tags 效果系统
+// @Tags 效果
 // @Accept json
 // @Produce json
 // @Param id path string true "效果ID (UUID格式)"

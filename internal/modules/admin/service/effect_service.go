@@ -1,6 +1,7 @@
 package service
 
 import (
+	"tsu-self/internal/pkg/xerrors"
 	"context"
 	"database/sql"
 	"fmt"
@@ -40,7 +41,7 @@ func (s *EffectService) CreateEffect(ctx context.Context, effect *game_config.Ef
 		return err
 	}
 	if exists {
-		return fmt.Errorf("效果代码已存在: %s", effect.EffectCode)
+		return xerrors.New(xerrors.CodeDuplicateResource, fmt.Sprintf("效果代码已存在: %s", effect.EffectCode))
 	}
 
 	return s.repo.Create(ctx, effect)
@@ -57,7 +58,7 @@ func (s *EffectService) UpdateEffect(ctx context.Context, effectID string, updat
 	if effectCode, ok := updates["effect_code"].(string); ok && effectCode != "" {
 		existing, err := s.repo.GetByCode(ctx, effectCode)
 		if err == nil && existing.ID != effectID {
-			return fmt.Errorf("效果代码已被使用: %s", effectCode)
+			return xerrors.New(xerrors.CodeDuplicateResource, fmt.Sprintf("效果代码已被使用: %s", effectCode))
 		}
 		effect.EffectCode = effectCode
 	}

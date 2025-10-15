@@ -95,7 +95,7 @@ type UpdateClassRequest struct {
 // GetClasses 获取职业列表
 // @Summary 获取职业列表
 // @Description 获取职业列表，支持分页、筛选和排序
-// @Tags 职业系统
+// @Tags 职业
 // @Accept json
 // @Produce json
 // @Param page query int false "页码" default(1)
@@ -165,7 +165,7 @@ func (h *ClassHandler) GetClasses(c echo.Context) error {
 // GetClass 获取职业详情
 // @Summary 获取单个职业
 // @Description 获取指定职业的详细信息
-// @Tags 职业系统
+// @Tags 职业
 // @Accept json
 // @Produce json
 // @Param id path string true "职业ID"
@@ -194,7 +194,7 @@ func (h *ClassHandler) GetClass(c echo.Context) error {
 // CreateClass 创建职业
 // @Summary 创建职业
 // @Description 创建新的职业
-// @Tags 职业系统
+// @Tags 职业
 // @Accept json
 // @Produce json
 // @Param class body CreateClassRequest true "职业信息"
@@ -271,7 +271,7 @@ func (h *ClassHandler) CreateClass(c echo.Context) error {
 // UpdateClass 更新职业
 // @Summary 更新职业
 // @Description 更新职业信息
-// @Tags 职业系统
+// @Tags 职业
 // @Accept json
 // @Produce json
 // @Param id path string true "职业ID"
@@ -360,7 +360,7 @@ func (h *ClassHandler) UpdateClass(c echo.Context) error {
 // DeleteClass 删除职业
 // @Summary 删除职业
 // @Description 软删除职业
-// @Tags 职业系统
+// @Tags 职业
 // @Accept json
 // @Produce json
 // @Param id path string true "职业ID"
@@ -471,7 +471,7 @@ type BatchSetAttributeBonusesRequest struct {
 // GetClassAttributeBonuses 获取职业的所有属性加成
 // @Summary 获取职业属性加成列表
 // @Description 获取指定职业的所有属性加成配置
-// @Tags 职业系统
+// @Tags 职业
 // @Accept json
 // @Produce json
 // @Param id path string true "职业ID"
@@ -505,7 +505,7 @@ func (h *ClassHandler) GetClassAttributeBonuses(c echo.Context) error {
 // CreateAttributeBonus 为职业添加属性加成
 // @Summary 创建属性加成
 // @Description 为指定职业添加新的属性加成配置
-// @Tags 职业系统
+// @Tags 职业
 // @Accept json
 // @Produce json
 // @Param id path string true "职业ID"
@@ -561,7 +561,7 @@ func (h *ClassHandler) CreateAttributeBonus(c echo.Context) error {
 // UpdateAttributeBonus 更新属性加成
 // @Summary 更新属性加成
 // @Description 更新指定的属性加成配置
-// @Tags 职业系统
+// @Tags 职业
 // @Accept json
 // @Produce json
 // @Param id path string true "职业ID"
@@ -615,7 +615,7 @@ func (h *ClassHandler) UpdateAttributeBonus(c echo.Context) error {
 // DeleteAttributeBonus 删除属性加成
 // @Summary 删除属性加成
 // @Description 删除指定的属性加成配置
-// @Tags 职业系统
+// @Tags 职业
 // @Accept json
 // @Produce json
 // @Param id path string true "职业ID"
@@ -648,7 +648,7 @@ func (h *ClassHandler) DeleteAttributeBonus(c echo.Context) error {
 // BatchSetAttributeBonuses 批量设置职业属性加成
 // @Summary 批量设置属性加成
 // @Description 批量设置职业的属性加成（先删除旧的，再创建新的）
-// @Tags 职业系统
+// @Tags 职业
 // @Accept json
 // @Produce json
 // @Param id path string true "职业ID"
@@ -732,7 +732,7 @@ func (h *ClassHandler) convertToAttributeBonusInfo(bonus *game_config.ClassAttri
 // GetClassAdvancement godoc
 // @Summary      获取职业可进阶的目标职业列表
 // @Description  查询指定职业可以进阶到哪些职业，返回目标职业列表及进阶要求
-// @Tags         职业管理
+// @Tags 职业
 // @Accept       json
 // @Produce      json
 // @Param        id   path      string  true  "职业ID"  Format(uuid)
@@ -766,7 +766,7 @@ type AdvancementPathResponse struct {
 // GetClassAdvancementPaths godoc
 // @Summary      获取职业的完整进阶路径树
 // @Description  查询职业的完整进阶树（包括多级进阶），支持指定最大深度
-// @Tags         职业管理
+// @Tags 职业
 // @Accept       json
 // @Produce      json
 // @Param        id         path   string  true   "职业ID"  Format(uuid)
@@ -811,7 +811,7 @@ func (h *ClassHandler) GetClassAdvancementPaths(c echo.Context) error {
 // GetClassAdvancementSources godoc
 // @Summary      获取可进阶到指定职业的源职业列表
 // @Description  查询可以进阶到指定职业的源职业列表及进阶要求
-// @Tags         职业管理
+// @Tags 职业
 // @Accept       json
 // @Produce      json
 // @Param        id   path      string  true  "职业ID"  Format(uuid)

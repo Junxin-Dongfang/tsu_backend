@@ -69,7 +69,7 @@ type SkillCategoryInfo struct {
 // GetSkillCategories 获取技能类别列表
 // @Summary 获取技能类别列表
 // @Description 获取技能类别列表，支持按启用状态筛选，支持分页
-// @Tags 基础配置-技能类别
+// @Tags 技能类别
 // @Accept json
 // @Produce json
 // @Param is_active query bool false "是否启用"
@@ -119,7 +119,7 @@ func (h *SkillCategoryHandler) GetSkillCategories(c echo.Context) error {
 // GetSkillCategory 获取技能类别详情
 // @Summary 获取技能类别详情
 // @Description 根据技能类别ID获取单个技能类别的详细信息
-// @Tags 基础配置-技能类别
+// @Tags 技能类别
 // @Accept json
 // @Produce json
 // @Param id path string true "技能类别ID(UUID格式)"
@@ -143,7 +143,7 @@ func (h *SkillCategoryHandler) GetSkillCategory(c echo.Context) error {
 // CreateSkillCategory 创建技能类别
 // @Summary 创建技能类别
 // @Description 创建新的技能类别，类别代码必须唯一
-// @Tags 基础配置-技能类别
+// @Tags 技能类别
 // @Accept json
 // @Produce json
 // @Param request body CreateSkillCategoryRequest true "创建技能类别请求"
@@ -196,7 +196,7 @@ func (h *SkillCategoryHandler) CreateSkillCategory(c echo.Context) error {
 // UpdateSkillCategory 更新技能类别
 // @Summary 更新技能类别
 // @Description 更新指定ID的技能类别信息，支持部分字段更新
-// @Tags 基础配置-技能类别
+// @Tags 技能类别
 // @Accept json
 // @Produce json
 // @Param id path string true "技能类别ID(UUID格式)"
@@ -257,7 +257,7 @@ func (h *SkillCategoryHandler) UpdateSkillCategory(c echo.Context) error {
 // DeleteSkillCategory 删除技能类别
 // @Summary 删除技能类别(软删除)
 // @Description 软删除指定ID的技能类别，不会真正删除数据
-// @Tags 基础配置-技能类别
+// @Tags 技能类别
 // @Accept json
 // @Produce json
 // @Param id path string true "技能类别ID(UUID格式)"

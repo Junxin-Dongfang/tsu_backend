@@ -22,6 +22,7 @@ help:
 	@echo "  Code Generation:"
 	@echo "    proto            - Generate Protobuf code"
 	@echo "    generate-entity  - Generate database models using SQLBoiler"
+	@echo "    generate-errors  - Generate frontend error code enums (TypeScript)"
 	@echo "    generate         - Generate all code (proto + entity)"
 	@echo "    swagger-gen      - Generate admin service swagger docs"
 	@echo ""
@@ -85,6 +86,12 @@ proto: install-protoc
 		mv proto/game/*.pb.go internal/pb/game/ || echo "⚠️  proto/game/ 目录不存在,跳过"
 	@echo "✅ Protobuf 代码生成完成"
 
+# 生成前端错误码枚举
+generate-errors:
+	@echo "🔄 生成前端错误码枚举..."
+	@go run cmd/generate-error-codes/main.go -output ./generated/frontend -format all
+	@echo "✅ 错误码枚举生成完成"
+
 # 生成所有代码
 generate: proto generate-entity
 	@echo "✅ 所有代码生成完成"
@@ -110,23 +117,57 @@ generate-entity: install-sqlboiler
 
 # 生成 admin 服务的 swagger 文档
 swagger-admin: install-swag
-	swag init -g cmd/admin-server/main.go -o ./docs --parseDependency --parseInternal	
+	@echo "🔄 生成 Admin Server Swagger 文档..."
+	swag init -g cmd/admin-server/main.go -o ./docs/admin \
+		--parseDependency --parseInternal \
+		--exclude internal/modules/game
+	@echo "✅ Admin Swagger 文档生成完成: docs/admin/"
+
+# 生成 game 服务的 swagger 文档
+swagger-game: install-swag
+	@echo "🔄 生成 Game Server Swagger 文档..."
+	swag init -g cmd/game-server/main.go -o ./docs/game \
+		--parseDependency --parseInternal \
+		--exclude internal/modules/admin
+	@echo "✅ Game Swagger 文档生成完成: docs/game/"
 
 # 生成所有 swagger 文档
-swagger-gen: swagger-admin
+swagger-gen: swagger-admin swagger-game
+	@echo "✅ 所有 Swagger 文档生成完成"
 
 # 启动开发环境
 dev-up:
 	docker network create tsu-network 2>/dev/null || true
+	@echo "🚀 启动 Ory 服务 (Kratos, Keto, Oathkeeper)..."
+	docker-compose -f deployments/docker-compose/docker-compose-ory.local.yml up -d
+	@echo "⏳ 等待 Ory 服务就绪..."
+	sleep 10
+	@echo "🚀 启动主服务 (Admin, Game)..."
 	docker-compose -f deployments/docker-compose/docker-compose-main.local.yml up -d
+	@echo "🚀 启动 Nginx..."
+	docker-compose -f deployments/docker-compose/docker-compose-nginx.local.yml up -d
+	@echo "✅ 所有服务已启动"
+	@echo ""
+	@echo "📋 访问地址:"
+	@echo "  - 统一 Swagger 入口: http://localhost/swagger"
+	@echo "  - Admin Swagger:      http://localhost/admin/swagger/index.html"
+	@echo "  - Game Swagger:       http://localhost/game/swagger/index.html"
 
 # 停止开发环境
 dev-down:
+	docker-compose -f deployments/docker-compose/docker-compose-nginx.local.yml down
 	docker-compose -f deployments/docker-compose/docker-compose-main.local.yml down
+	docker-compose -f deployments/docker-compose/docker-compose-ory.local.yml down
 
 # 查看日志
 dev-logs:
 	docker-compose -f deployments/docker-compose/docker-compose-main.local.yml logs -f
+
+# 查看所有服务日志
+dev-logs-all:
+	docker-compose -f deployments/docker-compose/docker-compose-ory.local.yml logs -f & \
+	docker-compose -f deployments/docker-compose/docker-compose-main.local.yml logs -f & \
+	docker-compose -f deployments/docker-compose/docker-compose-nginx.local.yml logs -f
 
 # 重新构建并启动
 dev-rebuild:
@@ -134,7 +175,9 @@ dev-rebuild:
 
 # 清理
 clean:
+	docker-compose -f deployments/docker-compose/docker-compose-nginx.local.yml down -v
 	docker-compose -f deployments/docker-compose/docker-compose-main.local.yml down -v
+	docker-compose -f deployments/docker-compose/docker-compose-ory.local.yml down -v
 	docker system prune -f
 
 # ==========================================

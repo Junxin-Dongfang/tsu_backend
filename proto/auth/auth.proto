@@ -216,16 +216,16 @@ message ResetPasswordResponse {
     string message = 2;
 }
 
-// 管理员为用户创建恢复码
-message AdminCreateRecoveryCodeRequest {
-    string user_id = 1;
-    string expires_in = 2;  // 例如: "12h", "1h"
+// 验证码重置密码（验证码 + 新密码）
+message ResetPasswordWithCodeRequest {
+    string email = 1;         // 用户邮箱
+    string code = 2;          // 验证码
+    string new_password = 3;  // 新密码
 }
 
-message AdminCreateRecoveryCodeResponse {
-    string recovery_code = 1;
-    string recovery_link = 2;
-    string expires_at = 3;
+message ResetPasswordWithCodeResponse {
+    common.Status status = 1;
+    string message = 2;
 }
 
 // ==================== DeleteUser ====================

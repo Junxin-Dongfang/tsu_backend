@@ -1,8 +1,8 @@
 [
   {
-    "id": "tsu-health-check",
+    "id": "tsu-admin-health-check",
     "match": {
-      "url": "http://<.*>/health",
+      "url": "http://<.*>/admin/health",
       "methods": ["GET"]
     },
     "authenticators": [{ "handler": "noop" }],
@@ -10,21 +10,53 @@
     "mutators": [{ "handler": "noop" }],
     "upstream": {
       "url": "http://tsu_admin:8071",
-      "strip_path": ""
+      "strip_path": "/admin",
+      "preserve_host": false
     }
   },
   {
-    "id": "tsu-swagger-ui",
+    "id": "tsu-game-health-check",
     "match": {
-      "url": "http://<.*>/swagger/<.*>",
+      "url": "http://<.*>/game/health",
       "methods": ["GET"]
     },
     "authenticators": [{ "handler": "noop" }],
     "authorizer": { "handler": "allow" },
     "mutators": [{ "handler": "noop" }],
     "upstream": {
+      "url": "http://tsu_game:8072",
+      "strip_path": "/game",
+      "preserve_host": false
+    }
+  },
+  {
+    "id": "tsu-admin-swagger-ui",
+    "match": {
+      "url": "http://<.*>/admin/swagger/<.*>",
+      "methods": ["GET", "HEAD"]
+    },
+    "authenticators": [{ "handler": "noop" }],
+    "authorizer": { "handler": "allow" },
+    "mutators": [{ "handler": "noop" }],
+    "upstream": {
       "url": "http://tsu_admin:8071",
-      "strip_path": ""
+      "strip_path": "/admin",
+      "preserve_host": false
+    }
+  },
+  {
+    "id": "tsu-game-swagger-ui",
+    "match": {
+      "url": "http://<.*>/game/swagger/<.*>",
+      "methods": ["GET", "HEAD"]
+    },
+    "authenticators": [{ "handler": "noop" }],
+    "authorizer": { "handler": "allow" },
+    "mutators": [{ "handler": "noop" }],
+    "upstream": {
+      "url": "http://tsu_game:8072",
+      "strip_path": "/game",
+      "preserve_host": false
     }
   },
   {
@@ -42,9 +74,9 @@
     }
   },
   {
-    "id": "tsu-auth-public-apis",
+    "id": "tsu-admin-auth-public-apis",
     "match": {
-      "url": "http://<.*>/api/v1/auth/<(register|login|logout|recovery/initiate|recovery/verify|password/reset)>",
+      "url": "http://<.*>/api/v1/admin/auth/<(register|login|logout|recovery/initiate|recovery/verify|password/reset|password/reset-with-code)>",
       "methods": ["POST"]
     },
     "authenticators": [{ "handler": "noop" }],
@@ -56,9 +88,9 @@
     }
   },
   {
-    "id": "tsu-auth-get-user",
+    "id": "tsu-admin-auth-get-user",
     "match": {
-      "url": "http://<.*>/api/v1/auth/users/<.*>",
+      "url": "http://<.*>/api/v1/admin/auth/users/<.*>",
       "methods": ["GET"]
     },
     "authenticators": [
@@ -107,7 +139,7 @@
   {
     "id": "tsu-admin-protected-apis",
     "match": {
-      "url": "http://<.*>/api/v1/admin/<.*>",
+      "url": "http://<.*>/api/v1/admin/<(?!auth).*>",
       "methods": ["GET", "POST", "PUT", "DELETE", "PATCH"]
     },
     "authenticators": [
@@ -145,6 +177,132 @@
     ],
     "upstream": {
       "url": "http://tsu_admin:8071",
+      "strip_path": ""
+    },
+    "errors": [
+      {
+        "handler": "json"
+      }
+    ]
+  },
+  {
+    "id": "tsu-game-cors-preflight-rule",
+    "match": {
+      "url": "http://<.*>/api/v1/game/<.*>",
+      "methods": ["OPTIONS"]
+    },
+    "authenticators": [{ "handler": "noop" }],
+    "authorizer": { "handler": "allow" },
+    "mutators": [{ "handler": "noop" }],
+    "upstream": {
+      "url": "http://tsu_game:8072",
+      "strip_path": ""
+    }
+  },
+  {
+    "id": "tsu-game-auth-public-apis",
+    "match": {
+      "url": "http://<.*>/api/v1/game/auth/<(register|login|logout|recovery/initiate|password/reset-with-code)>",
+      "methods": ["POST"]
+    },
+    "authenticators": [{ "handler": "noop" }],
+    "authorizer": { "handler": "allow" },
+    "mutators": [{ "handler": "noop" }],
+    "upstream": {
+      "url": "http://tsu_game:8072",
+      "strip_path": ""
+    }
+  },
+  {
+    "id": "tsu-game-auth-get-user",
+    "match": {
+      "url": "http://<.*>/api/v1/game/auth/users/<.*>",
+      "methods": ["GET"]
+    },
+    "authenticators": [
+      {
+        "handler": "bearer_token",
+        "config": {
+          "token_from": {
+            "header": "Authorization"
+          }
+        }
+      },
+      {
+        "handler": "bearer_token",
+        "config": {
+          "token_from": {
+            "cookie": "ory_kratos_session"
+          },
+          "forward_http_headers": ["Authorization"]
+        }
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "header",
+        "config": {
+          "headers": {
+            "X-User-ID": "{{ print .Subject }}",
+            "X-Session-Token": "{{ print .Extra.ory_kratos_session }}"
+          }
+        }
+      }
+    ],
+    "upstream": {
+      "url": "http://tsu_game:8072",
+      "strip_path": ""
+    },
+    "errors": [
+      {
+        "handler": "json"
+      }
+    ]
+  },
+  {
+    "id": "tsu-game-protected-apis",
+    "match": {
+      "url": "http://<.*>/api/v1/game/<(?!auth).*>",
+      "methods": ["GET", "POST", "PUT", "DELETE", "PATCH"]
+    },
+    "authenticators": [
+      {
+        "handler": "bearer_token",
+        "config": {
+          "token_from": {
+            "header": "Authorization"
+          }
+        }
+      },
+      {
+        "handler": "bearer_token",
+        "config": {
+          "token_from": {
+            "cookie": "ory_kratos_session"
+          },
+          "forward_http_headers": ["Authorization"]
+        }
+      }
+    ],
+    "authorizer": {
+      "handler": "allow"
+    },
+    "mutators": [
+      {
+        "handler": "header",
+        "config": {
+          "headers": {
+            "X-User-ID": "{{ print .Subject }}",
+            "X-Session-Token": "{{ print .Extra.ory_kratos_session }}"
+          }
+        }
+      }
+    ],
+    "upstream": {
+      "url": "http://tsu_game:8072",
       "strip_path": ""
     },
     "errors": [

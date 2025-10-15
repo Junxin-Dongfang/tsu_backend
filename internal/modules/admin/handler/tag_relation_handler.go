@@ -60,7 +60,7 @@ type TagEntityInfo struct {
 // GetEntityTags 获取实体的所有标签
 // @Summary 获取实体的所有标签
 // @Description 获取指定实体的所有关联标签，返回完整的标签信息
-// @Tags 基础配置-标签关联
+// @Tags 标签关联
 // @Accept json
 // @Produce json
 // @Param entity_type path string true "实体类型(skill/class/item/monster)"
@@ -110,7 +110,7 @@ func (h *TagRelationHandler) GetEntityTags(c echo.Context) error {
 // GetTagEntities 获取使用某个标签的所有实体
 // @Summary 获取使用某个标签的所有实体
 // @Description 查询使用指定标签的所有实体，返回实体类型和ID列表
-// @Tags 基础配置-标签关联
+// @Tags 标签关联
 // @Accept json
 // @Produce json
 // @Param tag_id path string true "标签ID(UUID格式)"
@@ -148,7 +148,7 @@ func (h *TagRelationHandler) GetTagEntities(c echo.Context) error {
 // AddTagToEntity 为实体添加标签
 // @Summary 为实体添加标签
 // @Description 为指定实体添加单个标签，如果已存在则返回错误
-// @Tags 基础配置-标签关联
+// @Tags 标签关联
 // @Accept json
 // @Produce json
 // @Param entity_type path string true "实体类型(skill/class/item/monster)"
@@ -189,7 +189,7 @@ func (h *TagRelationHandler) AddTagToEntity(c echo.Context) error {
 // RemoveTagFromEntity 从实体移除标签
 // @Summary 从实体移除标签
 // @Description 从指定实体移除单个标签关联
-// @Tags 基础配置-标签关联
+// @Tags 标签关联
 // @Accept json
 // @Produce json
 // @Param entity_type path string true "实体类型(skill/class/item/monster)"
@@ -222,7 +222,7 @@ func (h *TagRelationHandler) RemoveTagFromEntity(c echo.Context) error {
 // BatchSetEntityTags 批量设置实体的标签
 // @Summary 批量设置实体的标签
 // @Description 批量设置实体的所有标签，会先删除原有标签再添加新标签(事务保证)
-// @Tags 基础配置-标签关联
+// @Tags 标签关联
 // @Accept json
 // @Produce json
 // @Param entity_type path string true "实体类型(skill/class/item/monster)"

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"tsu-self/internal/pkg/xerrors"
 	"context"
 	"database/sql"
 	"fmt"
@@ -39,7 +40,7 @@ func (s *ClassService) CreateClass(ctx context.Context, class *game_config.Class
 	// 业务验证：检查职业代码是否已存在
 	existing, err := s.classRepo.GetByCode(ctx, class.ClassCode)
 	if err == nil && existing != nil {
-		return fmt.Errorf("职业代码已存在: %s", class.ClassCode)
+		return xerrors.New(xerrors.CodeDuplicateResource, fmt.Sprintf("职业代码已存在: %s", class.ClassCode))
 	}
 
 	return s.classRepo.Create(ctx, class)
@@ -58,7 +59,7 @@ func (s *ClassService) UpdateClass(ctx context.Context, classID string, updates 
 		// 检查职业代码是否已被使用
 		existing, err := s.classRepo.GetByCode(ctx, classCode)
 		if err == nil && existing.ID != classID {
-			return fmt.Errorf("职业代码已被使用: %s", classCode)
+			return xerrors.New(xerrors.CodeDuplicateResource, fmt.Sprintf("职业代码已被使用: %s", classCode))
 		}
 		class.ClassCode = classCode
 	}

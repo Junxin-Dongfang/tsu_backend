@@ -1,6 +1,7 @@
 package service
 
 import (
+	"tsu-self/internal/pkg/xerrors"
 	"context"
 	"database/sql"
 	"fmt"
@@ -40,7 +41,7 @@ func (s *SkillCategoryService) CreateSkillCategory(ctx context.Context, category
 		return err
 	}
 	if exists {
-		return fmt.Errorf("技能类别代码已存在: %s", category.CategoryCode)
+		return xerrors.New(xerrors.CodeDuplicateResource, fmt.Sprintf("技能类别代码已存在: %s", category.CategoryCode))
 	}
 
 	return s.repo.Create(ctx, category)
@@ -59,7 +60,7 @@ func (s *SkillCategoryService) UpdateSkillCategory(ctx context.Context, category
 		// 检查类别代码是否已被使用
 		existing, err := s.repo.GetByCode(ctx, categoryCode)
 		if err == nil && existing.ID != categoryID {
-			return fmt.Errorf("技能类别代码已被使用: %s", categoryCode)
+			return xerrors.New(xerrors.CodeDuplicateResource, fmt.Sprintf("技能类别代码已被使用: %s", categoryCode))
 		}
 		category.CategoryCode = categoryCode
 	}

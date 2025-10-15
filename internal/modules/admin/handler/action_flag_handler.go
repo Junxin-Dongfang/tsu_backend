@@ -66,7 +66,7 @@ type ActionFlagInfo struct {
 // GetActionFlags 获取动作Flag列表
 // @Summary 获取动作Flag列表
 // @Description 获取动作Flag列表,支持分页和多条件筛选
-// @Tags 动作系统
+// @Tags 动作
 // @Accept json
 // @Produce json
 // @Param category query string false "分类筛选"
@@ -127,7 +127,7 @@ func (h *ActionFlagHandler) GetActionFlags(c echo.Context) error {
 // GetActionFlag 获取动作Flag详情
 // @Summary 获取动作Flag详情
 // @Description 根据ID获取单个动作Flag的详细信息
-// @Tags 动作系统
+// @Tags 动作
 // @Accept json
 // @Produce json
 // @Param id path string true "动作Flag的UUID"
@@ -152,7 +152,7 @@ func (h *ActionFlagHandler) GetActionFlag(c echo.Context) error {
 // CreateActionFlag 创建动作Flag
 // @Summary 创建动作Flag
 // @Description 创建新的动作Flag,flag_code必须唯一
-// @Tags 动作系统
+// @Tags 动作
 // @Accept json
 // @Produce json
 // @Param request body CreateActionFlagRequest true "创建动作Flag的请求参数"
@@ -204,7 +204,7 @@ func (h *ActionFlagHandler) CreateActionFlag(c echo.Context) error {
 // UpdateActionFlag 更新动作Flag
 // @Summary 更新动作Flag
 // @Description 更新指定ID的动作Flag信息
-// @Tags 动作系统
+// @Tags 动作
 // @Accept json
 // @Produce json
 // @Param id path string true "动作Flag的UUID"
@@ -251,7 +251,7 @@ func (h *ActionFlagHandler) UpdateActionFlag(c echo.Context) error {
 // DeleteActionFlag 删除动作Flag
 // @Summary 删除动作Flag
 // @Description 软删除指定ID的动作Flag(设置deleted_at字段)
-// @Tags 动作系统
+// @Tags 动作
 // @Accept json
 // @Produce json
 // @Param id path string true "动作Flag的UUID"

@@ -118,7 +118,7 @@ type ActionInfo struct {
 // GetActions 获取动作列表
 // @Summary 获取动作列表
 // @Description 获取动作列表,支持分页和多条件筛选(动作类型、分类ID、启用状态)
-// @Tags 动作系统
+// @Tags 动作
 // @Accept json
 // @Produce json
 // @Param action_type query string false "动作类型筛选(main/minor/reaction)"
@@ -179,7 +179,7 @@ func (h *ActionHandler) GetActions(c echo.Context) error {
 // GetAction 获取动作详情
 // @Summary 获取动作详情
 // @Description 根据ID获取单个动作的详细信息,包括范围配置、目标配置等所有JSONB字段
-// @Tags 动作系统
+// @Tags 动作
 // @Accept json
 // @Produce json
 // @Param id path string true "动作的UUID"
@@ -204,7 +204,7 @@ func (h *ActionHandler) GetAction(c echo.Context) error {
 // CreateAction 创建动作
 // @Summary 创建动作
 // @Description 创建新的动作,action_code必须唯一,range_config为必需JSONB字段
-// @Tags 动作系统
+// @Tags 动作
 // @Accept json
 // @Produce json
 // @Param request body CreateActionRequest true "创建动作的请求参数,包含范围配置、目标配置等"
@@ -336,7 +336,7 @@ func (h *ActionHandler) CreateAction(c echo.Context) error {
 // UpdateAction 更新动作
 // @Summary 更新动作
 // @Description 更新指定ID的动作信息,支持部分字段更新
-// @Tags 动作系统
+// @Tags 动作
 // @Accept json
 // @Produce json
 // @Param id path string true "动作的UUID"
@@ -388,7 +388,7 @@ func (h *ActionHandler) UpdateAction(c echo.Context) error {
 // DeleteAction 删除动作
 // @Summary 删除动作
 // @Description 软删除指定ID的动作(设置deleted_at字段)
-// @Tags 动作系统
+// @Tags 动作
 // @Accept json
 // @Produce json
 // @Param id path string true "动作的UUID"

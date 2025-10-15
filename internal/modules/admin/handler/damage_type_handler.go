@@ -78,7 +78,7 @@ type DamageTypeInfo struct {
 // GetDamageTypes 获取伤害类型列表
 // @Summary 获取伤害类型列表
 // @Description 获取伤害类型列表，支持按类别和启用状态筛选，支持分页
-// @Tags 基础配置-伤害类型
+// @Tags 伤害类型
 // @Accept json
 // @Produce json
 // @Param category query string false "伤害类别"
@@ -133,7 +133,7 @@ func (h *DamageTypeHandler) GetDamageTypes(c echo.Context) error {
 // GetDamageType 获取伤害类型详情
 // @Summary 获取伤害类型详情
 // @Description 根据伤害类型ID获取单个伤害类型的详细信息
-// @Tags 基础配置-伤害类型
+// @Tags 伤害类型
 // @Accept json
 // @Produce json
 // @Param id path string true "伤害类型ID(UUID格式)"
@@ -157,7 +157,7 @@ func (h *DamageTypeHandler) GetDamageType(c echo.Context) error {
 // CreateDamageType 创建伤害类型
 // @Summary 创建伤害类型
 // @Description 创建新的伤害类型，伤害类型代码必须唯一
-// @Tags 基础配置-伤害类型
+// @Tags 伤害类型
 // @Accept json
 // @Produce json
 // @Param request body CreateDamageTypeRequest true "创建伤害类型请求"
@@ -219,7 +219,7 @@ func (h *DamageTypeHandler) CreateDamageType(c echo.Context) error {
 // UpdateDamageType 更新伤害类型
 // @Summary 更新伤害类型
 // @Description 更新指定ID的伤害类型信息，支持部分字段更新
-// @Tags 基础配置-伤害类型
+// @Tags 伤害类型
 // @Accept json
 // @Produce json
 // @Param id path string true "伤害类型ID(UUID格式)"
@@ -289,7 +289,7 @@ func (h *DamageTypeHandler) UpdateDamageType(c echo.Context) error {
 // DeleteDamageType 删除伤害类型
 // @Summary 删除伤害类型(软删除)
 // @Description 软删除指定ID的伤害类型，不会真正删除数据
-// @Tags 基础配置-伤害类型
+// @Tags 伤害类型
 // @Accept json
 // @Produce json
 // @Param id path string true "伤害类型ID(UUID格式)"

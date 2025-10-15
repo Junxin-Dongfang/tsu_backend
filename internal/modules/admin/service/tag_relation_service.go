@@ -1,6 +1,7 @@
 package service
 
 import (
+	"tsu-self/internal/pkg/xerrors"
 	"context"
 	"database/sql"
 	"fmt"
@@ -54,7 +55,7 @@ func (s *TagRelationService) AddTagToEntity(ctx context.Context, tagID string, e
 		return err
 	}
 	if exists {
-		return fmt.Errorf("标签关联已存在")
+		return xerrors.New(xerrors.CodeDuplicateResource, "标签关联已存在")
 	}
 
 	// 创建关联

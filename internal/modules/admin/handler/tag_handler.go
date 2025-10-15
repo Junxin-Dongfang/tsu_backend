@@ -72,7 +72,7 @@ type TagInfo struct {
 // GetTags 获取标签列表
 // @Summary 获取标签列表
 // @Description 获取标签列表，支持按类别和启用状态筛选，支持分页
-// @Tags 基础配置-标签
+// @Tags 标签
 // @Accept json
 // @Produce json
 // @Param category query string false "标签类别(class/item/skill/monster)"
@@ -127,7 +127,7 @@ func (h *TagHandler) GetTags(c echo.Context) error {
 // GetTag 获取标签详情
 // @Summary 获取标签详情
 // @Description 根据标签ID获取单个标签的详细信息
-// @Tags 基础配置-标签
+// @Tags 标签
 // @Accept json
 // @Produce json
 // @Param id path string true "标签ID"
@@ -151,7 +151,7 @@ func (h *TagHandler) GetTag(c echo.Context) error {
 // CreateTag 创建标签
 // @Summary 创建标签
 // @Description 创建新的标签，标签代码必须唯一
-// @Tags 基础配置-标签
+// @Tags 标签
 // @Accept json
 // @Produce json
 // @Param request body CreateTagRequest true "创建标签请求"
@@ -205,7 +205,7 @@ func (h *TagHandler) CreateTag(c echo.Context) error {
 // UpdateTag 更新标签
 // @Summary 更新标签
 // @Description 更新指定ID的标签信息，支持部分字段更新
-// @Tags 基础配置-标签
+// @Tags 标签
 // @Accept json
 // @Produce json
 // @Param id path string true "标签ID"
@@ -269,7 +269,7 @@ func (h *TagHandler) UpdateTag(c echo.Context) error {
 // DeleteTag 删除标签
 // @Summary 删除标签(软删除)
 // @Description 软删除指定ID的标签，不会真正删除数据
-// @Tags 基础配置-标签
+// @Tags 标签
 // @Accept json
 // @Produce json
 // @Param id path string true "标签ID"

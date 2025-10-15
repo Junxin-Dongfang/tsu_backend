@@ -1,7 +1,13 @@
 // File: internal/pkg/xerrors/kratos_errors.go
 package xerrors
 
-import "strings"
+import (
+	"encoding/json"
+	"fmt"
+	"strings"
+
+	ory "github.com/ory/kratos-client-go"
+)
 
 // Kratos 错误 ID 类型
 type KratosID int
@@ -143,29 +149,29 @@ const (
 // 扩展业务错误码定义
 const (
 	// 扩展认证错误码 (2xxxxx)
-	CodePasswordPolicyError = 200008 // 密码策略不符合
-	CodePasswordTooShort    = 200009 // 密码太短
-	CodePasswordTooLong     = 200010 // 密码太长
-	CodePasswordTooWeak     = 200011 // 密码太弱
-	CodePasswordSameAsOld   = 200012 // 新密码与旧密码相同
-	CodePasswordTooSimilar  = 200013 // 密码与用户信息太相似
+	CodePasswordPolicyError ErrorCode = 200008 // 密码策略不符合
+	CodePasswordTooShort    ErrorCode = 200009 // 密码太短
+	CodePasswordTooLong     ErrorCode = 200010 // 密码太长
+	CodePasswordTooWeak     ErrorCode = 200011 // 密码太弱
+	CodePasswordSameAsOld   ErrorCode = 200012 // 新密码与旧密码相同
+	CodePasswordTooSimilar  ErrorCode = 200013 // 密码与用户信息太相似
 
 	// 扩展用户错误码 (4xxxxx)
-	CodeAddressNotVerified = 400008 // 邮箱/地址未验证
-	CodeTraitsMismatch     = 400009 // 用户特征不匹配
-	CodeAccountNotFound    = 400010 // 账户不存在
+	CodeAddressNotVerified ErrorCode = 400008 // 邮箱/地址未验证
+	CodeTraitsMismatch     ErrorCode = 400009 // 用户特征不匹配
+	CodeAccountNotFound    ErrorCode = 400010 // 账户不存在
 
 	// 扩展通用错误码 (1xxxxx)
-	CodeFlowExpired       = 100005 // 流程已过期
-	CodeCodeInvalidOrUsed = 100006 // 验证码无效或已使用
-	CodeStrategyNotFound  = 100007 // 策略未找到
-	CodeCaptchaError      = 100008 // 验证码错误
-	CodeTOTPError         = 100009 // TOTP 错误
-	CodeWebAuthnError     = 100010 // WebAuthn 错误
+	CodeFlowExpired       ErrorCode = 100005 // 流程已过期
+	CodeCodeInvalidOrUsed ErrorCode = 100006 // 验证码无效或已使用
+	CodeStrategyNotFound  ErrorCode = 100007 // 策略未找到
+	CodeCaptchaError      ErrorCode = 100008 // 验证码错误
+	CodeTOTPError         ErrorCode = 100009 // TOTP 错误
+	CodeWebAuthnError     ErrorCode = 100010 // WebAuthn 错误
 )
 
 // Kratos 错误 ID 到业务错误码的映射
-var kratosErrorMap = map[KratosID]int{
+var kratosErrorMap = map[KratosID]ErrorCode{
 	// 认证相关错误
 	ErrorValidationInvalidCredentials:   CodeInvalidCredentials,
 	ErrorValidationDuplicateCredentials: CodeDuplicateResource,
@@ -233,7 +239,7 @@ var kratosErrorMap = map[KratosID]int{
 // 扩展错误消息映射
 func init() {
 	// 新增错误消息
-	additionalMessages := map[int]string{
+	additionalMessages := map[ErrorCode]string{
 		CodePasswordPolicyError: "密码不符合安全策略",
 		CodePasswordTooShort:    "密码长度不够",
 		CodePasswordTooLong:     "密码长度过长",
@@ -258,7 +264,7 @@ func init() {
 }
 
 // TranslateKratosError 将 Kratos 错误 ID 转换为业务错误码和消息
-func TranslateKratosError(kratosID int) (int, string) {
+func TranslateKratosError(kratosID int) (ErrorCode, string) {
 	kratosIDType := KratosID(kratosID)
 
 	if appCode, exists := kratosErrorMap[kratosIDType]; exists {
@@ -272,7 +278,7 @@ func TranslateKratosError(kratosID int) (int, string) {
 }
 
 // TranslateKratosErrorText 根据 Kratos 错误文本进行模糊匹配翻译
-func TranslateKratosErrorText(errorText string) (int, string) {
+func TranslateKratosErrorText(errorText string) (ErrorCode, string) {
 	if errorText == "" {
 		return CodeInvalidParams, "输入信息有误，请检查后重试"
 	}
@@ -283,7 +289,7 @@ func TranslateKratosErrorText(errorText string) (int, string) {
 	// 按优先级顺序进行模式匹配，包含更具体的错误信息
 	patterns := []struct {
 		keywords []string
-		code     int
+		code     ErrorCode
 		message  string // 自定义错误消息
 	}{
 		// 凭据相关（最高优先级）
@@ -352,8 +358,8 @@ func TranslateKratosErrorText(errorText string) (int, string) {
 }
 
 // GetKratosErrorPriority 获取错误的优先级（数字越小优先级越高）
-func GetKratosErrorPriority(code int) int {
-	priorityMap := map[int]int{
+func GetKratosErrorPriority(code ErrorCode) int {
+	priorityMap := map[ErrorCode]int{
 		CodeInvalidCredentials:  1,  // 最高优先级：认证失败
 		CodeAccountNotFound:     2,  // 账户不存在
 		CodeDuplicateResource:   3,  // 资源重复
@@ -388,4 +394,115 @@ func IsRetryableKratosError(kratosID int) bool {
 	}
 
 	return retryableErrors[KratosID(kratosID)]
+}
+
+// ParseKratosError 解析 Kratos API 错误并转换为 AppError
+// 这个函数会尝试从 Kratos 错误响应中提取详细的错误信息，并使用智能翻译
+func ParseKratosError(operation string, err error) *AppError {
+	if err == nil {
+		return nil
+	}
+
+	// 尝试解析为 Kratos 的 GenericOpenAPIError
+	if apiErr, ok := err.(*ory.GenericOpenAPIError); ok {
+		// 尝试解析错误响应体
+		var kratosErrResp struct {
+			Error struct {
+				ID      int    `json:"id"`      // Kratos 错误 ID
+				Code    int    `json:"code"`    // HTTP 状态码
+				Status  string `json:"status"`  // 状态文本
+				Reason  string `json:"reason"`  // 错误原因
+				Message string `json:"message"` // 错误消息
+			} `json:"error"`
+			UI struct {
+				Messages []struct {
+					ID   int    `json:"id"`   // 消息 ID
+					Text string `json:"text"` // 消息文本
+					Type string `json:"type"` // 消息类型 (error, info, etc)
+				} `json:"messages"`
+			} `json:"ui"`
+		}
+
+		if jsonErr := json.Unmarshal(apiErr.Body(), &kratosErrResp); jsonErr == nil {
+			// 优先级1: 使用 Kratos 错误 ID 精确映射
+			if kratosErrResp.Error.ID > 0 {
+				return NewKratosErrorFromID(operation, kratosErrResp.Error.ID, err)
+			}
+
+			// 优先级2: 使用 error.message 进行智能翻译
+			if kratosErrResp.Error.Message != "" {
+				return NewKratosErrorFromMessage(operation, kratosErrResp.Error.Message, err)
+			}
+
+			// 优先级3: 使用 UI messages 进行智能翻译（取最高优先级的错误消息）
+			if len(kratosErrResp.UI.Messages) > 0 {
+				var bestMessage string
+				highestPriority := 999
+
+				for _, msg := range kratosErrResp.UI.Messages {
+					if msg.Type == "error" && msg.Text != "" {
+						// 翻译消息并获取优先级
+						code, _ := TranslateKratosErrorText(msg.Text)
+						priority := GetKratosErrorPriority(code)
+
+						// 选择优先级最高的错误消息
+						if priority < highestPriority {
+							highestPriority = priority
+							bestMessage = msg.Text
+						}
+					}
+				}
+
+				if bestMessage != "" {
+					return NewKratosErrorFromMessage(operation, bestMessage, err)
+				}
+			}
+
+			// 优先级4: 使用 error.reason
+			if kratosErrResp.Error.Reason != "" {
+				return NewKratosErrorFromMessage(operation, kratosErrResp.Error.Reason, err)
+			}
+		}
+	}
+
+	// 兜底：无法解析详细错误，返回通用 Kratos 错误
+	return NewKratosError(operation, err)
+}
+
+// HandleKratosAPIError 处理 Kratos API 响应状态码错误
+func HandleKratosAPIError(operation string, statusCode int) *AppError {
+	// 根据 HTTP 状态码返回更具体的错误
+	switch statusCode {
+	case 400:
+		return New(CodeInvalidParams, "请求参数错误").
+			WithMetadata("kratos_operation", operation).
+			WithMetadata("status_code", fmt.Sprintf("%d", statusCode))
+	case 401:
+		return NewSessionExpiredError().
+			WithMetadata("kratos_operation", operation)
+	case 403:
+		return New(CodePermissionDenied, "权限不足").
+			WithMetadata("kratos_operation", operation)
+	case 404:
+		return New(CodeResourceNotFound, "资源不存在").
+			WithMetadata("kratos_operation", operation)
+	case 409:
+		return New(CodeDuplicateResource, "资源已存在").
+			WithMetadata("kratos_operation", operation)
+	case 410:
+		return New(CodeFlowExpired, "操作已过期").
+			WithMetadata("kratos_operation", operation)
+	case 422:
+		return New(CodeInvalidParams, "数据验证失败").
+			WithMetadata("kratos_operation", operation)
+	case 429:
+		return New(CodeRateLimitExceeded, "请求过于频繁").
+			WithMetadata("kratos_operation", operation)
+	case 500, 502, 503, 504:
+		return NewKratosError(operation, nil).
+			WithMetadata("status_code", fmt.Sprintf("%d", statusCode)).
+			WithMetadata("hint", "服务暂时不可用，请稍后重试")
+	default:
+		return NewKratosAPIError(operation, statusCode)
+	}
 }

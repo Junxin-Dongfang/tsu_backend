@@ -59,7 +59,7 @@ type SkillUpgradeCostInfo struct {
 // GetSkillUpgradeCosts 获取所有升级消耗配置
 // @Summary 获取所有升级消耗配置
 // @Description 获取全局技能升级消耗配置列表，所有技能共享这些升级消耗规则
-// @Tags 技能系统
+// @Tags 技能
 // @Accept json
 // @Produce json
 // @Success 200 {object} response.Response{data=[]SkillUpgradeCostInfo} "成功返回升级消耗列表"
@@ -85,7 +85,7 @@ func (h *SkillUpgradeCostHandler) GetSkillUpgradeCosts(c echo.Context) error {
 // GetSkillUpgradeCost 获取单个升级消耗配置
 // @Summary 获取单个升级消耗配置
 // @Description 根据ID获取指定的升级消耗配置详情
-// @Tags 技能系统
+// @Tags 技能
 // @Accept json
 // @Produce json
 // @Param id path string true "升级消耗配置ID (UUID格式)"
@@ -109,7 +109,7 @@ func (h *SkillUpgradeCostHandler) GetSkillUpgradeCost(c echo.Context) error {
 // GetSkillUpgradeCostByLevel 根据等级获取升级消耗
 // @Summary 根据等级获取升级消耗
 // @Description 根据目标等级获取对应的升级消耗配置
-// @Tags 技能系统
+// @Tags 技能
 // @Accept json
 // @Produce json
 // @Param level path int true "目标等级 (2-100)"
@@ -137,7 +137,7 @@ func (h *SkillUpgradeCostHandler) GetSkillUpgradeCostByLevel(c echo.Context) err
 // CreateSkillUpgradeCost 创建升级消耗配置
 // @Summary 创建升级消耗配置
 // @Description 创建新的等级升级消耗配置
-// @Tags 技能系统
+// @Tags 技能
 // @Accept json
 // @Produce json
 // @Param request body CreateSkillUpgradeCostRequest true "创建请求，level_number为必填"
@@ -192,7 +192,7 @@ func (h *SkillUpgradeCostHandler) CreateSkillUpgradeCost(c echo.Context) error {
 // UpdateSkillUpgradeCost 更新升级消耗配置
 // @Summary 更新升级消耗配置
 // @Description 更新指定的升级消耗配置，仅更新提供的字段
-// @Tags 技能系统
+// @Tags 技能
 // @Accept json
 // @Produce json
 // @Param id path string true "升级消耗配置ID (UUID格式)"
@@ -242,7 +242,7 @@ func (h *SkillUpgradeCostHandler) UpdateSkillUpgradeCost(c echo.Context) error {
 // DeleteSkillUpgradeCost 删除升级消耗配置
 // @Summary 删除升级消耗配置
 // @Description 删除指定的升级消耗配置
-// @Tags 技能系统
+// @Tags 技能
 // @Accept json
 // @Produce json
 // @Param id path string true "升级消耗配置ID (UUID格式)"

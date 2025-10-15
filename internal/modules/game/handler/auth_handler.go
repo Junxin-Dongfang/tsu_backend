@@ -12,6 +12,7 @@ import (
 
 	authpb "tsu-self/internal/pb/auth"
 	"tsu-self/internal/pkg/response"
+	"tsu-self/internal/pkg/validator"
 	"tsu-self/internal/pkg/xerrors"
 )
 
@@ -65,14 +66,14 @@ type GetUserResponse struct {
 // Register handles user registration
 // @Summary 用户注册
 // @Description 注册新的用户账号
-// @Tags 开始
+// @Tags 认证
 // @Accept json
 // @Produce json
 // @Param request body RegisterRequest true "注册请求"
 // @Success 200 {object} response.Response{data=RegisterResponse} "注册成功"
 // @Failure 400 {object} response.Response "请求参数错误"
 // @Failure 500 {object} response.Response "服务器内部错误"
-// @Router /auth/register [post]
+// @Router /game/auth/register [post]
 func (h *AuthHandler) Register(c echo.Context) error {
 	// 1. 绑定和验证 HTTP 请求
 	var req RegisterRequest
@@ -81,7 +82,9 @@ func (h *AuthHandler) Register(c echo.Context) error {
 	}
 
 	if err := c.Validate(&req); err != nil {
-		return response.EchoBadRequest(c, h.respWriter, err.Error())
+		// 翻译验证错误为用户友好的中文消息
+		friendlyMsg := validator.TranslateValidationError(err)
+		return response.EchoBadRequest(c, h.respWriter, friendlyMsg)
 	}
 
 	// 2. 构造 Protobuf RPC 请求
@@ -148,7 +151,7 @@ func (h *AuthHandler) Register(c echo.Context) error {
 // GetUser handles getting user info
 // @Summary 获取用户信息
 // @Description 通过用户ID获取用户信息
-// @Tags 开始
+// @Tags 认证
 // @Accept json
 // @Produce json
 // @Param user_id path string true "用户ID"
@@ -156,7 +159,7 @@ func (h *AuthHandler) Register(c echo.Context) error {
 // @Failure 400 {object} response.Response "请求参数错误"
 // @Failure 404 {object} response.Response "用户不存在"
 // @Failure 500 {object} response.Response "服务器内部错误"
-// @Router /auth/users/{user_id} [get]
+// @Router /game/auth/users/{user_id} [get]
 // @Security BearerAuth
 func (h *AuthHandler) GetUser(c echo.Context) error {
 	userID := c.Param("user_id")
@@ -250,7 +253,7 @@ type LoginResponse struct {
 // Login handles user login
 // @Summary 用户登录
 // @Description 使用邮箱或用户名和密码登录,返回会话信息
-// @Tags 开始
+// @Tags 认证
 // @Accept json
 // @Produce json
 // @Param request body LoginRequest true "登录请求"
@@ -258,7 +261,7 @@ type LoginResponse struct {
 // @Failure 400 {object} response.Response "请求参数错误"
 // @Failure 401 {object} response.Response "认证失败"
 // @Failure 500 {object} response.Response "服务器内部错误"
-// @Router /auth/login [post]
+// @Router /game/auth/login [post]
 func (h *AuthHandler) Login(c echo.Context) error {
 	var req LoginRequest
 	if err := c.Bind(&req); err != nil {
@@ -266,7 +269,9 @@ func (h *AuthHandler) Login(c echo.Context) error {
 	}
 
 	if err := c.Validate(&req); err != nil {
-		return response.EchoBadRequest(c, h.respWriter, err.Error())
+		// 翻译验证错误为用户友好的中文消息
+		friendlyMsg := validator.TranslateValidationError(err)
+		return response.EchoBadRequest(c, h.respWriter, friendlyMsg)
 	}
 
 	// 构造 Protobuf RPC 请求
@@ -343,13 +348,13 @@ func (h *AuthHandler) Login(c echo.Context) error {
 // Logout handles user logout
 // @Summary 用户登出
 // @Description 登出并使会话失效
-// @Tags 开始
+// @Tags 认证
 // @Accept json
 // @Produce json
 // @Success 200 {object} response.Response "登出成功"
 // @Failure 400 {object} response.Response "请求参数错误"
 // @Failure 500 {object} response.Response "服务器内部错误"
-// @Router /auth/logout [post]
+// @Router /game/auth/logout [post]
 // @Security BearerAuth
 func (h *AuthHandler) Logout(c echo.Context) error {
 	// 从 Cookie 中获取 Session Token

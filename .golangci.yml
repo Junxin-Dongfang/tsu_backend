@@ -1,0 +1,82 @@
+# golangci-lint 配置文件
+# 项目使用中文错误消息，禁用部分英文规范检查
+
+run:
+  # 超时时间
+  timeout: 5m
+  # 要检查的目录
+  tests: true
+  # 构建标签
+  build-tags: []
+
+# 输出配置
+output:
+  # 输出格式: colored-line-number|line-number|json|tab|checkstyle|code-climate
+  format: colored-line-number
+  # 打印检查的文件
+  print-issued-lines: true
+  # 打印linter名称
+  print-linter-name: true
+
+# Linter 配置
+linters:
+  # 禁用所有默认linters
+  disable-all: false
+  # 启用特定linters
+  enable:
+    - gofmt
+    - govet
+    - errcheck
+    - staticcheck
+    - unused
+    - gosimple
+    - ineffassign
+    - typecheck
+
+  # 禁用特定linters
+  disable:
+    - stylecheck  # 禁用 stylecheck (包含 ST1005 规则)
+
+# Linter 特定设置
+linters-settings:
+  # 如果只想禁用 ST1005，可以使用 stylecheck 的配置
+  # stylecheck:
+  #   checks: [ "all", "-ST1005" ]  # 禁用 ST1005 (错误字符串大写检查)
+  
+  errcheck:
+    # 检查类型断言
+    check-type-assertions: true
+    # 检查空白标识符
+    check-blank: false
+
+  govet:
+    # 启用所有检查
+    check-shadowing: true
+    enable-all: true
+
+  staticcheck:
+    # 启用所有检查
+    checks: ["all"]
+
+# Issues 配置
+issues:
+  # 排除特定规则
+  exclude-rules:
+    # 排除测试文件的某些检查
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gosec
+    
+    # 对于中文错误消息，排除 ST1005 检查
+    - linters:
+        - stylecheck
+      text: "ST1005"
+  
+  # 显示所有问题
+  exclude-use-default: false
+  # 最大问题数量 (0 = 无限制)
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  # 显示新问题
+  new: false

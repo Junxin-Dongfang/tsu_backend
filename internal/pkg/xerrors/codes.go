@@ -1,84 +1,116 @@
 // File: internal/pkg/xerrors/codes.go
 package xerrors
 
+import "fmt"
+
+// ErrorCode 错误码类型（类型安全）
+type ErrorCode int
+
+// IsValid 检查错误码是否在预定义列表中
+func (c ErrorCode) IsValid() bool {
+	_, exists := codeMessages[c]
+	return exists
+}
+
+// String 返回错误码的字符串表示
+func (c ErrorCode) String() string {
+	if msg, ok := codeMessages[c]; ok {
+		return fmt.Sprintf("%d (%s)", c, msg)
+	}
+	return fmt.Sprintf("%d (未定义的错误码)", c)
+}
+
+// Message 返回错误码对应的消息
+func (c ErrorCode) Message() string {
+	if msg, ok := codeMessages[c]; ok {
+		return msg
+	}
+	return "未知错误"
+}
+
+// ToInt 转换为 int（用于 JSON 序列化等场景）
+func (c ErrorCode) ToInt() int {
+	return int(c)
+}
+
 // -----------------------------------------------------------------------------
 // 业务错误码统一定义
 // 按模块或领域对错误码进行分段，便于管理。
 // -----------------------------------------------------------------------------
 const (
 	// 1xxxxx: 通用错误码
-	CodeSuccess           = 100000 // 操作成功
-	CodeInternalError     = 100001 // 内部服务错误
-	CodeInvalidParams     = 100002 // 参数错误
-	CodeInvalidRequest    = 100003 // 请求格式错误
-	CodeResourceNotFound  = 100404 // 资源不存在
-	CodeDuplicateResource = 100409 // 资源已存在
-	CodeRateLimitExceeded = 100429 // 请求频率限制
+	CodeSuccess           ErrorCode = 100000 // 操作成功
+	CodeInternalError     ErrorCode = 100001 // 内部服务错误
+	CodeInvalidParams     ErrorCode = 100002 // 参数错误
+	CodeInvalidRequest    ErrorCode = 100003 // 请求格式错误
+	CodeResourceNotFound  ErrorCode = 100404 // 资源不存在
+	CodeDuplicateResource ErrorCode = 100409 // 资源已存在
+	CodeRateLimitExceeded ErrorCode = 100429 // 请求频率限制
 
 	// 2xxxxx: 认证相关错误码
-	CodeAuthenticationFailed = 200001 // 认证失败
-	CodeInvalidToken         = 200002 // 无效令牌
-	CodeTokenExpired         = 200003 // 令牌过期
-	CodeInvalidCredentials   = 200004 // 凭据无效
-	CodeAccountLocked        = 200005 // 账户被锁定
-	CodeAccountBanned        = 200006 // 账户被封禁
-	CodeSessionExpired       = 200007 // 会话过期
+	CodeAuthenticationFailed ErrorCode = 200001 // 认证失败
+	CodeInvalidToken         ErrorCode = 200002 // 无效令牌
+	CodeTokenExpired         ErrorCode = 200003 // 令牌过期
+	CodeInvalidCredentials   ErrorCode = 200004 // 凭据无效
+	CodeAccountLocked        ErrorCode = 200005 // 账户被锁定
+	CodeAccountBanned        ErrorCode = 200006 // 账户被封禁
+	CodeSessionExpired       ErrorCode = 200007 // 会话过期
 
 	// 3xxxxx: 权限相关错误码
-	CodePermissionDenied       = 300001 // 权限不足
-	CodeInsufficientPrivileges = 300002 // 权限级别不够
-	CodeRoleNotAssigned        = 300003 // 角色未分配
-	CodePermissionNotExists    = 300004 // 权限不存在
+	CodePermissionDenied       ErrorCode = 300001 // 权限不足
+	CodeInsufficientPrivileges ErrorCode = 300002 // 权限级别不够
+	CodeRoleNotAssigned        ErrorCode = 300003 // 角色未分配
+	CodePermissionNotExists    ErrorCode = 300004 // 权限不存在
 
 	// 4xxxxx: 用户管理错误码
-	CodeUserNotFound      = 400001 // 用户不存在
-	CodeUserAlreadyExists = 400002 // 用户已存在
-	CodeUsernameExists    = 400003 // 用户名已存在
-	CodeEmailExists       = 400004 // 邮箱已存在
-	CodePhoneExists       = 400005 // 手机号已存在
-	CodeInvalidUserStatus = 400006 // 用户状态无效
-	CodeUserBanned        = 400007 // 用户被封禁
+	CodeUserNotFound      ErrorCode = 400001 // 用户不存在
+	CodeUserAlreadyExists ErrorCode = 400002 // 用户已存在
+	CodeUsernameExists    ErrorCode = 400003 // 用户名已存在
+	CodeEmailExists       ErrorCode = 400004 // 邮箱已存在
+	CodePhoneExists       ErrorCode = 400005 // 手机号已存在
+	CodeInvalidUserStatus ErrorCode = 400006 // 用户状态无效
+	CodeUserBanned        ErrorCode = 400007 // 用户被封禁
 
 	// 5xxxxx: 角色权限管理错误码
-	CodeRoleNotFound           = 500001 // 角色不存在
-	CodeRoleAlreadyExists      = 500002 // 角色已存在
-	CodeRoleInUse              = 500003 // 角色正在使用中
-	CodeSystemRoleProtected    = 500004 // 系统角色受保护
-	CodePermissionAssignFailed = 500005 // 权限分配失败
+	CodeRoleNotFound           ErrorCode = 500001 // 角色不存在
+	CodeRoleAlreadyExists      ErrorCode = 500002 // 角色已存在
+	CodeRoleInUse              ErrorCode = 500003 // 角色正在使用中
+	CodeSystemRoleProtected    ErrorCode = 500004 // 系统角色受保护
+	CodePermissionAssignFailed ErrorCode = 500005 // 权限分配失败
 
 	// 6xxxxx: 业务逻辑错误码
-	CodeBusinessLogicError  = 600001 // 业务逻辑错误
-	CodeDataIntegrityError  = 600002 // 数据完整性错误
-	CodeOperationNotAllowed = 600003 // 操作不被允许
-	CodeResourceLocked      = 600004 // 资源被锁定
-	CodeQuotaExceeded       = 600005 // 配额超限
+	CodeBusinessLogicError  ErrorCode = 600001 // 业务逻辑错误
+	CodeDataIntegrityError  ErrorCode = 600002 // 数据完整性错误
+	CodeOperationNotAllowed ErrorCode = 600003 // 操作不被允许
+	CodeResourceLocked      ErrorCode = 600004 // 资源被锁定
+	CodeQuotaExceeded       ErrorCode = 600005 // 配额超限
 
 	// 7xxxxx: 外部服务错误码
-	CodeExternalServiceError = 700001 // 外部服务错误
-	CodeKratosError          = 700002 // Kratos服务错误
-	CodeDatabaseError        = 700003 // 数据库错误
-	CodeCacheError           = 700004 // 缓存服务错误
-	CodeMessageQueueError    = 700005 // 消息队列错误
+	CodeExternalServiceError ErrorCode = 700001 // 外部服务错误
+	CodeKratosError          ErrorCode = 700002 // Kratos服务错误
+	CodeDatabaseError        ErrorCode = 700003 // 数据库错误
+	CodeCacheError           ErrorCode = 700004 // 缓存服务错误
+	CodeMessageQueueError    ErrorCode = 700005 // 消息队列错误
 
 	// 8xxxxx: 游戏业务错误码
 	// 角色相关 (80xxxx)
-	CodeHeroNotFound    = 800001 // 角色不存在
-	CodeHeroLevelTooLow = 800002 // 角色等级不足
-	CodeHeroMaxCount    = 800003 // 角色数量已达上限
-	CodeHeroNameExists  = 800004 // 角色名已存在
-	CodeHeroStatInvalid = 800005 // 角色属性无效
+	CodeHeroNotFound    ErrorCode = 800001 // 角色不存在
+	CodeHeroLevelTooLow ErrorCode = 800002 // 角色等级不足
+	CodeHeroMaxCount    ErrorCode = 800003 // 角色数量已达上限
+	CodeHeroNameExists  ErrorCode = 800004 // 角色名已存在
+	CodeHeroStatInvalid ErrorCode = 800005 // 角色属性无效
 
 	// 技能相关 (81xxxx)
-	CodeSkillNotFound   = 810001 // 技能不存在
-	CodeSkillNotLearned = 810002 // 技能未学习
-	CodeSkillCooldown   = 810003 // 技能冷却中
-	CodeSkillManaCost   = 810004 // 法力值不足
-	CodeSkillInvalidUse = 810005 // 技能使用条件不满足
+	CodeSkillNotFound   ErrorCode = 810001 // 技能不存在
+	CodeSkillNotLearned ErrorCode = 810002 // 技能未学习
+	CodeSkillCooldown   ErrorCode = 810003 // 技能冷却中
+	CodeSkillManaCost   ErrorCode = 810004 // 法力值不足
+	CodeSkillInvalidUse ErrorCode = 810005 // 技能使用条件不满足
 
 	// 职业相关 (82xxxx)
-	CodeClassNotFound       = 820001 // 职业不存在
-	CodeClassNotMeetReq     = 820002 // 不满足职业要求
-	CodeClassAlreadyAdvaced = 820003 // 职业已进阶
+	CodeClassNotFound       ErrorCode = 820001 // 职业不存在
+	CodeClassNotMeetReq     ErrorCode = 820002 // 不满足职业要求
+	CodeClassAlreadyAdvaced ErrorCode = 820003 // 职业已进阶
 )
 
 // -----------------------------------------------------------------------------
@@ -109,7 +141,7 @@ const (
 // -----------------------------------------------------------------------------
 // 错误消息映射
 // -----------------------------------------------------------------------------
-var codeMessages = map[int]string{
+var codeMessages = map[ErrorCode]string{
 	CodeSuccess:           "操作成功",
 	CodeInternalError:     "内部服务错误",
 	CodeInvalidParams:     "参数错误",
@@ -174,7 +206,7 @@ var codeMessages = map[int]string{
 }
 
 // GetHTTPStatus 根据业务错误码获取HTTP状态码
-func GetHTTPStatus(code int) int {
+func GetHTTPStatus(code ErrorCode) int {
 	switch {
 	case code == CodeSuccess:
 		return HTTPStatusOK
@@ -214,7 +246,7 @@ func GetHTTPStatus(code int) int {
 
 // 辅助函数
 // getCategoryByCode 根据错误码获取分类
-func getCategoryByCode(code int) string {
+func getCategoryByCode(code ErrorCode) string {
 	switch {
 	case code >= 100000 && code < 200000:
 		return "system"
@@ -238,7 +270,7 @@ func getCategoryByCode(code int) string {
 }
 
 // getLevelByCode 根据错误码获取级别
-func getLevelByCode(code int) ErrorLevel {
+func getLevelByCode(code ErrorCode) ErrorLevel {
 	switch {
 	case code == CodeSuccess:
 		return LevelInfo
@@ -252,8 +284,8 @@ func getLevelByCode(code int) ErrorLevel {
 }
 
 // isRetryableByCode 根据错误码判断是否可重试
-func isRetryableByCode(code int) bool {
-	retryableCodes := map[int]bool{
+func isRetryableByCode(code ErrorCode) bool {
+	retryableCodes := map[ErrorCode]bool{
 		CodeInternalError:        true,
 		CodeExternalServiceError: true,
 		CodeKratosError:          true,

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"tsu-self/internal/pkg/xerrors"
 	"context"
 	"database/sql"
 	"fmt"
@@ -40,7 +41,7 @@ func (s *HeroAttributeTypeService) CreateHeroAttributeType(ctx context.Context, 
 		return err
 	}
 	if exists {
-		return fmt.Errorf("属性类型代码已存在: %s", attributeType.AttributeCode)
+		return xerrors.New(xerrors.CodeDuplicateResource, fmt.Sprintf("属性类型代码已存在: %s", attributeType.AttributeCode))
 	}
 
 	return s.repo.Create(ctx, attributeType)
@@ -59,7 +60,7 @@ func (s *HeroAttributeTypeService) UpdateHeroAttributeType(ctx context.Context, 
 		// 检查代码是否已被使用
 		existing, err := s.repo.GetByCode(ctx, code)
 		if err == nil && existing.ID != attributeTypeID {
-			return fmt.Errorf("属性类型代码已被使用: %s", code)
+			return xerrors.New(xerrors.CodeDuplicateResource, fmt.Sprintf("属性类型代码已被使用: %s", code))
 		}
 		attributeType.AttributeCode = code
 	}

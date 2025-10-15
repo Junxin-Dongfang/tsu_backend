@@ -1,6 +1,7 @@
 package service
 
 import (
+	"tsu-self/internal/pkg/xerrors"
 	"context"
 	"database/sql"
 	"fmt"
@@ -40,7 +41,7 @@ func (s *SkillService) CreateSkill(ctx context.Context, skill *game_config.Skill
 		return err
 	}
 	if exists {
-		return fmt.Errorf("技能代码已存在: %s", skill.SkillCode)
+		return xerrors.New(xerrors.CodeDuplicateResource, fmt.Sprintf("技能代码已存在: %s", skill.SkillCode))
 	}
 
 	return s.repo.Create(ctx, skill)
@@ -59,7 +60,7 @@ func (s *SkillService) UpdateSkill(ctx context.Context, skillID string, updates 
 		// 检查技能代码是否已被使用
 		existing, err := s.repo.GetByCode(ctx, skillCode)
 		if err == nil && existing.ID != skillID {
-			return fmt.Errorf("技能代码已被使用: %s", skillCode)
+			return xerrors.New(xerrors.CodeDuplicateResource, fmt.Sprintf("技能代码已被使用: %s", skillCode))
 		}
 		skill.SkillCode = skillCode
 	}

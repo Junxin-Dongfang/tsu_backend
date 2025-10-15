@@ -575,25 +575,57 @@ func (s *AuthService) ResetPassword(ctx context.Context, flowToken, email, newPa
 	return nil
 }
 
-// AdminCreateRecoveryCodeForUser 管理员为用户创建恢复码
-func (s *AuthService) AdminCreateRecoveryCodeForUser(ctx context.Context, userID string, expiresIn string) (code, link string, err error) {
-	// 1. 从业务 DB 获取用户信息
-	user, err := s.GetUserByID(ctx, userID)
+// ResetPasswordWithCode 验证码重置密码（验证码 + 新密码）
+// email: 用户邮箱
+// code: 验证码
+// newPassword: 新密码
+// 🔒 安全性：完全遵循 Kratos 流程，内部合并验证码验证和密码重置两步
+func (s *AuthService) ResetPasswordWithCode(ctx context.Context, email, code, newPassword string) error {
+	// 1. 从 Redis 获取 flow_id（验证恢复流程是否存在且未过期）
+	cacheKey := fmt.Sprintf("recovery:flow:%s", email)
+	flowID, err := s.redis.GetString(ctx, cacheKey)
 	if err != nil {
-		return "", "", fmt.Errorf("用户不存在: %w", err)
+		return fmt.Errorf("恢复流程已过期，请重新发送验证码")
 	}
 
-	// 2. 使用 user.ID 作为 Kratos Identity ID
-	// (在你的架构中,auth.users.id == kratos.identity.id)
-	kratosID := user.ID
-
-	// 3. 调用 Kratos Admin API 创建恢复码
-	result, err := s.kratosClient.AdminCreateRecoveryCode(ctx, kratosID, expiresIn)
+	// 2. 验证验证码并获取特权 session token
+	sessionToken, privilegedFlowID, err := s.kratosClient.VerifyRecoveryCodeAndGetSessionToken(ctx, flowID, code)
 	if err != nil {
-		return "", "", fmt.Errorf("创建恢复码失败: %w", err)
+		// 提供更友好的错误信息
+		errMsg := err.Error()
+		if strings.Contains(errMsg, "401") || strings.Contains(errMsg, "Unauthorized") {
+			return fmt.Errorf("验证码错误或已过期，请重新获取")
+		}
+		if strings.Contains(errMsg, "410") {
+			return fmt.Errorf("恢复流程已过期，请重新发起密码恢复")
+		}
+		if strings.Contains(errMsg, "400") {
+			return fmt.Errorf("验证码格式错误，请输入6位数字验证码")
+		}
+		return fmt.Errorf("验证失败: %s", errMsg)
 	}
 
-	return result.RecoveryCode, result.RecoveryLink, nil
+	// 3. 验证密码强度
+	if len(newPassword) < 6 {
+		return fmt.Errorf("密码长度至少为6位")
+	}
+	if len(newPassword) > 72 {
+		return fmt.Errorf("密码长度不能超过72位")
+	}
+
+	// 4. 使用特权 session token 更新密码
+	err = s.kratosClient.UpdatePasswordWithPrivilegedFlow(ctx, privilegedFlowID, sessionToken, newPassword)
+	if err != nil {
+		return err
+	}
+
+	// 5. 清理 Redis 缓存（密码已成功更新）
+	if err := s.redis.DeleteKey(ctx, cacheKey); err != nil {
+		// 清理缓存失败不影响整个操作，只记录日志
+		fmt.Printf("[WARN] 清理恢复流程缓存失败 (email=%s): %v\n", email, err)
+	}
+
+	return nil
 }
 
 // DeleteUser 删除用户（软删除业务 DB + 删除 Kratos identity）

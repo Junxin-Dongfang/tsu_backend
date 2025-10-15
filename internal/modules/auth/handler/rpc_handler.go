@@ -331,30 +331,29 @@ func (h *RPCHandler) ResetPassword(reqBytes []byte) ([]byte, error) {
 	return proto.Marshal(resp)
 }
 
-// AdminCreateRecoveryCode 管理员为用户创建恢复码
-func (h *RPCHandler) AdminCreateRecoveryCode(reqBytes []byte) ([]byte, error) {
+// ResetPasswordWithCode 验证码重置密码（验证码 + 新密码）
+func (h *RPCHandler) ResetPasswordWithCode(reqBytes []byte) ([]byte, error) {
 	ctx := context.Background()
 
-	req := &authpb.AdminCreateRecoveryCodeRequest{}
+	req := &authpb.ResetPasswordWithCodeRequest{}
 	if err := proto.Unmarshal(reqBytes, req); err != nil {
 		return nil, err
 	}
 
-	// 设置默认过期时间
-	expiresIn := req.ExpiresIn
-	if expiresIn == "" {
-		expiresIn = "12h"
+	err := h.authService.ResetPasswordWithCode(ctx, req.Email, req.Code, req.NewPassword)
+
+	resp := &authpb.ResetPasswordWithCodeResponse{
+		Status: &commonpb.Status{
+			Success: err == nil,
+			Message: "密码重置成功",
+		},
+		Message: "密码重置成功,请使用新密码登录",
 	}
 
-	code, link, err := h.authService.AdminCreateRecoveryCodeForUser(ctx, req.UserId, expiresIn)
 	if err != nil {
-		return nil, err
-	}
-
-	resp := &authpb.AdminCreateRecoveryCodeResponse{
-		RecoveryCode: code,
-		RecoveryLink: link,
-		ExpiresAt:    expiresIn,
+		resp.Status.Message = err.Error()
+		resp.Status.Success = false
+		resp.Message = err.Error()
 	}
 
 	return proto.Marshal(resp)

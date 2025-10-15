@@ -2,6 +2,7 @@
 package response
 
 import (
+	"tsu-self/internal/pkg/validator"
 	"tsu-self/internal/pkg/xerrors"
 
 	"github.com/labstack/echo/v4"
@@ -23,6 +24,28 @@ func EchoError(c echo.Context, h Writer, err error) error {
 func EchoBadRequest(c echo.Context, h Writer, message string) error {
 	err := xerrors.NewValidationError("request", message)
 	return h.WriteError(c.Request().Context(), c.Response().Writer, err)
+}
+
+// EchoValidationError Echo 验证错误响应 - 自动翻译验证错误为友好的中文消息
+// 如果有多个验证错误，会在响应的 data.validation_errors 中返回所有错误
+func EchoValidationError(c echo.Context, h Writer, err error) error {
+	if err == nil {
+		return nil
+	}
+
+	// 获取所有验证错误
+	validationErrors := validator.TranslateValidationErrors(err)
+
+	// 单个错误：直接返回错误消息
+	if len(validationErrors) == 1 {
+		return EchoBadRequest(c, h, validationErrors[0].Message)
+	}
+
+	// 多个错误：返回详细错误列表
+	appErr := xerrors.NewValidationError("request", "请求参数验证失败")
+	appErr.WithMetadata("validation_errors", validationErrors)
+
+	return h.WriteError(c.Request().Context(), c.Response().Writer, appErr)
 }
 
 // EchoUnauthorized Echo 401 错误响应

@@ -7,12 +7,13 @@
 package auth
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	common "tsu-self/internal/pb/common"
 	unsafe "unsafe"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -1497,29 +1498,30 @@ func (x *ResetPasswordResponse) GetMessage() string {
 	return ""
 }
 
-// 管理员为用户创建恢复码
-type AdminCreateRecoveryCodeRequest struct {
+// 验证码重置密码（验证码 + 新密码）
+type ResetPasswordWithCodeRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	ExpiresIn     string                 `protobuf:"bytes,2,opt,name=expires_in,json=expiresIn,proto3" json:"expires_in,omitempty"` // 例如: "12h", "1h"
+	Email         string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`                                // 用户邮箱
+	Code          string                 `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`                                  // 验证码
+	NewPassword   string                 `protobuf:"bytes,3,opt,name=new_password,json=newPassword,proto3" json:"new_password,omitempty"` // 新密码
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *AdminCreateRecoveryCodeRequest) Reset() {
-	*x = AdminCreateRecoveryCodeRequest{}
+func (x *ResetPasswordWithCodeRequest) Reset() {
+	*x = ResetPasswordWithCodeRequest{}
 	mi := &file_proto_auth_auth_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *AdminCreateRecoveryCodeRequest) String() string {
+func (x *ResetPasswordWithCodeRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*AdminCreateRecoveryCodeRequest) ProtoMessage() {}
+func (*ResetPasswordWithCodeRequest) ProtoMessage() {}
 
-func (x *AdminCreateRecoveryCodeRequest) ProtoReflect() protoreflect.Message {
+func (x *ResetPasswordWithCodeRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_proto_auth_auth_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1531,48 +1533,54 @@ func (x *AdminCreateRecoveryCodeRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AdminCreateRecoveryCodeRequest.ProtoReflect.Descriptor instead.
-func (*AdminCreateRecoveryCodeRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use ResetPasswordWithCodeRequest.ProtoReflect.Descriptor instead.
+func (*ResetPasswordWithCodeRequest) Descriptor() ([]byte, []int) {
 	return file_proto_auth_auth_proto_rawDescGZIP(), []int{26}
 }
 
-func (x *AdminCreateRecoveryCodeRequest) GetUserId() string {
+func (x *ResetPasswordWithCodeRequest) GetEmail() string {
 	if x != nil {
-		return x.UserId
+		return x.Email
 	}
 	return ""
 }
 
-func (x *AdminCreateRecoveryCodeRequest) GetExpiresIn() string {
+func (x *ResetPasswordWithCodeRequest) GetCode() string {
 	if x != nil {
-		return x.ExpiresIn
+		return x.Code
 	}
 	return ""
 }
 
-type AdminCreateRecoveryCodeResponse struct {
+func (x *ResetPasswordWithCodeRequest) GetNewPassword() string {
+	if x != nil {
+		return x.NewPassword
+	}
+	return ""
+}
+
+type ResetPasswordWithCodeResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	RecoveryCode  string                 `protobuf:"bytes,1,opt,name=recovery_code,json=recoveryCode,proto3" json:"recovery_code,omitempty"`
-	RecoveryLink  string                 `protobuf:"bytes,2,opt,name=recovery_link,json=recoveryLink,proto3" json:"recovery_link,omitempty"`
-	ExpiresAt     string                 `protobuf:"bytes,3,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	Status        *common.Status         `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *AdminCreateRecoveryCodeResponse) Reset() {
-	*x = AdminCreateRecoveryCodeResponse{}
+func (x *ResetPasswordWithCodeResponse) Reset() {
+	*x = ResetPasswordWithCodeResponse{}
 	mi := &file_proto_auth_auth_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *AdminCreateRecoveryCodeResponse) String() string {
+func (x *ResetPasswordWithCodeResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*AdminCreateRecoveryCodeResponse) ProtoMessage() {}
+func (*ResetPasswordWithCodeResponse) ProtoMessage() {}
 
-func (x *AdminCreateRecoveryCodeResponse) ProtoReflect() protoreflect.Message {
+func (x *ResetPasswordWithCodeResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_proto_auth_auth_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1584,28 +1592,21 @@ func (x *AdminCreateRecoveryCodeResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AdminCreateRecoveryCodeResponse.ProtoReflect.Descriptor instead.
-func (*AdminCreateRecoveryCodeResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use ResetPasswordWithCodeResponse.ProtoReflect.Descriptor instead.
+func (*ResetPasswordWithCodeResponse) Descriptor() ([]byte, []int) {
 	return file_proto_auth_auth_proto_rawDescGZIP(), []int{27}
 }
 
-func (x *AdminCreateRecoveryCodeResponse) GetRecoveryCode() string {
+func (x *ResetPasswordWithCodeResponse) GetStatus() *common.Status {
 	if x != nil {
-		return x.RecoveryCode
+		return x.Status
 	}
-	return ""
+	return nil
 }
 
-func (x *AdminCreateRecoveryCodeResponse) GetRecoveryLink() string {
+func (x *ResetPasswordWithCodeResponse) GetMessage() string {
 	if x != nil {
-		return x.RecoveryLink
-	}
-	return ""
-}
-
-func (x *AdminCreateRecoveryCodeResponse) GetExpiresAt() string {
-	if x != nil {
-		return x.ExpiresAt
+		return x.Message
 	}
 	return ""
 }
@@ -1825,16 +1826,14 @@ const file_proto_auth_auth_proto_rawDesc = "" +
 	"\fnew_password\x18\x03 \x01(\tR\vnewPassword\"Y\n" +
 	"\x15ResetPasswordResponse\x12&\n" +
 	"\x06status\x18\x01 \x01(\v2\x0e.common.StatusR\x06status\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"X\n" +
-	"\x1eAdminCreateRecoveryCodeRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1d\n" +
-	"\n" +
-	"expires_in\x18\x02 \x01(\tR\texpiresIn\"\x8a\x01\n" +
-	"\x1fAdminCreateRecoveryCodeResponse\x12#\n" +
-	"\rrecovery_code\x18\x01 \x01(\tR\frecoveryCode\x12#\n" +
-	"\rrecovery_link\x18\x02 \x01(\tR\frecoveryLink\x12\x1d\n" +
-	"\n" +
-	"expires_at\x18\x03 \x01(\tR\texpiresAt\",\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"k\n" +
+	"\x1cResetPasswordWithCodeRequest\x12\x14\n" +
+	"\x05email\x18\x01 \x01(\tR\x05email\x12\x12\n" +
+	"\x04code\x18\x02 \x01(\tR\x04code\x12!\n" +
+	"\fnew_password\x18\x03 \x01(\tR\vnewPassword\"a\n" +
+	"\x1dResetPasswordWithCodeResponse\x12&\n" +
+	"\x06status\x18\x01 \x01(\v2\x0e.common.StatusR\x06status\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\",\n" +
 	"\x11DeleteUserRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\"V\n" +
 	"\x12DeleteUserResponse\x12&\n" +
@@ -1869,38 +1868,38 @@ func file_proto_auth_auth_proto_rawDescGZIP() []byte {
 
 var file_proto_auth_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 30)
 var file_proto_auth_auth_proto_goTypes = []any{
-	(*RegisterRequest)(nil),                 // 0: auth.RegisterRequest
-	(*RegisterResponse)(nil),                // 1: auth.RegisterResponse
-	(*GetUserRequest)(nil),                  // 2: auth.GetUserRequest
-	(*GetUserResponse)(nil),                 // 3: auth.GetUserResponse
-	(*UpdateLoginInfoRequest)(nil),          // 4: auth.UpdateLoginInfoRequest
-	(*UpdateLoginInfoResponse)(nil),         // 5: auth.UpdateLoginInfoResponse
-	(*SyncUserFromKratosRequest)(nil),       // 6: auth.SyncUserFromKratosRequest
-	(*SyncUserFromKratosResponse)(nil),      // 7: auth.SyncUserFromKratosResponse
-	(*GetUsersRequest)(nil),                 // 8: auth.GetUsersRequest
-	(*GetUsersResponse)(nil),                // 9: auth.GetUsersResponse
-	(*UpdateUserRequest)(nil),               // 10: auth.UpdateUserRequest
-	(*UpdateUserResponse)(nil),              // 11: auth.UpdateUserResponse
-	(*BanUserRequest)(nil),                  // 12: auth.BanUserRequest
-	(*BanUserResponse)(nil),                 // 13: auth.BanUserResponse
-	(*UnbanUserRequest)(nil),                // 14: auth.UnbanUserRequest
-	(*UnbanUserResponse)(nil),               // 15: auth.UnbanUserResponse
-	(*LoginRequest)(nil),                    // 16: auth.LoginRequest
-	(*LoginResponse)(nil),                   // 17: auth.LoginResponse
-	(*LogoutRequest)(nil),                   // 18: auth.LogoutRequest
-	(*LogoutResponse)(nil),                  // 19: auth.LogoutResponse
-	(*InitiateRecoveryRequest)(nil),         // 20: auth.InitiateRecoveryRequest
-	(*InitiateRecoveryResponse)(nil),        // 21: auth.InitiateRecoveryResponse
-	(*VerifyRecoveryCodeRequest)(nil),       // 22: auth.VerifyRecoveryCodeRequest
-	(*VerifyRecoveryCodeResponse)(nil),      // 23: auth.VerifyRecoveryCodeResponse
-	(*ResetPasswordRequest)(nil),            // 24: auth.ResetPasswordRequest
-	(*ResetPasswordResponse)(nil),           // 25: auth.ResetPasswordResponse
-	(*AdminCreateRecoveryCodeRequest)(nil),  // 26: auth.AdminCreateRecoveryCodeRequest
-	(*AdminCreateRecoveryCodeResponse)(nil), // 27: auth.AdminCreateRecoveryCodeResponse
-	(*DeleteUserRequest)(nil),               // 28: auth.DeleteUserRequest
-	(*DeleteUserResponse)(nil),              // 29: auth.DeleteUserResponse
-	(*common.UserInfo)(nil),                 // 30: common.UserInfo
-	(*common.Status)(nil),                   // 31: common.Status
+	(*RegisterRequest)(nil),               // 0: auth.RegisterRequest
+	(*RegisterResponse)(nil),              // 1: auth.RegisterResponse
+	(*GetUserRequest)(nil),                // 2: auth.GetUserRequest
+	(*GetUserResponse)(nil),               // 3: auth.GetUserResponse
+	(*UpdateLoginInfoRequest)(nil),        // 4: auth.UpdateLoginInfoRequest
+	(*UpdateLoginInfoResponse)(nil),       // 5: auth.UpdateLoginInfoResponse
+	(*SyncUserFromKratosRequest)(nil),     // 6: auth.SyncUserFromKratosRequest
+	(*SyncUserFromKratosResponse)(nil),    // 7: auth.SyncUserFromKratosResponse
+	(*GetUsersRequest)(nil),               // 8: auth.GetUsersRequest
+	(*GetUsersResponse)(nil),              // 9: auth.GetUsersResponse
+	(*UpdateUserRequest)(nil),             // 10: auth.UpdateUserRequest
+	(*UpdateUserResponse)(nil),            // 11: auth.UpdateUserResponse
+	(*BanUserRequest)(nil),                // 12: auth.BanUserRequest
+	(*BanUserResponse)(nil),               // 13: auth.BanUserResponse
+	(*UnbanUserRequest)(nil),              // 14: auth.UnbanUserRequest
+	(*UnbanUserResponse)(nil),             // 15: auth.UnbanUserResponse
+	(*LoginRequest)(nil),                  // 16: auth.LoginRequest
+	(*LoginResponse)(nil),                 // 17: auth.LoginResponse
+	(*LogoutRequest)(nil),                 // 18: auth.LogoutRequest
+	(*LogoutResponse)(nil),                // 19: auth.LogoutResponse
+	(*InitiateRecoveryRequest)(nil),       // 20: auth.InitiateRecoveryRequest
+	(*InitiateRecoveryResponse)(nil),      // 21: auth.InitiateRecoveryResponse
+	(*VerifyRecoveryCodeRequest)(nil),     // 22: auth.VerifyRecoveryCodeRequest
+	(*VerifyRecoveryCodeResponse)(nil),    // 23: auth.VerifyRecoveryCodeResponse
+	(*ResetPasswordRequest)(nil),          // 24: auth.ResetPasswordRequest
+	(*ResetPasswordResponse)(nil),         // 25: auth.ResetPasswordResponse
+	(*ResetPasswordWithCodeRequest)(nil),  // 26: auth.ResetPasswordWithCodeRequest
+	(*ResetPasswordWithCodeResponse)(nil), // 27: auth.ResetPasswordWithCodeResponse
+	(*DeleteUserRequest)(nil),             // 28: auth.DeleteUserRequest
+	(*DeleteUserResponse)(nil),            // 29: auth.DeleteUserResponse
+	(*common.UserInfo)(nil),               // 30: common.UserInfo
+	(*common.Status)(nil),                 // 31: common.Status
 }
 var file_proto_auth_auth_proto_depIdxs = []int32{
 	30, // 0: auth.GetUserResponse.user:type_name -> common.UserInfo
@@ -1913,34 +1912,35 @@ var file_proto_auth_auth_proto_depIdxs = []int32{
 	31, // 7: auth.UnbanUserResponse.status:type_name -> common.Status
 	31, // 8: auth.LogoutResponse.status:type_name -> common.Status
 	31, // 9: auth.ResetPasswordResponse.status:type_name -> common.Status
-	31, // 10: auth.DeleteUserResponse.status:type_name -> common.Status
-	0,  // 11: auth.AuthService.Register:input_type -> auth.RegisterRequest
-	2,  // 12: auth.AuthService.GetUser:input_type -> auth.GetUserRequest
-	4,  // 13: auth.AuthService.UpdateLoginInfo:input_type -> auth.UpdateLoginInfoRequest
-	6,  // 14: auth.AuthService.SyncUserFromKratos:input_type -> auth.SyncUserFromKratosRequest
-	16, // 15: auth.AuthService.Login:input_type -> auth.LoginRequest
-	18, // 16: auth.AuthService.Logout:input_type -> auth.LogoutRequest
-	8,  // 17: auth.AuthService.GetUsers:input_type -> auth.GetUsersRequest
-	10, // 18: auth.AuthService.UpdateUser:input_type -> auth.UpdateUserRequest
-	12, // 19: auth.AuthService.BanUser:input_type -> auth.BanUserRequest
-	14, // 20: auth.AuthService.UnbanUser:input_type -> auth.UnbanUserRequest
-	28, // 21: auth.AuthService.DeleteUser:input_type -> auth.DeleteUserRequest
-	1,  // 22: auth.AuthService.Register:output_type -> auth.RegisterResponse
-	3,  // 23: auth.AuthService.GetUser:output_type -> auth.GetUserResponse
-	5,  // 24: auth.AuthService.UpdateLoginInfo:output_type -> auth.UpdateLoginInfoResponse
-	7,  // 25: auth.AuthService.SyncUserFromKratos:output_type -> auth.SyncUserFromKratosResponse
-	17, // 26: auth.AuthService.Login:output_type -> auth.LoginResponse
-	19, // 27: auth.AuthService.Logout:output_type -> auth.LogoutResponse
-	9,  // 28: auth.AuthService.GetUsers:output_type -> auth.GetUsersResponse
-	11, // 29: auth.AuthService.UpdateUser:output_type -> auth.UpdateUserResponse
-	13, // 30: auth.AuthService.BanUser:output_type -> auth.BanUserResponse
-	15, // 31: auth.AuthService.UnbanUser:output_type -> auth.UnbanUserResponse
-	29, // 32: auth.AuthService.DeleteUser:output_type -> auth.DeleteUserResponse
-	22, // [22:33] is the sub-list for method output_type
-	11, // [11:22] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	31, // 10: auth.ResetPasswordWithCodeResponse.status:type_name -> common.Status
+	31, // 11: auth.DeleteUserResponse.status:type_name -> common.Status
+	0,  // 12: auth.AuthService.Register:input_type -> auth.RegisterRequest
+	2,  // 13: auth.AuthService.GetUser:input_type -> auth.GetUserRequest
+	4,  // 14: auth.AuthService.UpdateLoginInfo:input_type -> auth.UpdateLoginInfoRequest
+	6,  // 15: auth.AuthService.SyncUserFromKratos:input_type -> auth.SyncUserFromKratosRequest
+	16, // 16: auth.AuthService.Login:input_type -> auth.LoginRequest
+	18, // 17: auth.AuthService.Logout:input_type -> auth.LogoutRequest
+	8,  // 18: auth.AuthService.GetUsers:input_type -> auth.GetUsersRequest
+	10, // 19: auth.AuthService.UpdateUser:input_type -> auth.UpdateUserRequest
+	12, // 20: auth.AuthService.BanUser:input_type -> auth.BanUserRequest
+	14, // 21: auth.AuthService.UnbanUser:input_type -> auth.UnbanUserRequest
+	28, // 22: auth.AuthService.DeleteUser:input_type -> auth.DeleteUserRequest
+	1,  // 23: auth.AuthService.Register:output_type -> auth.RegisterResponse
+	3,  // 24: auth.AuthService.GetUser:output_type -> auth.GetUserResponse
+	5,  // 25: auth.AuthService.UpdateLoginInfo:output_type -> auth.UpdateLoginInfoResponse
+	7,  // 26: auth.AuthService.SyncUserFromKratos:output_type -> auth.SyncUserFromKratosResponse
+	17, // 27: auth.AuthService.Login:output_type -> auth.LoginResponse
+	19, // 28: auth.AuthService.Logout:output_type -> auth.LogoutResponse
+	9,  // 29: auth.AuthService.GetUsers:output_type -> auth.GetUsersResponse
+	11, // 30: auth.AuthService.UpdateUser:output_type -> auth.UpdateUserResponse
+	13, // 31: auth.AuthService.BanUser:output_type -> auth.BanUserResponse
+	15, // 32: auth.AuthService.UnbanUser:output_type -> auth.UnbanUserResponse
+	29, // 33: auth.AuthService.DeleteUser:output_type -> auth.DeleteUserResponse
+	23, // [23:34] is the sub-list for method output_type
+	12, // [12:23] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_proto_auth_auth_proto_init() }

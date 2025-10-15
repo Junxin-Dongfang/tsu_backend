@@ -131,7 +131,7 @@ type PaginationMetaResponse struct {
 // GetRoles 获取角色列表
 // @Summary 获取角色列表
 // @Description 获取角色列表,支持分页和搜索
-// @Tags 权限管理
+// @Tags 角色权限
 // @Accept json
 // @Produce json
 // @Param keyword query string false "搜索关键词"
@@ -182,7 +182,7 @@ func (h *PermissionHandler) GetRoles(c echo.Context) error {
 // CreateRole 创建角色
 // @Summary 创建角色
 // @Description 创建新的角色
-// @Tags 权限管理
+// @Tags 角色权限
 // @Accept json
 // @Produce json
 // @Param request body RoleRequest true "角色请求"
@@ -234,7 +234,7 @@ func (h *PermissionHandler) CreateRole(c echo.Context) error {
 // UpdateRole 更新角色
 // @Summary 更新角色
 // @Description 更新角色信息
-// @Tags 权限管理
+// @Tags 角色权限
 // @Accept json
 // @Produce json
 // @Param id path string true "角色ID"
@@ -288,7 +288,7 @@ func (h *PermissionHandler) UpdateRole(c echo.Context) error {
 // DeleteRole 删除角色
 // @Summary 删除角色
 // @Description 删除指定角色
-// @Tags 权限管理
+// @Tags 角色权限
 // @Accept json
 // @Produce json
 // @Param id path string true "角色ID"
@@ -333,7 +333,7 @@ func (h *PermissionHandler) DeleteRole(c echo.Context) error {
 // GetPermissions 获取权限列表
 // @Summary 获取权限列表
 // @Description 获取权限列表,支持分页、搜索和筛选
-// @Tags 权限管理
+// @Tags 角色权限
 // @Accept json
 // @Produce json
 // @Param keyword query string false "搜索关键词"
@@ -390,7 +390,7 @@ func (h *PermissionHandler) GetPermissions(c echo.Context) error {
 // GetPermissionGroups 获取权限分组列表
 // @Summary 获取权限分组列表
 // @Description 获取权限分组列表,支持分页和搜索
-// @Tags 权限管理
+// @Tags 角色权限
 // @Accept json
 // @Produce json
 // @Param keyword query string false "搜索关键词"
@@ -443,7 +443,7 @@ func (h *PermissionHandler) GetPermissionGroups(c echo.Context) error {
 // GetRolePermissions 获取角色的权限列表
 // @Summary 获取角色权限
 // @Description 获取分配给角色的所有权限
-// @Tags 权限管理
+// @Tags 角色权限
 // @Accept json
 // @Produce json
 // @Param id path string true "角色ID"
@@ -485,7 +485,7 @@ func (h *PermissionHandler) GetRolePermissions(c echo.Context) error {
 // AssignPermissionsToRole 为角色分配权限
 // @Summary 为角色分配权限
 // @Description 为指定角色分配权限
-// @Tags 权限管理
+// @Tags 角色权限
 // @Accept json
 // @Produce json
 // @Param id path string true "角色ID"
@@ -548,7 +548,7 @@ func (h *PermissionHandler) AssignPermissionsToRole(c echo.Context) error {
 // GetUserRoles 获取用户的角色列表
 // @Summary 获取用户角色
 // @Description 获取分配给用户的所有角色
-// @Tags 权限管理
+// @Tags 角色权限
 // @Accept json
 // @Produce json
 // @Param user_id path string true "用户ID"
@@ -590,7 +590,7 @@ func (h *PermissionHandler) GetUserRoles(c echo.Context) error {
 // AssignRolesToUser 为用户分配角色
 // @Summary 为用户分配角色
 // @Description 为指定用户分配角色
-// @Tags 权限管理
+// @Tags 角色权限
 // @Accept json
 // @Produce json
 // @Param user_id path string true "用户ID"
@@ -644,7 +644,7 @@ func (h *PermissionHandler) AssignRolesToUser(c echo.Context) error {
 // RevokeRolesFromUser 撤销用户的角色
 // @Summary 撤销用户角色
 // @Description 撤销用户的指定角色
-// @Tags 权限管理
+// @Tags 角色权限
 // @Accept json
 // @Produce json
 // @Param user_id path string true "用户ID"
@@ -700,7 +700,7 @@ func (h *PermissionHandler) RevokeRolesFromUser(c echo.Context) error {
 // GetUserPermissions 获取用户的所有权限
 // @Summary 获取用户权限
 // @Description 获取用户的所有权限(包括角色权限和直接权限)
-// @Tags 权限管理
+// @Tags 角色权限
 // @Accept json
 // @Produce json
 // @Param user_id path string true "用户ID"
@@ -742,7 +742,7 @@ func (h *PermissionHandler) GetUserPermissions(c echo.Context) error {
 // GrantPermissionsToUser 直接授予用户权限
 // @Summary 授予用户权限
 // @Description 直接授予用户权限(绕过角色)
-// @Tags 权限管理
+// @Tags 角色权限
 // @Accept json
 // @Produce json
 // @Param user_id path string true "用户ID"
@@ -796,7 +796,7 @@ func (h *PermissionHandler) GrantPermissionsToUser(c echo.Context) error {
 // RevokePermissionsFromUser 撤销用户的直接权限
 // @Summary 撤销用户权限
 // @Description 撤销用户的直接权限
-// @Tags 权限管理
+// @Tags 角色权限
 // @Accept json
 // @Produce json
 // @Param user_id path string true "用户ID"

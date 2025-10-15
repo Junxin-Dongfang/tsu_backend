@@ -2,8 +2,8 @@ package client
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
+	"tsu-self/internal/pkg/log"
+	"tsu-self/internal/pkg/xerrors"
 
 	ory "github.com/ory/kratos-client-go"
 )
@@ -82,12 +82,25 @@ func (c *KratosClient) CreateIdentity(ctx context.Context, email, username, pass
 		Execute()
 
 	if err != nil {
-		return nil, fmt.Errorf("创建 Kratos identity 失败: %w", err)
+		log.ErrorContext(ctx, "创建 Kratos identity 失败", err)
+		return nil, xerrors.NewKratosError("CreateIdentity", err).
+			WithService("kratos_client", "CreateIdentity").
+			WithMetadata("email", email).
+			WithMetadata("username", username)
 	}
 
 	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("Kratos API 返回错误状态码: %d", resp.StatusCode)
+		log.WarnContext(ctx, "Kratos API 返回错误状态码",
+			"status_code", resp.StatusCode,
+			"operation", "CreateIdentity")
+		return nil, xerrors.NewKratosAPIError("CreateIdentity", resp.StatusCode).
+			WithService("kratos_client", "CreateIdentity").
+			WithMetadata("email", email)
 	}
+
+	log.InfoContext(ctx, "成功创建 Kratos identity",
+		"identity_id", identity.Id,
+		"email", email)
 
 	return identity, nil
 }
@@ -97,11 +110,19 @@ func (c *KratosClient) GetIdentity(ctx context.Context, identityID string) (*ory
 	identity, resp, err := c.adminClient.IdentityAPI.GetIdentity(ctx, identityID).Execute()
 
 	if err != nil {
-		return nil, fmt.Errorf("获取 Kratos identity 失败: %w", err)
+		log.ErrorContext(ctx, "获取 Kratos identity 失败", err)
+		return nil, xerrors.NewKratosError("GetIdentity", err).
+			WithService("kratos_client", "GetIdentity").
+			WithMetadata("identity_id", identityID)
 	}
 
 	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("Kratos API 返回错误状态码: %d", resp.StatusCode)
+		log.WarnContext(ctx, "Kratos API 返回错误状态码",
+			"status_code", resp.StatusCode,
+			"operation", "GetIdentity")
+		return nil, xerrors.NewKratosAPIError("GetIdentity", resp.StatusCode).
+			WithService("kratos_client", "GetIdentity").
+			WithMetadata("identity_id", identityID)
 	}
 
 	return identity, nil
@@ -125,12 +146,25 @@ func (c *KratosClient) UpdateIdentity(ctx context.Context, identityID string, em
 		Execute()
 
 	if err != nil {
-		return nil, fmt.Errorf("更新 Kratos identity 失败: %w", err)
+		log.ErrorContext(ctx, "更新 Kratos identity 失败", err)
+		return nil, xerrors.NewKratosError("UpdateIdentity", err).
+			WithService("kratos_client", "UpdateIdentity").
+			WithMetadata("identity_id", identityID).
+			WithMetadata("email", email)
 	}
 
 	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("Kratos API 返回错误状态码: %d", resp.StatusCode)
+		log.WarnContext(ctx, "Kratos API 返回错误状态码",
+			"status_code", resp.StatusCode,
+			"operation", "UpdateIdentity")
+		return nil, xerrors.NewKratosAPIError("UpdateIdentity", resp.StatusCode).
+			WithService("kratos_client", "UpdateIdentity").
+			WithMetadata("identity_id", identityID)
 	}
+
+	log.InfoContext(ctx, "成功更新 Kratos identity",
+		"identity_id", identityID,
+		"email", email)
 
 	return identity, nil
 }
@@ -140,13 +174,22 @@ func (c *KratosClient) DeleteIdentity(ctx context.Context, identityID string) er
 	resp, err := c.adminClient.IdentityAPI.DeleteIdentity(ctx, identityID).Execute()
 
 	if err != nil {
-		return fmt.Errorf("删除 Kratos identity 失败: %w", err)
+		log.ErrorContext(ctx, "删除 Kratos identity 失败", err)
+		return xerrors.NewKratosError("DeleteIdentity", err).
+			WithService("kratos_client", "DeleteIdentity").
+			WithMetadata("identity_id", identityID)
 	}
 
 	if resp.StatusCode >= 400 {
-		return fmt.Errorf("Kratos API 返回错误状态码: %d", resp.StatusCode)
+		log.WarnContext(ctx, "Kratos API 返回错误状态码",
+			"status_code", resp.StatusCode,
+			"operation", "DeleteIdentity")
+		return xerrors.NewKratosAPIError("DeleteIdentity", resp.StatusCode).
+			WithService("kratos_client", "DeleteIdentity").
+			WithMetadata("identity_id", identityID)
 	}
 
+	log.InfoContext(ctx, "成功删除 Kratos identity", "identity_id", identityID)
 	return nil
 }
 
@@ -154,7 +197,8 @@ func (c *KratosClient) DeleteIdentity(ctx context.Context, identityID string) er
 // 注意：这个方法通过 Public API 调用
 func (c *KratosClient) ValidateSession(ctx context.Context, sessionToken string) (*ory.Session, error) {
 	if c.publicClient == nil {
-		return nil, fmt.Errorf("Public API client 未初始化,请先调用 SetPublicURL")
+		return nil, xerrors.NewKratosClientNotInitializedError("public_api").
+			WithService("kratos_client", "ValidateSession")
 	}
 
 	session, resp, err := c.publicClient.FrontendAPI.ToSession(ctx).
@@ -162,11 +206,21 @@ func (c *KratosClient) ValidateSession(ctx context.Context, sessionToken string)
 		Execute()
 
 	if err != nil {
-		return nil, fmt.Errorf("验证 Session 失败: %w", err)
+		log.ErrorContext(ctx, "验证 Session 失败", err)
+		return nil, xerrors.NewSessionInvalidError("session validation failed").
+			WithService("kratos_client", "ValidateSession")
 	}
 
 	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("Kratos API 返回错误状态码: %d", resp.StatusCode)
+		log.WarnContext(ctx, "Kratos API 返回错误状态码",
+			"status_code", resp.StatusCode,
+			"operation", "ValidateSession")
+		if resp.StatusCode == 401 {
+			return nil, xerrors.NewSessionExpiredError().
+				WithService("kratos_client", "ValidateSession")
+		}
+		return nil, xerrors.NewKratosAPIError("ValidateSession", resp.StatusCode).
+			WithService("kratos_client", "ValidateSession")
 	}
 
 	return session, nil
@@ -176,13 +230,17 @@ func (c *KratosClient) ValidateSession(ctx context.Context, sessionToken string)
 // 返回 Session Token 和 Identity ID
 func (c *KratosClient) LoginWithPassword(ctx context.Context, identifier, password string) (sessionToken, identityID string, err error) {
 	if c.publicClient == nil {
-		return "", "", fmt.Errorf("Public API client 未初始化,请先调用 SetPublicURL")
+		return "", "", xerrors.NewKratosClientNotInitializedError("public_api").
+			WithService("kratos_client", "LoginWithPassword")
 	}
 
 	// 1. 创建 Login Flow
 	flow, _, err := c.publicClient.FrontendAPI.CreateNativeLoginFlow(ctx).Execute()
 	if err != nil {
-		return "", "", fmt.Errorf("创建登录流程失败: %w", err)
+		log.ErrorContext(ctx, "创建登录流程失败", err)
+		return "", "", xerrors.NewKratosError("CreateNativeLoginFlow", err).
+			WithService("kratos_client", "LoginWithPassword").
+			WithMetadata("identifier", identifier)
 	}
 
 	// 2. 提交登录凭证
@@ -200,7 +258,10 @@ func (c *KratosClient) LoginWithPassword(ctx context.Context, identifier, passwo
 		Execute()
 
 	if err != nil {
-		return "", "", fmt.Errorf("登录失败: %w", err)
+		log.ErrorContext(ctx, "登录失败", err)
+		return "", "", xerrors.NewAuthError("登录失败").
+			WithService("kratos_client", "LoginWithPassword").
+			WithMetadata("identifier", identifier)
 	}
 
 	// 3. 提取 Session Token 和 Identity ID
@@ -216,8 +277,13 @@ func (c *KratosClient) LoginWithPassword(ctx context.Context, identifier, passwo
 	if result.Session.Identity != nil {
 		identityID = result.Session.Identity.Id
 	} else {
-		return "", "", fmt.Errorf("登录成功但未返回 Identity")
+		return "", "", xerrors.NewKratosDataIntegrityError("session.identity", "登录成功但未返回 Identity").
+			WithService("kratos_client", "LoginWithPassword")
 	}
+
+	log.InfoContext(ctx, "用户登录成功",
+		"identity_id", identityID,
+		"identifier", identifier)
 
 	return sessionToken, identityID, nil
 }
@@ -227,7 +293,10 @@ func (c *KratosClient) LoginWithPassword(ctx context.Context, identifier, passwo
 // 参考: https://www.ory.sh/docs/kratos/self-service/flows/user-logout
 func (c *KratosClient) RevokeSession(ctx context.Context, sessionToken string) error {
 	if c.publicClient == nil {
-		return fmt.Errorf("Public API client 未初始化,请先调用 SetPublicURL")
+		return xerrors.NewKratosClientNotInitializedError("Public").WithContext(&xerrors.ErrorContext{
+			Service:   "auth",
+			Operation: "RevokeSession",
+		})
 	}
 
 	// ✅ 使用 PerformNativeLogout (Native/API 应用的正确方式)
@@ -239,7 +308,7 @@ func (c *KratosClient) RevokeSession(ctx context.Context, sessionToken string) e
 		Execute()
 
 	if err != nil {
-		return fmt.Errorf("登出失败: %w", err)
+		return xerrors.ParseKratosError("RevokeSession", err)
 	}
 
 	return nil
@@ -254,11 +323,16 @@ func (c *KratosClient) GetIdentityByIdentifier(ctx context.Context, identifier s
 		Execute()
 
 	if err != nil {
-		return nil, fmt.Errorf("查询 Identity 失败: %w", err)
+		return nil, xerrors.ParseKratosError("GetIdentityByIdentifier", err)
 	}
 
 	if len(identities) == 0 {
-		return nil, fmt.Errorf("未找到匹配的用户: %s", identifier)
+		return nil, xerrors.New(xerrors.CodeResourceNotFound, "未找到匹配的用户").
+			WithMetadata("identifier", identifier).
+			WithContext(&xerrors.ErrorContext{
+				Service:   "auth",
+				Operation: "GetIdentityByIdentifier",
+			})
 	}
 
 	return &identities[0], nil
@@ -268,7 +342,12 @@ func (c *KratosClient) GetIdentityByIdentifier(ctx context.Context, identifier s
 func GetIdentityTraits(identity *ory.Identity) (email, username string, err error) {
 	traits, ok := identity.Traits.(map[string]interface{})
 	if !ok {
-		return "", "", fmt.Errorf("identity traits 类型错误")
+		return "", "", xerrors.NewKratosDataIntegrityError("identity traits 类型错误", "traits").
+			WithMetadata("expected_type", "map[string]interface{}").
+			WithContext(&xerrors.ErrorContext{
+				Service:   "auth",
+				Operation: "GetIdentityTraits",
+			})
 	}
 
 	emailVal, ok := traits["email"]
@@ -289,18 +368,21 @@ func GetIdentityTraits(identity *ory.Identity) (email, username string, err erro
 // CreateRegistrationFlow 创建注册流程（API/Native App 模式）
 func (c *KratosClient) CreateRegistrationFlow(ctx context.Context) (*ory.RegistrationFlow, error) {
 	if c.publicClient == nil {
-		return nil, fmt.Errorf("Public API client 未初始化,请先调用 SetPublicURL")
+		return nil, xerrors.NewKratosClientNotInitializedError("Public").WithContext(&xerrors.ErrorContext{
+			Service:   "auth",
+			Operation: "CreateRegistrationFlow",
+		})
 	}
 
 	flow, resp, err := c.publicClient.FrontendAPI.CreateNativeRegistrationFlow(ctx).
 		Execute()
 
 	if err != nil {
-		return nil, fmt.Errorf("创建注册流程失败: %w", err)
+		return nil, xerrors.ParseKratosError("CreateRegistrationFlow", err)
 	}
 
 	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("Kratos API 返回错误状态码: %d", resp.StatusCode)
+		return nil, xerrors.HandleKratosAPIError("CreateRegistrationFlow", resp.StatusCode)
 	}
 
 	return flow, nil
@@ -311,7 +393,10 @@ func (c *KratosClient) CreateRegistrationFlow(ctx context.Context) (*ory.Registr
 // username: 用户名（必需，因为 schema 要求）
 func (c *KratosClient) Register(ctx context.Context, flowID, email, username, password string) (sessionToken, identityID string, err error) {
 	if c.publicClient == nil {
-		return "", "", fmt.Errorf("Public API client 未初始化,请先调用 SetPublicURL")
+		return "", "", xerrors.NewKratosClientNotInitializedError("Public").WithContext(&xerrors.ErrorContext{
+			Service:   "auth",
+			Operation: "Register",
+		})
 	}
 
 	// 构造 traits（根据 identity schema 的要求）
@@ -336,22 +421,11 @@ func (c *KratosClient) Register(ctx context.Context, flowID, email, username, pa
 		Execute()
 
 	if err != nil {
-		// 尝试解析 Kratos 的详细错误信息
-		if apiErr, ok := err.(*ory.GenericOpenAPIError); ok {
-			var kratosErr struct {
-				Error struct {
-					Message string `json:"message"`
-				} `json:"error"`
-			}
-			if jsonErr := json.Unmarshal(apiErr.Body(), &kratosErr); jsonErr == nil && kratosErr.Error.Message != "" {
-				return "", "", fmt.Errorf("注册失败: %s", kratosErr.Error.Message)
-			}
-		}
-		return "", "", fmt.Errorf("注册失败: %w", err)
+		return "", "", xerrors.ParseKratosError("Register", err)
 	}
 
 	if resp.StatusCode >= 400 {
-		return "", "", fmt.Errorf("注册失败，状态码: %d", resp.StatusCode)
+		return "", "", xerrors.HandleKratosAPIError("Register", resp.StatusCode)
 	}
 
 	// 从结果中提取 session token 和 identity ID
@@ -373,7 +447,10 @@ func (c *KratosClient) Register(ctx context.Context, flowID, email, username, pa
 		return result.Session.Id, identityID, nil
 	}
 
-	return "", "", fmt.Errorf("注册成功但未返回 session")
+	return "", "", xerrors.NewKratosDataIntegrityError("注册成功但未返回 session", "session").WithContext(&xerrors.ErrorContext{
+		Service:   "auth",
+		Operation: "Register",
+	})
 }
 
 // ==================== 密码重置功能 ====================
@@ -382,16 +459,19 @@ func (c *KratosClient) Register(ctx context.Context, flowID, email, username, pa
 // 返回 Flow ID 用于后续操作
 func (c *KratosClient) CreateRecoveryFlow(ctx context.Context) (*ory.RecoveryFlow, error) {
 	if c.publicClient == nil {
-		return nil, fmt.Errorf("Public API client 未初始化,请先调用 SetPublicURL")
+		return nil, xerrors.NewKratosClientNotInitializedError("Public").WithContext(&xerrors.ErrorContext{
+			Service:   "auth",
+			Operation: "CreateRecoveryFlow",
+		})
 	}
 
 	flow, resp, err := c.publicClient.FrontendAPI.CreateNativeRecoveryFlow(ctx).Execute()
 	if err != nil {
-		return nil, fmt.Errorf("创建密码恢复流程失败: %w", err)
+		return nil, xerrors.ParseKratosError("CreateRecoveryFlow", err)
 	}
 
 	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("Kratos API 返回错误状态码: %d", resp.StatusCode)
+		return nil, xerrors.HandleKratosAPIError("CreateRecoveryFlow", resp.StatusCode)
 	}
 
 	return flow, nil
@@ -400,7 +480,10 @@ func (c *KratosClient) CreateRecoveryFlow(ctx context.Context) (*ory.RecoveryFlo
 // UpdateRecoveryFlowWithCode 提交邮箱请求验证码（使用 SDK）
 func (c *KratosClient) UpdateRecoveryFlowWithCode(ctx context.Context, flowID, email string) (*ory.RecoveryFlow, error) {
 	if c.publicClient == nil {
-		return nil, fmt.Errorf("Public API client 未初始化,请先调用 SetPublicURL")
+		return nil, xerrors.NewKratosClientNotInitializedError("Public").WithContext(&xerrors.ErrorContext{
+			Service:   "auth",
+			Operation: "UpdateRecoveryFlowWithCode",
+		})
 	}
 
 	// 构造请求体
@@ -418,11 +501,11 @@ func (c *KratosClient) UpdateRecoveryFlowWithCode(ctx context.Context, flowID, e
 		Execute()
 
 	if err != nil {
-		return nil, fmt.Errorf("发送恢复验证码失败: %w", err)
+		return nil, xerrors.ParseKratosError("UpdateRecoveryFlowWithCode", err)
 	}
 
 	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("Kratos API 返回错误状态码: %d", resp.StatusCode)
+		return nil, xerrors.HandleKratosAPIError("UpdateRecoveryFlowWithCode", resp.StatusCode)
 	}
 
 	return flow, nil
@@ -433,7 +516,10 @@ func (c *KratosClient) UpdateRecoveryFlowWithCode(ctx context.Context, flowID, e
 // 注意：启用 use_continue_with_transitions 后，Kratos 会在 ContinueWith 中返回 session token 和 settings flow
 func (c *KratosClient) VerifyRecoveryCodeAndGetSessionToken(ctx context.Context, flowID, code string) (sessionToken, settingsFlowID string, err error) {
 	if c.publicClient == nil {
-		return "", "", fmt.Errorf("Public API client 未初始化,请先调用 SetPublicURL")
+		return "", "", xerrors.NewKratosClientNotInitializedError("Public").WithContext(&xerrors.ErrorContext{
+			Service:   "auth",
+			Operation: "VerifyRecoveryCodeAndGetSessionToken",
+		})
 	}
 
 	// 构造请求体
@@ -451,14 +537,14 @@ func (c *KratosClient) VerifyRecoveryCodeAndGetSessionToken(ctx context.Context,
 		Execute()
 
 	if err != nil {
-		return "", "", fmt.Errorf("验证码验证失败: %w", err)
+		return "", "", xerrors.ParseKratosError("VerifyRecoveryCodeAndGetSessionToken", err)
 	}
 
 	// ✅ 正确的方式：从 ContinueWith 中提取信息
 	// 当启用 use_continue_with_transitions 后，成功的响应会包含：
 	// 1. ContinueWithSetOrySessionToken - 包含 session token
 	// 2. ContinueWithSettingsUi - 包含 settings flow ID
-	if flow.ContinueWith != nil && len(flow.ContinueWith) > 0 {
+	if len(flow.ContinueWith) > 0 {
 		var foundSessionToken string
 		var foundSettingsFlowID string
 
@@ -466,14 +552,16 @@ func (c *KratosClient) VerifyRecoveryCodeAndGetSessionToken(ctx context.Context,
 			// 提取 session token
 			if sessionTokenItem := item.ContinueWithSetOrySessionToken; sessionTokenItem != nil {
 				foundSessionToken = sessionTokenItem.OrySessionToken
-				fmt.Printf("[DEBUG] 从 ContinueWith 提取到 session token: %s...\n", foundSessionToken[:30])
+				log.DebugContext(ctx, "从 ContinueWith 提取到 session token",
+					"token_prefix", foundSessionToken[:30])
 			}
 
 			// 提取 settings flow ID
 			if settingsUiItem := item.ContinueWithSettingsUi; settingsUiItem != nil {
 				if settingsUiItem.Flow.Id != "" {
 					foundSettingsFlowID = settingsUiItem.Flow.Id
-					fmt.Printf("[DEBUG] 从 ContinueWith 提取到 settings flow ID: %s\n", foundSettingsFlowID)
+					log.DebugContext(ctx, "从 ContinueWith 提取到 settings flow ID",
+						"flow_id", foundSettingsFlowID)
 				}
 			}
 		}
@@ -485,20 +573,34 @@ func (c *KratosClient) VerifyRecoveryCodeAndGetSessionToken(ctx context.Context,
 
 		// 如果只有一个，返回详细错误
 		if foundSessionToken == "" {
-			return "", "", fmt.Errorf("ContinueWith 中缺少 session token")
+			return "", "", xerrors.NewKratosDataIntegrityError("ContinueWith 中缺少 session token", "session_token").WithContext(&xerrors.ErrorContext{
+				Service:   "auth",
+				Operation: "VerifyRecoveryCodeAndGetSessionToken",
+			})
 		}
 		if foundSettingsFlowID == "" {
-			return "", "", fmt.Errorf("ContinueWith 中缺少 settings flow ID")
+			return "", "", xerrors.NewKratosDataIntegrityError("ContinueWith 中缺少 settings flow ID", "settings_flow_id").WithContext(&xerrors.ErrorContext{
+				Service:   "auth",
+				Operation: "VerifyRecoveryCodeAndGetSessionToken",
+			})
 		}
 	}
 
-	return "", "", fmt.Errorf("验证码验证成功但响应中缺少 ContinueWith 信息，请检查 Kratos 配置中的 feature_flags.use_continue_with_transitions")
+	return "", "", xerrors.New(xerrors.CodeInternalError, "验证码验证成功但响应中缺少 ContinueWith 信息").
+		WithMetadata("hint", "请检查 Kratos 配置中的 feature_flags.use_continue_with_transitions").
+		WithContext(&xerrors.ErrorContext{
+			Service:   "auth",
+			Operation: "VerifyRecoveryCodeAndGetSessionToken",
+		})
 }
 
 // CreateSettingsFlow 创建设置流程 (用于修改密码)
 func (c *KratosClient) CreateSettingsFlow(ctx context.Context, sessionToken string) (*ory.SettingsFlow, error) {
 	if c.publicClient == nil {
-		return nil, fmt.Errorf("Public API client 未初始化,请先调用 SetPublicURL")
+		return nil, xerrors.NewKratosClientNotInitializedError("Public").WithContext(&xerrors.ErrorContext{
+			Service:   "auth",
+			Operation: "CreateSettingsFlow",
+		})
 	}
 
 	flow, resp, err := c.publicClient.FrontendAPI.CreateNativeSettingsFlow(ctx).
@@ -506,11 +608,11 @@ func (c *KratosClient) CreateSettingsFlow(ctx context.Context, sessionToken stri
 		Execute()
 
 	if err != nil {
-		return nil, fmt.Errorf("创建设置流程失败: %w", err)
+		return nil, xerrors.ParseKratosError("CreateSettingsFlow", err)
 	}
 
 	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("Kratos API 返回错误状态码: %d", resp.StatusCode)
+		return nil, xerrors.HandleKratosAPIError("CreateSettingsFlow", resp.StatusCode)
 	}
 
 	return flow, nil
@@ -519,7 +621,10 @@ func (c *KratosClient) CreateSettingsFlow(ctx context.Context, sessionToken stri
 // UpdatePasswordInSettingsFlow 在设置流程中修改密码
 func (c *KratosClient) UpdatePasswordInSettingsFlow(ctx context.Context, flowID, sessionToken, newPassword string) (*ory.SettingsFlow, error) {
 	if c.publicClient == nil {
-		return nil, fmt.Errorf("Public API client 未初始化,请先调用 SetPublicURL")
+		return nil, xerrors.NewKratosClientNotInitializedError("Public").WithContext(&xerrors.ErrorContext{
+			Service:   "auth",
+			Operation: "UpdatePasswordInSettingsFlow",
+		})
 	}
 
 	// 构造请求体
@@ -537,11 +642,11 @@ func (c *KratosClient) UpdatePasswordInSettingsFlow(ctx context.Context, flowID,
 		Execute()
 
 	if err != nil {
-		return nil, fmt.Errorf("更新密码失败: %w", err)
+		return nil, xerrors.ParseKratosError("UpdatePasswordInSettingsFlow", err)
 	}
 
 	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("Kratos API 返回错误状态码: %d", resp.StatusCode)
+		return nil, xerrors.HandleKratosAPIError("UpdatePasswordInSettingsFlow", resp.StatusCode)
 	}
 
 	return flow, nil
@@ -558,13 +663,22 @@ func (c *KratosClient) GetIdentityFromSettingsFlow(ctx context.Context, settings
 	// 但这需要修改 API 设计
 	//
 	// 临时方案：返回错误，提示需要其他方式
-	return nil, fmt.Errorf("无法从 settings flow 获取 identity，需要使用 email 查找")
+	return nil, xerrors.New(xerrors.CodeOperationNotAllowed, "无法从 settings flow 获取 identity").
+		WithMetadata("hint", "需要使用 email 查找").
+		WithMetadata("settings_flow_id", settingsFlowID).
+		WithContext(&xerrors.ErrorContext{
+			Service:   "auth",
+			Operation: "GetIdentityFromSettingsFlow",
+		})
 }
 
 // GetIdentityByEmail 通过邮箱查找 identity
 func (c *KratosClient) GetIdentityByEmail(ctx context.Context, email string) (*ory.Identity, error) {
 	if c.adminClient == nil {
-		return nil, fmt.Errorf("Admin API client 未初始化")
+		return nil, xerrors.NewKratosClientNotInitializedError("Admin").WithContext(&xerrors.ErrorContext{
+			Service:   "auth",
+			Operation: "GetIdentityByEmail",
+		})
 	}
 
 	// 使用 Admin API 列出用户，通过 credentials_identifier 过滤（即邮箱）
@@ -573,15 +687,20 @@ func (c *KratosClient) GetIdentityByEmail(ctx context.Context, email string) (*o
 		Execute()
 
 	if err != nil {
-		return nil, fmt.Errorf("查找用户失败: %w", err)
+		return nil, xerrors.ParseKratosError("GetIdentityByEmail", err)
 	}
 
 	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("Kratos API 返回错误状态码: %d", resp.StatusCode)
+		return nil, xerrors.HandleKratosAPIError("GetIdentityByEmail", resp.StatusCode)
 	}
 
 	if len(identities) == 0 {
-		return nil, fmt.Errorf("未找到邮箱为 %s 的用户", email)
+		return nil, xerrors.New(xerrors.CodeResourceNotFound, "未找到匹配的用户").
+			WithMetadata("email", email).
+			WithContext(&xerrors.ErrorContext{
+				Service:   "auth",
+				Operation: "GetIdentityByEmail",
+			})
 	}
 
 	// 返回第一个匹配的用户
@@ -594,11 +713,19 @@ func (c *KratosClient) GetIdentityByEmail(ctx context.Context, email string) (*o
 // newPassword: 新密码
 func (c *KratosClient) UpdatePasswordWithPrivilegedFlow(ctx context.Context, privilegedFlowID, sessionToken, newPassword string) error {
 	if c.publicClient == nil {
-		return fmt.Errorf("Public API client 未初始化")
+		return xerrors.NewKratosClientNotInitializedError("Public").WithContext(&xerrors.ErrorContext{
+			Service:   "auth",
+			Operation: "UpdatePasswordWithPrivilegedFlow",
+		})
 	}
 
 	if sessionToken == "" {
-		return fmt.Errorf("验证流程异常：未获取到有效的会话凭证，请重新发起密码恢复")
+		return xerrors.New(xerrors.CodeInvalidParams, "验证流程异常：未获取到有效的会话凭证").
+			WithMetadata("hint", "请重新发起密码恢复").
+			WithContext(&xerrors.ErrorContext{
+				Service:   "auth",
+				Operation: "UpdatePasswordWithPrivilegedFlow",
+			})
 	}
 
 	// 构造密码更新请求
@@ -611,9 +738,11 @@ func (c *KratosClient) UpdatePasswordWithPrivilegedFlow(ctx context.Context, pri
 
 	// 调试输出
 	if len(sessionToken) > 30 {
-		fmt.Printf("[DEBUG] 使用 Session Token: %s...\n", sessionToken[:30])
+		log.DebugContext(ctx, "使用 Session Token",
+			"token_prefix", sessionToken[:30])
 	} else {
-		fmt.Printf("[DEBUG] 使用 Session Token: %s\n", sessionToken)
+		log.DebugContext(ctx, "使用 Session Token",
+			"token", sessionToken)
 	}
 
 	// ✅ 正确的方式：使用 X-Session-Token header (API/Native App 模式)
@@ -625,56 +754,14 @@ func (c *KratosClient) UpdatePasswordWithPrivilegedFlow(ctx context.Context, pri
 		Execute()
 
 	if err != nil {
-		// 详细的错误处理
-		if apiErr, ok := err.(*ory.GenericOpenAPIError); ok {
-			statusCode := 0
-			if resp != nil {
-				statusCode = resp.StatusCode
-			}
-
-			switch statusCode {
-			case 401:
-				return fmt.Errorf("会话已过期或无效，请重新发起密码恢复流程")
-			case 400:
-				// 尝试解析 Kratos 返回的详细错误信息
-				var kratosErr struct {
-					Error struct {
-						Message string `json:"message"`
-						Reason  string `json:"reason"`
-					} `json:"error"`
-					UI struct {
-						Messages []struct {
-							Text string `json:"text"`
-							Type string `json:"type"`
-						} `json:"messages"`
-					} `json:"ui"`
-				}
-				if jsonErr := json.Unmarshal(apiErr.Body(), &kratosErr); jsonErr == nil {
-					if kratosErr.Error.Message != "" {
-						return fmt.Errorf("密码不符合要求: %s", kratosErr.Error.Message)
-					}
-					if len(kratosErr.UI.Messages) > 0 {
-						return fmt.Errorf("密码不符合要求: %s", kratosErr.UI.Messages[0].Text)
-					}
-				}
-				return fmt.Errorf("密码格式不符合要求，请确保密码长度至少6位")
-			case 410:
-				return fmt.Errorf("重置流程已过期，请重新发起密码恢复")
-			case 422:
-				return fmt.Errorf("需要额外验证，请按照提示完成操作")
-			default:
-				fmt.Printf("[ERROR] Kratos 返回错误 (状态码 %d): %s\n", statusCode, string(apiErr.Body()))
-				return fmt.Errorf("密码重置失败，请稍后重试或联系管理员")
-			}
-		}
-		return fmt.Errorf("密码重置失败: %w", err)
+		return xerrors.ParseKratosError("UpdatePasswordWithPrivilegedFlow", err)
 	}
 
 	if resp != nil && resp.StatusCode >= 400 {
-		return fmt.Errorf("密码重置失败，状态码: %d", resp.StatusCode)
+		return xerrors.HandleKratosAPIError("UpdatePasswordWithPrivilegedFlow", resp.StatusCode)
 	}
 
-	fmt.Printf("[INFO] 密码更新成功，状态码: %d\n", resp.StatusCode)
+	log.InfoContext(ctx, "密码更新成功", "status_code", resp.StatusCode)
 	return nil
 }
 
@@ -682,17 +769,20 @@ func (c *KratosClient) UpdatePasswordWithPrivilegedFlow(ctx context.Context, pri
 // ⚠️ 注意：这不是推荐的密码重置方式，仅用于管理员操作
 func (c *KratosClient) AdminUpdateIdentityPassword(ctx context.Context, identityID, newPassword string) error {
 	if c.adminClient == nil {
-		return fmt.Errorf("Admin API client 未初始化")
+		return xerrors.NewKratosClientNotInitializedError("Admin").WithContext(&xerrors.ErrorContext{
+			Service:   "auth",
+			Operation: "AdminUpdateIdentityPassword",
+		})
 	}
 
 	// 先获取当前 identity
 	identity, resp, err := c.adminClient.IdentityAPI.GetIdentity(ctx, identityID).Execute()
 	if err != nil {
-		return fmt.Errorf("获取用户信息失败: %w", err)
+		return xerrors.ParseKratosError("AdminUpdateIdentityPassword.GetIdentity", err)
 	}
 
 	if resp.StatusCode >= 400 {
-		return fmt.Errorf("Kratos API 返回错误状态码: %d", resp.StatusCode)
+		return xerrors.HandleKratosAPIError("AdminUpdateIdentityPassword.GetIdentity", resp.StatusCode)
 	}
 
 	// 构建更新请求，保留现有的 traits，只更新密码
@@ -707,7 +797,12 @@ func (c *KratosClient) AdminUpdateIdentityPassword(ctx context.Context, identity
 	// Traits 需要类型断言为 map[string]interface{}
 	traits, ok := identity.Traits.(map[string]interface{})
 	if !ok {
-		return fmt.Errorf("identity traits 类型错误")
+		return xerrors.NewKratosDataIntegrityError("identity traits 类型错误", "traits").
+			WithMetadata("identity_id", identityID).
+			WithContext(&xerrors.ErrorContext{
+				Service:   "auth",
+				Operation: "AdminUpdateIdentityPassword",
+			})
 	}
 
 	updateBody := ory.UpdateIdentityBody{
@@ -723,37 +818,14 @@ func (c *KratosClient) AdminUpdateIdentityPassword(ctx context.Context, identity
 		Execute()
 
 	if err != nil {
-		return fmt.Errorf("更新密码失败: %w", err)
+		return xerrors.ParseKratosError("AdminUpdateIdentityPassword.UpdateIdentity", err)
 	}
 
 	if resp.StatusCode >= 400 {
-		return fmt.Errorf("Kratos API 返回错误状态码: %d", resp.StatusCode)
+		return xerrors.HandleKratosAPIError("AdminUpdateIdentityPassword.UpdateIdentity", resp.StatusCode)
 	}
 
 	return nil
-}
-
-// AdminCreateRecoveryCode 管理员为用户创建恢复码 (管理后台使用)
-func (c *KratosClient) AdminCreateRecoveryCode(ctx context.Context, identityID string, expiresIn string) (*ory.RecoveryCodeForIdentity, error) {
-	// 构造请求体
-	createBody := ory.CreateRecoveryCodeForIdentityBody{
-		IdentityId: identityID,
-		ExpiresIn:  &expiresIn, // 例如: "12h", "1h", "30m"
-	}
-
-	result, resp, err := c.adminClient.IdentityAPI.CreateRecoveryCodeForIdentity(ctx).
-		CreateRecoveryCodeForIdentityBody(createBody).
-		Execute()
-
-	if err != nil {
-		return nil, fmt.Errorf("创建恢复码失败: %w", err)
-	}
-
-	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("Kratos API 返回错误状态码: %d", resp.StatusCode)
-	}
-
-	return result, nil
 }
 
 // AdminCreateRecoveryLink 管理员为用户创建恢复链接 (备用方案)
@@ -769,11 +841,11 @@ func (c *KratosClient) AdminCreateRecoveryLink(ctx context.Context, identityID s
 		Execute()
 
 	if err != nil {
-		return nil, fmt.Errorf("创建恢复链接失败: %w", err)
+		return nil, xerrors.ParseKratosError("AdminCreateRecoveryLink", err)
 	}
 
 	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("Kratos API 返回错误状态码: %d", resp.StatusCode)
+		return nil, xerrors.HandleKratosAPIError("AdminCreateRecoveryLink", resp.StatusCode)
 	}
 
 	return result, nil

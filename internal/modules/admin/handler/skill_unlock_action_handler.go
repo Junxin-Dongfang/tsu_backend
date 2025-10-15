@@ -57,7 +57,7 @@ type SkillUnlockActionInfo struct {
 // GetSkillUnlockActions 获取技能的所有解锁动作
 // @Summary 获取技能的所有解锁动作
 // @Description 获取指定技能关联的所有解锁动作列表,按解锁等级排序
-// @Tags 动作系统
+// @Tags 动作
 // @Accept json
 // @Produce json
 // @Param skill_id path string true "技能的UUID"
@@ -87,7 +87,7 @@ func (h *SkillUnlockActionHandler) GetSkillUnlockActions(c echo.Context) error {
 // AddSkillUnlockAction 为技能添加解锁动作
 // @Summary 为技能添加解锁动作
 // @Description 为指定技能添加单个解锁动作关联,指定解锁等级、是否为默认动作以及动作的等级成长配置
-// @Tags 动作系统
+// @Tags 动作
 // @Accept json
 // @Produce json
 // @Param skill_id path string true "技能的UUID"
@@ -137,7 +137,7 @@ func (h *SkillUnlockActionHandler) AddSkillUnlockAction(c echo.Context) error {
 // RemoveSkillUnlockAction 从技能移除解锁动作
 // @Summary 从技能移除解锁动作
 // @Description 删除指定的技能-解锁动作关联记录
-// @Tags 动作系统
+// @Tags 动作
 // @Accept json
 // @Produce json
 // @Param skill_id path string true "技能的UUID"
@@ -164,7 +164,7 @@ func (h *SkillUnlockActionHandler) RemoveSkillUnlockAction(c echo.Context) error
 // BatchSetSkillUnlockActions 批量设置技能解锁动作
 // @Summary 批量设置技能解锁动作
 // @Description 批量设置技能的所有解锁动作关联(先删除旧关联,再创建新关联,事务保证),每个动作可配置独立的成长曲线
-// @Tags 动作系统
+// @Tags 动作
 // @Accept json
 // @Produce json
 // @Param skill_id path string true "技能的UUID"

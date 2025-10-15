@@ -1,17 +1,13 @@
 package middleware
 
 import (
-	"context"
-
 	"github.com/labstack/echo/v4"
 
+	"tsu-self/internal/pkg/ctxkey"
 	"tsu-self/internal/pkg/log"
 	"tsu-self/internal/pkg/response"
 	"tsu-self/internal/pkg/xerrors"
 )
-
-// UserContextKey 用户信息在 Context 中的 Key
-const UserContextKey = "current_user"
 
 // CurrentUser 当前请求的用户信息（从 Oathkeeper 传递）
 type CurrentUser struct {
@@ -47,12 +43,13 @@ func AuthMiddleware(respWriter response.Writer, logger log.Logger) echo.Middlewa
 				SessionToken: sessionToken,
 			}
 
-			// 将用户信息注入到 Context
-			ctx = context.WithValue(ctx, UserContextKey, currentUser)
+			// 将用户信息注入到 Context（使用统一的 ctxkey）
+			ctx = ctxkey.WithValue(ctx, ctxkey.UserID, userID)
+			ctx = ctxkey.WithValue(ctx, ctxkey.SessionID, sessionToken)
 			c.SetRequest(c.Request().WithContext(ctx))
 
 			// 也可以设置到 Echo Context，便于直接访问
-			c.Set(UserContextKey, currentUser)
+			c.Set(string(ctxkey.CurrentUser), currentUser)
 
 			logger.DebugContext(ctx,
 				"用户认证成功",
@@ -67,7 +64,7 @@ func AuthMiddleware(respWriter response.Writer, logger log.Logger) echo.Middlewa
 
 // GetCurrentUser 从 Echo Context 中获取当前用户
 func GetCurrentUser(c echo.Context) (*CurrentUser, error) {
-	user := c.Get(UserContextKey)
+	user := c.Get(string(ctxkey.CurrentUser))
 	if user == nil {
 		return nil, xerrors.New(
 			xerrors.CodeAuthenticationFailed,

@@ -114,7 +114,37 @@ services:
     networks:
       - tsu_network
 
-  # 注意: Swagger UI 已集成在 admin 服务中，访问 http://localhost/swagger/index.html
+  # Game 服务
+  game:
+    container_name: tsu_game
+    build:
+      context: ../..
+      dockerfile: ./deployments/docker/Dockerfile.game.local
+    ports:
+    - "8072:8072" # 暴露端口以便直接调试
+    env_file:
+      - ../../.env  # 从 .env 文件加载环境变量
+    environment:
+      - CONSUL_ADDRESS=consul:8500
+      - NATS_ADDRESS=nats:4222
+    volumes:
+      - ../..:/app
+    depends_on:
+      nats:
+        condition: service_healthy
+      consul:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: always
+    networks:
+      - tsu_network
+
+  # 注意: Swagger UI 已集成在 admin 和 game 服务中
+  # Admin: http://localhost:8071/swagger/index.html
+  # Game: http://localhost:8072/swagger/index.html
 
 networks:
   tsu_network:

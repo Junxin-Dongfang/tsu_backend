@@ -58,7 +58,7 @@ type ActionEffectInfo struct {
 // GetActionEffects 获取动作的所有效果
 // @Summary 获取动作的所有效果
 // @Description 获取指定动作关联的所有效果列表,按执行顺序排序
-// @Tags 动作系统
+// @Tags 动作
 // @Accept json
 // @Produce json
 // @Param action_id path string true "动作的UUID"
@@ -88,7 +88,7 @@ func (h *ActionEffectHandler) GetActionEffects(c echo.Context) error {
 // AddActionEffect 为动作添加效果
 // @Summary 为动作添加效果
 // @Description 为指定动作添加单个效果关联,支持参数覆盖和条件配置
-// @Tags 动作系统
+// @Tags 动作
 // @Accept json
 // @Produce json
 // @Param action_id path string true "动作的UUID"
@@ -145,7 +145,7 @@ func (h *ActionEffectHandler) AddActionEffect(c echo.Context) error {
 // RemoveActionEffect 从动作移除效果
 // @Summary 从动作移除效果
 // @Description 删除指定的动作-效果关联记录
-// @Tags 动作系统
+// @Tags 动作
 // @Accept json
 // @Produce json
 // @Param action_id path string true "动作的UUID"
@@ -172,7 +172,7 @@ func (h *ActionEffectHandler) RemoveActionEffect(c echo.Context) error {
 // BatchSetActionEffects 批量设置动作效果
 // @Summary 批量设置动作效果
 // @Description 批量设置动作的所有效果关联(先删除旧关联,再创建新关联,事务保证)
-// @Tags 动作系统
+// @Tags 动作
 // @Accept json
 // @Produce json
 // @Param action_id path string true "动作的UUID"

@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TSU API 文档</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 900px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 1.1em;
+        }
+
+        .api-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .api-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            padding: 30px;
+            text-decoration: none;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .api-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .api-card.admin {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .api-card.game {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .api-card h2 {
+            color: white;
+            margin-bottom: 15px;
+            font-size: 1.8em;
+        }
+
+        .api-card p {
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .api-card .version {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.3);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            color: white;
+            margin-top: 10px;
+        }
+
+        .health-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 30px;
+        }
+
+        .health-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .health-links {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .health-link {
+            display: inline-block;
+            padding: 10px 20px;
+            background: white;
+            border: 2px solid #667eea;
+            color: #667eea;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .health-link:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #999;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2em;
+            }
+
+            .api-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 TSU Server API</h1>
+        <p class="subtitle">DnD 5e 规则回合制 RPG 游戏服务端</p>
+
+        <div class="api-grid">
+            <a href="/admin/swagger/index.html" class="api-card admin" target="_blank">
+                <h2>📋 Admin API</h2>
+                <p>运营后台管理接口</p>
+                <p>• 游戏配置管理（职业、技能、Buff等）</p>
+                <p>• 用户管理</p>
+                <p>• 角色权限管理</p>
+                <span class="version">v1.0</span>
+            </a>
+
+            <a href="/game/swagger/index.html" class="api-card game" target="_blank">
+                <h2>🎯 Game API</h2>
+                <p>玩家游戏接口</p>
+                <p>• 玩家认证（注册、登录、密码重置）</p>
+                <p>• 游戏业务（英雄、战斗、背包等）</p>
+                <p>• DnD 5e 规则引擎</p>
+                <span class="version">v1.0</span>
+            </a>
+        </div>
+
+        <div class="health-section">
+            <h3>🏥 服务状态</h3>
+            <div class="health-links">
+                <a href="/admin/health" class="health-link" target="_blank">Admin 服务健康检查</a>
+                <a href="/game/health" class="health-link" target="_blank">Game 服务健康检查</a>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>TSU Server © 2025</p>
+        </div>
+    </div>
+</body>
+</html>

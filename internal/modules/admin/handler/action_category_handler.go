@@ -60,7 +60,7 @@ type ActionCategoryInfo struct {
 // GetActionCategories 获取动作类别列表
 // @Summary 获取动作类别列表
 // @Description 获取动作类别列表，支持按启用状态筛选，支持分页
-// @Tags 基础配置-动作类别
+// @Tags 动作类别
 // @Accept json
 // @Produce json
 // @Param is_active query bool false "是否启用"
@@ -111,7 +111,7 @@ func (h *ActionCategoryHandler) GetActionCategories(c echo.Context) error {
 // GetActionCategory 获取动作类别详情
 // @Summary 获取动作类别详情
 // @Description 根据动作类别ID获取单个动作类别的详细信息
-// @Tags 基础配置-动作类别
+// @Tags 动作类别
 // @Accept json
 // @Produce json
 // @Param id path string true "动作类别ID(UUID格式)"
@@ -136,7 +136,7 @@ func (h *ActionCategoryHandler) GetActionCategory(c echo.Context) error {
 // CreateActionCategory 创建动作类别
 // @Summary 创建动作类别
 // @Description 创建新的动作类别，类别代码必须唯一
-// @Tags 基础配置-动作类别
+// @Tags 动作类别
 // @Accept json
 // @Produce json
 // @Param request body CreateActionCategoryRequest true "创建动作类别请求"
@@ -181,7 +181,7 @@ func (h *ActionCategoryHandler) CreateActionCategory(c echo.Context) error {
 // UpdateActionCategory 更新动作类别
 // @Summary 更新动作类别
 // @Description 更新指定ID的动作类别信息，支持部分字段更新
-// @Tags 基础配置-动作类别
+// @Tags 动作类别
 // @Accept json
 // @Produce json
 // @Param id path string true "动作类别ID(UUID格式)"
@@ -234,7 +234,7 @@ func (h *ActionCategoryHandler) UpdateActionCategory(c echo.Context) error {
 // DeleteActionCategory 删除动作类别
 // @Summary 删除动作类别(软删除)
 // @Description 软删除指定ID的动作类别，不会真正删除数据
-// @Tags 基础配置-动作类别
+// @Tags 动作类别
 // @Accept json
 // @Produce json
 // @Param id path string true "动作类别ID(UUID格式)"

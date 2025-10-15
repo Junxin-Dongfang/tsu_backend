@@ -38,7 +38,7 @@ type RangeConfigRuleInfo struct {
 // GetRangeConfigRules 获取范围配置规则列表
 // @Summary 获取范围配置规则列表
 // @Description 获取范围配置规则的分页列表,支持按启用状态筛选。元数据配置表,定义技能/动作射程配置的参数格式和验证规则。
-// @Tags 元数据配置
+// @Tags 元数据
 // @Accept json
 // @Produce json
 // @Param is_active query bool false "是否启用"
@@ -84,7 +84,7 @@ func (h *RangeConfigRuleHandler) GetRangeConfigRules(c echo.Context) error {
 // GetRangeConfigRule 获取范围配置规则详情
 // @Summary 获取范围配置规则详情
 // @Description 根据ID获取范围配置规则的完整信息,包括参数类型、参数格式、示例等配置。
-// @Tags 元数据配置
+// @Tags 元数据
 // @Accept json
 // @Produce json
 // @Param id path string true "规则ID(UUID)"
@@ -109,7 +109,7 @@ func (h *RangeConfigRuleHandler) GetRangeConfigRule(c echo.Context) error {
 // GetAllRangeConfigRules 获取所有启用的范围配置规则
 // @Summary 获取所有启用的范围配置规则
 // @Description 获取所有启用状态的范围配置规则列表,不分页,用于射程配置表单的参数验证和格式提示。
-// @Tags 元数据配置
+// @Tags 元数据
 // @Accept json
 // @Produce json
 // @Success 200 {object} response.Response{data=[]RangeConfigRuleInfo} "所有启用的范围配置规则"

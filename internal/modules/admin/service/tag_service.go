@@ -1,6 +1,7 @@
 package service
 
 import (
+	"tsu-self/internal/pkg/xerrors"
 	"context"
 	"database/sql"
 	"fmt"
@@ -40,7 +41,7 @@ func (s *TagService) CreateTag(ctx context.Context, tag *game_config.Tag) error 
 		return err
 	}
 	if exists {
-		return fmt.Errorf("标签代码已存在: %s", tag.TagCode)
+		return xerrors.New(xerrors.CodeDuplicateResource, fmt.Sprintf("标签代码已存在: %s", tag.TagCode))
 	}
 
 	return s.repo.Create(ctx, tag)
@@ -59,7 +60,7 @@ func (s *TagService) UpdateTag(ctx context.Context, tagID string, updates map[st
 		// 检查标签代码是否已被使用
 		existing, err := s.repo.GetByCode(ctx, tagCode)
 		if err == nil && existing.ID != tagID {
-			return fmt.Errorf("标签代码已被使用: %s", tagCode)
+			return xerrors.New(xerrors.CodeDuplicateResource, fmt.Sprintf("标签代码已被使用: %s", tagCode))
 		}
 		tag.TagCode = tagCode
 	}

@@ -11,11 +11,9 @@ type CustomValidator struct {
 }
 
 // Validate implements echo.Validator interface
+// 直接返回原始验证错误,让 Handler 决定如何处理
 func (cv *CustomValidator) Validate(i interface{}) error {
-	if err := cv.validator.Struct(i); err != nil {
-		return echo.NewHTTPError(400, err.Error())
-	}
-	return nil
+	return cv.validator.Struct(i)
 }
 
 // New creates a new custom validator instance

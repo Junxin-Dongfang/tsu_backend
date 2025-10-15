@@ -89,7 +89,7 @@ type ListAdvancedRequirementsResponse struct {
 // GetAdvancedRequirements godoc
 // @Summary      获取职业进阶要求列表
 // @Description  获取系统中的所有职业进阶要求，支持按源职业、目标职业筛选。进阶要求定义了职业间的转换条件，包括等级、属性、技能、物品等多维度要求
-// @Tags         职业管理
+// @Tags 职业
 // @Accept       json
 // @Produce      json
 // @Param        from_class_id  query     string  false  "源职业ID，筛选从指定职业开始的进阶路径"  Format(uuid)  Example(30000000-0000-0000-0000-000000000001)
@@ -169,7 +169,7 @@ func (h *ClassAdvancedRequirementHandler) GetAdvancedRequirements(c echo.Context
 // GetAdvancedRequirement godoc
 // @Summary      获取单个职业进阶要求
 // @Description  根据ID获取职业进阶要求的详细信息
-// @Tags         职业管理
+// @Tags 职业
 // @Accept       json
 // @Produce      json
 // @Param        id   path      string  true  "进阶要求ID"  Format(uuid)
@@ -191,7 +191,7 @@ func (h *ClassAdvancedRequirementHandler) GetAdvancedRequirement(c echo.Context)
 // CreateAdvancedRequirement godoc
 // @Summary      创建职业进阶要求
 // @Description  创建新的职业进阶要求配置
-// @Tags         职业管理
+// @Tags 职业
 // @Accept       json
 // @Produce      json
 // @Param        request  body      CreateAdvancedRequirementRequest  true  "创建进阶要求请求"
@@ -240,7 +240,7 @@ func (h *ClassAdvancedRequirementHandler) CreateAdvancedRequirement(c echo.Conte
 // UpdateAdvancedRequirement godoc
 // @Summary      更新职业进阶要求
 // @Description  更新已存在的职业进阶要求配置
-// @Tags         职业管理
+// @Tags 职业
 // @Accept       json
 // @Produce      json
 // @Param        id       path      string                          true  "进阶要求ID"  Format(uuid)
@@ -304,7 +304,7 @@ func (h *ClassAdvancedRequirementHandler) UpdateAdvancedRequirement(c echo.Conte
 // DeleteAdvancedRequirement godoc
 // @Summary      删除职业进阶要求
 // @Description  删除指定的职业进阶要求（软删除）
-// @Tags         职业管理
+// @Tags 职业
 // @Accept       json
 // @Produce      json
 // @Param        id   path      string  true  "进阶要求ID"  Format(uuid)
@@ -325,7 +325,7 @@ func (h *ClassAdvancedRequirementHandler) DeleteAdvancedRequirement(c echo.Conte
 // BatchCreateAdvancedRequirements godoc
 // @Summary      批量创建职业进阶要求
 // @Description  批量创建多个职业进阶要求配置
-// @Tags         职业管理
+// @Tags 职业
 // @Accept       json
 // @Produce      json
 // @Param        request  body      BatchCreateRequest  true  "批量创建请求"

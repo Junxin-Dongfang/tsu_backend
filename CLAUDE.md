@@ -299,9 +299,10 @@ migrations/
 
 ```bash
 # 代码生成
-make proto           # 生成 Protobuf
-make generate-entity # 生成 SQLBoiler ORM
-make generate        # 一键生成所有
+make proto            # 生成 Protobuf
+make generate-entity  # 生成 SQLBoiler ORM
+make generate-errors  # 生成前端错误码枚举
+make generate         # 一键生成所有
 
 # 数据库迁移
 make migrate-create  # 创建迁移文件
@@ -310,6 +311,62 @@ make migrate-down    # 回滚迁移
 
 # Swagger 文档
 make swagger-admin   # 生成 Admin API 文档
+```
+
+### Swagger Tags 规范 🆕
+
+**命名规则**: 使用**纯中文**，简洁清晰
+
+```go
+// ✅ 正确 - 纯中文 tag
+// @Tags 认证
+// @Tags 用户管理
+// @Tags 职业
+// @Tags 技能
+// @Tags 属性类型
+
+// ❌ 错误 - 带路径的 tag
+// @Tags Auth / 认证
+// @Tags Game / Class / 职业
+```
+
+**当前 16 个 Tags**：
+
+**系统管理（3个）**：
+1. 认证 - 登录、登出、注册
+2. 用户管理 - 用户 CRUD
+3. 角色权限 - 角色和权限管理
+
+**基础配置（6个）**：
+4. 属性类型 - 力量、敏捷等
+5. 伤害类型 - 物理、魔法等
+6. 动作类别 - 近战、远程等
+7. 技能类别 - 主动、被动等
+8. 标签 - 通用标签系统
+9. 标签关联 - 标签与实体关系
+
+**游戏系统（7个）**：
+10. 职业 - 职业 CRUD
+11. 职业技能池 - 职业可用技能
+12. 技能 - 技能配置
+13. 动作 - 动作配置
+14. Buff - Buff 配置
+15. 效果 - 原子效果
+16. 元数据 - 只读配置（效果类型、公式变量等）
+
+**示例**：
+```go
+// @Summary 获取技能列表
+// @Description 获取技能列表，支持分页和筛选
+// @Tags 技能
+// @Accept json
+// @Produce json
+// @Param limit query int false "每页数量"
+// @Success 200 {object} response.Response{data=object{list=[]SkillInfo,total=int}}
+// @Router /admin/skills [get]
+func (h *SkillHandler) GetSkills(c echo.Context) error {
+    // ...
+}
 ```
 
 ---
@@ -688,7 +745,7 @@ buffs.parameter_definitions JSONB -- Buff 参数
 
 ---
 
-## 🛠️ 错误处理与响应
+## 🛠️ 错误处理与响应系统
 
 ### xerrors 错误码体系
 
@@ -706,6 +763,39 @@ buffs.parameter_definitions JSONB -- Buff 参数
   82xxxx: 职业相关
 ```
 
+### 前端错误码生成工具 🆕
+
+**自动生成 TypeScript 错误码定义**：
+
+```bash
+# 生成前端错误码枚举
+make generate-errors
+
+# 生成文件
+generated/frontend/error-codes.ts    # TypeScript 定义 (923行)
+generated/frontend/error-codes.json  # JSON 元数据 (536行)
+```
+
+**包含功能**：
+- ✅ 53个错误码的 TypeScript 枚举
+- ✅ 完整的类型定义和元数据
+- ✅ 辅助函数（`getErrorMessage()`、`isAuthError()`、`isRetryableError()` 等）
+- ✅ Axios 拦截器示例
+- ✅ 中英文双语支持
+
+**前端使用示例**：
+```typescript
+import { ErrorCode, isAuthError, getErrorMessage } from '@/utils/error-codes';
+
+// 检查错误类型
+if (isAuthError(error.code)) {
+  router.push('/login');
+}
+
+// 获取本地化消息
+const message = getErrorMessage(ErrorCode.USER_NOT_FOUND, 'zh');
+```
+
 ### response 响应处理
 
 ```go
@@ -720,7 +810,110 @@ return response.EchoBadRequest(c, h.respWriter, "参数错误")
   "message": "操作成功",
   "data": {...},
   "timestamp": 1759501201,
-  "trace_id": "..."
+  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
+}
+```
+
+### Context Key 统一管理 🆕
+
+**统一的 Context Key 系统** (`internal/pkg/ctxkey/ctxkey.go`)：
+
+```go
+import "tsu-self/internal/pkg/ctxkey"
+
+// 统一的 Context Key 定义
+const (
+    Language    ContextKey = "language"     // i18n 语言
+    TraceID     ContextKey = "trace_id"     // 分布式追踪ID
+    HTTPMethod  ContextKey = "http_method"  // HTTP 方法
+    UserID      ContextKey = "user_id"      // 用户ID
+    SessionID   ContextKey = "session_id"   // Session ID
+    RequestID   ContextKey = "request_id"   // 请求ID
+    CurrentUser ContextKey = "current_user" // 当前用户对象
+)
+
+// 使用示例
+ctx = ctxkey.WithValue(ctx, ctxkey.UserID, userID)
+userID := ctxkey.GetString(ctx, ctxkey.UserID)
+```
+
+**避免重复定义**：所有 Context Key 在此统一管理，杜绝跨包重复。
+
+### TraceID 分布式追踪 🆕
+
+**32字符十六进制格式** (兼容 W3C Traceparent 标准)：
+
+```go
+import "tsu-self/internal/pkg/trace"
+
+// 自动提取或生成 TraceID
+// 支持: X-Trace-Id, X-Request-Id, Traceparent (W3C)
+traceID := trace.ExtractFromHeader(c.Request().Header)
+
+// 设置到 Context
+ctx = trace.WithTraceID(ctx, traceID)
+
+// 获取 TraceID
+traceID := trace.GetTraceID(ctx)
+```
+
+**为什么不用 UUID？**
+- ✅ 更短（32字符 vs 36字符）
+- ✅ 兼容 OpenTelemetry、Jaeger、Zipkin
+- ✅ 支持 W3C Traceparent 标准
+- ✅ 性能更好（无需设置 version/variant bits）
+
+### 中间件架构 🆕
+
+**中间件顺序很重要**（从外到内）：
+
+```go
+// 1. TraceID - 生成/提取追踪ID
+m.httpServer.Use(trace.Middleware())
+
+// 2. Metrics - 记录 HTTP 方法到 Context
+m.httpServer.Use(metrics.Middleware())
+
+// 3. i18n - 语言检测
+m.httpServer.Use(i18n.Middleware())
+
+// 4. Logging - 详细日志记录
+loggingConfig := custommiddleware.DefaultLoggingConfig()
+if environment == "development" {
+    loggingConfig.DetailedLog = true
+    loggingConfig.LogRequestBody = true
+}
+m.httpServer.Use(custommiddleware.LoggingMiddlewareWithConfig(logger, loggingConfig))
+
+// 5. Recovery - Panic 恢复
+m.httpServer.Use(custommiddleware.RecoveryMiddleware(respWriter, logger))
+
+// 6. Error - 统一错误处理
+m.httpServer.Use(custommiddleware.ErrorMiddleware(respWriter, logger))
+
+// 7. CORS - 跨域支持
+m.httpServer.Use(middleware.CORS())
+```
+
+**中间件分类**：
+- **pkg（通用）**: trace, metrics, i18n
+- **internal/middleware（业务）**: auth, permission, logging, recovery, error
+
+### 日志中间件配置 🆕
+
+```go
+type LoggingConfig struct {
+    SkipPaths       []string  // 跳过的路径 (如 /health, /metrics)
+    DetailedLog     bool      // 详细日志（开发环境）
+    LogRequestBody  bool      // 记录请求体
+    LogResponseBody bool      // 记录响应体
+    MaxBodySize     int64     // 最大记录大小 (默认10KB)
+    SensitiveHeaders []string // 敏感 header（自动脱敏）
+}
+
+// 敏感信息自动脱敏
+SensitiveHeaders: []string{
+    "Authorization", "Cookie", "X-Session-Token", "X-Api-Key",
 }
 ```
 
@@ -794,6 +987,7 @@ if !bonus.DamageMultiplier.IsZero() {
 | `make dev-up` | 启动开发环境 |
 | `make proto` | 生成 Protobuf 代码 |
 | `make generate-entity` | 生成 SQLBoiler ORM |
+| `make generate-errors` | 生成前端错误码枚举 |
 | `make generate` | 一键生成所有 |
 | `make migrate-up` | 应用数据库迁移 |
 | `make migrate-create` | 创建新迁移文件 |
@@ -867,6 +1061,46 @@ if !bonus.DamageMultiplier.IsZero() {
 
 **替代方案**: 多个 WebSocket 端点 (客户端管理复杂)
 
+### ADR-004: Swagger Tags 纯中文命名
+
+**日期**: 2025-10-13
+
+**状态**: ✅ 已采纳
+
+**决策**: Swagger API 文档的 Tags 使用纯中文命名，不使用英文路径层级
+
+**理由**:
+1. **简洁明了**: 纯中文更符合国内开发者习惯
+2. **易于搜索**: 在 Swagger UI 中快速定位
+3. **维护方便**: 命名规则统一，无需考虑路径结构
+4. **直观易读**: 一目了然，无冗余信息
+
+**示例**:
+- ✅ 采纳: `@Tags 技能`
+- ❌ 拒绝: `@Tags Game / Skill / 技能`
+
+**替代方案**: 使用英文路径+中文（过于复杂，不利于快速浏览）
+
+### ADR-005: TraceID 使用 32 字符十六进制而非 UUID
+
+**日期**: 2025-10-13
+
+**状态**: ✅ 已采纳
+
+**决策**: TraceID 使用 32 字符十六进制格式（16字节随机数）而不是 UUID v4
+
+**理由**:
+1. **长度优化**: 32字符 vs UUID 的 36字符，节省 4 字节
+2. **标准兼容**: 兼容 W3C Traceparent、OpenTelemetry、Jaeger、Zipkin
+3. **性能更好**: 无需设置 UUID version/variant bits
+4. **多标准支持**: 可从 X-Trace-Id、X-Request-Id、Traceparent 等头部提取
+
+**格式对比**:
+- UUID v4: `550e8400-e29b-41d4-a716-446655440000` (36字符，含4个连字符)
+- TraceID: `4bf92f3577b34da6a3ce929d0e0e4736` (32字符，纯十六进制)
+
+**替代方案**: UUID v4（标准但更长，且需额外计算）
+
 ---
 
-**最后更新**: 2025-10-10
+**最后更新**: 2025-10-13

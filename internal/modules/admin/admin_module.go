@@ -8,14 +8,18 @@ import (
 
 	custommiddleware "tsu-self/internal/middleware"
 	"tsu-self/internal/modules/admin/handler"
+	"tsu-self/internal/pkg/i18n"
 	"tsu-self/internal/pkg/log"
+	"tsu-self/internal/pkg/metrics"
 	"tsu-self/internal/pkg/response"
+	"tsu-self/internal/pkg/security"
+	"tsu-self/internal/pkg/trace"
+	"tsu-self/internal/pkg/validation"
 	"tsu-self/internal/pkg/validator"
 
-	_ "tsu-self/docs" // Swagger 生成的文档
+	_ "tsu-self/docs/admin" // Swagger 生成的文档
 
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/module"
 	basemodule "github.com/liangdas/mqant/module/base"
@@ -154,10 +158,52 @@ func (m *AdminModule) initHTTPServer() {
 	// Register validator
 	m.httpServer.Validator = validator.New()
 
-	// Middleware
-	m.httpServer.Use(middleware.Logger())
-	m.httpServer.Use(middleware.Recover())
-	m.httpServer.Use(middleware.CORS())
+	// 获取全局 logger
+	logger := log.GetLogger()
+
+	// 获取环境变量
+	environment := os.Getenv("ENVIRONMENT")
+	if environment == "" {
+		environment = "development"
+	}
+
+	// ========== 中间件配置（顺序很重要！） ==========
+
+	// 1. TraceID 中间件 - 最先执行，生成或提取 TraceID
+	m.httpServer.Use(trace.Middleware())
+
+	// 2. Metrics 中间件 - 记录 HTTP 方法到 context（用于 Prometheus）
+	m.httpServer.Use(metrics.Middleware())
+
+	// 3. i18n 中间件 - 语言检测和设置
+	m.httpServer.Use(i18n.Middleware())
+
+	// 4. Logging 中间件 - 记录请求日志（依赖 TraceID）
+	loggingConfig := custommiddleware.DefaultLoggingConfig()
+	if environment == "development" {
+		// 开发环境启用详细日志
+		loggingConfig.DetailedLog = true
+		loggingConfig.LogRequestBody = true // 可以记录请求体
+	}
+	m.httpServer.Use(custommiddleware.LoggingMiddlewareWithConfig(logger, loggingConfig))
+
+	// 5. Recovery 中间件 - 捕获 panic
+	m.httpServer.Use(custommiddleware.RecoveryMiddleware(m.respWriter, logger))
+
+	// 6. Error 中间件 - 统一错误处理
+	m.httpServer.Use(custommiddleware.ErrorMiddleware(m.respWriter, logger))
+
+	// 7. CORS 中间件
+	m.httpServer.Use(security.CORSMiddleware())
+
+	fmt.Println("[Admin Module] HTTP middlewares configured:")
+	fmt.Println("  ✓ TraceID (自动生成追踪ID)")
+	fmt.Println("  ✓ Metrics (Prometheus 指标收集)")
+	fmt.Println("  ✓ i18n (国际化支持)")
+	fmt.Printf("  ✓ Logging (日志记录 - %s)\n", environment)
+	fmt.Println("  ✓ Recovery (Panic 恢复)")
+	fmt.Println("  ✓ Error (统一错误处理)")
+	fmt.Println("  ✓ CORS (跨域支持)")
 }
 
 // initResponseWriter initializes response writer
@@ -211,8 +257,11 @@ func (m *AdminModule) setupRoutes() {
 	// API v1 group
 	v1 := m.httpServer.Group("/api/v1")
 
+	// Admin routes - 所有 admin 相关接口统一使用 /admin 前缀
+	admin := v1.Group("/admin")
+
 	// Auth routes (公开访问，不需要认证)
-	auth := v1.Group("/auth")
+	auth := admin.Group("/auth")
 	{
 		auth.POST("/register", m.authHandler.Register)
 		auth.POST("/login", m.authHandler.Login)
@@ -223,131 +272,129 @@ func (m *AdminModule) setupRoutes() {
 		auth.POST("/recovery/initiate", m.passwordRecoveryHandler.InitiateRecovery)
 		auth.POST("/recovery/verify", m.passwordRecoveryHandler.VerifyRecoveryCode)
 		auth.POST("/password/reset", m.passwordRecoveryHandler.ResetPassword)
+		auth.POST("/password/reset-with-code", m.passwordRecoveryHandler.ResetPasswordWithCode) // 验证码重置密码
 	}
 
-	// Admin routes (需要认证，应用认证中间件)
+	// Admin protected routes (需要认证，应用认证中间件)
 	// 这些路由的请求必须经过 Oathkeeper 验证，并且会从 Header 中提取用户信息
-	admin := v1.Group("/admin")
-	admin.Use(custommiddleware.AuthMiddleware(m.respWriter, logger))
-	admin.Use(custommiddleware.UUIDValidationMiddleware(m.respWriter))
+	adminProtected := admin.Group("")
+	adminProtected.Use(custommiddleware.AuthMiddleware(m.respWriter, logger))
+	adminProtected.Use(validation.UUIDValidationMiddleware(m.respWriter))
 	{
 		// 用户管理
-		admin.GET("/users/me", m.userHandler.GetCurrentUserProfile) // 🆕 示例：获取当前登录用户信息
-		admin.GET("/users", m.userHandler.GetUsers)
-		admin.GET("/users/:id", m.userHandler.GetUser)
-		admin.PUT("/users/:id", m.userHandler.UpdateUser)
-		admin.POST("/users/:id/ban", m.userHandler.BanUser)
-		admin.POST("/users/:id/unban", m.userHandler.UnbanUser)
-		admin.DELETE("/users/:user_id", m.authHandler.DeleteUser) // 删除用户
-
-		// 用户密码重置 (管理员功能)
-		admin.POST("/users/recovery-code", m.passwordRecoveryHandler.AdminCreateRecoveryCode)
+		adminProtected.GET("/users/me", m.userHandler.GetCurrentUserProfile) // 🆕 示例：获取当前登录用户信息
+		adminProtected.GET("/users", m.userHandler.GetUsers)
+		adminProtected.GET("/users/:id", m.userHandler.GetUser)
+		adminProtected.PUT("/users/:id", m.userHandler.UpdateUser)
+		adminProtected.POST("/users/:id/ban", m.userHandler.BanUser)
+		adminProtected.POST("/users/:id/unban", m.userHandler.UnbanUser)
+		adminProtected.DELETE("/users/:user_id", m.authHandler.DeleteUser) // 删除用户
 
 		// 角色管理
-		admin.GET("/roles", m.permissionHandler.GetRoles)
-		admin.POST("/roles", m.permissionHandler.CreateRole)
-		admin.PUT("/roles/:id", m.permissionHandler.UpdateRole)
-		admin.DELETE("/roles/:id", m.permissionHandler.DeleteRole)
+		adminProtected.GET("/roles", m.permissionHandler.GetRoles)
+		adminProtected.POST("/roles", m.permissionHandler.CreateRole)
+		adminProtected.PUT("/roles/:id", m.permissionHandler.UpdateRole)
+		adminProtected.DELETE("/roles/:id", m.permissionHandler.DeleteRole)
 
 		// 角色-权限管理
-		admin.GET("/roles/:id/permissions", m.permissionHandler.GetRolePermissions)
-		admin.POST("/roles/:id/permissions", m.permissionHandler.AssignPermissionsToRole)
+		adminProtected.GET("/roles/:id/permissions", m.permissionHandler.GetRolePermissions)
+		adminProtected.POST("/roles/:id/permissions", m.permissionHandler.AssignPermissionsToRole)
 
 		// 权限管理
-		admin.GET("/permissions", m.permissionHandler.GetPermissions)
-		admin.GET("/permission-groups", m.permissionHandler.GetPermissionGroups)
+		adminProtected.GET("/permissions", m.permissionHandler.GetPermissions)
+		adminProtected.GET("/permission-groups", m.permissionHandler.GetPermissionGroups)
 
 		// 用户-角色管理
-		admin.GET("/users/:user_id/roles", m.permissionHandler.GetUserRoles)
-		admin.POST("/users/:user_id/roles", m.permissionHandler.AssignRolesToUser)
-		admin.DELETE("/users/:user_id/roles", m.permissionHandler.RevokeRolesFromUser)
+		adminProtected.GET("/users/:user_id/roles", m.permissionHandler.GetUserRoles)
+		adminProtected.POST("/users/:user_id/roles", m.permissionHandler.AssignRolesToUser)
+		adminProtected.DELETE("/users/:user_id/roles", m.permissionHandler.RevokeRolesFromUser)
 
 		// 用户-权限管理
-		admin.GET("/users/:user_id/permissions", m.permissionHandler.GetUserPermissions)
-		admin.POST("/users/:user_id/permissions", m.permissionHandler.GrantPermissionsToUser)
-		admin.DELETE("/users/:user_id/permissions", m.permissionHandler.RevokePermissionsFromUser)
+		adminProtected.GET("/users/:user_id/permissions", m.permissionHandler.GetUserPermissions)
+		adminProtected.POST("/users/:user_id/permissions", m.permissionHandler.GrantPermissionsToUser)
+		adminProtected.DELETE("/users/:user_id/permissions", m.permissionHandler.RevokePermissionsFromUser)
 
 		// 职业管理
-		admin.GET("/classes", m.classHandler.GetClasses)
-		admin.POST("/classes", m.classHandler.CreateClass)
-		admin.GET("/classes/:id", m.classHandler.GetClass)
-		admin.PUT("/classes/:id", m.classHandler.UpdateClass)
-		admin.DELETE("/classes/:id", m.classHandler.DeleteClass)
+		adminProtected.GET("/classes", m.classHandler.GetClasses)
+		adminProtected.POST("/classes", m.classHandler.CreateClass)
+		adminProtected.GET("/classes/:id", m.classHandler.GetClass)
+		adminProtected.PUT("/classes/:id", m.classHandler.UpdateClass)
+		adminProtected.DELETE("/classes/:id", m.classHandler.DeleteClass)
 
 		// 职业属性加成管理
-		admin.GET("/classes/:id/attribute-bonuses", m.classHandler.GetClassAttributeBonuses)
-		admin.POST("/classes/:id/attribute-bonuses", m.classHandler.CreateAttributeBonus)
-		admin.POST("/classes/:id/attribute-bonuses/batch", m.classHandler.BatchSetAttributeBonuses)
-		admin.PUT("/classes/:id/attribute-bonuses/:bonus_id", m.classHandler.UpdateAttributeBonus)
-		admin.DELETE("/classes/:id/attribute-bonuses/:bonus_id", m.classHandler.DeleteAttributeBonus)
+		adminProtected.GET("/classes/:id/attribute-bonuses", m.classHandler.GetClassAttributeBonuses)
+		adminProtected.POST("/classes/:id/attribute-bonuses", m.classHandler.CreateAttributeBonus)
+		adminProtected.POST("/classes/:id/attribute-bonuses/batch", m.classHandler.BatchSetAttributeBonuses)
+		adminProtected.PUT("/classes/:id/attribute-bonuses/:bonus_id", m.classHandler.UpdateAttributeBonus)
+		adminProtected.DELETE("/classes/:id/attribute-bonuses/:bonus_id", m.classHandler.DeleteAttributeBonus)
 
 		// 职业进阶路径查询（嵌套在职业下）
-		admin.GET("/classes/:id/advancement", m.classHandler.GetClassAdvancement)
-		admin.GET("/classes/:id/advancement-paths", m.classHandler.GetClassAdvancementPaths)
-		admin.GET("/classes/:id/advancement-sources", m.classHandler.GetClassAdvancementSources)
+		adminProtected.GET("/classes/:id/advancement", m.classHandler.GetClassAdvancement)
+		adminProtected.GET("/classes/:id/advancement-paths", m.classHandler.GetClassAdvancementPaths)
+		adminProtected.GET("/classes/:id/advancement-sources", m.classHandler.GetClassAdvancementSources)
 
 		// 职业进阶要求管理（独立接口）
-		admin.GET("/advancement-requirements", m.advancedRequirementHandler.GetAdvancedRequirements)
-		admin.POST("/advancement-requirements", m.advancedRequirementHandler.CreateAdvancedRequirement)
-		admin.POST("/advancement-requirements/batch", m.advancedRequirementHandler.BatchCreateAdvancedRequirements)
-		admin.GET("/advancement-requirements/:id", m.advancedRequirementHandler.GetAdvancedRequirement)
-		admin.PUT("/advancement-requirements/:id", m.advancedRequirementHandler.UpdateAdvancedRequirement)
-		admin.DELETE("/advancement-requirements/:id", m.advancedRequirementHandler.DeleteAdvancedRequirement)
+		adminProtected.GET("/advancement-requirements", m.advancedRequirementHandler.GetAdvancedRequirements)
+		adminProtected.POST("/advancement-requirements", m.advancedRequirementHandler.CreateAdvancedRequirement)
+		adminProtected.POST("/advancement-requirements/batch", m.advancedRequirementHandler.BatchCreateAdvancedRequirements)
+		adminProtected.GET("/advancement-requirements/:id", m.advancedRequirementHandler.GetAdvancedRequirement)
+		adminProtected.PUT("/advancement-requirements/:id", m.advancedRequirementHandler.UpdateAdvancedRequirement)
+		adminProtected.DELETE("/advancement-requirements/:id", m.advancedRequirementHandler.DeleteAdvancedRequirement)
 
 		// 职业技能池管理（嵌套在职业下）
-		admin.GET("/classes/:class_id/skill-pools", m.classSkillPoolHandler.GetClassSkillPoolsByClassID)
+		adminProtected.GET("/classes/:class_id/skill-pools", m.classSkillPoolHandler.GetClassSkillPoolsByClassID)
 
 		// 职业技能池管理（独立接口）
-		admin.GET("/class-skill-pools", m.classSkillPoolHandler.GetClassSkillPools)
-		admin.POST("/class-skill-pools", m.classSkillPoolHandler.CreateClassSkillPool)
-		admin.GET("/class-skill-pools/:id", m.classSkillPoolHandler.GetClassSkillPool)
-		admin.PUT("/class-skill-pools/:id", m.classSkillPoolHandler.UpdateClassSkillPool)
-		admin.DELETE("/class-skill-pools/:id", m.classSkillPoolHandler.DeleteClassSkillPool)
+		adminProtected.GET("/class-skill-pools", m.classSkillPoolHandler.GetClassSkillPools)
+		adminProtected.POST("/class-skill-pools", m.classSkillPoolHandler.CreateClassSkillPool)
+		adminProtected.GET("/class-skill-pools/:id", m.classSkillPoolHandler.GetClassSkillPool)
+		adminProtected.PUT("/class-skill-pools/:id", m.classSkillPoolHandler.UpdateClassSkillPool)
+		adminProtected.DELETE("/class-skill-pools/:id", m.classSkillPoolHandler.DeleteClassSkillPool)
 
 		// 技能类别管理
-		admin.GET("/skill-categories", m.skillCategoryHandler.GetSkillCategories)
-		admin.POST("/skill-categories", m.skillCategoryHandler.CreateSkillCategory)
-		admin.GET("/skill-categories/:id", m.skillCategoryHandler.GetSkillCategory)
-		admin.PUT("/skill-categories/:id", m.skillCategoryHandler.UpdateSkillCategory)
-		admin.DELETE("/skill-categories/:id", m.skillCategoryHandler.DeleteSkillCategory)
+		adminProtected.GET("/skill-categories", m.skillCategoryHandler.GetSkillCategories)
+		adminProtected.POST("/skill-categories", m.skillCategoryHandler.CreateSkillCategory)
+		adminProtected.GET("/skill-categories/:id", m.skillCategoryHandler.GetSkillCategory)
+		adminProtected.PUT("/skill-categories/:id", m.skillCategoryHandler.UpdateSkillCategory)
+		adminProtected.DELETE("/skill-categories/:id", m.skillCategoryHandler.DeleteSkillCategory)
 
 		// 动作类别管理
-		admin.GET("/action-categories", m.actionCategoryHandler.GetActionCategories)
-		admin.POST("/action-categories", m.actionCategoryHandler.CreateActionCategory)
-		admin.GET("/action-categories/:id", m.actionCategoryHandler.GetActionCategory)
-		admin.PUT("/action-categories/:id", m.actionCategoryHandler.UpdateActionCategory)
-		admin.DELETE("/action-categories/:id", m.actionCategoryHandler.DeleteActionCategory)
+		adminProtected.GET("/action-categories", m.actionCategoryHandler.GetActionCategories)
+		adminProtected.POST("/action-categories", m.actionCategoryHandler.CreateActionCategory)
+		adminProtected.GET("/action-categories/:id", m.actionCategoryHandler.GetActionCategory)
+		adminProtected.PUT("/action-categories/:id", m.actionCategoryHandler.UpdateActionCategory)
+		adminProtected.DELETE("/action-categories/:id", m.actionCategoryHandler.DeleteActionCategory)
 
 		// 伤害类型管理
-		admin.GET("/damage-types", m.damageTypeHandler.GetDamageTypes)
-		admin.POST("/damage-types", m.damageTypeHandler.CreateDamageType)
-		admin.GET("/damage-types/:id", m.damageTypeHandler.GetDamageType)
-		admin.PUT("/damage-types/:id", m.damageTypeHandler.UpdateDamageType)
-		admin.DELETE("/damage-types/:id", m.damageTypeHandler.DeleteDamageType)
+		adminProtected.GET("/damage-types", m.damageTypeHandler.GetDamageTypes)
+		adminProtected.POST("/damage-types", m.damageTypeHandler.CreateDamageType)
+		adminProtected.GET("/damage-types/:id", m.damageTypeHandler.GetDamageType)
+		adminProtected.PUT("/damage-types/:id", m.damageTypeHandler.UpdateDamageType)
+		adminProtected.DELETE("/damage-types/:id", m.damageTypeHandler.DeleteDamageType)
 
 		// 属性类型管理
-		admin.GET("/hero-attribute-types", m.heroAttributeTypeHandler.GetHeroAttributeTypes)
-		admin.POST("/hero-attribute-types", m.heroAttributeTypeHandler.CreateHeroAttributeType)
-		admin.GET("/hero-attribute-types/:id", m.heroAttributeTypeHandler.GetHeroAttributeType)
-		admin.PUT("/hero-attribute-types/:id", m.heroAttributeTypeHandler.UpdateHeroAttributeType)
-		admin.DELETE("/hero-attribute-types/:id", m.heroAttributeTypeHandler.DeleteHeroAttributeType)
+		adminProtected.GET("/hero-attribute-types", m.heroAttributeTypeHandler.GetHeroAttributeTypes)
+		adminProtected.POST("/hero-attribute-types", m.heroAttributeTypeHandler.CreateHeroAttributeType)
+		adminProtected.GET("/hero-attribute-types/:id", m.heroAttributeTypeHandler.GetHeroAttributeType)
+		adminProtected.PUT("/hero-attribute-types/:id", m.heroAttributeTypeHandler.UpdateHeroAttributeType)
+		adminProtected.DELETE("/hero-attribute-types/:id", m.heroAttributeTypeHandler.DeleteHeroAttributeType)
 
 		// 标签管理
-		admin.GET("/tags", m.tagHandler.GetTags)
-		admin.POST("/tags", m.tagHandler.CreateTag)
-		admin.GET("/tags/:id", m.tagHandler.GetTag)
-		admin.PUT("/tags/:id", m.tagHandler.UpdateTag)
-		admin.DELETE("/tags/:id", m.tagHandler.DeleteTag)
+		adminProtected.GET("/tags", m.tagHandler.GetTags)
+		adminProtected.POST("/tags", m.tagHandler.CreateTag)
+		adminProtected.GET("/tags/:id", m.tagHandler.GetTag)
+		adminProtected.PUT("/tags/:id", m.tagHandler.UpdateTag)
+		adminProtected.DELETE("/tags/:id", m.tagHandler.DeleteTag)
 
 		// 标签关联管理
-		admin.GET("/tags/:tag_id/entities", m.tagRelationHandler.GetTagEntities)
-		admin.GET("/entities/:entity_type/:entity_id/tags", m.tagRelationHandler.GetEntityTags)
-		admin.POST("/entities/:entity_type/:entity_id/tags", m.tagRelationHandler.AddTagToEntity)
-		admin.POST("/entities/:entity_type/:entity_id/tags/batch", m.tagRelationHandler.BatchSetEntityTags)
-		admin.DELETE("/entities/:entity_type/:entity_id/tags/:tag_id", m.tagRelationHandler.RemoveTagFromEntity)
+		adminProtected.GET("/tags/:tag_id/entities", m.tagRelationHandler.GetTagEntities)
+		adminProtected.GET("/entities/:entity_type/:entity_id/tags", m.tagRelationHandler.GetEntityTags)
+		adminProtected.POST("/entities/:entity_type/:entity_id/tags", m.tagRelationHandler.AddTagToEntity)
+		adminProtected.POST("/entities/:entity_type/:entity_id/tags/batch", m.tagRelationHandler.BatchSetEntityTags)
+		adminProtected.DELETE("/entities/:entity_type/:entity_id/tags/:tag_id", m.tagRelationHandler.RemoveTagFromEntity)
 
 		// 元数据管理 (需要认证)
-		metadata := admin.Group("/metadata")
+		metadata := adminProtected.Group("/metadata")
 		{
 			// 元效果类型定义
 			metadata.GET("/effect-type-definitions", m.effectTypeDefinitionHandler.GetEffectTypeDefinitions)
@@ -371,65 +418,65 @@ func (m *AdminModule) setupRoutes() {
 		}
 
 		// 技能管理
-		admin.GET("/skills", m.skillHandler.GetSkills)
-		admin.POST("/skills", m.skillHandler.CreateSkill)
-		admin.GET("/skills/:id", m.skillHandler.GetSkill)
-		admin.PUT("/skills/:id", m.skillHandler.UpdateSkill)
-		admin.DELETE("/skills/:id", m.skillHandler.DeleteSkill)
+		adminProtected.GET("/skills", m.skillHandler.GetSkills)
+		adminProtected.POST("/skills", m.skillHandler.CreateSkill)
+		adminProtected.GET("/skills/:id", m.skillHandler.GetSkill)
+		adminProtected.PUT("/skills/:id", m.skillHandler.UpdateSkill)
+		adminProtected.DELETE("/skills/:id", m.skillHandler.DeleteSkill)
 
 		// 全局技能升级消耗管理
-		admin.GET("/skill-upgrade-costs", m.skillUpgradeCostHandler.GetSkillUpgradeCosts)
-		admin.POST("/skill-upgrade-costs", m.skillUpgradeCostHandler.CreateSkillUpgradeCost)
-		admin.GET("/skill-upgrade-costs/level/:level", m.skillUpgradeCostHandler.GetSkillUpgradeCostByLevel)
-		admin.GET("/skill-upgrade-costs/:id", m.skillUpgradeCostHandler.GetSkillUpgradeCost)
-		admin.PUT("/skill-upgrade-costs/:id", m.skillUpgradeCostHandler.UpdateSkillUpgradeCost)
-		admin.DELETE("/skill-upgrade-costs/:id", m.skillUpgradeCostHandler.DeleteSkillUpgradeCost)
+		adminProtected.GET("/skill-upgrade-costs", m.skillUpgradeCostHandler.GetSkillUpgradeCosts)
+		adminProtected.POST("/skill-upgrade-costs", m.skillUpgradeCostHandler.CreateSkillUpgradeCost)
+		adminProtected.GET("/skill-upgrade-costs/level/:level", m.skillUpgradeCostHandler.GetSkillUpgradeCostByLevel)
+		adminProtected.GET("/skill-upgrade-costs/:id", m.skillUpgradeCostHandler.GetSkillUpgradeCost)
+		adminProtected.PUT("/skill-upgrade-costs/:id", m.skillUpgradeCostHandler.UpdateSkillUpgradeCost)
+		adminProtected.DELETE("/skill-upgrade-costs/:id", m.skillUpgradeCostHandler.DeleteSkillUpgradeCost)
 
 		// 效果管理
-		admin.GET("/effects", m.effectHandler.GetEffects)
-		admin.POST("/effects", m.effectHandler.CreateEffect)
-		admin.GET("/effects/:id", m.effectHandler.GetEffect)
-		admin.PUT("/effects/:id", m.effectHandler.UpdateEffect)
-		admin.DELETE("/effects/:id", m.effectHandler.DeleteEffect)
+		adminProtected.GET("/effects", m.effectHandler.GetEffects)
+		adminProtected.POST("/effects", m.effectHandler.CreateEffect)
+		adminProtected.GET("/effects/:id", m.effectHandler.GetEffect)
+		adminProtected.PUT("/effects/:id", m.effectHandler.UpdateEffect)
+		adminProtected.DELETE("/effects/:id", m.effectHandler.DeleteEffect)
 
 		// Buff管理
-		admin.GET("/buffs", m.buffHandler.GetBuffs)
-		admin.POST("/buffs", m.buffHandler.CreateBuff)
-		admin.GET("/buffs/:id", m.buffHandler.GetBuff)
-		admin.PUT("/buffs/:id", m.buffHandler.UpdateBuff)
-		admin.DELETE("/buffs/:id", m.buffHandler.DeleteBuff)
+		adminProtected.GET("/buffs", m.buffHandler.GetBuffs)
+		adminProtected.POST("/buffs", m.buffHandler.CreateBuff)
+		adminProtected.GET("/buffs/:id", m.buffHandler.GetBuff)
+		adminProtected.PUT("/buffs/:id", m.buffHandler.UpdateBuff)
+		adminProtected.DELETE("/buffs/:id", m.buffHandler.DeleteBuff)
 
 		// Buff效果关联管理
-		admin.GET("/buffs/:buff_id/effects", m.buffEffectHandler.GetBuffEffects)
-		admin.POST("/buffs/:buff_id/effects", m.buffEffectHandler.AddBuffEffect)
-		admin.POST("/buffs/:buff_id/effects/batch", m.buffEffectHandler.BatchSetBuffEffects)
-		admin.DELETE("/buffs/:buff_id/effects/:effect_id", m.buffEffectHandler.RemoveBuffEffect)
+		adminProtected.GET("/buffs/:buff_id/effects", m.buffEffectHandler.GetBuffEffects)
+		adminProtected.POST("/buffs/:buff_id/effects", m.buffEffectHandler.AddBuffEffect)
+		adminProtected.POST("/buffs/:buff_id/effects/batch", m.buffEffectHandler.BatchSetBuffEffects)
+		adminProtected.DELETE("/buffs/:buff_id/effects/:effect_id", m.buffEffectHandler.RemoveBuffEffect)
 
 		// 动作Flag管理
-		admin.GET("/action-flags", m.actionFlagHandler.GetActionFlags)
-		admin.POST("/action-flags", m.actionFlagHandler.CreateActionFlag)
-		admin.GET("/action-flags/:id", m.actionFlagHandler.GetActionFlag)
-		admin.PUT("/action-flags/:id", m.actionFlagHandler.UpdateActionFlag)
-		admin.DELETE("/action-flags/:id", m.actionFlagHandler.DeleteActionFlag)
+		adminProtected.GET("/action-flags", m.actionFlagHandler.GetActionFlags)
+		adminProtected.POST("/action-flags", m.actionFlagHandler.CreateActionFlag)
+		adminProtected.GET("/action-flags/:id", m.actionFlagHandler.GetActionFlag)
+		adminProtected.PUT("/action-flags/:id", m.actionFlagHandler.UpdateActionFlag)
+		adminProtected.DELETE("/action-flags/:id", m.actionFlagHandler.DeleteActionFlag)
 
 		// 动作管理
-		admin.GET("/actions", m.actionHandler.GetActions)
-		admin.POST("/actions", m.actionHandler.CreateAction)
-		admin.GET("/actions/:id", m.actionHandler.GetAction)
-		admin.PUT("/actions/:id", m.actionHandler.UpdateAction)
-		admin.DELETE("/actions/:id", m.actionHandler.DeleteAction)
+		adminProtected.GET("/actions", m.actionHandler.GetActions)
+		adminProtected.POST("/actions", m.actionHandler.CreateAction)
+		adminProtected.GET("/actions/:id", m.actionHandler.GetAction)
+		adminProtected.PUT("/actions/:id", m.actionHandler.UpdateAction)
+		adminProtected.DELETE("/actions/:id", m.actionHandler.DeleteAction)
 
 		// 动作效果关联管理
-		admin.GET("/actions/:action_id/effects", m.actionEffectHandler.GetActionEffects)
-		admin.POST("/actions/:action_id/effects", m.actionEffectHandler.AddActionEffect)
-		admin.POST("/actions/:action_id/effects/batch", m.actionEffectHandler.BatchSetActionEffects)
-		admin.DELETE("/actions/:action_id/effects/:effect_id", m.actionEffectHandler.RemoveActionEffect)
+		adminProtected.GET("/actions/:action_id/effects", m.actionEffectHandler.GetActionEffects)
+		adminProtected.POST("/actions/:action_id/effects", m.actionEffectHandler.AddActionEffect)
+		adminProtected.POST("/actions/:action_id/effects/batch", m.actionEffectHandler.BatchSetActionEffects)
+		adminProtected.DELETE("/actions/:action_id/effects/:effect_id", m.actionEffectHandler.RemoveActionEffect)
 
 		// 技能解锁动作管理
-		admin.GET("/skills/:skill_id/unlock-actions", m.skillUnlockActionHandler.GetSkillUnlockActions)
-		admin.POST("/skills/:skill_id/unlock-actions", m.skillUnlockActionHandler.AddSkillUnlockAction)
-		admin.POST("/skills/:skill_id/unlock-actions/batch", m.skillUnlockActionHandler.BatchSetSkillUnlockActions)
-		admin.DELETE("/skills/:skill_id/unlock-actions/:action_id", m.skillUnlockActionHandler.RemoveSkillUnlockAction)
+		adminProtected.GET("/skills/:skill_id/unlock-actions", m.skillUnlockActionHandler.GetSkillUnlockActions)
+		adminProtected.POST("/skills/:skill_id/unlock-actions", m.skillUnlockActionHandler.AddSkillUnlockAction)
+		adminProtected.POST("/skills/:skill_id/unlock-actions/batch", m.skillUnlockActionHandler.BatchSetSkillUnlockActions)
+		adminProtected.DELETE("/skills/:skill_id/unlock-actions/:action_id", m.skillUnlockActionHandler.RemoveSkillUnlockAction)
 	}
 
 	// Swagger UI
@@ -443,8 +490,12 @@ func (m *AdminModule) setupRoutes() {
 		})
 	})
 
+	// Prometheus metrics endpoint
+	m.httpServer.GET("/metrics", metrics.EchoHandler())
+
 	fmt.Println("[Admin Module] Routes configured successfully")
 	fmt.Println("[Admin Module] Swagger UI available at http://localhost:8071/swagger/index.html")
+	fmt.Println("[Admin Module] Prometheus metrics available at http://localhost:8071/metrics")
 }
 
 // startHTTPServer starts HTTP server

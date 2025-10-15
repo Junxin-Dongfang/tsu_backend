@@ -49,7 +49,7 @@ type EffectTypeDefinitionInfo struct {
 // GetEffectTypeDefinitions 获取元效果类型定义列表
 // @Summary 获取元效果类型定义列表
 // @Description 获取元效果类型定义的分页列表,支持按是否启用筛选。元数据配置表,定义游戏中效果类型的参数规范和验证规则。
-// @Tags 元数据配置
+// @Tags 元数据
 // @Accept json
 // @Produce json
 // @Param is_active query bool false "是否启用"
@@ -100,7 +100,7 @@ func (h *EffectTypeDefinitionHandler) GetEffectTypeDefinitions(c echo.Context) e
 // GetEffectTypeDefinition 获取元效果类型定义详情
 // @Summary 获取元效果类型定义详情
 // @Description 根据ID获取元效果类型定义的完整信息,包括参数列表、失败处理规则等配置。
-// @Tags 元数据配置
+// @Tags 元数据
 // @Accept json
 // @Produce json
 // @Param id path string true "定义ID(UUID)"
@@ -125,7 +125,7 @@ func (h *EffectTypeDefinitionHandler) GetEffectTypeDefinition(c echo.Context) er
 // GetAllEffectTypeDefinitions 获取所有启用的元效果类型定义
 // @Summary 获取所有启用的元效果类型定义
 // @Description 获取所有启用状态的元效果类型定义列表,不分页,用于下拉选择器和配置表单。
-// @Tags 元数据配置
+// @Tags 元数据
 // @Accept json
 // @Produce json
 // @Success 200 {object} response.Response{data=[]EffectTypeDefinitionInfo} "所有启用的元效果类型定义"

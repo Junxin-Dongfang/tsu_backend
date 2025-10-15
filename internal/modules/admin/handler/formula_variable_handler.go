@@ -41,7 +41,7 @@ type FormulaVariableInfo struct {
 // GetFormulaVariables 获取公式变量列表
 // @Summary 获取公式变量列表
 // @Description 获取公式变量的分页列表,支持按变量类型、作用域、启用状态筛选。元数据配置表,定义游戏公式中可用的变量及其类型。
-// @Tags 元数据配置
+// @Tags 元数据
 // @Accept json
 // @Produce json
 // @Param variable_type query string false "变量类型(attribute/runtime/config/calculated)"
@@ -95,7 +95,7 @@ func (h *FormulaVariableHandler) GetFormulaVariables(c echo.Context) error {
 // GetFormulaVariable 获取公式变量详情
 // @Summary 获取公式变量详情
 // @Description 根据ID获取公式变量的完整信息,包括变量代码、名称、类型、作用域、数据类型等配置。
-// @Tags 元数据配置
+// @Tags 元数据
 // @Accept json
 // @Produce json
 // @Param id path string true "变量ID(UUID)"
@@ -120,7 +120,7 @@ func (h *FormulaVariableHandler) GetFormulaVariable(c echo.Context) error {
 // GetAllFormulaVariables 获取所有启用的公式变量
 // @Summary 获取所有启用的公式变量
 // @Description 获取所有启用状态的公式变量列表,不分页,用于公式编辑器的变量选择和自动补全功能。
-// @Tags 元数据配置
+// @Tags 元数据
 // @Accept json
 // @Produce json
 // @Success 200 {object} response.Response{data=[]FormulaVariableInfo} "所有启用的公式变量"

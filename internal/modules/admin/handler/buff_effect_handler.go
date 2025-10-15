@@ -55,7 +55,7 @@ type BuffEffectInfo struct {
 // GetBuffEffects 获取Buff的所有效果
 // @Summary 获取Buff的所有效果
 // @Description 获取指定Buff关联的所有效果列表
-// @Tags Buff系统
+// @Tags Buff
 // @Accept json
 // @Produce json
 // @Param buff_id path string true "Buff ID (UUID格式)"
@@ -85,7 +85,7 @@ func (h *BuffEffectHandler) GetBuffEffects(c echo.Context) error {
 // AddBuffEffect 为Buff添加效果
 // @Summary 为Buff添加效果
 // @Description 为指定Buff添加一个效果，包括触发时机和执行顺序配置
-// @Tags Buff系统
+// @Tags Buff
 // @Accept json
 // @Produce json
 // @Param buff_id path string true "Buff ID (UUID格式)"
@@ -131,7 +131,7 @@ func (h *BuffEffectHandler) AddBuffEffect(c echo.Context) error {
 // RemoveBuffEffect 从Buff移除效果
 // @Summary 从Buff移除效果
 // @Description 从指定Buff中移除一个效果关联
-// @Tags Buff系统
+// @Tags Buff
 // @Accept json
 // @Produce json
 // @Param buff_id path string true "Buff ID (UUID格式)"
@@ -158,7 +158,7 @@ func (h *BuffEffectHandler) RemoveBuffEffect(c echo.Context) error {
 // BatchSetBuffEffects 批量设置Buff效果
 // @Summary 批量设置Buff效果
 // @Description 批量设置Buff的效果列表（先删除旧效果，再添加新效果，事务保证）
-// @Tags Buff系统
+// @Tags Buff
 // @Accept json
 // @Produce json
 // @Param buff_id path string true "Buff ID (UUID格式)"

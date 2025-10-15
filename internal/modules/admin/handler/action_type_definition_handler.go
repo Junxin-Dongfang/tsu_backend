@@ -38,7 +38,7 @@ type ActionTypeDefinitionInfo struct {
 // GetActionTypeDefinitions 获取动作类型定义列表
 // @Summary 获取动作类型定义列表
 // @Description 获取动作类型定义的分页列表,支持按启用状态筛选。元数据配置表,定义DnD 5e动作类型(主要动作/附赠动作/反应)的规则和限制。
-// @Tags 元数据配置
+// @Tags 元数据
 // @Accept json
 // @Produce json
 // @Param is_active query bool false "是否启用"
@@ -84,7 +84,7 @@ func (h *ActionTypeDefinitionHandler) GetActionTypeDefinitions(c echo.Context) e
 // GetActionTypeDefinition 获取动作类型定义详情
 // @Summary 获取动作类型定义详情
 // @Description 根据ID获取动作类型定义的完整信息,包括动作类型、每回合限制、使用时机等配置。
-// @Tags 元数据配置
+// @Tags 元数据
 // @Accept json
 // @Produce json
 // @Param id path string true "定义ID(UUID)"
@@ -109,7 +109,7 @@ func (h *ActionTypeDefinitionHandler) GetActionTypeDefinition(c echo.Context) er
 // GetAllActionTypeDefinitions 获取所有启用的动作类型定义
 // @Summary 获取所有启用的动作类型定义
 // @Description 获取所有启用状态的动作类型定义列表,不分页,用于动作配置表单的类型选择和规则验证。
-// @Tags 元数据配置
+// @Tags 元数据
 // @Accept json
 // @Produce json
 // @Success 200 {object} response.Response{data=[]ActionTypeDefinitionInfo} "所有启用的动作类型定义"

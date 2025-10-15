@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"tsu-self/internal/entity/game_config"
+	"tsu-self/internal/pkg/xerrors"
 	"tsu-self/internal/repository/impl"
 	"tsu-self/internal/repository/interfaces"
 )
@@ -40,7 +41,7 @@ func (s *DamageTypeService) CreateDamageType(ctx context.Context, damageType *ga
 		return err
 	}
 	if exists {
-		return fmt.Errorf("伤害类型代码已存在: %s", damageType.Code)
+		return xerrors.New(xerrors.CodeDuplicateResource, fmt.Sprintf("伤害类型代码已存在: %s", damageType.Code))
 	}
 
 	return s.repo.Create(ctx, damageType)
@@ -59,7 +60,7 @@ func (s *DamageTypeService) UpdateDamageType(ctx context.Context, damageTypeID s
 		// 检查代码是否已被使用
 		existing, err := s.repo.GetByCode(ctx, code)
 		if err == nil && existing.ID != damageTypeID {
-			return fmt.Errorf("伤害类型代码已被使用: %s", code)
+			return xerrors.New(xerrors.CodeDuplicateResource, fmt.Sprintf("伤害类型代码已被使用: %s", code))
 		}
 		damageType.Code = code
 	}

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"tsu-self/internal/pkg/xerrors"
 	"context"
 	"database/sql"
 	"fmt"
@@ -40,7 +41,7 @@ func (s *ActionCategoryService) CreateActionCategory(ctx context.Context, catego
 		return err
 	}
 	if exists {
-		return fmt.Errorf("动作类别代码已存在: %s", category.CategoryCode)
+		return xerrors.New(xerrors.CodeDuplicateResource, fmt.Sprintf("动作类别代码已存在: %s", category.CategoryCode))
 	}
 
 	return s.repo.Create(ctx, category)
@@ -59,7 +60,7 @@ func (s *ActionCategoryService) UpdateActionCategory(ctx context.Context, catego
 		// 检查类别代码是否已被使用
 		existing, err := s.repo.GetByCode(ctx, categoryCode)
 		if err == nil && existing.ID != categoryID {
-			return fmt.Errorf("动作类别代码已被使用: %s", categoryCode)
+			return xerrors.New(xerrors.CodeDuplicateResource, fmt.Sprintf("动作类别代码已被使用: %s", categoryCode))
 		}
 		category.CategoryCode = categoryCode
 	}

@@ -66,14 +66,14 @@ type GetUserResponse struct {
 // Register handles user registration
 // @Summary 用户注册
 // @Description 注册新的用户账号
-// @Tags 开始
+// @Tags 认证
 // @Accept json
 // @Produce json
 // @Param request body RegisterRequest true "注册请求"
 // @Success 200 {object} response.Response{data=RegisterResponse} "注册成功"
 // @Failure 400 {object} response.Response "请求参数错误"
 // @Failure 500 {object} response.Response "服务器内部错误"
-// @Router /auth/register [post]
+// @Router /admin/auth/register [post]
 func (h *AuthHandler) Register(c echo.Context) error {
 	// 1. 绑定和验证 HTTP 请求
 	var req RegisterRequest
@@ -82,7 +82,7 @@ func (h *AuthHandler) Register(c echo.Context) error {
 	}
 
 	if err := c.Validate(&req); err != nil {
-		return response.EchoBadRequest(c, h.respWriter, err.Error())
+		return response.EchoValidationError(c, h.respWriter, err)
 	}
 
 	// 2. 构造 Protobuf RPC 请求
@@ -150,7 +150,7 @@ func (h *AuthHandler) Register(c echo.Context) error {
 // GetUser handles getting user info
 // @Summary 获取用户信息
 // @Description 通过用户ID获取用户信息
-// @Tags 开始
+// @Tags 认证
 // @Accept json
 // @Produce json
 // @Param user_id path string true "用户ID"
@@ -158,7 +158,7 @@ func (h *AuthHandler) Register(c echo.Context) error {
 // @Failure 400 {object} response.Response "请求参数错误"
 // @Failure 404 {object} response.Response "用户不存在"
 // @Failure 500 {object} response.Response "服务器内部错误"
-// @Router /auth/users/{user_id} [get]
+// @Router /admin/auth/users/{user_id} [get]
 // @Security BearerAuth
 func (h *AuthHandler) GetUser(c echo.Context) error {
 	userID := c.Param("user_id")
@@ -252,7 +252,7 @@ type LoginResponse struct {
 // Login handles user login
 // @Summary 用户登录
 // @Description 使用邮箱或用户名和密码登录,返回会话信息
-// @Tags 开始
+// @Tags 认证
 // @Accept json
 // @Produce json
 // @Param request body LoginRequest true "登录请求"
@@ -260,7 +260,7 @@ type LoginResponse struct {
 // @Failure 400 {object} response.Response "请求参数错误"
 // @Failure 401 {object} response.Response "认证失败"
 // @Failure 500 {object} response.Response "服务器内部错误"
-// @Router /auth/login [post]
+// @Router /admin/auth/login [post]
 func (h *AuthHandler) Login(c echo.Context) error {
 	var req LoginRequest
 	if err := c.Bind(&req); err != nil {
@@ -268,7 +268,7 @@ func (h *AuthHandler) Login(c echo.Context) error {
 	}
 
 	if err := c.Validate(&req); err != nil {
-		return response.EchoBadRequest(c, h.respWriter, err.Error())
+		return response.EchoValidationError(c, h.respWriter, err)
 	}
 
 	// 构造 Protobuf RPC 请求
@@ -345,13 +345,13 @@ func (h *AuthHandler) Login(c echo.Context) error {
 // Logout handles user logout
 // @Summary 用户登出
 // @Description 登出并使会话失效
-// @Tags 开始
+// @Tags 认证
 // @Accept json
 // @Produce json
 // @Success 200 {object} response.Response "登出成功"
 // @Failure 400 {object} response.Response "请求参数错误"
 // @Failure 500 {object} response.Response "服务器内部错误"
-// @Router /auth/logout [post]
+// @Router /admin/auth/logout [post]
 // @Security BearerAuth
 func (h *AuthHandler) Logout(c echo.Context) error {
 	// 从 Cookie 中获取 Session Token
@@ -418,7 +418,7 @@ func (h *AuthHandler) Logout(c echo.Context) error {
 // DeleteUser 删除用户（管理员操作）
 // @Summary 删除用户
 // @Description 删除指定用户（软删除业务数据 + 删除 Kratos identity）
-// @Tags 管理员-用户管理
+// @Tags 用户管理
 // @Accept json
 // @Produce json
 // @Param user_id path string true "用户ID"

@@ -30,24 +30,24 @@ func NewHeroAttributeTypeHandler(db *sql.DB, respWriter response.Writer) *HeroAt
 
 // CreateHeroAttributeTypeRequest 创建属性类型请求
 type CreateHeroAttributeTypeRequest struct {
-	AttributeCode string  `json:"attribute_code" validate:"required,max=32" example:"strength"` // 属性代码(必需,最多32字符)
-	AttributeName string  `json:"attribute_name" validate:"required,max=64" example:"力量"`       // 属性名称(必需,最多64字符)
-	Category      string  `json:"category" validate:"required" example:"primary"`               // 属性类别(必需,如primary/secondary)
-	DataType      string  `json:"data_type" validate:"required" example:"integer"`              // 数据类型(必需,如integer/float)
-	Icon          *string `json:"icon" example:"strength_icon.png"`                             // 图标(可选)
-	Color         *string `json:"color" example:"#FF0000"`                                      // 颜色(可选)
-	Unit          *string `json:"unit" example:"点"`                                             // 单位(可选)
-	DisplayOrder  *int    `json:"display_order" example:"1"`                                    // 显示顺序(可选)
-	IsActive      *bool   `json:"is_active" example:"true"`                                     // 是否启用(可选)
-	IsVisible     *bool   `json:"is_visible" example:"true"`                                    // 是否可见(可选)
-	Description   *string `json:"description" example:"角色的力量属性"`                                // 描述(可选)
+	AttributeCode string  `json:"attribute_code" validate:"required,max=32" example:"strength"`                     // 属性代码(必需,最多32字符)
+	AttributeName string  `json:"attribute_name" validate:"required,max=64" example:"力量"`                           // 属性名称(必需,最多64字符)
+	Category      string  `json:"category" validate:"required,oneof=basic derived resistance" example:"basic"`      // 属性类别(必需,basic=基础属性/derived=派生属性/resistance=抗性属性)
+	DataType      string  `json:"data_type" validate:"required,oneof=integer decimal percentage boolean" example:"integer"` // 数据类型(必需,integer=整数/decimal=小数/percentage=百分比/boolean=布尔)
+	Icon          *string `json:"icon" example:"strength_icon.png"`                                                 // 图标(可选)
+	Color         *string `json:"color" example:"#FF0000"`                                                          // 颜色(可选)
+	Unit          *string `json:"unit" example:"点"`                                                                 // 单位(可选)
+	DisplayOrder  *int    `json:"display_order" example:"1"`                                                        // 显示顺序(可选)
+	IsActive      *bool   `json:"is_active" example:"true"`                                                         // 是否启用(可选)
+	IsVisible     *bool   `json:"is_visible" example:"true"`                                                        // 是否可见(可选)
+	Description   *string `json:"description" example:"角色的力量属性"`                                                    // 描述(可选)
 }
 
 // UpdateHeroAttributeTypeRequest 更新属性类型请求
 type UpdateHeroAttributeTypeRequest struct {
 	AttributeCode *string `json:"attribute_code" validate:"omitempty,max=32"`
 	AttributeName *string `json:"attribute_name" validate:"omitempty,max=64"`
-	Category      *string `json:"category"`
+	Category      *string `json:"category" validate:"omitempty,oneof=basic derived resistance"` // 属性类别(可选,basic=基础属性/derived=派生属性/resistance=抗性属性)
 	Icon          *string `json:"icon"`
 	Color         *string `json:"color"`
 	DisplayOrder  *int    `json:"display_order"`
@@ -79,10 +79,10 @@ type HeroAttributeTypeInfo struct {
 // GetHeroAttributeTypes 获取属性类型列表
 // @Summary 获取属性类型列表
 // @Description 获取英雄属性类型列表，支持按类别、启用状态和可见性筛选，支持分页
-// @Tags 基础配置-属性类型
+// @Tags 属性类型
 // @Accept json
 // @Produce json
-// @Param category query string false "属性类别"
+// @Param category query string false "属性类别" Enums(basic, derived, resistance)
 // @Param is_active query bool false "是否启用"
 // @Param is_visible query bool false "是否可见"
 // @Param limit query int false "每页数量(默认20)"
@@ -140,7 +140,7 @@ func (h *HeroAttributeTypeHandler) GetHeroAttributeTypes(c echo.Context) error {
 // GetHeroAttributeType 获取属性类型详情
 // @Summary 获取属性类型详情
 // @Description 根据属性类型ID获取单个英雄属性类型的详细信息
-// @Tags 基础配置-属性类型
+// @Tags 属性类型
 // @Accept json
 // @Produce json
 // @Param id path string true "属性类型ID(UUID格式)"
@@ -164,7 +164,7 @@ func (h *HeroAttributeTypeHandler) GetHeroAttributeType(c echo.Context) error {
 // CreateHeroAttributeType 创建属性类型
 // @Summary 创建属性类型
 // @Description 创建新的英雄属性类型，属性代码必须唯一
-// @Tags 基础配置-属性类型
+// @Tags 属性类型
 // @Accept json
 // @Produce json
 // @Param request body CreateHeroAttributeTypeRequest true "创建属性类型请求"
@@ -228,7 +228,7 @@ func (h *HeroAttributeTypeHandler) CreateHeroAttributeType(c echo.Context) error
 // UpdateHeroAttributeType 更新属性类型
 // @Summary 更新属性类型
 // @Description 更新指定ID的英雄属性类型信息，支持部分字段更新
-// @Tags 基础配置-属性类型
+// @Tags 属性类型
 // @Accept json
 // @Produce json
 // @Param id path string true "属性类型ID(UUID格式)"
@@ -295,7 +295,7 @@ func (h *HeroAttributeTypeHandler) UpdateHeroAttributeType(c echo.Context) error
 // DeleteHeroAttributeType 删除属性类型
 // @Summary 删除属性类型(软删除)
 // @Description 软删除指定ID的英雄属性类型，不会真正删除数据
-// @Tags 基础配置-属性类型
+// @Tags 属性类型
 // @Accept json
 // @Produce json
 // @Param id path string true "属性类型ID(UUID格式)"

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"tsu-self/internal/pkg/xerrors"
 	"context"
 	"database/sql"
 	"fmt"
@@ -43,7 +44,7 @@ func (s *ActionService) CreateAction(ctx context.Context, action *game_config.Ac
 		return err
 	}
 	if exists {
-		return fmt.Errorf("动作代码已存在: %s", action.ActionCode)
+		return xerrors.New(xerrors.CodeDuplicateResource, fmt.Sprintf("动作代码已存在: %s", action.ActionCode))
 	}
 
 	return s.repo.Create(ctx, action)
@@ -60,7 +61,7 @@ func (s *ActionService) UpdateAction(ctx context.Context, actionID string, updat
 	if actionCode, ok := updates["action_code"].(string); ok && actionCode != "" {
 		existing, err := s.repo.GetByCode(ctx, actionCode)
 		if err == nil && existing.ID != actionID {
-			return fmt.Errorf("动作代码已被使用: %s", actionCode)
+			return xerrors.New(xerrors.CodeDuplicateResource, fmt.Sprintf("动作代码已被使用: %s", actionCode))
 		}
 		action.ActionCode = actionCode
 	}

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"tsu-self/internal/pkg/xerrors"
 	"context"
 	"database/sql"
 	"fmt"
@@ -40,7 +41,7 @@ func (s *BuffService) CreateBuff(ctx context.Context, buff *game_config.Buff) er
 		return err
 	}
 	if exists {
-		return fmt.Errorf("Buff代码已存在: %s", buff.BuffCode)
+		return xerrors.New(xerrors.CodeDuplicateResource, fmt.Sprintf("Buff代码已存在: %s", buff.BuffCode))
 	}
 
 	return s.repo.Create(ctx, buff)
@@ -57,7 +58,7 @@ func (s *BuffService) UpdateBuff(ctx context.Context, buffID string, updates map
 	if buffCode, ok := updates["buff_code"].(string); ok && buffCode != "" {
 		existing, err := s.repo.GetByCode(ctx, buffCode)
 		if err == nil && existing.ID != buffID {
-			return fmt.Errorf("Buff代码已被使用: %s", buffCode)
+			return xerrors.New(xerrors.CodeDuplicateResource, fmt.Sprintf("Buff代码已被使用: %s", buffCode))
 		}
 		buff.BuffCode = buffCode
 	}

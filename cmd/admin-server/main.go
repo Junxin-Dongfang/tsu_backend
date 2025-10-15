@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	docs "tsu-self/docs"
+	docs "tsu-self/docs/admin"
 	"tsu-self/internal/modules/admin"
 	"tsu-self/internal/modules/auth"
 

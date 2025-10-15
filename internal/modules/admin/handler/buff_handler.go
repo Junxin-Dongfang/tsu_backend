@@ -76,7 +76,7 @@ type BuffInfo struct {
 // GetBuffs 获取Buff列表
 // @Summary 获取Buff列表
 // @Description 分页查询Buff列表，支持按Buff类型、分类和启用状态筛选
-// @Tags Buff系统
+// @Tags Buff
 // @Accept json
 // @Produce json
 // @Param buff_type query string false "Buff类型，例如: positive, negative, neutral"
@@ -137,7 +137,7 @@ func (h *BuffHandler) GetBuffs(c echo.Context) error {
 // GetBuff 获取Buff详情
 // @Summary 获取Buff详情
 // @Description 根据Buff ID获取Buff的详细信息
-// @Tags Buff系统
+// @Tags Buff
 // @Accept json
 // @Produce json
 // @Param id path string true "Buff ID (UUID格式)"
@@ -162,7 +162,7 @@ func (h *BuffHandler) GetBuff(c echo.Context) error {
 // CreateBuff 创建Buff
 // @Summary 创建Buff
 // @Description 创建新的游戏Buff（增益或减益效果）
-// @Tags Buff系统
+// @Tags Buff
 // @Accept json
 // @Produce json
 // @Param request body CreateBuffRequest true "创建Buff请求参数"
@@ -229,7 +229,7 @@ func (h *BuffHandler) CreateBuff(c echo.Context) error {
 // UpdateBuff 更新Buff
 // @Summary 更新Buff
 // @Description 更新已有Buff的信息
-// @Tags Buff系统
+// @Tags Buff
 // @Accept json
 // @Produce json
 // @Param id path string true "Buff ID (UUID格式)"
@@ -282,7 +282,7 @@ func (h *BuffHandler) UpdateBuff(c echo.Context) error {
 // DeleteBuff 删除Buff
 // @Summary 删除Buff
 // @Description 软删除指定的Buff（设置deleted_at字段）
-// @Tags Buff系统
+// @Tags Buff
 // @Accept json
 // @Produce json
 // @Param id path string true "Buff ID (UUID格式)"

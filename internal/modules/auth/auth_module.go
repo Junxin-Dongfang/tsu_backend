@@ -269,7 +269,7 @@ func (m *AuthModule) setupRPCMethods() {
 	m.GetServer().RegisterGO("InitiateRecovery", m.rpcHandler.InitiateRecovery)
 	m.GetServer().RegisterGO("VerifyRecoveryCode", m.rpcHandler.VerifyRecoveryCode)
 	m.GetServer().RegisterGO("ResetPassword", m.rpcHandler.ResetPassword)
-	m.GetServer().RegisterGO("AdminCreateRecoveryCode", m.rpcHandler.AdminCreateRecoveryCode)
+	m.GetServer().RegisterGO("ResetPasswordWithCode", m.rpcHandler.ResetPasswordWithCode)
 
 	// ==================== 权限检查 RPC ====================
 	m.GetServer().RegisterGO("CheckUserPermission", m.permissionRPCHandler.CheckUserPermission)

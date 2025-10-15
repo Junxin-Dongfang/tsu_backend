@@ -82,7 +82,7 @@ type SkillInfo struct {
 // GetSkills 获取技能列表
 // @Summary 获取技能列表
 // @Description 分页查询技能列表,支持按技能类型、类别、启用状态筛选
-// @Tags 技能系统
+// @Tags 技能
 // @Accept json
 // @Produce json
 // @Param skill_type query string false "技能类型: weapon(武器技能), magic(魔法技能), physical(物理技能), usage(使用物品技能), reaction(反应技能), guard(防御技能), movement(移动技能), command(指挥技能)"
@@ -143,7 +143,7 @@ func (h *SkillHandler) GetSkills(c echo.Context) error {
 // GetSkill 获取技能详情
 // @Summary 获取技能详情
 // @Description 根据技能ID获取单个技能的完整信息
-// @Tags 技能系统
+// @Tags 技能
 // @Accept json
 // @Produce json
 // @Param id path string true "技能ID (UUID格式)" example("01d132ed-6378-4e0b-bc16-a5b224e5b04a")
@@ -168,7 +168,7 @@ func (h *SkillHandler) GetSkill(c echo.Context) error {
 // CreateSkill 创建技能
 // @Summary 创建技能
 // @Description 创建新技能,包含技能代码、名称、类型、特性标签等配置信息
-// @Tags 技能系统
+// @Tags 技能
 // @Accept json
 // @Produce json
 // @Param request body CreateSkillRequest true "创建技能请求,skill_code、skill_name、skill_type 为必填字段"
@@ -243,7 +243,7 @@ func (h *SkillHandler) CreateSkill(c echo.Context) error {
 // UpdateSkill 更新技能
 // @Summary 更新技能
 // @Description 更新指定技能的配置信息,仅更新提供的字段
-// @Tags 技能系统
+// @Tags 技能
 // @Accept json
 // @Produce json
 // @Param id path string true "技能ID (UUID格式)" example("01d132ed-6378-4e0b-bc16-a5b224e5b04a")
@@ -297,7 +297,7 @@ func (h *SkillHandler) UpdateSkill(c echo.Context) error {
 // DeleteSkill 删除技能
 // @Summary 删除技能 (软删除)
 // @Description 软删除指定技能,技能数据不会被物理删除,仅标记为已删除
-// @Tags 技能系统
+// @Tags 技能
 // @Accept json
 // @Produce json
 // @Param id path string true "技能ID (UUID格式)" example("01d132ed-6378-4e0b-bc16-a5b224e5b04a")
