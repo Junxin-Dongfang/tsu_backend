@@ -26,6 +26,6 @@ type HeroAttributeOperationRepository interface {
 	GetTotalSpentXP(ctx context.Context, heroID string) (int, error)
 
 	// DeleteExpiredOperations 删除过期的操作记录（已回退且超过保留期）
-	DeleteExpiredOperations(ctx context.Context, expiryDate time.Time) error
+	DeleteExpiredOperations(ctx context.Context, expiryDate time.Time) (int64, error)
 }
 

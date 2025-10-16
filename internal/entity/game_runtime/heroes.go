@@ -34,7 +34,6 @@ type Hero struct {
 	ExperienceTotal     int64       `boil:"experience_total" json:"experience_total" toml:"experience_total" yaml:"experience_total"`
 	ExperienceAvailable int64       `boil:"experience_available" json:"experience_available" toml:"experience_available" yaml:"experience_available"`
 	ExperienceSpent     int64       `boil:"experience_spent" json:"experience_spent" toml:"experience_spent" yaml:"experience_spent"`
-	AllocatedAttributes null.JSON   `boil:"allocated_attributes" json:"allocated_attributes,omitempty" toml:"allocated_attributes" yaml:"allocated_attributes,omitempty"`
 	Status              string      `boil:"status" json:"status" toml:"status" yaml:"status"`
 	LastLoginAt         null.Time   `boil:"last_login_at" json:"last_login_at,omitempty" toml:"last_login_at" yaml:"last_login_at,omitempty"`
 	AvatarURL           null.String `boil:"avatar_url" json:"avatar_url,omitempty" toml:"avatar_url" yaml:"avatar_url,omitempty"`
@@ -58,7 +57,6 @@ var HeroColumns = struct {
 	ExperienceTotal     string
 	ExperienceAvailable string
 	ExperienceSpent     string
-	AllocatedAttributes string
 	Status              string
 	LastLoginAt         string
 	AvatarURL           string
@@ -77,7 +75,6 @@ var HeroColumns = struct {
 	ExperienceTotal:     "experience_total",
 	ExperienceAvailable: "experience_available",
 	ExperienceSpent:     "experience_spent",
-	AllocatedAttributes: "allocated_attributes",
 	Status:              "status",
 	LastLoginAt:         "last_login_at",
 	AvatarURL:           "avatar_url",
@@ -98,7 +95,6 @@ var HeroTableColumns = struct {
 	ExperienceTotal     string
 	ExperienceAvailable string
 	ExperienceSpent     string
-	AllocatedAttributes string
 	Status              string
 	LastLoginAt         string
 	AvatarURL           string
@@ -117,7 +113,6 @@ var HeroTableColumns = struct {
 	ExperienceTotal:     "heroes.experience_total",
 	ExperienceAvailable: "heroes.experience_available",
 	ExperienceSpent:     "heroes.experience_spent",
-	AllocatedAttributes: "heroes.allocated_attributes",
 	Status:              "heroes.status",
 	LastLoginAt:         "heroes.last_login_at",
 	AvatarURL:           "heroes.avatar_url",
@@ -224,7 +219,6 @@ var HeroWhere = struct {
 	ExperienceTotal     whereHelperint64
 	ExperienceAvailable whereHelperint64
 	ExperienceSpent     whereHelperint64
-	AllocatedAttributes whereHelpernull_JSON
 	Status              whereHelperstring
 	LastLoginAt         whereHelpernull_Time
 	AvatarURL           whereHelpernull_String
@@ -243,7 +237,6 @@ var HeroWhere = struct {
 	ExperienceTotal:     whereHelperint64{field: "\"game_runtime\".\"heroes\".\"experience_total\""},
 	ExperienceAvailable: whereHelperint64{field: "\"game_runtime\".\"heroes\".\"experience_available\""},
 	ExperienceSpent:     whereHelperint64{field: "\"game_runtime\".\"heroes\".\"experience_spent\""},
-	AllocatedAttributes: whereHelpernull_JSON{field: "\"game_runtime\".\"heroes\".\"allocated_attributes\""},
 	Status:              whereHelperstring{field: "\"game_runtime\".\"heroes\".\"status\""},
 	LastLoginAt:         whereHelpernull_Time{field: "\"game_runtime\".\"heroes\".\"last_login_at\""},
 	AvatarURL:           whereHelpernull_String{field: "\"game_runtime\".\"heroes\".\"avatar_url\""},
@@ -255,10 +248,12 @@ var HeroWhere = struct {
 
 // HeroRels is where relationship names are stored.
 var HeroRels = struct {
+	HeroAllocatedAttributes string
 	HeroAttributeOperations string
 	HeroClassHistories      string
 	HeroSkills              string
 }{
+	HeroAllocatedAttributes: "HeroAllocatedAttributes",
 	HeroAttributeOperations: "HeroAttributeOperations",
 	HeroClassHistories:      "HeroClassHistories",
 	HeroSkills:              "HeroSkills",
@@ -266,6 +261,7 @@ var HeroRels = struct {
 
 // heroR is where relationships are stored.
 type heroR struct {
+	HeroAllocatedAttributes HeroAllocatedAttributeSlice `boil:"HeroAllocatedAttributes" json:"HeroAllocatedAttributes" toml:"HeroAllocatedAttributes" yaml:"HeroAllocatedAttributes"`
 	HeroAttributeOperations HeroAttributeOperationSlice `boil:"HeroAttributeOperations" json:"HeroAttributeOperations" toml:"HeroAttributeOperations" yaml:"HeroAttributeOperations"`
 	HeroClassHistories      HeroClassHistorySlice       `boil:"HeroClassHistories" json:"HeroClassHistories" toml:"HeroClassHistories" yaml:"HeroClassHistories"`
 	HeroSkills              HeroSkillSlice              `boil:"HeroSkills" json:"HeroSkills" toml:"HeroSkills" yaml:"HeroSkills"`
@@ -274,6 +270,22 @@ type heroR struct {
 // NewStruct creates a new relationship struct
 func (*heroR) NewStruct() *heroR {
 	return &heroR{}
+}
+
+func (o *Hero) GetHeroAllocatedAttributes() HeroAllocatedAttributeSlice {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetHeroAllocatedAttributes()
+}
+
+func (r *heroR) GetHeroAllocatedAttributes() HeroAllocatedAttributeSlice {
+	if r == nil {
+		return nil
+	}
+
+	return r.HeroAllocatedAttributes
 }
 
 func (o *Hero) GetHeroAttributeOperations() HeroAttributeOperationSlice {
@@ -328,9 +340,9 @@ func (r *heroR) GetHeroSkills() HeroSkillSlice {
 type heroL struct{}
 
 var (
-	heroAllColumns            = []string{"id", "user_id", "class_id", "promotion_count", "hero_name", "description", "current_level", "experience_total", "experience_available", "experience_spent", "allocated_attributes", "status", "last_login_at", "avatar_url", "created_at", "updated_at", "last_battle_at", "deleted_at"}
+	heroAllColumns            = []string{"id", "user_id", "class_id", "promotion_count", "hero_name", "description", "current_level", "experience_total", "experience_available", "experience_spent", "status", "last_login_at", "avatar_url", "created_at", "updated_at", "last_battle_at", "deleted_at"}
 	heroColumnsWithoutDefault = []string{"user_id", "class_id", "hero_name"}
-	heroColumnsWithDefault    = []string{"id", "promotion_count", "description", "current_level", "experience_total", "experience_available", "experience_spent", "allocated_attributes", "status", "last_login_at", "avatar_url", "created_at", "updated_at", "last_battle_at", "deleted_at"}
+	heroColumnsWithDefault    = []string{"id", "promotion_count", "description", "current_level", "experience_total", "experience_available", "experience_spent", "status", "last_login_at", "avatar_url", "created_at", "updated_at", "last_battle_at", "deleted_at"}
 	heroPrimaryKeyColumns     = []string{"id"}
 	heroGeneratedColumns      = []string{}
 )
@@ -740,6 +752,20 @@ func (q heroQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (bool,
 	return count > 0, nil
 }
 
+// HeroAllocatedAttributes retrieves all the hero_allocated_attribute's HeroAllocatedAttributes with an executor.
+func (o *Hero) HeroAllocatedAttributes(mods ...qm.QueryMod) heroAllocatedAttributeQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"game_runtime\".\"hero_allocated_attributes\".\"hero_id\"=?", o.ID),
+	)
+
+	return HeroAllocatedAttributes(queryMods...)
+}
+
 // HeroAttributeOperations retrieves all the hero_attribute_operation's HeroAttributeOperations with an executor.
 func (o *Hero) HeroAttributeOperations(mods ...qm.QueryMod) heroAttributeOperationQuery {
 	var queryMods []qm.QueryMod
@@ -780,6 +806,120 @@ func (o *Hero) HeroSkills(mods ...qm.QueryMod) heroSkillQuery {
 	)
 
 	return HeroSkills(queryMods...)
+}
+
+// LoadHeroAllocatedAttributes allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (heroL) LoadHeroAllocatedAttributes(ctx context.Context, e boil.ContextExecutor, singular bool, maybeHero interface{}, mods queries.Applicator) error {
+	var slice []*Hero
+	var object *Hero
+
+	if singular {
+		var ok bool
+		object, ok = maybeHero.(*Hero)
+		if !ok {
+			object = new(Hero)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeHero)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeHero))
+			}
+		}
+	} else {
+		s, ok := maybeHero.(*[]*Hero)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeHero)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeHero))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &heroR{}
+		}
+		args[object.ID] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &heroR{}
+			}
+			args[obj.ID] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`game_runtime.hero_allocated_attributes`),
+		qm.WhereIn(`game_runtime.hero_allocated_attributes.hero_id in ?`, argsSlice...),
+		qmhelper.WhereIsNull(`game_runtime.hero_allocated_attributes.deleted_at`),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load hero_allocated_attributes")
+	}
+
+	var resultSlice []*HeroAllocatedAttribute
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice hero_allocated_attributes")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on hero_allocated_attributes")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for hero_allocated_attributes")
+	}
+
+	if len(heroAllocatedAttributeAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.HeroAllocatedAttributes = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &heroAllocatedAttributeR{}
+			}
+			foreign.R.Hero = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.HeroID {
+				local.R.HeroAllocatedAttributes = append(local.R.HeroAllocatedAttributes, foreign)
+				if foreign.R == nil {
+					foreign.R = &heroAllocatedAttributeR{}
+				}
+				foreign.R.Hero = local
+				break
+			}
+		}
+	}
+
+	return nil
 }
 
 // LoadHeroAttributeOperations allows an eager lookup of values, cached into the
@@ -1119,6 +1259,90 @@ func (heroL) LoadHeroSkills(ctx context.Context, e boil.ContextExecutor, singula
 		}
 	}
 
+	return nil
+}
+
+// AddHeroAllocatedAttributesG adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.HeroAllocatedAttributes.
+// Sets related.R.Hero appropriately.
+// Uses the global database handle.
+func (o *Hero) AddHeroAllocatedAttributesG(ctx context.Context, insert bool, related ...*HeroAllocatedAttribute) error {
+	return o.AddHeroAllocatedAttributes(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// AddHeroAllocatedAttributesP adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.HeroAllocatedAttributes.
+// Sets related.R.Hero appropriately.
+// Panics on error.
+func (o *Hero) AddHeroAllocatedAttributesP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*HeroAllocatedAttribute) {
+	if err := o.AddHeroAllocatedAttributes(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddHeroAllocatedAttributesGP adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.HeroAllocatedAttributes.
+// Sets related.R.Hero appropriately.
+// Uses the global database handle and panics on error.
+func (o *Hero) AddHeroAllocatedAttributesGP(ctx context.Context, insert bool, related ...*HeroAllocatedAttribute) {
+	if err := o.AddHeroAllocatedAttributes(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddHeroAllocatedAttributes adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.HeroAllocatedAttributes.
+// Sets related.R.Hero appropriately.
+func (o *Hero) AddHeroAllocatedAttributes(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*HeroAllocatedAttribute) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.HeroID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"game_runtime\".\"hero_allocated_attributes\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"hero_id"}),
+				strmangle.WhereClause("\"", "\"", 2, heroAllocatedAttributePrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.HeroID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &heroR{
+			HeroAllocatedAttributes: related,
+		}
+	} else {
+		o.R.HeroAllocatedAttributes = append(o.R.HeroAllocatedAttributes, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &heroAllocatedAttributeR{
+				Hero: o,
+			}
+		} else {
+			rel.R.Hero = o
+		}
+	}
 	return nil
 }
 

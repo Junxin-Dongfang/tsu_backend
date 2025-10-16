@@ -137,3 +137,18 @@ func (r *ClassSkillPoolRepositoryImpl) DeleteClassSkillPool(ctx context.Context,
 
 	return err
 }
+
+// GetByClassIDAndSkillID 根据职业ID和技能ID获取技能池信息
+func (r *ClassSkillPoolRepositoryImpl) GetByClassIDAndSkillID(ctx context.Context, classID, skillID string) (*game_config.ClassSkillPool, error) {
+	pool, err := game_config.ClassSkillPools(
+		qm.Where("class_id = ?", classID),
+		qm.Where("skill_id = ?", skillID),
+		qm.Where("deleted_at IS NULL"),
+	).One(ctx, r.db)
+
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+
+	return pool, err
+}

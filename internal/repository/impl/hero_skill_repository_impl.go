@@ -93,6 +93,23 @@ func (r *heroSkillRepositoryImpl) GetByHeroAndSkillID(ctx context.Context, heroI
 	return heroSkill, nil
 }
 
+// GetByHeroAndSkillIDForUpdate 获取英雄的特定技能（带行锁）
+func (r *heroSkillRepositoryImpl) GetByHeroAndSkillIDForUpdate(ctx context.Context, execer boil.ContextExecutor, heroID, skillID string) (*game_runtime.HeroSkill, error) {
+	heroSkill, err := game_runtime.HeroSkills(
+		qm.Where("hero_id = ? AND skill_id = ?", heroID, skillID),
+		qm.For("UPDATE"),
+	).One(ctx, execer)
+
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("英雄未学习该技能")
+	}
+	if err != nil {
+		return nil, fmt.Errorf("查询英雄技能失败（带锁）: %w", err)
+	}
+
+	return heroSkill, nil
+}
+
 // Update 更新技能信息
 func (r *heroSkillRepositoryImpl) Update(ctx context.Context, execer boil.ContextExecutor, heroSkill *game_runtime.HeroSkill) error {
 	if _, err := heroSkill.Update(ctx, execer, boil.Infer()); err != nil {

@@ -74,9 +74,6 @@ CREATE TABLE IF NOT EXISTS game_runtime.heroes (
     experience_available BIGINT NOT NULL DEFAULT 0 CHECK (experience_available >= 0),-- 当前经验值
     experience_spent BIGINT NOT NULL DEFAULT 0 CHECK (experience_spent >= 0),-- 已使用经验值
 
-    -- 属性系统
-    allocated_attributes JSONB DEFAULT '{}'::JSONB,          -- 基础属性分配,使用经验的加点
-
     -- 英雄状态
     status           hero_status_enum NOT NULL DEFAULT 'active', -- 英雄状态
     last_login_at     TIMESTAMPTZ,                         -- 上次登录时间

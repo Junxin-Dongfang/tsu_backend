@@ -68,9 +68,10 @@ func (r *heroClassHistoryRepositoryImpl) GetAvailableClassesForSkills(ctx contex
 		return nil, err
 	}
 
+	// 构建查询条件：hero_id = ? AND acquisition_type IN ('initial', 'advancement')
+	whereClause := "hero_id = ? AND acquisition_type IN ('initial', 'advancement')"
 	queries := []qm.QueryMod{
-		qm.Where("hero_id = ?", heroID),
-		qm.Where("acquisition_type IN ?", []string{"initial", "advancement"}),
+		qm.Where(whereClause, heroID),
 		qm.OrderBy("acquired_at ASC"),
 	}
 

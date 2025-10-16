@@ -106,15 +106,15 @@ func (r *heroSkillOperationRepositoryImpl) GetTotalSpentXPByHeroID(ctx context.C
 }
 
 // DeleteExpiredOperations 删除过期的操作记录（已回退且超过保留期）
-func (r *heroSkillOperationRepositoryImpl) DeleteExpiredOperations(ctx context.Context, expiryDate time.Time) error {
-	_, err := game_runtime.HeroSkillOperations(
+func (r *heroSkillOperationRepositoryImpl) DeleteExpiredOperations(ctx context.Context, expiryDate time.Time) (int64, error) {
+	count, err := game_runtime.HeroSkillOperations(
 		qm.Where("rolled_back_at IS NOT NULL AND rolled_back_at < ?", expiryDate),
 	).DeleteAll(ctx, r.db)
 
 	if err != nil {
-		return fmt.Errorf("删除过期技能操作记录失败: %w", err)
+		return 0, fmt.Errorf("删除过期技能操作记录失败: %w", err)
 	}
 
-	return nil
+	return count, nil
 }
 

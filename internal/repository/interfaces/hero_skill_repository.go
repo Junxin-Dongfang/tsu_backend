@@ -24,6 +24,9 @@ type HeroSkillRepository interface {
 	// GetByHeroAndSkillID 获取英雄的特定技能
 	GetByHeroAndSkillID(ctx context.Context, heroID, skillID string) (*game_runtime.HeroSkill, error)
 
+	// GetByHeroAndSkillIDForUpdate 获取英雄的特定技能（带行锁）
+	GetByHeroAndSkillIDForUpdate(ctx context.Context, execer boil.ContextExecutor, heroID, skillID string) (*game_runtime.HeroSkill, error)
+
 	// Update 更新技能信息
 	Update(ctx context.Context, execer boil.ContextExecutor, heroSkill *game_runtime.HeroSkill) error
 

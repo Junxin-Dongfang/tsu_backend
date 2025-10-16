@@ -1,12 +1,15 @@
 package game
 
 import (
+	"database/sql"
 	"fmt"
 	"os"
 	"time"
 
 	custommiddleware "tsu-self/internal/middleware"
 	"tsu-self/internal/modules/game/handler"
+	"tsu-self/internal/modules/game/service"
+	"tsu-self/internal/modules/game/tasks"
 	"tsu-self/internal/pkg/i18n"
 	"tsu-self/internal/pkg/log"
 	"tsu-self/internal/pkg/metrics"
@@ -22,14 +25,21 @@ import (
 	"github.com/liangdas/mqant/module"
 	basemodule "github.com/liangdas/mqant/module/base"
 	"github.com/liangdas/mqant/server"
+	_ "github.com/lib/pq"
 	echoSwagger "github.com/swaggo/echo-swagger"
 )
 
 type GameModule struct {
 	basemodule.BaseModule
+	db                      *sql.DB
 	httpServer              *echo.Echo
+	serviceContainer        *service.ServiceContainer
 	authHandler             *handler.AuthHandler
 	passwordRecoveryHandler *handler.PasswordRecoveryHandler
+	heroHandler             *handler.HeroHandler
+	heroAttributeHandler    *handler.HeroAttributeHandler
+	heroSkillHandler        *handler.HeroSkillHandler
+	cleanupTask             *tasks.CleanupTask
 	respWriter              response.Writer
 }
 
@@ -57,22 +67,68 @@ func (m *GameModule) OnInit(app module.App, settings *conf.ModuleSettings) {
 		server.RegisterTTL(30*time.Second),
 	)
 
-	// 1. Initialize response writer
+	// 1. Initialize database connection
+	if err := m.initDatabase(settings); err != nil {
+		panic(fmt.Sprintf("Failed to initialize database: %v", err))
+	}
+
+	// 2. Initialize response writer
 	m.initResponseWriter()
 
-	// 2. Initialize HTTP server
+	// 3. Initialize HTTP server
 	m.initHTTPServer()
 
-	// 3. Initialize handlers
-	m.initHandlers()
+	// 4. Initialize Services and Handlers
+	m.initServicesAndHandlers()
 
-	// 4. Setup routes
+	// 5. Setup routes
 	m.setupRoutes()
 
-	// 5. Start HTTP server in background
+	// 6. Start cron tasks
+	m.startCronTasks()
+
+	// 7. Start HTTP server in background
 	go m.startHTTPServer(settings)
 
 	m.GetServer().Options()
+}
+
+// initDatabase initializes database connection
+func (m *GameModule) initDatabase(settings *conf.ModuleSettings) error {
+	// Read from environment variable first
+	dbURL := os.Getenv("TSU_GAME_DATABASE_URL")
+	if dbURL == "" {
+		// Fallback to config file
+		if settings != nil && settings.Settings != nil {
+			dbURLInterface, ok := settings.Settings["database_url"]
+			if ok {
+				dbURL, _ = dbURLInterface.(string)
+			}
+		}
+	}
+
+	if dbURL == "" {
+		return fmt.Errorf("TSU_GAME_DATABASE_URL not set")
+	}
+
+	db, err := sql.Open("postgres", dbURL)
+	if err != nil {
+		return fmt.Errorf("failed to open database: %w", err)
+	}
+
+	// Test connection
+	if err := db.Ping(); err != nil {
+		return fmt.Errorf("failed to ping database: %w", err)
+	}
+
+	// Set connection pool settings
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(5 * time.Minute)
+
+	m.db = db
+	fmt.Println("[Game Module] Database initialized successfully")
+	return nil
 }
 
 // initResponseWriter initializes response writer
@@ -147,11 +203,30 @@ func (m *GameModule) initHTTPServer() {
 	fmt.Println("  ✓ CORS (跨域支持)")
 }
 
-// initHandlers initializes HTTP handlers
-func (m *GameModule) initHandlers() {
+// initServicesAndHandlers initializes services and HTTP handlers
+func (m *GameModule) initServicesAndHandlers() {
+	// 创建服务容器（统一管理所有 Repository 和 Service）
+	m.serviceContainer = service.NewServiceContainer(m.db)
+
+	// 初始化 HTTP Handlers（从容器中获取需要的服务）
 	m.authHandler = handler.NewAuthHandler(m, m.respWriter)
 	m.passwordRecoveryHandler = handler.NewPasswordRecoveryHandler(m, m.respWriter)
-	fmt.Println("[Game Module] Handlers initialized")
+	m.heroHandler = handler.NewHeroHandler(m.serviceContainer, m.respWriter)
+	m.heroAttributeHandler = handler.NewHeroAttributeHandler(m.serviceContainer, m.respWriter)
+	m.heroSkillHandler = handler.NewHeroSkillHandler(m.serviceContainer, m.respWriter)
+
+	fmt.Println("[Game Module] Handlers initialized successfully")
+}
+
+// startCronTasks starts cron scheduled tasks
+func (m *GameModule) startCronTasks() {
+	logger := log.GetLogger()
+
+	// 创建并启动定时清理任务
+	m.cleanupTask = tasks.NewCleanupTask(m.db, logger)
+	m.cleanupTask.Start()
+
+	fmt.Println("[Game Module] Cron tasks started successfully")
 }
 
 // setupRoutes sets up HTTP routes
@@ -176,8 +251,31 @@ func (m *GameModule) setupRoutes() {
 			auth.POST("/password/reset-with-code", m.passwordRecoveryHandler.ResetPasswordWithCode)
 		}
 
-		// 游戏业务路由 (后续添加)
-		// TODO: 添加英雄、战斗、背包等游戏业务路由
+		// Hero routes (需要认证)
+		logger := log.GetLogger()
+		heroes := game.Group("/heroes")
+		// 应用认证中间件
+		heroes.Use(custommiddleware.AuthMiddleware(m.respWriter, logger))
+		{
+			// 英雄管理
+			heroes.POST("", m.heroHandler.CreateHero)                      // 创建英雄
+			heroes.GET("", m.heroHandler.GetUserHeroes)                    // 获取用户英雄列表
+			heroes.GET("/:hero_id", m.heroHandler.GetHero)                 // 获取英雄详情
+			heroes.POST("/:hero_id/experience", m.heroHandler.AddExperience)   // 增加经验（测试用）
+			heroes.POST("/:hero_id/advance", m.heroHandler.AdvanceClass)   // 职业进阶
+			heroes.POST("/:hero_id/transfer", m.heroHandler.TransferClass) // 职业转职
+
+			// 属性管理
+			heroes.GET("/:hero_id/attributes", m.heroAttributeHandler.GetComputedAttributes)       // 获取属性
+			heroes.POST("/:hero_id/attributes/allocate", m.heroAttributeHandler.AllocateAttribute) // 属性加点
+			heroes.POST("/:hero_id/attributes/rollback", m.heroAttributeHandler.RollbackAttribute) // 回退属性
+
+			// 技能管理
+			heroes.GET("/:hero_id/skills/available", m.heroSkillHandler.GetAvailableSkills)      // 获取可学习技能
+			heroes.POST("/:hero_id/skills/learn", m.heroSkillHandler.LearnSkill)                 // 学习技能
+			heroes.POST("/:hero_id/skills/:skill_id/upgrade", m.heroSkillHandler.UpgradeSkill)   // 升级技能
+			heroes.POST("/:hero_id/skills/:skill_id/rollback", m.heroSkillHandler.RollbackSkill) // 回退技能
+		}
 	}
 
 	// Swagger UI
@@ -233,12 +331,27 @@ func (m *GameModule) Run(closeSig chan bool) {
 
 // OnDestroy module destroy
 func (m *GameModule) OnDestroy() {
+	// Stop cron tasks
+	if m.cleanupTask != nil {
+		m.cleanupTask.Stop()
+		fmt.Println("[Game Module] Cron tasks stopped")
+	}
+
 	// Close HTTP server
 	if m.httpServer != nil {
 		if err := m.httpServer.Close(); err != nil {
 			fmt.Printf("[Game Module] Failed to close HTTP server: %v\n", err)
 		} else {
 			fmt.Println("[Game Module] HTTP server closed")
+		}
+	}
+
+	// Close database connection
+	if m.db != nil {
+		if err := m.db.Close(); err != nil {
+			fmt.Printf("[Game Module] Failed to close database: %v\n", err)
+		} else {
+			fmt.Println("[Game Module] Database connection closed")
 		}
 	}
 

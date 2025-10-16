@@ -165,3 +165,17 @@ func (r *heroAttributeTypeRepositoryImpl) Exists(ctx context.Context, code strin
 
 	return count > 0, nil
 }
+
+// ListByCategory 按分类获取所有活跃的属性类型
+func (r *heroAttributeTypeRepositoryImpl) ListByCategory(ctx context.Context, category string) ([]*game_config.HeroAttributeType, error) {
+	attributeTypes, err := game_config.HeroAttributeTypes(
+		qm.Where("category = ? AND is_active = TRUE AND deleted_at IS NULL", category),
+		qm.OrderBy("display_order ASC"),
+	).All(ctx, r.db)
+
+	if err != nil {
+		return nil, fmt.Errorf("查询分类属性类型列表失败: %w", err)
+	}
+
+	return attributeTypes, nil
+}

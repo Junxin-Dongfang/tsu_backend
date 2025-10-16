@@ -37,4 +37,7 @@ type HeroAttributeTypeRepository interface {
 
 	// Exists 检查代码是否存在
 	Exists(ctx context.Context, code string) (bool, error)
+
+	// ListByCategory 按分类获取所有活跃的属性类型
+	ListByCategory(ctx context.Context, category string) ([]*game_config.HeroAttributeType, error)
 }

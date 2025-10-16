@@ -37,4 +37,7 @@ type ClassSkillPoolRepository interface {
 
 	// DeleteClassSkillPool 删除职业技能池配置（软删除）
 	DeleteClassSkillPool(ctx context.Context, id string) error
+
+	// GetByClassIDAndSkillID 根据职业ID和技能ID获取技能池信息
+	GetByClassIDAndSkillID(ctx context.Context, classID, skillID string) (*game_config.ClassSkillPool, error)
 }

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/aarondl/null/v8"
-	"github.com/aarondl/sqlboiler/v4/types"
 	"github.com/google/uuid"
 
 	"tsu-self/internal/entity/game_runtime"
@@ -18,14 +17,14 @@ import (
 
 // HeroSkillService 英雄技能服务
 type HeroSkillService struct {
-	db                     *sql.DB
-	heroRepo               interfaces.HeroRepository
-	heroSkillRepo          interfaces.HeroSkillRepository
-	heroClassHistoryRepo   interfaces.HeroClassHistoryRepository
-	classSkillPoolRepo     interfaces.ClassSkillPoolRepository
-	skillUpgradeCostRepo   interfaces.SkillUpgradeCostRepository
-	skillOpRepo            interfaces.HeroSkillOperationRepository
-	heroService            *HeroService
+	db                   *sql.DB
+	heroRepo             interfaces.HeroRepository
+	heroSkillRepo        interfaces.HeroSkillRepository
+	heroClassHistoryRepo interfaces.HeroClassHistoryRepository
+	classSkillPoolRepo   interfaces.ClassSkillPoolRepository
+	skillUpgradeCostRepo interfaces.SkillUpgradeCostRepository
+	skillOpRepo          interfaces.HeroSkillOperationRepository
+	heroService          *HeroService
 }
 
 // NewHeroSkillService 创建英雄技能服务
@@ -53,64 +52,68 @@ func (s *HeroSkillService) LearnSkill(ctx context.Context, req *LearnSkillReques
 	// 1. 开启事务
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return xerrors.Wrap(err, xerrors.CodeInternal, "开启事务失败")
+		return xerrors.Wrap(err, xerrors.CodeInternalError, "开启事务失败")
 	}
-	defer tx.Rollback()
+	defer func() {
+		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
+			// 仅当 Rollback 失败且不是已提交的事务时，才表示有问题
+		}
+	}()
 
-	// 2. 验证技能是否在可学习池中
-	availableClasses, err := s.heroClassHistoryRepo.GetAvailableClassesForSkills(ctx, req.HeroID)
+	// 2. 获取英雄当前职业
+	currentClass, err := s.heroClassHistoryRepo.GetCurrentClass(ctx, req.HeroID)
 	if err != nil {
-		return xerrors.Wrap(err, xerrors.CodeInternal, "查询可学习技能池失败")
+		return xerrors.Wrap(err, xerrors.CodeResourceNotFound, "无法获取英雄职业信息")
 	}
 
-	classIDs := make([]string, len(availableClasses))
-	for i, c := range availableClasses {
-		classIDs[i] = c.ClassID
+	// 3. 验证技能是否在职业技能池中
+	skillPool, err := s.classSkillPoolRepo.GetByClassIDAndSkillID(ctx, currentClass.ClassID, req.SkillID)
+	if err != nil {
+		return xerrors.Wrap(err, xerrors.CodeInternalError, "查询技能池失败")
+	}
+	if skillPool == nil {
+		return xerrors.New(xerrors.CodeSkillNotFound, "该职业无法学习此技能")
 	}
 
-	skillPool, err := s.classSkillPoolRepo.GetByClassIDsAndSkillID(ctx, classIDs, req.SkillID)
-	if err != nil || skillPool == nil {
-		return xerrors.New(xerrors.CodeNotFound, "技能不在可学习池中")
-	}
-
-	// 3. 检查是否已经学习
+	// 4. 检查是否已经学习
 	existingSkill, err := s.heroSkillRepo.GetByHeroAndSkillID(ctx, req.HeroID, req.SkillID)
 	if err != nil {
-		return xerrors.Wrap(err, xerrors.CodeInternal, "查询技能失败")
+		return xerrors.Wrap(err, xerrors.CodeInternalError, "查询技能失败")
 	}
 	if existingSkill != nil {
 		return xerrors.New(xerrors.CodeDuplicateResource, "已学习该技能")
 	}
 
-	// 4. 检查学习条件（等级、属性、前置技能）
-	// TODO: 实现条件检查逻辑
-
 	// 5. 获取学习消耗（skill_upgrade_costs level=1）
 	cost, err := s.skillUpgradeCostRepo.GetByLevel(ctx, 1)
 	if err != nil {
-		return xerrors.Wrap(err, xerrors.CodeNotFound, "学习消耗配置不存在")
+		return xerrors.Wrap(err, xerrors.CodeResourceNotFound, "学习消耗配置不存在")
 	}
 
 	// 6. 获取英雄信息（加锁）
 	hero, err := s.heroRepo.GetByIDForUpdate(ctx, tx, req.HeroID)
 	if err != nil {
-		return xerrors.Wrap(err, xerrors.CodeNotFound, "英雄不存在")
+		return xerrors.Wrap(err, xerrors.CodeHeroNotFound, "英雄不存在")
 	}
 
 	// 7. 验证资源是否足够
-	if hero.ExperienceAvailable < cost.CostXP {
-		return xerrors.New(xerrors.CodeInsufficientResource, 
-			fmt.Sprintf("经验不足: 需要 %d，当前 %d", cost.CostXP, hero.ExperienceAvailable))
+	costXP := 0
+	if !cost.CostXP.IsZero() {
+		costXP = int(cost.CostXP.Int)
 	}
 
-	// 8. 扣除资源
-	hero.ExperienceAvailable -= cost.CostXP
-	hero.ExperienceSpent += cost.CostXP
-	hero.ExperienceTotal += cost.CostXP
+	if hero.ExperienceAvailable < int64(costXP) {
+		return xerrors.New(xerrors.CodeInsufficientExperience,
+			fmt.Sprintf("经验不足: 需要 %d，当前 %d", costXP, hero.ExperienceAvailable))
+	}
+
+	// 8. 扣除资源（注：experience_total 不应在此增加）
+	hero.ExperienceAvailable -= int64(costXP)
+	hero.ExperienceSpent += int64(costXP)
 	hero.UpdatedAt = time.Now()
 
 	if err := s.heroRepo.Update(ctx, tx, hero); err != nil {
-		return xerrors.Wrap(err, xerrors.CodeInternal, "更新英雄失败")
+		return xerrors.Wrap(err, xerrors.CodeInternalError, "更新英雄失败")
 	}
 
 	// 9. 插入 hero_skills
@@ -120,24 +123,29 @@ func (s *HeroSkillService) LearnSkill(ctx context.Context, req *LearnSkillReques
 		HeroID:         req.HeroID,
 		SkillID:        req.SkillID,
 		SkillLevel:     1,
-		LearnedMethod:  "manual",
+		LearnedMethod:  null.StringFrom("manual"),
 		FirstLearnedAt: null.TimeFrom(now),
-		CreatedAt:      null.TimeFrom(now),
-		UpdatedAt:      null.TimeFrom(now),
+		CreatedAt:      now,
+		UpdatedAt:      now,
 	}
 
 	if err := s.heroSkillRepo.Create(ctx, tx, heroSkill); err != nil {
-		return xerrors.Wrap(err, xerrors.CodeInternal, "创建技能记录失败")
+		return xerrors.Wrap(err, xerrors.CodeInternalError, "创建技能记录失败")
 	}
 
 	// 10. 创建操作历史
+	costGold := 0
+	if !cost.CostGold.IsZero() {
+		costGold = int(cost.CostGold.Int)
+	}
+
 	operation := &game_runtime.HeroSkillOperation{
 		ID:               uuid.New().String(),
 		HeroSkillID:      heroSkill.ID,
 		LevelsAdded:      1,
-		XPSpent:          cost.CostXP,
-		GoldSpent:        cost.CostGold,
-		MaterialsSpent:   types.JSON(cost.CostMaterials.JSON),
+		XPSpent:          costXP,
+		GoldSpent:        costGold,
+		MaterialsSpent:   cost.CostMaterials,
 		LevelBefore:      0,
 		LevelAfter:       1,
 		CreatedAt:        now,
@@ -145,18 +153,18 @@ func (s *HeroSkillService) LearnSkill(ctx context.Context, req *LearnSkillReques
 	}
 
 	if err := s.skillOpRepo.Create(ctx, tx, operation); err != nil {
-		return xerrors.Wrap(err, xerrors.CodeInternal, "创建操作历史失败")
+		return xerrors.Wrap(err, xerrors.CodeInternalError, "创建操作历史失败")
 	}
 
 	// 11. 调用 AutoLevelUp
 	_, _, err = s.heroService.AutoLevelUp(ctx, tx, req.HeroID)
 	if err != nil {
-		return xerrors.Wrap(err, xerrors.CodeInternal, "自动升级检查失败")
+		return xerrors.Wrap(err, xerrors.CodeInternalError, "自动升级检查失败")
 	}
 
 	// 12. 提交事务
 	if err := tx.Commit(); err != nil {
-		return xerrors.Wrap(err, xerrors.CodeInternal, "提交事务失败")
+		return xerrors.Wrap(err, xerrors.CodeInternalError, "提交事务失败")
 	}
 
 	return nil
@@ -164,7 +172,9 @@ func (s *HeroSkillService) LearnSkill(ctx context.Context, req *LearnSkillReques
 
 // UpgradeSkillRequest 升级技能请求
 type UpgradeSkillRequest struct {
-	HeroSkillID string `json:"hero_skill_id"`
+	HeroID  string `json:"hero_id"`
+	SkillID string `json:"skill_id"`
+	Levels  int    `json:"levels"` // 要升级的等级数
 }
 
 // UpgradeSkill 升级技能
@@ -172,107 +182,120 @@ func (s *HeroSkillService) UpgradeSkill(ctx context.Context, req *UpgradeSkillRe
 	// 1. 开启事务
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return xerrors.Wrap(err, xerrors.CodeInternal, "开启事务失败")
+		return xerrors.Wrap(err, xerrors.CodeInternalError, "开启事务失败")
 	}
-	defer tx.Rollback()
+	defer func() {
+		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
+			// 仅当 Rollback 失败且不是已提交的事务时，才表示有问题
+		}
+	}()
 
 	// 2. 获取技能当前信息（加锁）
-	heroSkill, err := s.heroSkillRepo.GetByIDForUpdate(ctx, tx, req.HeroSkillID)
+	heroSkill, err := s.heroSkillRepo.GetByHeroAndSkillIDForUpdate(ctx, tx, req.HeroID, req.SkillID)
 	if err != nil {
-		return xerrors.Wrap(err, xerrors.CodeNotFound, "技能不存在")
+		return xerrors.Wrap(err, xerrors.CodeSkillNotFound, "技能不存在")
 	}
 
 	// 3. 验证技能是否可以升级（必须在当前可学习技能池中）
-	availableClasses, err := s.heroClassHistoryRepo.GetAvailableClassesForSkills(ctx, heroSkill.HeroID)
+	currentClass, err := s.heroClassHistoryRepo.GetCurrentClass(ctx, heroSkill.HeroID)
 	if err != nil {
-		return xerrors.Wrap(err, xerrors.CodeInternal, "查询可学习技能池失败")
+		return xerrors.Wrap(err, xerrors.CodeResourceNotFound, "无法获取英雄职业信息")
 	}
 
-	classIDs := make([]string, len(availableClasses))
-	for i, c := range availableClasses {
-		classIDs[i] = c.ClassID
+	skillPool, err := s.classSkillPoolRepo.GetByClassIDAndSkillID(ctx, currentClass.ClassID, heroSkill.SkillID)
+	if err != nil {
+		return xerrors.Wrap(err, xerrors.CodeInternalError, "查询技能池失败")
 	}
-
-	skillPool, err := s.classSkillPoolRepo.GetByClassIDsAndSkillID(ctx, classIDs, heroSkill.SkillID)
-	if err != nil || skillPool == nil {
-		return xerrors.New(xerrors.CodeForbidden, "当前职业无法升级该技能")
+	if skillPool == nil {
+		return xerrors.New(xerrors.CodePermissionDenied, "当前职业无法升级该技能")
 	}
 
 	// 4. 验证是否达到上限
-	maxLevel := skillPool.MaxLearnableLevel
-	// TODO: 比较 skills.max_level
+	maxLevel := 10 // 默认等级上限
+	if !skillPool.MaxLearnableLevel.IsZero() {
+		maxLevel = int(skillPool.MaxLearnableLevel.Int)
+	}
 
-	if heroSkill.SkillLevel >= maxLevel {
-		return xerrors.New(xerrors.CodeInvalidArgument, 
+	if int(heroSkill.SkillLevel) >= maxLevel {
+		return xerrors.New(xerrors.CodeInvalidParams,
 			fmt.Sprintf("技能已达到最高等级 %d", maxLevel))
 	}
 
 	// 5. 获取升级消耗
-	nextLevel := heroSkill.SkillLevel + 1
+	nextLevel := int(heroSkill.SkillLevel) + 1
 	cost, err := s.skillUpgradeCostRepo.GetByLevel(ctx, nextLevel)
 	if err != nil {
-		return xerrors.Wrap(err, xerrors.CodeNotFound, "升级消耗配置不存在")
+		return xerrors.Wrap(err, xerrors.CodeResourceNotFound, "升级消耗配置不存在")
 	}
 
 	// 6. 获取英雄信息（加锁）
 	hero, err := s.heroRepo.GetByIDForUpdate(ctx, tx, heroSkill.HeroID)
 	if err != nil {
-		return xerrors.Wrap(err, xerrors.CodeNotFound, "英雄不存在")
+		return xerrors.Wrap(err, xerrors.CodeHeroNotFound, "英雄不存在")
 	}
 
 	// 7. 验证资源
-	if hero.ExperienceAvailable < cost.CostXP {
-		return xerrors.New(xerrors.CodeInsufficientResource, 
-			fmt.Sprintf("经验不足: 需要 %d，当前 %d", cost.CostXP, hero.ExperienceAvailable))
+	costXP := 0
+	if !cost.CostXP.IsZero() {
+		costXP = int(cost.CostXP.Int)
 	}
 
-	// 8. 扣除资源，增加 experience_total
-	hero.ExperienceAvailable -= cost.CostXP
-	hero.ExperienceSpent += cost.CostXP
-	hero.ExperienceTotal += cost.CostXP
+	if hero.ExperienceAvailable < int64(costXP) {
+		return xerrors.New(xerrors.CodeInsufficientExperience,
+			fmt.Sprintf("经验不足: 需要 %d，当前 %d", costXP, hero.ExperienceAvailable))
+	}
+
+	// 8. 扣除资源（注：experience_total 不应在此增加）
+	hero.ExperienceAvailable -= int64(costXP)
+	hero.ExperienceSpent += int64(costXP)
 	hero.UpdatedAt = time.Now()
 
 	if err := s.heroRepo.Update(ctx, tx, hero); err != nil {
-		return xerrors.Wrap(err, xerrors.CodeInternal, "更新英雄失败")
+		return xerrors.Wrap(err, xerrors.CodeInternalError, "更新英雄失败")
 	}
 
 	// 9. 更新 hero_skills
 	oldLevel := heroSkill.SkillLevel
 	heroSkill.SkillLevel = nextLevel
-	heroSkill.UpdatedAt = null.TimeFrom(time.Now())
+	heroSkill.UpdatedAt = time.Now()
 
 	if err := s.heroSkillRepo.Update(ctx, tx, heroSkill); err != nil {
-		return xerrors.Wrap(err, xerrors.CodeInternal, "更新技能失败")
+		return xerrors.Wrap(err, xerrors.CodeInternalError, "更新技能失败")
 	}
 
 	// 10. 创建操作历史
 	now := time.Now()
+	costGold := 0
+	if !cost.CostGold.IsZero() {
+		costGold = int(cost.CostGold.Int)
+	}
+
 	operation := &game_runtime.HeroSkillOperation{
 		ID:               uuid.New().String(),
-		HeroSkillID:      req.HeroSkillID,
-		LevelsAdded:      1,
-		XPSpent:          cost.CostXP,
-		GoldSpent:        cost.CostGold,
-		MaterialsSpent:   types.JSON(cost.CostMaterials.JSON),
-		LevelBefore:      oldLevel,
+		HeroSkillID:      heroSkill.ID,
+		LevelsAdded:      1,  // 当前实现只支持升级1级（req.Levels 被忽略）
+		XPSpent:          costXP,
+		GoldSpent:        costGold,
+		MaterialsSpent:   cost.CostMaterials,
+		LevelBefore:      int(oldLevel),
 		LevelAfter:       nextLevel,
 		CreatedAt:        now,
 		RollbackDeadline: now.Add(1 * time.Hour),
 	}
 
 	if err := s.skillOpRepo.Create(ctx, tx, operation); err != nil {
-		return xerrors.Wrap(err, xerrors.CodeInternal, "创建操作历史失败")
+		return xerrors.Wrap(err, xerrors.CodeInternalError, "创建操作历史失败")
 	}
 
 	// 11. 调用 AutoLevelUp
 	_, _, err = s.heroService.AutoLevelUp(ctx, tx, heroSkill.HeroID)
 	if err != nil {
-		return xerrors.Wrap(err, xerrors.CodeInternal, "自动升级检查失败")
+		return xerrors.Wrap(err, xerrors.CodeInternalError, "自动升级检查失败")
 	}
 
 	// 12. 提交事务
 	if err := tx.Commit(); err != nil {
-		return xerrors.Wrap(err, xerrors.CodeInternal, "提交事务失败")
+		return xerrors.Wrap(err, xerrors.CodeInternalError, "提交事务失败")
 	}
 
 	return nil
@@ -283,17 +306,21 @@ func (s *HeroSkillService) RollbackSkillOperation(ctx context.Context, heroSkill
 	// 1. 开启事务
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return xerrors.Wrap(err, xerrors.CodeInternal, "开启事务失败")
+		return xerrors.Wrap(err, xerrors.CodeInternalError, "开启事务失败")
 	}
-	defer tx.Rollback()
+	defer func() {
+		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
+			// 仅当 Rollback 失败且不是已提交的事务时，才表示有问题
+		}
+	}()
 
 	// 2. 获取最近一次未回退且未过期的操作（栈顶）
 	operation, err := s.skillOpRepo.GetLatestRollbackable(ctx, heroSkillID)
 	if err != nil {
-		return xerrors.Wrap(err, xerrors.CodeInternal, "查询可回退操作失败")
+		return xerrors.Wrap(err, xerrors.CodeInternalError, "查询可回退操作失败")
 	}
 	if operation == nil {
-		return xerrors.New(xerrors.CodeNotFound, "没有可回退的操作")
+		return xerrors.New(xerrors.CodeResourceNotFound, "没有可回退的操作")
 	}
 
 	// 3. 验证操作存在且未过期
@@ -304,73 +331,111 @@ func (s *HeroSkillService) RollbackSkillOperation(ctx context.Context, heroSkill
 	// 4. 获取技能信息（加锁）
 	heroSkill, err := s.heroSkillRepo.GetByIDForUpdate(ctx, tx, heroSkillID)
 	if err != nil {
-		return xerrors.Wrap(err, xerrors.CodeNotFound, "技能不存在")
+		return xerrors.Wrap(err, xerrors.CodeSkillNotFound, "技能不存在")
 	}
 
 	// 5. 获取英雄信息（加锁）
 	hero, err := s.heroRepo.GetByIDForUpdate(ctx, tx, heroSkill.HeroID)
 	if err != nil {
-		return xerrors.Wrap(err, xerrors.CodeNotFound, "英雄不存在")
+		return xerrors.Wrap(err, xerrors.CodeHeroNotFound, "英雄不存在")
 	}
 
-	// 6. 返还资源
-	hero.ExperienceAvailable += operation.XPSpent
-	hero.ExperienceSpent -= operation.XPSpent
-	hero.ExperienceTotal -= operation.XPSpent
+	// 6. 返还资源（注：experience_total 不应改变）
+	hero.ExperienceAvailable += int64(operation.XPSpent)
+	hero.ExperienceSpent -= int64(operation.XPSpent)
 	hero.UpdatedAt = time.Now()
 
 	if err := s.heroRepo.Update(ctx, tx, hero); err != nil {
-		return xerrors.Wrap(err, xerrors.CodeInternal, "更新英雄失败")
+		return xerrors.Wrap(err, xerrors.CodeInternalError, "更新英雄失败")
 	}
 
 	// 7. 回退技能等级
 	if operation.LevelBefore == 0 {
 		// 如果回退到level=0，删除记录
 		if err := s.heroSkillRepo.Delete(ctx, tx, heroSkillID); err != nil {
-			return xerrors.Wrap(err, xerrors.CodeInternal, "删除技能失败")
+			return xerrors.Wrap(err, xerrors.CodeInternalError, "删除技能失败")
 		}
 	} else {
 		heroSkill.SkillLevel = operation.LevelBefore
-		heroSkill.UpdatedAt = null.TimeFrom(time.Now())
+		heroSkill.UpdatedAt = time.Now()
 		if err := s.heroSkillRepo.Update(ctx, tx, heroSkill); err != nil {
-			return xerrors.Wrap(err, xerrors.CodeInternal, "更新技能失败")
+			return xerrors.Wrap(err, xerrors.CodeInternalError, "更新技能失败")
 		}
 	}
 
 	// 8. 标记操作为已回退
 	if err := s.skillOpRepo.MarkAsRolledBack(ctx, tx, operation.ID); err != nil {
-		return xerrors.Wrap(err, xerrors.CodeInternal, "标记回退失败")
+		return xerrors.Wrap(err, xerrors.CodeInternalError, "标记回退失败")
 	}
 
 	// 9. 提交事务
 	if err := tx.Commit(); err != nil {
-		return xerrors.Wrap(err, xerrors.CodeInternal, "提交事务失败")
+		return xerrors.Wrap(err, xerrors.CodeInternalError, "提交事务失败")
 	}
 
 	return nil
 }
 
-// GetAvailableSkills 获取可学习技能
-func (s *HeroSkillService) GetAvailableSkills(ctx context.Context, heroID string) (interface{}, error) {
-	// 1. 获取职业历史
-	availableClasses, err := s.heroClassHistoryRepo.GetAvailableClassesForSkills(ctx, heroID)
-	if err != nil {
-		return nil, xerrors.Wrap(err, xerrors.CodeInternal, "查询可学习技能池失败")
-	}
-
-	classIDs := make([]string, len(availableClasses))
-	for i, c := range availableClasses {
-		classIDs[i] = c.ClassID
-	}
-
-	// 2. 查询这些职业的技能池
-	// TODO: 实现完整的可学习技能查询逻辑
-	// - 排除已学习的技能
-	// - 检查学习条件
-
-	return map[string]interface{}{
-		"available_class_ids": classIDs,
-		"message":            "功能实现中",
-	}, nil
+// AvailableSkillInfo 可学习技能信息
+type AvailableSkillInfo struct {
+	SkillID           string
+	SkillName         string
+	SkillCode         string
+	MaxLevel          int
+	MaxLearnableLevel int
+	CanLearn          bool
+	Requirements      string
 }
 
+// GetAvailableSkills 获取可学习技能
+func (s *HeroSkillService) GetAvailableSkills(ctx context.Context, heroID string) ([]*AvailableSkillInfo, error) {
+	// 1. 获取当前职业
+	currentClass, err := s.heroClassHistoryRepo.GetCurrentClass(ctx, heroID)
+	if err != nil {
+		return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "获取当前职业失败")
+	}
+
+	// 2. 查询职业的所有技能池
+	skillPools, err := s.classSkillPoolRepo.GetClassSkillPoolsByClassID(ctx, currentClass.ClassID)
+	if err != nil {
+		return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "查询技能池失败")
+	}
+
+	// 3. 获取英雄已学习的技能
+	learnedSkills, err := s.heroSkillRepo.GetByHeroID(ctx, heroID)
+	if err != nil {
+		return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "查询已学习技能失败")
+	}
+
+	// 构建已学习技能的 map
+	learnedSkillIDs := make(map[string]bool)
+	for _, skill := range learnedSkills {
+		learnedSkillIDs[skill.SkillID] = true
+	}
+
+	// 4. 转换为可学习技能信息（排除已学习的技能）
+	// TODO: 需要联接 Skills 表获取 SkillName 和 SkillCode
+	availableSkills := make([]*AvailableSkillInfo, 0)
+	for _, pool := range skillPools {
+		// 跳过已学习的技能
+		if learnedSkillIDs[pool.SkillID] {
+			continue
+		}
+
+		maxLearnableLevel := 10
+		if !pool.MaxLearnableLevel.IsZero() {
+			maxLearnableLevel = int(pool.MaxLearnableLevel.Int)
+		}
+
+		availableSkills = append(availableSkills, &AvailableSkillInfo{
+			SkillID:           pool.SkillID,
+			SkillName:         "", // 暂时为空，需要查询 Skills 表
+			SkillCode:         "", // 暂时为空，需要查询 Skills 表
+			MaxLevel:          10, // 默认值
+			MaxLearnableLevel: maxLearnableLevel,
+			CanLearn:          true, // 简化处理：暂不检查条件
+		})
+	}
+
+	return availableSkills, nil
+}

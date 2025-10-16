@@ -50,6 +50,8 @@ func AuthMiddleware(respWriter response.Writer, logger log.Logger) echo.Middlewa
 
 			// 也可以设置到 Echo Context，便于直接访问
 			c.Set(string(ctxkey.CurrentUser), currentUser)
+			// 设置 user_id 以供 handler 使用
+			c.Set(string(ctxkey.UserID), userID)
 
 			logger.DebugContext(ctx,
 				"用户认证成功",
