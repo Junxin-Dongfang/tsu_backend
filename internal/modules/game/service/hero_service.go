@@ -499,3 +499,241 @@ func (s *HeroService) AddExperience(ctx context.Context, heroID string, amount i
 	// 6. 返回更新后的英雄信息
 	return s.heroRepo.GetByID(ctx, heroID)
 }
+
+// HeroFullInfo 英雄完整信息（聚合）
+type HeroFullInfo struct {
+	Hero       *game_runtime.Hero
+	ClassInfo  *HeroClassInfo
+	Attributes []*HeroComputedAttributeInfo
+	Skills     []*HeroSkillBasicInfo
+}
+
+// HeroClassInfo 职业信息
+type HeroClassInfo struct {
+	ID          string
+	ClassCode   string
+	ClassName   string
+	Tier        string
+	Description string
+}
+
+// HeroComputedAttributeInfo 计算属性信息
+type HeroComputedAttributeInfo struct {
+	AttributeCode string
+	AttributeName string
+	BaseValue     int
+	ClassBonus    int
+	FinalValue    int
+}
+
+// HeroSkillBasicInfo 英雄技能基本信息
+type HeroSkillBasicInfo struct {
+	HeroSkillID string
+	SkillID     string
+	SkillName   string
+	SkillCode   string
+	SkillLevel  int
+	MaxLevel    int
+}
+
+// GetHeroFullInfo 获取英雄完整信息（包含职业、属性、技能）
+func (s *HeroService) GetHeroFullInfo(ctx context.Context, heroID string) (*HeroFullInfo, error) {
+	// 1. 获取英雄基本信息
+	hero, err := s.heroRepo.GetByID(ctx, heroID)
+	if err != nil {
+		return nil, xerrors.Wrap(err, xerrors.CodeHeroNotFound, "英雄不存在")
+	}
+
+	// 2. 获取职业信息
+	class, err := s.classRepo.GetByID(ctx, hero.ClassID)
+	if err != nil {
+		return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "获取职业信息失败")
+	}
+
+	classInfo := &HeroClassInfo{
+		ID:        class.ID,
+		ClassCode: class.ClassCode,
+		ClassName: class.ClassName,
+		Tier:      class.Tier,
+	}
+	if !class.Description.IsZero() {
+		classInfo.Description = class.Description.String
+	}
+
+	// 3. 获取计算属性（通过视图）
+	// 注意：这里需要使用 HeroAttributeService 的方法，但为了避免循环依赖，
+	// 我们直接查询视图
+	query := `
+		SELECT 
+			attribute_code,
+			attribute_name,
+			COALESCE(base_value, 0) as base_value,
+			COALESCE(class_bonus, 0) as class_bonus,
+			COALESCE(final_value, 0) as final_value
+		FROM game_runtime.hero_computed_attributes
+		WHERE hero_id = $1
+		ORDER BY attribute_code
+	`
+	rows, err := s.db.QueryContext(ctx, query, heroID)
+	if err != nil {
+		return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "查询属性失败")
+	}
+	defer rows.Close()
+
+	var attributes []*HeroComputedAttributeInfo
+	for rows.Next() {
+		var attr HeroComputedAttributeInfo
+		if err := rows.Scan(
+			&attr.AttributeCode,
+			&attr.AttributeName,
+			&attr.BaseValue,
+			&attr.ClassBonus,
+			&attr.FinalValue,
+		); err != nil {
+			return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "扫描属性失败")
+		}
+		attributes = append(attributes, &attr)
+	}
+
+	// 4. 获取已学习技能
+	heroSkills, err := s.heroSkillRepo.GetByHeroID(ctx, heroID)
+	if err != nil {
+		return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "查询技能失败")
+	}
+
+	var skills []*HeroSkillBasicInfo
+	for _, hs := range heroSkills {
+		skills = append(skills, &HeroSkillBasicInfo{
+			HeroSkillID: hs.ID,
+			SkillID:     hs.SkillID,
+			SkillName:   "", // 需要关联查询 skill 表
+			SkillCode:   hs.SkillCode,
+			SkillLevel:  hs.SkillLevel,
+			MaxLevel:    hs.MaxLevel,
+		})
+	}
+
+	return &HeroFullInfo{
+		Hero:       hero,
+		ClassInfo:  classInfo,
+		Attributes: attributes,
+		Skills:     skills,
+	}, nil
+}
+
+// AdvancementCheckResult 进阶条件检查结果
+type AdvancementCheckResult struct {
+	CanAdvance         bool     `json:"can_advance"`
+	MissingRequirements []string `json:"missing_requirements,omitempty"`
+	RequiredLevel      int      `json:"required_level"`
+	CurrentLevel       int      `json:"current_level"`
+	RequiredHonor      int      `json:"required_honor"`
+	CurrentHonor       int      `json:"current_honor"`
+}
+
+// CheckAdvancementRequirements 检查是否满足职业进阶条件
+func (s *HeroService) CheckAdvancementRequirements(ctx context.Context, heroID, targetClassID string) (*AdvancementCheckResult, error) {
+	// 1. 获取英雄信息
+	hero, err := s.heroRepo.GetByID(ctx, heroID)
+	if err != nil {
+		return nil, xerrors.Wrap(err, xerrors.CodeHeroNotFound, "英雄不存在")
+	}
+
+	// 2. 获取进阶要求
+	requirement, err := s.classAdvancedReqRepo.GetByFromAndTo(ctx, hero.ClassID, targetClassID)
+	if err != nil {
+		return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "查询进阶要求失败")
+	}
+	if requirement == nil {
+		return nil, xerrors.New(xerrors.CodeResourceNotFound, "不存在该进阶路径")
+	}
+
+	result := &AdvancementCheckResult{
+		CanAdvance:    true,
+		RequiredLevel: requirement.RequiredLevel,
+		CurrentLevel:  int(hero.CurrentLevel),
+		RequiredHonor: requirement.RequiredHonor,
+		CurrentHonor:  0, // TODO: 从英雄表或其他表获取荣誉值
+	}
+
+	var missingReqs []string
+
+	// 3. 检查等级要求
+	if int(hero.CurrentLevel) < requirement.RequiredLevel {
+		result.CanAdvance = false
+		missingReqs = append(missingReqs, fmt.Sprintf("等级不足（需要%d级，当前%d级）", requirement.RequiredLevel, hero.CurrentLevel))
+	}
+
+	// 4. 检查荣誉要求
+	// TODO: 实现荣誉系统后添加检查
+	// if currentHonor < requirement.RequiredHonor {
+	//     result.CanAdvance = false
+	//     missingReqs = append(missingReqs, fmt.Sprintf("荣誉不足（需要%d，当前%d）", requirement.RequiredHonor, currentHonor))
+	// }
+
+	// 5. 检查属性要求
+	if !requirement.RequiredAttributes.IsZero() {
+		var requiredAttrs map[string]int
+		if err := requirement.RequiredAttributes.Unmarshal(&requiredAttrs); err == nil && len(requiredAttrs) > 0 {
+			// 获取当前属性
+			allocatedAttrs, err := s.heroAllocatedAttributeRepo.GetByHeroID(ctx, heroID)
+			if err != nil {
+				return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "查询属性失败")
+			}
+
+			currentAttrs := make(map[string]int)
+			for _, attr := range allocatedAttrs {
+				currentAttrs[attr.AttributeCode] = attr.Value
+			}
+
+			// 检查每个属性要求
+			for attrCode, requiredValue := range requiredAttrs {
+				currentValue := currentAttrs[attrCode]
+				if currentValue < requiredValue {
+					result.CanAdvance = false
+					missingReqs = append(missingReqs, fmt.Sprintf("属性%s不足（需要%d，当前%d）", attrCode, requiredValue, currentValue))
+				}
+			}
+		}
+	}
+
+	// 6. 检查技能要求
+	if !requirement.RequiredSkills.IsZero() {
+		var requiredSkills []string
+		if err := requirement.RequiredSkills.Unmarshal(&requiredSkills); err == nil && len(requiredSkills) > 0 {
+			// 获取已学习技能
+			learnedSkills, err := s.heroSkillRepo.GetByHeroID(ctx, heroID)
+			if err != nil {
+				return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "查询技能失败")
+			}
+
+			learnedSkillCodes := make(map[string]bool)
+			for _, skill := range learnedSkills {
+				learnedSkillCodes[skill.SkillCode] = true
+			}
+
+			// 检查每个技能要求
+			for _, skillCode := range requiredSkills {
+				if !learnedSkillCodes[skillCode] {
+					result.CanAdvance = false
+					missingReqs = append(missingReqs, fmt.Sprintf("未学习技能：%s", skillCode))
+				}
+			}
+		}
+	}
+
+	// 7. 检查物品要求
+	if !requirement.RequiredItems.IsZero() {
+		var requiredItems map[string]int
+		if err := requirement.RequiredItems.Unmarshal(&requiredItems); err == nil && len(requiredItems) > 0 {
+			// TODO: 实现物品系统后添加检查
+			for itemCode, count := range requiredItems {
+				result.CanAdvance = false
+				missingReqs = append(missingReqs, fmt.Sprintf("缺少物品：%s x%d", itemCode, count))
+			}
+		}
+	}
+
+	result.MissingRequirements = missingReqs
+	return result, nil
+}

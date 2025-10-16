@@ -61,6 +61,97 @@ type AdvancementOptionResponse struct {
 
 // ==================== HTTP Handlers ====================
 
+// GetBasicClasses handles getting basic class list (for character creation)
+// @Summary 获取基础职业列表
+// @Description 获取可供创建角色时选择的基础职业列表（仅 tier=basic）
+// @Tags 职业
+// @Accept json
+// @Produce json
+// @Success 200 {object} response.Response{data=[]ClassResponse} "获取成功"
+// @Failure 500 {object} response.Response "服务器内部错误"
+// @Router /game/classes/basic [get]
+func (h *ClassHandler) GetBasicClasses(c echo.Context) error {
+	// 构建查询参数：仅查询基础职业
+	isActive := true
+	isVisible := true
+	params := interfaces.ClassQueryParams{
+		Page:      1,
+		PageSize:  100, // 基础职业数量不会很多
+		Tier:      "basic",
+		IsActive:  &isActive,
+		IsVisible: &isVisible,
+		SortBy:    "display_order",
+		SortDir:   "ASC",
+	}
+
+	// 调用 Service
+	classes, _, err := h.classService.GetClassList(c.Request().Context(), params)
+	if err != nil {
+		return response.EchoError(c, h.respWriter, err)
+	}
+
+	// 转换为 HTTP 响应
+	respList := make([]*ClassResponse, len(classes))
+	for i, class := range classes {
+		promotionCount := 0
+		if !class.PromotionCount.IsZero() {
+			promotionCount = int(class.PromotionCount.Int16)
+		}
+
+		displayOrder := 0
+		if !class.DisplayOrder.IsZero() {
+			displayOrder = int(class.DisplayOrder.Int16)
+		}
+
+		resp := &ClassResponse{
+			ID:             class.ID,
+			ClassCode:      class.ClassCode,
+			ClassName:      class.ClassName,
+			Tier:           class.Tier,
+			PromotionCount: promotionCount,
+			IsActive:       class.IsActive.Bool,
+			IsVisible:      class.IsVisible.Bool,
+			DisplayOrder:   displayOrder,
+			CreatedAt:      class.CreatedAt.Format("2006-01-02 15:04:05"),
+			UpdatedAt:      class.UpdatedAt.Format("2006-01-02 15:04:05"),
+		}
+
+		if !class.Description.IsZero() {
+			desc := class.Description.String
+			resp.Description = &desc
+		}
+
+		if !class.LoreText.IsZero() {
+			loreText := class.LoreText.String
+			resp.LoreText = &loreText
+		}
+
+		if !class.Specialty.IsZero() {
+			specialty := class.Specialty.String
+			resp.Specialty = &specialty
+		}
+
+		if !class.Playstyle.IsZero() {
+			playstyle := class.Playstyle.String
+			resp.Playstyle = &playstyle
+		}
+
+		if !class.Icon.IsZero() {
+			icon := class.Icon.String
+			resp.Icon = &icon
+		}
+
+		if !class.Color.IsZero() {
+			color := class.Color.String
+			resp.Color = &color
+		}
+
+		respList[i] = resp
+	}
+
+	return response.EchoOK(c, h.respWriter, respList)
+}
+
 // GetClasses handles getting class list
 // @Summary 获取职业列表
 // @Description 获取游戏职业列表，支持分页和筛选

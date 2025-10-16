@@ -260,12 +260,14 @@ func (m *GameModule) setupRoutes() {
 		heroes.Use(custommiddleware.AuthMiddleware(m.respWriter, logger))
 		{
 			// 英雄管理
-			heroes.POST("", m.heroHandler.CreateHero)                      // 创建英雄
-			heroes.GET("", m.heroHandler.GetUserHeroes)                    // 获取用户英雄列表
-			heroes.GET("/:hero_id", m.heroHandler.GetHero)                 // 获取英雄详情
-			heroes.POST("/:hero_id/experience", m.heroHandler.AddExperience)   // 增加经验（测试用）
-			heroes.POST("/:hero_id/advance", m.heroHandler.AdvanceClass)   // 职业进阶
-			heroes.POST("/:hero_id/transfer", m.heroHandler.TransferClass) // 职业转职
+			heroes.POST("", m.heroHandler.CreateHero)                          // 创建英雄
+			heroes.GET("", m.heroHandler.GetUserHeroes)                        // 获取用户英雄列表
+			heroes.GET("/:hero_id", m.heroHandler.GetHero)                     // 获取英雄详情
+			heroes.GET("/:hero_id/full", m.heroHandler.GetHeroFull)                     // 获取英雄完整信息（含职业、属性、技能）
+			heroes.GET("/:hero_id/advancement-check", m.heroHandler.CheckAdvancement) // 检查职业进阶条件
+			heroes.POST("/:hero_id/experience", m.heroHandler.AddExperience)          // 增加经验（测试用）
+			heroes.POST("/:hero_id/advance", m.heroHandler.AdvanceClass)              // 职业进阶
+			heroes.POST("/:hero_id/transfer", m.heroHandler.TransferClass)            // 职业转职
 
 			// 属性管理
 			heroes.GET("/:hero_id/attributes", m.heroAttributeHandler.GetComputedAttributes)       // 获取属性
@@ -283,6 +285,7 @@ func (m *GameModule) setupRoutes() {
 		// Class routes (公开访问)
 		classes := game.Group("/classes")
 		{
+			classes.GET("/basic", m.classHandler.GetBasicClasses)                              // 获取基础职业列表（创建角色用）
 			classes.GET("", m.classHandler.GetClasses)                                         // 获取职业列表
 			classes.GET("/:class_id", m.classHandler.GetClass)                                 // 获取职业详情
 			classes.GET("/:class_id/advancement-options", m.classHandler.GetAdvancementOptions) // 获取可进阶选项

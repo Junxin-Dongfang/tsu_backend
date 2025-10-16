@@ -23,6 +23,59 @@ func NewHeroHandler(serviceContainer *service.ServiceContainer, respWriter respo
 
 // ==================== HTTP Request/Response Models ====================
 
+// HeroFullResponse HTTP hero full response (with class, attributes, skills)
+type HeroFullResponse struct {
+	// 英雄基本信息
+	ID                  string  `json:"id"`
+	UserID              string  `json:"user_id"`
+	HeroName            string  `json:"hero_name"`
+	Description         *string `json:"description,omitempty"`
+	CurrentLevel        int     `json:"current_level"`
+	ExperienceTotal     int64   `json:"experience_total"`
+	ExperienceAvailable int64   `json:"experience_available"`
+	ExperienceSpent     int64   `json:"experience_spent"`
+	Status              string  `json:"status"`
+	CreatedAt           string  `json:"created_at"`
+	UpdatedAt           string  `json:"updated_at"`
+
+	// 职业信息
+	Class *ClassInfo `json:"class"`
+
+	// 属性列表
+	Attributes []*AttributeInfo `json:"attributes"`
+
+	// 技能列表
+	Skills []*SkillInfo `json:"skills"`
+}
+
+// ClassInfo 职业信息
+type ClassInfo struct {
+	ID          string `json:"id"`
+	ClassCode   string `json:"class_code"`
+	ClassName   string `json:"class_name"`
+	Tier        string `json:"tier"`
+	Description string `json:"description,omitempty"`
+}
+
+// AttributeInfo 属性信息
+type AttributeInfo struct {
+	AttributeCode string `json:"attribute_code"`
+	AttributeName string `json:"attribute_name"`
+	BaseValue     int    `json:"base_value"`
+	ClassBonus    int    `json:"class_bonus"`
+	FinalValue    int    `json:"final_value"`
+}
+
+// SkillInfo 技能信息
+type SkillInfo struct {
+	HeroSkillID string `json:"hero_skill_id"`
+	SkillID     string `json:"skill_id"`
+	SkillName   string `json:"skill_name"`
+	SkillCode   string `json:"skill_code"`
+	SkillLevel  int    `json:"skill_level"`
+	MaxLevel    int    `json:"max_level"`
+}
+
 // CreateHeroRequest HTTP create hero request
 type CreateHeroRequest struct {
 	ClassID     string `json:"class_id" validate:"required"`
@@ -76,8 +129,7 @@ func (h *HeroHandler) CreateHero(c echo.Context) error {
 		return response.EchoBadRequest(c, h.respWriter, err.Error())
 	}
 
-	// 2. 获取用户ID（从上下文或 session）
-	// TODO: 从认证中间件获取用户ID
+	// 2. 获取用户ID（从认证中间件）
 	userID := c.Get("user_id")
 	if userID == nil {
 		return response.EchoUnauthorized(c, h.respWriter, "未登录")
@@ -349,4 +401,116 @@ func (h *HeroHandler) AddExperience(c echo.Context) error {
 		"message": "经验增加成功",
 		"hero":    heroResp,
 	})
+}
+
+// GetHeroFull handles getting hero full information
+// @Summary 获取英雄完整信息
+// @Description 获取英雄的完整信息，包括基本信息、职业详情、属性列表、技能列表
+// @Tags 英雄
+// @Accept json
+// @Produce json
+// @Param hero_id path string true "英雄ID"
+// @Success 200 {object} response.Response{data=HeroFullResponse} "获取成功"
+// @Failure 404 {object} response.Response "英雄不存在"
+// @Failure 500 {object} response.Response "服务器内部错误"
+// @Router /game/heroes/{hero_id}/full [get]
+func (h *HeroHandler) GetHeroFull(c echo.Context) error {
+	heroID := c.Param("hero_id")
+	if heroID == "" {
+		return response.EchoBadRequest(c, h.respWriter, "英雄ID不能为空")
+	}
+
+	// 调用 Service 获取完整信息
+	fullInfo, err := h.heroService.GetHeroFullInfo(c.Request().Context(), heroID)
+	if err != nil {
+		return response.EchoError(c, h.respWriter, err)
+	}
+
+	// 转换为 HTTP 响应
+	resp := &HeroFullResponse{
+		ID:                  fullInfo.Hero.ID,
+		UserID:              fullInfo.Hero.UserID,
+		HeroName:            fullInfo.Hero.HeroName,
+		CurrentLevel:        int(fullInfo.Hero.CurrentLevel),
+		ExperienceTotal:     fullInfo.Hero.ExperienceTotal,
+		ExperienceAvailable: fullInfo.Hero.ExperienceAvailable,
+		ExperienceSpent:     fullInfo.Hero.ExperienceSpent,
+		Status:              fullInfo.Hero.Status,
+		CreatedAt:           fullInfo.Hero.CreatedAt.Format("2006-01-02 15:04:05"),
+		UpdatedAt:           fullInfo.Hero.UpdatedAt.Format("2006-01-02 15:04:05"),
+	}
+
+	if !fullInfo.Hero.Description.IsZero() {
+		desc := fullInfo.Hero.Description.String
+		resp.Description = &desc
+	}
+
+	// 职业信息
+	resp.Class = &ClassInfo{
+		ID:          fullInfo.ClassInfo.ID,
+		ClassCode:   fullInfo.ClassInfo.ClassCode,
+		ClassName:   fullInfo.ClassInfo.ClassName,
+		Tier:        fullInfo.ClassInfo.Tier,
+		Description: fullInfo.ClassInfo.Description,
+	}
+
+	// 属性列表
+	resp.Attributes = make([]*AttributeInfo, len(fullInfo.Attributes))
+	for i, attr := range fullInfo.Attributes {
+		resp.Attributes[i] = &AttributeInfo{
+			AttributeCode: attr.AttributeCode,
+			AttributeName: attr.AttributeName,
+			BaseValue:     attr.BaseValue,
+			ClassBonus:    attr.ClassBonus,
+			FinalValue:    attr.FinalValue,
+		}
+	}
+
+	// 技能列表
+	resp.Skills = make([]*SkillInfo, len(fullInfo.Skills))
+	for i, skill := range fullInfo.Skills {
+		resp.Skills[i] = &SkillInfo{
+			HeroSkillID: skill.HeroSkillID,
+			SkillID:     skill.SkillID,
+			SkillName:   skill.SkillName,
+			SkillCode:   skill.SkillCode,
+			SkillLevel:  skill.SkillLevel,
+			MaxLevel:    skill.MaxLevel,
+		}
+	}
+
+	return response.EchoOK(c, h.respWriter, resp)
+}
+
+// CheckAdvancement handles checking advancement requirements
+// @Summary 检查职业进阶条件
+// @Description 检查英雄是否满足指定职业的进阶条件，返回详细的检查结果
+// @Tags 英雄
+// @Accept json
+// @Produce json
+// @Param hero_id path string true "英雄ID"
+// @Param target_class_id query string true "目标职业ID"
+// @Success 200 {object} response.Response{data=service.AdvancementCheckResult} "检查成功"
+// @Failure 400 {object} response.Response "请求参数错误"
+// @Failure 404 {object} response.Response "英雄不存在或进阶路径不存在"
+// @Failure 500 {object} response.Response "服务器内部错误"
+// @Router /game/heroes/{hero_id}/advancement-check [get]
+func (h *HeroHandler) CheckAdvancement(c echo.Context) error {
+	heroID := c.Param("hero_id")
+	if heroID == "" {
+		return response.EchoBadRequest(c, h.respWriter, "英雄ID不能为空")
+	}
+
+	targetClassID := c.QueryParam("target_class_id")
+	if targetClassID == "" {
+		return response.EchoBadRequest(c, h.respWriter, "目标职业ID不能为空")
+	}
+
+	// 调用 Service 检查进阶条件
+	result, err := h.heroService.CheckAdvancementRequirements(c.Request().Context(), heroID, targetClassID)
+	if err != nil {
+		return response.EchoError(c, h.respWriter, err)
+	}
+
+	return response.EchoOK(c, h.respWriter, result)
 }

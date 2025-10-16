@@ -303,7 +303,8 @@ func (s *HeroSkillService) UpgradeSkill(ctx context.Context, req *UpgradeSkillRe
 }
 
 // RollbackSkillOperation 回退技能操作（栈式）
-func (s *HeroSkillService) RollbackSkillOperation(ctx context.Context, heroSkillID string) error {
+// 参数：heroID - 英雄ID，skillID - 技能配置ID（game_config.skills.id）
+func (s *HeroSkillService) RollbackSkillOperation(ctx context.Context, heroID, skillID string) error {
 	// 1. 开启事务
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -315,8 +316,17 @@ func (s *HeroSkillService) RollbackSkillOperation(ctx context.Context, heroSkill
 		}
 	}()
 
-	// 2. 获取最近一次未回退且未过期的操作（栈顶）
-	operation, err := s.skillOpRepo.GetLatestRollbackable(ctx, heroSkillID)
+	// 2. 根据 heroID + skillID 查询 hero_skill 记录
+	heroSkill, err := s.heroSkillRepo.GetByHeroAndSkillID(ctx, heroID, skillID)
+	if err != nil {
+		return xerrors.Wrap(err, xerrors.CodeInternalError, "查询技能失败")
+	}
+	if heroSkill == nil {
+		return xerrors.New(xerrors.CodeSkillNotFound, "未学习该技能")
+	}
+
+	// 3. 获取最近一次未回退且未过期的操作（栈顶）
+	operation, err := s.skillOpRepo.GetLatestRollbackable(ctx, heroSkill.ID)
 	if err != nil {
 		return xerrors.Wrap(err, xerrors.CodeInternalError, "查询可回退操作失败")
 	}
@@ -324,15 +334,9 @@ func (s *HeroSkillService) RollbackSkillOperation(ctx context.Context, heroSkill
 		return xerrors.New(xerrors.CodeResourceNotFound, "没有可回退的操作")
 	}
 
-	// 3. 验证操作存在且未过期
+	// 4. 验证操作存在且未过期
 	if time.Now().After(operation.RollbackDeadline) {
 		return xerrors.New(xerrors.CodeOperationExpired, "回退时间已过期")
-	}
-
-	// 4. 获取技能信息（加锁）
-	heroSkill, err := s.heroSkillRepo.GetByIDForUpdate(ctx, tx, heroSkillID)
-	if err != nil {
-		return xerrors.Wrap(err, xerrors.CodeSkillNotFound, "技能不存在")
 	}
 
 	// 5. 获取英雄信息（加锁）
@@ -353,7 +357,7 @@ func (s *HeroSkillService) RollbackSkillOperation(ctx context.Context, heroSkill
 	// 7. 回退技能等级
 	if operation.LevelBefore == 0 {
 		// 如果回退到level=0，删除记录
-		if err := s.heroSkillRepo.Delete(ctx, tx, heroSkillID); err != nil {
+		if err := s.heroSkillRepo.Delete(ctx, tx, heroSkill.ID); err != nil {
 			return xerrors.Wrap(err, xerrors.CodeInternalError, "删除技能失败")
 		}
 	} else {

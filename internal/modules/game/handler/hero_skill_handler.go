@@ -214,11 +214,8 @@ func (h *HeroSkillHandler) RollbackSkill(c echo.Context) error {
 		return response.EchoBadRequest(c, h.respWriter, "英雄ID和技能ID不能为空")
 	}
 
-	// 需要先查询 hero_skill_id
-	// TODO: 可能需要调整 RollbackSkillOperation 方法签名以接受 heroID + skillID
-	// 暂时通过查询获取 heroSkillID
-
-	if err := h.skillService.RollbackSkillOperation(c.Request().Context(), skillID); err != nil {
+	// 调用 Service（使用 heroID + skillID 组合）
+	if err := h.skillService.RollbackSkillOperation(c.Request().Context(), heroID, skillID); err != nil {
 		return response.EchoError(c, h.respWriter, err)
 	}
 
