@@ -9,6 +9,7 @@ var TableNames = struct {
 	ActionFlags               string
 	ActionTypeDefinitions     string
 	Actions                   string
+	AttributeUpgradeCosts     string
 	BuffEffects               string
 	Buffs                     string
 	ClassAdvancedRequirements string
@@ -20,6 +21,7 @@ var TableNames = struct {
 	Effects                   string
 	FormulaVariables          string
 	HeroAttributeType         string
+	HeroLevelRequirements     string
 	RangeConfigRules          string
 	SkillCategories           string
 	SkillUnlockActions        string
@@ -33,6 +35,7 @@ var TableNames = struct {
 	ActionFlags:               "action_flags",
 	ActionTypeDefinitions:     "action_type_definitions",
 	Actions:                   "actions",
+	AttributeUpgradeCosts:     "attribute_upgrade_costs",
 	BuffEffects:               "buff_effects",
 	Buffs:                     "buffs",
 	ClassAdvancedRequirements: "class_advanced_requirements",
@@ -44,6 +47,7 @@ var TableNames = struct {
 	Effects:                   "effects",
 	FormulaVariables:          "formula_variables",
 	HeroAttributeType:         "hero_attribute_type",
+	HeroLevelRequirements:     "hero_level_requirements",
 	RangeConfigRules:          "range_config_rules",
 	SkillCategories:           "skill_categories",
 	SkillUnlockActions:        "skill_unlock_actions",

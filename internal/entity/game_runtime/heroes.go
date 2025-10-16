@@ -213,30 +213,6 @@ func (w whereHelperint64) NIN(slice []int64) qm.QueryMod {
 	return qm.WhereNotIn(fmt.Sprintf("%s NOT IN ?", w.field), values...)
 }
 
-type whereHelpernull_JSON struct{ field string }
-
-func (w whereHelpernull_JSON) EQ(x null.JSON) qm.QueryMod {
-	return qmhelper.WhereNullEQ(w.field, false, x)
-}
-func (w whereHelpernull_JSON) NEQ(x null.JSON) qm.QueryMod {
-	return qmhelper.WhereNullEQ(w.field, true, x)
-}
-func (w whereHelpernull_JSON) LT(x null.JSON) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.LT, x)
-}
-func (w whereHelpernull_JSON) LTE(x null.JSON) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.LTE, x)
-}
-func (w whereHelpernull_JSON) GT(x null.JSON) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.GT, x)
-}
-func (w whereHelpernull_JSON) GTE(x null.JSON) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.GTE, x)
-}
-
-func (w whereHelpernull_JSON) IsNull() qm.QueryMod    { return qmhelper.WhereIsNull(w.field) }
-func (w whereHelpernull_JSON) IsNotNull() qm.QueryMod { return qmhelper.WhereIsNotNull(w.field) }
-
 var HeroWhere = struct {
 	ID                  whereHelperstring
 	UserID              whereHelperstring
@@ -279,19 +255,57 @@ var HeroWhere = struct {
 
 // HeroRels is where relationship names are stored.
 var HeroRels = struct {
-	HeroSkills string
+	HeroAttributeOperations string
+	HeroClassHistories      string
+	HeroSkills              string
 }{
-	HeroSkills: "HeroSkills",
+	HeroAttributeOperations: "HeroAttributeOperations",
+	HeroClassHistories:      "HeroClassHistories",
+	HeroSkills:              "HeroSkills",
 }
 
 // heroR is where relationships are stored.
 type heroR struct {
-	HeroSkills HeroSkillSlice `boil:"HeroSkills" json:"HeroSkills" toml:"HeroSkills" yaml:"HeroSkills"`
+	HeroAttributeOperations HeroAttributeOperationSlice `boil:"HeroAttributeOperations" json:"HeroAttributeOperations" toml:"HeroAttributeOperations" yaml:"HeroAttributeOperations"`
+	HeroClassHistories      HeroClassHistorySlice       `boil:"HeroClassHistories" json:"HeroClassHistories" toml:"HeroClassHistories" yaml:"HeroClassHistories"`
+	HeroSkills              HeroSkillSlice              `boil:"HeroSkills" json:"HeroSkills" toml:"HeroSkills" yaml:"HeroSkills"`
 }
 
 // NewStruct creates a new relationship struct
 func (*heroR) NewStruct() *heroR {
 	return &heroR{}
+}
+
+func (o *Hero) GetHeroAttributeOperations() HeroAttributeOperationSlice {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetHeroAttributeOperations()
+}
+
+func (r *heroR) GetHeroAttributeOperations() HeroAttributeOperationSlice {
+	if r == nil {
+		return nil
+	}
+
+	return r.HeroAttributeOperations
+}
+
+func (o *Hero) GetHeroClassHistories() HeroClassHistorySlice {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetHeroClassHistories()
+}
+
+func (r *heroR) GetHeroClassHistories() HeroClassHistorySlice {
+	if r == nil {
+		return nil
+	}
+
+	return r.HeroClassHistories
 }
 
 func (o *Hero) GetHeroSkills() HeroSkillSlice {
@@ -726,6 +740,34 @@ func (q heroQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (bool,
 	return count > 0, nil
 }
 
+// HeroAttributeOperations retrieves all the hero_attribute_operation's HeroAttributeOperations with an executor.
+func (o *Hero) HeroAttributeOperations(mods ...qm.QueryMod) heroAttributeOperationQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"game_runtime\".\"hero_attribute_operations\".\"hero_id\"=?", o.ID),
+	)
+
+	return HeroAttributeOperations(queryMods...)
+}
+
+// HeroClassHistories retrieves all the hero_class_history's HeroClassHistories with an executor.
+func (o *Hero) HeroClassHistories(mods ...qm.QueryMod) heroClassHistoryQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"game_runtime\".\"hero_class_history\".\"hero_id\"=?", o.ID),
+	)
+
+	return HeroClassHistories(queryMods...)
+}
+
 // HeroSkills retrieves all the hero_skill's HeroSkills with an executor.
 func (o *Hero) HeroSkills(mods ...qm.QueryMod) heroSkillQuery {
 	var queryMods []qm.QueryMod
@@ -738,6 +780,232 @@ func (o *Hero) HeroSkills(mods ...qm.QueryMod) heroSkillQuery {
 	)
 
 	return HeroSkills(queryMods...)
+}
+
+// LoadHeroAttributeOperations allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (heroL) LoadHeroAttributeOperations(ctx context.Context, e boil.ContextExecutor, singular bool, maybeHero interface{}, mods queries.Applicator) error {
+	var slice []*Hero
+	var object *Hero
+
+	if singular {
+		var ok bool
+		object, ok = maybeHero.(*Hero)
+		if !ok {
+			object = new(Hero)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeHero)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeHero))
+			}
+		}
+	} else {
+		s, ok := maybeHero.(*[]*Hero)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeHero)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeHero))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &heroR{}
+		}
+		args[object.ID] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &heroR{}
+			}
+			args[obj.ID] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`game_runtime.hero_attribute_operations`),
+		qm.WhereIn(`game_runtime.hero_attribute_operations.hero_id in ?`, argsSlice...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load hero_attribute_operations")
+	}
+
+	var resultSlice []*HeroAttributeOperation
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice hero_attribute_operations")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on hero_attribute_operations")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for hero_attribute_operations")
+	}
+
+	if len(heroAttributeOperationAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.HeroAttributeOperations = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &heroAttributeOperationR{}
+			}
+			foreign.R.Hero = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.HeroID {
+				local.R.HeroAttributeOperations = append(local.R.HeroAttributeOperations, foreign)
+				if foreign.R == nil {
+					foreign.R = &heroAttributeOperationR{}
+				}
+				foreign.R.Hero = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadHeroClassHistories allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (heroL) LoadHeroClassHistories(ctx context.Context, e boil.ContextExecutor, singular bool, maybeHero interface{}, mods queries.Applicator) error {
+	var slice []*Hero
+	var object *Hero
+
+	if singular {
+		var ok bool
+		object, ok = maybeHero.(*Hero)
+		if !ok {
+			object = new(Hero)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeHero)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeHero))
+			}
+		}
+	} else {
+		s, ok := maybeHero.(*[]*Hero)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeHero)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeHero))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &heroR{}
+		}
+		args[object.ID] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &heroR{}
+			}
+			args[obj.ID] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`game_runtime.hero_class_history`),
+		qm.WhereIn(`game_runtime.hero_class_history.hero_id in ?`, argsSlice...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load hero_class_history")
+	}
+
+	var resultSlice []*HeroClassHistory
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice hero_class_history")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on hero_class_history")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for hero_class_history")
+	}
+
+	if len(heroClassHistoryAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.HeroClassHistories = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &heroClassHistoryR{}
+			}
+			foreign.R.Hero = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.HeroID {
+				local.R.HeroClassHistories = append(local.R.HeroClassHistories, foreign)
+				if foreign.R == nil {
+					foreign.R = &heroClassHistoryR{}
+				}
+				foreign.R.Hero = local
+				break
+			}
+		}
+	}
+
+	return nil
 }
 
 // LoadHeroSkills allows an eager lookup of values, cached into the
@@ -851,6 +1119,174 @@ func (heroL) LoadHeroSkills(ctx context.Context, e boil.ContextExecutor, singula
 		}
 	}
 
+	return nil
+}
+
+// AddHeroAttributeOperationsG adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.HeroAttributeOperations.
+// Sets related.R.Hero appropriately.
+// Uses the global database handle.
+func (o *Hero) AddHeroAttributeOperationsG(ctx context.Context, insert bool, related ...*HeroAttributeOperation) error {
+	return o.AddHeroAttributeOperations(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// AddHeroAttributeOperationsP adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.HeroAttributeOperations.
+// Sets related.R.Hero appropriately.
+// Panics on error.
+func (o *Hero) AddHeroAttributeOperationsP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*HeroAttributeOperation) {
+	if err := o.AddHeroAttributeOperations(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddHeroAttributeOperationsGP adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.HeroAttributeOperations.
+// Sets related.R.Hero appropriately.
+// Uses the global database handle and panics on error.
+func (o *Hero) AddHeroAttributeOperationsGP(ctx context.Context, insert bool, related ...*HeroAttributeOperation) {
+	if err := o.AddHeroAttributeOperations(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddHeroAttributeOperations adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.HeroAttributeOperations.
+// Sets related.R.Hero appropriately.
+func (o *Hero) AddHeroAttributeOperations(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*HeroAttributeOperation) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.HeroID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"game_runtime\".\"hero_attribute_operations\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"hero_id"}),
+				strmangle.WhereClause("\"", "\"", 2, heroAttributeOperationPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.HeroID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &heroR{
+			HeroAttributeOperations: related,
+		}
+	} else {
+		o.R.HeroAttributeOperations = append(o.R.HeroAttributeOperations, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &heroAttributeOperationR{
+				Hero: o,
+			}
+		} else {
+			rel.R.Hero = o
+		}
+	}
+	return nil
+}
+
+// AddHeroClassHistoriesG adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.HeroClassHistories.
+// Sets related.R.Hero appropriately.
+// Uses the global database handle.
+func (o *Hero) AddHeroClassHistoriesG(ctx context.Context, insert bool, related ...*HeroClassHistory) error {
+	return o.AddHeroClassHistories(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// AddHeroClassHistoriesP adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.HeroClassHistories.
+// Sets related.R.Hero appropriately.
+// Panics on error.
+func (o *Hero) AddHeroClassHistoriesP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*HeroClassHistory) {
+	if err := o.AddHeroClassHistories(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddHeroClassHistoriesGP adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.HeroClassHistories.
+// Sets related.R.Hero appropriately.
+// Uses the global database handle and panics on error.
+func (o *Hero) AddHeroClassHistoriesGP(ctx context.Context, insert bool, related ...*HeroClassHistory) {
+	if err := o.AddHeroClassHistories(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddHeroClassHistories adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.HeroClassHistories.
+// Sets related.R.Hero appropriately.
+func (o *Hero) AddHeroClassHistories(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*HeroClassHistory) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.HeroID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"game_runtime\".\"hero_class_history\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"hero_id"}),
+				strmangle.WhereClause("\"", "\"", 2, heroClassHistoryPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.HeroID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &heroR{
+			HeroClassHistories: related,
+		}
+	} else {
+		o.R.HeroClassHistories = append(o.R.HeroClassHistories, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &heroClassHistoryR{
+				Hero: o,
+			}
+		} else {
+			rel.R.Hero = o
+		}
+	}
 	return nil
 }
 

@@ -4,9 +4,15 @@
 package game_runtime
 
 var TableNames = struct {
-	HeroSkills string
-	Heroes     string
+	HeroAttributeOperations string
+	HeroClassHistory        string
+	HeroSkillOperations     string
+	HeroSkills              string
+	Heroes                  string
 }{
-	HeroSkills: "hero_skills",
-	Heroes:     "heroes",
+	HeroAttributeOperations: "hero_attribute_operations",
+	HeroClassHistory:        "hero_class_history",
+	HeroSkillOperations:     "hero_skill_operations",
+	HeroSkills:              "hero_skills",
+	Heroes:                  "heroes",
 }

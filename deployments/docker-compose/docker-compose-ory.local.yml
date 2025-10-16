@@ -83,7 +83,7 @@ services:
   kratos-admin-ui:
     image: dhiagharsallaoui/kratos-admin-ui:latest
     ports:
-      - '3000:3000'
+      - '3001:3000'
     environment:
       - KRATOS_PUBLIC_URL=http://kratos:4433
       - KRATOS_ADMIN_URL=http://kratos:4434

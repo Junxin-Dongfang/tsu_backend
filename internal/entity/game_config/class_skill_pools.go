@@ -47,6 +47,8 @@ type ClassSkillPool struct {
 	CreatedAt         time.Time   `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
 	UpdatedAt         time.Time   `boil:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
 	DeletedAt         null.Time   `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
+	// 是否为职业初始技能（创建英雄或获得职业时自动学习）
+	IsInitialSkill null.Bool `boil:"is_initial_skill" json:"is_initial_skill,omitempty" toml:"is_initial_skill" yaml:"is_initial_skill,omitempty"`
 
 	R *classSkillPoolR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L classSkillPoolL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -71,6 +73,7 @@ var ClassSkillPoolColumns = struct {
 	CreatedAt            string
 	UpdatedAt            string
 	DeletedAt            string
+	IsInitialSkill       string
 }{
 	ID:                   "id",
 	ClassID:              "class_id",
@@ -90,6 +93,7 @@ var ClassSkillPoolColumns = struct {
 	CreatedAt:            "created_at",
 	UpdatedAt:            "updated_at",
 	DeletedAt:            "deleted_at",
+	IsInitialSkill:       "is_initial_skill",
 }
 
 var ClassSkillPoolTableColumns = struct {
@@ -111,6 +115,7 @@ var ClassSkillPoolTableColumns = struct {
 	CreatedAt            string
 	UpdatedAt            string
 	DeletedAt            string
+	IsInitialSkill       string
 }{
 	ID:                   "class_skill_pools.id",
 	ClassID:              "class_skill_pools.class_id",
@@ -130,6 +135,7 @@ var ClassSkillPoolTableColumns = struct {
 	CreatedAt:            "class_skill_pools.created_at",
 	UpdatedAt:            "class_skill_pools.updated_at",
 	DeletedAt:            "class_skill_pools.deleted_at",
+	IsInitialSkill:       "class_skill_pools.is_initial_skill",
 }
 
 // Generated where
@@ -153,6 +159,7 @@ var ClassSkillPoolWhere = struct {
 	CreatedAt            whereHelpertime_Time
 	UpdatedAt            whereHelpertime_Time
 	DeletedAt            whereHelpernull_Time
+	IsInitialSkill       whereHelpernull_Bool
 }{
 	ID:                   whereHelperstring{field: "\"game_config\".\"class_skill_pools\".\"id\""},
 	ClassID:              whereHelperstring{field: "\"game_config\".\"class_skill_pools\".\"class_id\""},
@@ -172,6 +179,7 @@ var ClassSkillPoolWhere = struct {
 	CreatedAt:            whereHelpertime_Time{field: "\"game_config\".\"class_skill_pools\".\"created_at\""},
 	UpdatedAt:            whereHelpertime_Time{field: "\"game_config\".\"class_skill_pools\".\"updated_at\""},
 	DeletedAt:            whereHelpernull_Time{field: "\"game_config\".\"class_skill_pools\".\"deleted_at\""},
+	IsInitialSkill:       whereHelpernull_Bool{field: "\"game_config\".\"class_skill_pools\".\"is_initial_skill\""},
 }
 
 // ClassSkillPoolRels is where relationship names are stored.
@@ -230,9 +238,9 @@ func (r *classSkillPoolR) GetSkill() *Skill {
 type classSkillPoolL struct{}
 
 var (
-	classSkillPoolAllColumns            = []string{"id", "class_id", "skill_id", "required_level", "required_attributes", "prerequisite_skill_ids", "learn_cost_xp", "skill_tier", "is_core", "is_exclusive", "max_learnable_level", "display_order", "is_visible", "custom_icon", "custom_description", "created_at", "updated_at", "deleted_at"}
+	classSkillPoolAllColumns            = []string{"id", "class_id", "skill_id", "required_level", "required_attributes", "prerequisite_skill_ids", "learn_cost_xp", "skill_tier", "is_core", "is_exclusive", "max_learnable_level", "display_order", "is_visible", "custom_icon", "custom_description", "created_at", "updated_at", "deleted_at", "is_initial_skill"}
 	classSkillPoolColumnsWithoutDefault = []string{"class_id", "skill_id"}
-	classSkillPoolColumnsWithDefault    = []string{"id", "required_level", "required_attributes", "prerequisite_skill_ids", "learn_cost_xp", "skill_tier", "is_core", "is_exclusive", "max_learnable_level", "display_order", "is_visible", "custom_icon", "custom_description", "created_at", "updated_at", "deleted_at"}
+	classSkillPoolColumnsWithDefault    = []string{"id", "required_level", "required_attributes", "prerequisite_skill_ids", "learn_cost_xp", "skill_tier", "is_core", "is_exclusive", "max_learnable_level", "display_order", "is_visible", "custom_icon", "custom_description", "created_at", "updated_at", "deleted_at", "is_initial_skill"}
 	classSkillPoolPrimaryKeyColumns     = []string{"id"}
 	classSkillPoolGeneratedColumns      = []string{}
 )

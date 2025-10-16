@@ -4,4 +4,7 @@
 package game_runtime
 
 var ViewNames = struct {
-}{}
+	HeroComputedAttributes string
+}{
+	HeroComputedAttributes: "hero_computed_attributes",
+}

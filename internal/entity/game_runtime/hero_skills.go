@@ -24,20 +24,23 @@ import (
 
 // HeroSkill is an object representing the database table.
 type HeroSkill struct {
-	ID              string      `boil:"id" json:"id" toml:"id" yaml:"id"`
-	HeroID          string      `boil:"hero_id" json:"hero_id" toml:"hero_id" yaml:"hero_id"`
-	SkillID         string      `boil:"skill_id" json:"skill_id" toml:"skill_id" yaml:"skill_id"`
-	SkillCode       string      `boil:"skill_code" json:"skill_code" toml:"skill_code" yaml:"skill_code"`
-	SkillLevel      int         `boil:"skill_level" json:"skill_level" toml:"skill_level" yaml:"skill_level"`
-	SkillExperience int         `boil:"skill_experience" json:"skill_experience" toml:"skill_experience" yaml:"skill_experience"`
-	MaxLevel        int         `boil:"max_level" json:"max_level" toml:"max_level" yaml:"max_level"`
-	IsActive        bool        `boil:"is_active" json:"is_active" toml:"is_active" yaml:"is_active"`
-	IsEquipped      bool        `boil:"is_equipped" json:"is_equipped" toml:"is_equipped" yaml:"is_equipped"`
-	LearnedAt       time.Time   `boil:"learned_at" json:"learned_at" toml:"learned_at" yaml:"learned_at"`
-	LearnedMethod   null.String `boil:"learned_method" json:"learned_method,omitempty" toml:"learned_method" yaml:"learned_method,omitempty"`
-	CreatedAt       time.Time   `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
-	UpdatedAt       time.Time   `boil:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
-	DeletedAt       null.Time   `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
+	ID              string    `boil:"id" json:"id" toml:"id" yaml:"id"`
+	HeroID          string    `boil:"hero_id" json:"hero_id" toml:"hero_id" yaml:"hero_id"`
+	SkillID         string    `boil:"skill_id" json:"skill_id" toml:"skill_id" yaml:"skill_id"`
+	SkillCode       string    `boil:"skill_code" json:"skill_code" toml:"skill_code" yaml:"skill_code"`
+	SkillLevel      int       `boil:"skill_level" json:"skill_level" toml:"skill_level" yaml:"skill_level"`
+	SkillExperience int       `boil:"skill_experience" json:"skill_experience" toml:"skill_experience" yaml:"skill_experience"`
+	MaxLevel        int       `boil:"max_level" json:"max_level" toml:"max_level" yaml:"max_level"`
+	IsActive        bool      `boil:"is_active" json:"is_active" toml:"is_active" yaml:"is_active"`
+	IsEquipped      bool      `boil:"is_equipped" json:"is_equipped" toml:"is_equipped" yaml:"is_equipped"`
+	LearnedAt       time.Time `boil:"learned_at" json:"learned_at" toml:"learned_at" yaml:"learned_at"`
+	// 技能来源：class_unlock(职业解锁)、equipment(装备提供)、quest(任务奖励)、manual(主动学习)等
+	LearnedMethod null.String `boil:"learned_method" json:"learned_method,omitempty" toml:"learned_method" yaml:"learned_method,omitempty"`
+	CreatedAt     time.Time   `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
+	UpdatedAt     time.Time   `boil:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
+	DeletedAt     null.Time   `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
+	// 首次学习时间
+	FirstLearnedAt null.Time `boil:"first_learned_at" json:"first_learned_at,omitempty" toml:"first_learned_at" yaml:"first_learned_at,omitempty"`
 
 	R *heroSkillR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L heroSkillL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -58,6 +61,7 @@ var HeroSkillColumns = struct {
 	CreatedAt       string
 	UpdatedAt       string
 	DeletedAt       string
+	FirstLearnedAt  string
 }{
 	ID:              "id",
 	HeroID:          "hero_id",
@@ -73,6 +77,7 @@ var HeroSkillColumns = struct {
 	CreatedAt:       "created_at",
 	UpdatedAt:       "updated_at",
 	DeletedAt:       "deleted_at",
+	FirstLearnedAt:  "first_learned_at",
 }
 
 var HeroSkillTableColumns = struct {
@@ -90,6 +95,7 @@ var HeroSkillTableColumns = struct {
 	CreatedAt       string
 	UpdatedAt       string
 	DeletedAt       string
+	FirstLearnedAt  string
 }{
 	ID:              "hero_skills.id",
 	HeroID:          "hero_skills.hero_id",
@@ -105,93 +111,10 @@ var HeroSkillTableColumns = struct {
 	CreatedAt:       "hero_skills.created_at",
 	UpdatedAt:       "hero_skills.updated_at",
 	DeletedAt:       "hero_skills.deleted_at",
+	FirstLearnedAt:  "hero_skills.first_learned_at",
 }
 
 // Generated where
-
-type whereHelperstring struct{ field string }
-
-func (w whereHelperstring) EQ(x string) qm.QueryMod      { return qmhelper.Where(w.field, qmhelper.EQ, x) }
-func (w whereHelperstring) NEQ(x string) qm.QueryMod     { return qmhelper.Where(w.field, qmhelper.NEQ, x) }
-func (w whereHelperstring) LT(x string) qm.QueryMod      { return qmhelper.Where(w.field, qmhelper.LT, x) }
-func (w whereHelperstring) LTE(x string) qm.QueryMod     { return qmhelper.Where(w.field, qmhelper.LTE, x) }
-func (w whereHelperstring) GT(x string) qm.QueryMod      { return qmhelper.Where(w.field, qmhelper.GT, x) }
-func (w whereHelperstring) GTE(x string) qm.QueryMod     { return qmhelper.Where(w.field, qmhelper.GTE, x) }
-func (w whereHelperstring) LIKE(x string) qm.QueryMod    { return qm.Where(w.field+" LIKE ?", x) }
-func (w whereHelperstring) NLIKE(x string) qm.QueryMod   { return qm.Where(w.field+" NOT LIKE ?", x) }
-func (w whereHelperstring) ILIKE(x string) qm.QueryMod   { return qm.Where(w.field+" ILIKE ?", x) }
-func (w whereHelperstring) NILIKE(x string) qm.QueryMod  { return qm.Where(w.field+" NOT ILIKE ?", x) }
-func (w whereHelperstring) SIMILAR(x string) qm.QueryMod { return qm.Where(w.field+" SIMILAR TO ?", x) }
-func (w whereHelperstring) NSIMILAR(x string) qm.QueryMod {
-	return qm.Where(w.field+" NOT SIMILAR TO ?", x)
-}
-func (w whereHelperstring) IN(slice []string) qm.QueryMod {
-	values := make([]interface{}, 0, len(slice))
-	for _, value := range slice {
-		values = append(values, value)
-	}
-	return qm.WhereIn(fmt.Sprintf("%s IN ?", w.field), values...)
-}
-func (w whereHelperstring) NIN(slice []string) qm.QueryMod {
-	values := make([]interface{}, 0, len(slice))
-	for _, value := range slice {
-		values = append(values, value)
-	}
-	return qm.WhereNotIn(fmt.Sprintf("%s NOT IN ?", w.field), values...)
-}
-
-type whereHelperint struct{ field string }
-
-func (w whereHelperint) EQ(x int) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.EQ, x) }
-func (w whereHelperint) NEQ(x int) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.NEQ, x) }
-func (w whereHelperint) LT(x int) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.LT, x) }
-func (w whereHelperint) LTE(x int) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.LTE, x) }
-func (w whereHelperint) GT(x int) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.GT, x) }
-func (w whereHelperint) GTE(x int) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.GTE, x) }
-func (w whereHelperint) IN(slice []int) qm.QueryMod {
-	values := make([]interface{}, 0, len(slice))
-	for _, value := range slice {
-		values = append(values, value)
-	}
-	return qm.WhereIn(fmt.Sprintf("%s IN ?", w.field), values...)
-}
-func (w whereHelperint) NIN(slice []int) qm.QueryMod {
-	values := make([]interface{}, 0, len(slice))
-	for _, value := range slice {
-		values = append(values, value)
-	}
-	return qm.WhereNotIn(fmt.Sprintf("%s NOT IN ?", w.field), values...)
-}
-
-type whereHelperbool struct{ field string }
-
-func (w whereHelperbool) EQ(x bool) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.EQ, x) }
-func (w whereHelperbool) NEQ(x bool) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.NEQ, x) }
-func (w whereHelperbool) LT(x bool) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.LT, x) }
-func (w whereHelperbool) LTE(x bool) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.LTE, x) }
-func (w whereHelperbool) GT(x bool) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.GT, x) }
-func (w whereHelperbool) GTE(x bool) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.GTE, x) }
-
-type whereHelpertime_Time struct{ field string }
-
-func (w whereHelpertime_Time) EQ(x time.Time) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.EQ, x)
-}
-func (w whereHelpertime_Time) NEQ(x time.Time) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.NEQ, x)
-}
-func (w whereHelpertime_Time) LT(x time.Time) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.LT, x)
-}
-func (w whereHelpertime_Time) LTE(x time.Time) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.LTE, x)
-}
-func (w whereHelpertime_Time) GT(x time.Time) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.GT, x)
-}
-func (w whereHelpertime_Time) GTE(x time.Time) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.GTE, x)
-}
 
 type whereHelpernull_String struct{ field string }
 
@@ -249,30 +172,6 @@ func (w whereHelpernull_String) NIN(slice []string) qm.QueryMod {
 func (w whereHelpernull_String) IsNull() qm.QueryMod    { return qmhelper.WhereIsNull(w.field) }
 func (w whereHelpernull_String) IsNotNull() qm.QueryMod { return qmhelper.WhereIsNotNull(w.field) }
 
-type whereHelpernull_Time struct{ field string }
-
-func (w whereHelpernull_Time) EQ(x null.Time) qm.QueryMod {
-	return qmhelper.WhereNullEQ(w.field, false, x)
-}
-func (w whereHelpernull_Time) NEQ(x null.Time) qm.QueryMod {
-	return qmhelper.WhereNullEQ(w.field, true, x)
-}
-func (w whereHelpernull_Time) LT(x null.Time) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.LT, x)
-}
-func (w whereHelpernull_Time) LTE(x null.Time) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.LTE, x)
-}
-func (w whereHelpernull_Time) GT(x null.Time) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.GT, x)
-}
-func (w whereHelpernull_Time) GTE(x null.Time) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.GTE, x)
-}
-
-func (w whereHelpernull_Time) IsNull() qm.QueryMod    { return qmhelper.WhereIsNull(w.field) }
-func (w whereHelpernull_Time) IsNotNull() qm.QueryMod { return qmhelper.WhereIsNotNull(w.field) }
-
 var HeroSkillWhere = struct {
 	ID              whereHelperstring
 	HeroID          whereHelperstring
@@ -288,6 +187,7 @@ var HeroSkillWhere = struct {
 	CreatedAt       whereHelpertime_Time
 	UpdatedAt       whereHelpertime_Time
 	DeletedAt       whereHelpernull_Time
+	FirstLearnedAt  whereHelpernull_Time
 }{
 	ID:              whereHelperstring{field: "\"game_runtime\".\"hero_skills\".\"id\""},
 	HeroID:          whereHelperstring{field: "\"game_runtime\".\"hero_skills\".\"hero_id\""},
@@ -303,18 +203,22 @@ var HeroSkillWhere = struct {
 	CreatedAt:       whereHelpertime_Time{field: "\"game_runtime\".\"hero_skills\".\"created_at\""},
 	UpdatedAt:       whereHelpertime_Time{field: "\"game_runtime\".\"hero_skills\".\"updated_at\""},
 	DeletedAt:       whereHelpernull_Time{field: "\"game_runtime\".\"hero_skills\".\"deleted_at\""},
+	FirstLearnedAt:  whereHelpernull_Time{field: "\"game_runtime\".\"hero_skills\".\"first_learned_at\""},
 }
 
 // HeroSkillRels is where relationship names are stored.
 var HeroSkillRels = struct {
-	Hero string
+	Hero                string
+	HeroSkillOperations string
 }{
-	Hero: "Hero",
+	Hero:                "Hero",
+	HeroSkillOperations: "HeroSkillOperations",
 }
 
 // heroSkillR is where relationships are stored.
 type heroSkillR struct {
-	Hero *Hero `boil:"Hero" json:"Hero" toml:"Hero" yaml:"Hero"`
+	Hero                *Hero                   `boil:"Hero" json:"Hero" toml:"Hero" yaml:"Hero"`
+	HeroSkillOperations HeroSkillOperationSlice `boil:"HeroSkillOperations" json:"HeroSkillOperations" toml:"HeroSkillOperations" yaml:"HeroSkillOperations"`
 }
 
 // NewStruct creates a new relationship struct
@@ -338,13 +242,29 @@ func (r *heroSkillR) GetHero() *Hero {
 	return r.Hero
 }
 
+func (o *HeroSkill) GetHeroSkillOperations() HeroSkillOperationSlice {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetHeroSkillOperations()
+}
+
+func (r *heroSkillR) GetHeroSkillOperations() HeroSkillOperationSlice {
+	if r == nil {
+		return nil
+	}
+
+	return r.HeroSkillOperations
+}
+
 // heroSkillL is where Load methods for each relationship are stored.
 type heroSkillL struct{}
 
 var (
-	heroSkillAllColumns            = []string{"id", "hero_id", "skill_id", "skill_code", "skill_level", "skill_experience", "max_level", "is_active", "is_equipped", "learned_at", "learned_method", "created_at", "updated_at", "deleted_at"}
+	heroSkillAllColumns            = []string{"id", "hero_id", "skill_id", "skill_code", "skill_level", "skill_experience", "max_level", "is_active", "is_equipped", "learned_at", "learned_method", "created_at", "updated_at", "deleted_at", "first_learned_at"}
 	heroSkillColumnsWithoutDefault = []string{"hero_id", "skill_id", "skill_code"}
-	heroSkillColumnsWithDefault    = []string{"id", "skill_level", "skill_experience", "max_level", "is_active", "is_equipped", "learned_at", "learned_method", "created_at", "updated_at", "deleted_at"}
+	heroSkillColumnsWithDefault    = []string{"id", "skill_level", "skill_experience", "max_level", "is_active", "is_equipped", "learned_at", "learned_method", "created_at", "updated_at", "deleted_at", "first_learned_at"}
 	heroSkillPrimaryKeyColumns     = []string{"id"}
 	heroSkillGeneratedColumns      = []string{}
 )
@@ -765,6 +685,20 @@ func (o *HeroSkill) Hero(mods ...qm.QueryMod) heroQuery {
 	return Heroes(queryMods...)
 }
 
+// HeroSkillOperations retrieves all the hero_skill_operation's HeroSkillOperations with an executor.
+func (o *HeroSkill) HeroSkillOperations(mods ...qm.QueryMod) heroSkillOperationQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"game_runtime\".\"hero_skill_operations\".\"hero_skill_id\"=?", o.ID),
+	)
+
+	return HeroSkillOperations(queryMods...)
+}
+
 // LoadHero allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for an N-1 relationship.
 func (heroSkillL) LoadHero(ctx context.Context, e boil.ContextExecutor, singular bool, maybeHeroSkill interface{}, mods queries.Applicator) error {
@@ -886,6 +820,119 @@ func (heroSkillL) LoadHero(ctx context.Context, e boil.ContextExecutor, singular
 	return nil
 }
 
+// LoadHeroSkillOperations allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (heroSkillL) LoadHeroSkillOperations(ctx context.Context, e boil.ContextExecutor, singular bool, maybeHeroSkill interface{}, mods queries.Applicator) error {
+	var slice []*HeroSkill
+	var object *HeroSkill
+
+	if singular {
+		var ok bool
+		object, ok = maybeHeroSkill.(*HeroSkill)
+		if !ok {
+			object = new(HeroSkill)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeHeroSkill)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeHeroSkill))
+			}
+		}
+	} else {
+		s, ok := maybeHeroSkill.(*[]*HeroSkill)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeHeroSkill)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeHeroSkill))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &heroSkillR{}
+		}
+		args[object.ID] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &heroSkillR{}
+			}
+			args[obj.ID] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`game_runtime.hero_skill_operations`),
+		qm.WhereIn(`game_runtime.hero_skill_operations.hero_skill_id in ?`, argsSlice...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load hero_skill_operations")
+	}
+
+	var resultSlice []*HeroSkillOperation
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice hero_skill_operations")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on hero_skill_operations")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for hero_skill_operations")
+	}
+
+	if len(heroSkillOperationAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.HeroSkillOperations = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &heroSkillOperationR{}
+			}
+			foreign.R.HeroSkill = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.HeroSkillID {
+				local.R.HeroSkillOperations = append(local.R.HeroSkillOperations, foreign)
+				if foreign.R == nil {
+					foreign.R = &heroSkillOperationR{}
+				}
+				foreign.R.HeroSkill = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
 // SetHeroG of the heroSkill to the related item.
 // Sets o.R.Hero to related.
 // Adds o to related.R.HeroSkills.
@@ -958,6 +1005,90 @@ func (o *HeroSkill) SetHero(ctx context.Context, exec boil.ContextExecutor, inse
 		related.R.HeroSkills = append(related.R.HeroSkills, o)
 	}
 
+	return nil
+}
+
+// AddHeroSkillOperationsG adds the given related objects to the existing relationships
+// of the hero_skill, optionally inserting them as new records.
+// Appends related to o.R.HeroSkillOperations.
+// Sets related.R.HeroSkill appropriately.
+// Uses the global database handle.
+func (o *HeroSkill) AddHeroSkillOperationsG(ctx context.Context, insert bool, related ...*HeroSkillOperation) error {
+	return o.AddHeroSkillOperations(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// AddHeroSkillOperationsP adds the given related objects to the existing relationships
+// of the hero_skill, optionally inserting them as new records.
+// Appends related to o.R.HeroSkillOperations.
+// Sets related.R.HeroSkill appropriately.
+// Panics on error.
+func (o *HeroSkill) AddHeroSkillOperationsP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*HeroSkillOperation) {
+	if err := o.AddHeroSkillOperations(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddHeroSkillOperationsGP adds the given related objects to the existing relationships
+// of the hero_skill, optionally inserting them as new records.
+// Appends related to o.R.HeroSkillOperations.
+// Sets related.R.HeroSkill appropriately.
+// Uses the global database handle and panics on error.
+func (o *HeroSkill) AddHeroSkillOperationsGP(ctx context.Context, insert bool, related ...*HeroSkillOperation) {
+	if err := o.AddHeroSkillOperations(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddHeroSkillOperations adds the given related objects to the existing relationships
+// of the hero_skill, optionally inserting them as new records.
+// Appends related to o.R.HeroSkillOperations.
+// Sets related.R.HeroSkill appropriately.
+func (o *HeroSkill) AddHeroSkillOperations(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*HeroSkillOperation) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.HeroSkillID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"game_runtime\".\"hero_skill_operations\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"hero_skill_id"}),
+				strmangle.WhereClause("\"", "\"", 2, heroSkillOperationPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.HeroSkillID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &heroSkillR{
+			HeroSkillOperations: related,
+		}
+	} else {
+		o.R.HeroSkillOperations = append(o.R.HeroSkillOperations, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &heroSkillOperationR{
+				HeroSkill: o,
+			}
+		} else {
+			rel.R.HeroSkill = o
+		}
+	}
 	return nil
 }
 

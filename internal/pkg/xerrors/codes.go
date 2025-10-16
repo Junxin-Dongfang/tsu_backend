@@ -94,11 +94,14 @@ const (
 
 	// 8xxxxx: 游戏业务错误码
 	// 角色相关 (80xxxx)
-	CodeHeroNotFound    ErrorCode = 800001 // 角色不存在
-	CodeHeroLevelTooLow ErrorCode = 800002 // 角色等级不足
-	CodeHeroMaxCount    ErrorCode = 800003 // 角色数量已达上限
-	CodeHeroNameExists  ErrorCode = 800004 // 角色名已存在
-	CodeHeroStatInvalid ErrorCode = 800005 // 角色属性无效
+	CodeHeroNotFound           ErrorCode = 800001 // 角色不存在
+	CodeHeroLevelTooLow        ErrorCode = 800002 // 角色等级不足
+	CodeHeroMaxCount           ErrorCode = 800003 // 角色数量已达上限
+	CodeHeroNameExists         ErrorCode = 800004 // 角色名已存在
+	CodeHeroStatInvalid        ErrorCode = 800005 // 角色属性无效
+	CodeInsufficientResource   ErrorCode = 800006 // 资源不足
+	CodeOperationExpired       ErrorCode = 800007 // 操作已过期
+	CodeInsufficientExperience ErrorCode = 800008 // 经验不足
 
 	// 技能相关 (81xxxx)
 	CodeSkillNotFound   ErrorCode = 810001 // 技能不存在
@@ -190,19 +193,22 @@ var codeMessages = map[ErrorCode]string{
 	CodeMessageQueueError:    "消息队列错误",
 
 	// 游戏业务错误消息
-	CodeHeroNotFound:        "角色不存在",
-	CodeHeroLevelTooLow:     "角色等级不足",
-	CodeHeroMaxCount:        "角色数量已达上限",
-	CodeHeroNameExists:      "角色名已被使用",
-	CodeHeroStatInvalid:     "角色属性无效",
-	CodeSkillNotFound:       "技能不存在",
-	CodeSkillNotLearned:     "技能未学习",
-	CodeSkillCooldown:       "技能冷却中",
-	CodeSkillManaCost:       "法力值不足",
-	CodeSkillInvalidUse:     "技能使用条件不满足",
-	CodeClassNotFound:       "职业不存在",
-	CodeClassNotMeetReq:     "不满足职业要求",
-	CodeClassAlreadyAdvaced: "职业已进阶",
+	CodeHeroNotFound:           "角色不存在",
+	CodeHeroLevelTooLow:        "角色等级不足",
+	CodeHeroMaxCount:           "角色数量已达上限",
+	CodeHeroNameExists:         "角色名已被使用",
+	CodeHeroStatInvalid:        "角色属性无效",
+	CodeInsufficientResource:   "资源不足",
+	CodeOperationExpired:       "操作已过期",
+	CodeInsufficientExperience: "经验不足",
+	CodeSkillNotFound:          "技能不存在",
+	CodeSkillNotLearned:        "技能未学习",
+	CodeSkillCooldown:          "技能冷却中",
+	CodeSkillManaCost:          "法力值不足",
+	CodeSkillInvalidUse:        "技能使用条件不满足",
+	CodeClassNotFound:          "职业不存在",
+	CodeClassNotMeetReq:        "不满足职业要求",
+	CodeClassAlreadyAdvaced:    "职业已进阶",
 }
 
 // GetHTTPStatus 根据业务错误码获取HTTP状态码
