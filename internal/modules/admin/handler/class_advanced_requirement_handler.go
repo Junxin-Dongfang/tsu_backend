@@ -10,7 +10,6 @@ import (
 	"tsu-self/internal/entity/game_config"
 	"tsu-self/internal/modules/admin/service"
 	"tsu-self/internal/pkg/response"
-	"tsu-self/internal/repository/interfaces"
 )
 
 // ClassAdvancedRequirementHandler 职业进阶要求处理器
@@ -86,6 +85,17 @@ type ListAdvancedRequirementsResponse struct {
 	TotalPages   int                       `json:"total_pages"`
 }
 
+// ListAdvancedRequirementsParams 查询参数结构
+type ListAdvancedRequirementsParams struct {
+	FromClassID *string
+	ToClassID   *string
+	IsActive    *bool
+	Page        int
+	PageSize    int
+	SortBy      string
+	SortDir     string
+}
+
 // GetAdvancedRequirements godoc
 // @Summary      获取职业进阶要求列表
 // @Description  获取系统中的所有职业进阶要求，支持按源职业、目标职业筛选。进阶要求定义了职业间的转换条件，包括等级、属性、技能、物品等多维度要求
@@ -104,7 +114,7 @@ type ListAdvancedRequirementsResponse struct {
 // @Failure      500  {object}  response.Response
 // @Router       /admin/advancement-requirements [get]
 func (h *ClassAdvancedRequirementHandler) GetAdvancedRequirements(c echo.Context) error {
-	params := interfaces.ListAdvancedRequirementsParams{
+	params := ListAdvancedRequirementsParams{
 		Page:     1,
 		PageSize: 20,
 		SortBy:   "display_order",

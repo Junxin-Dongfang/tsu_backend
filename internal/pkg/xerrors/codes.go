@@ -102,6 +102,9 @@ const (
 	CodeInsufficientResource   ErrorCode = 800006 // 资源不足
 	CodeOperationExpired       ErrorCode = 800007 // 操作已过期
 	CodeInsufficientExperience ErrorCode = 800008 // 经验不足
+	CodeInsufficientLevel      ErrorCode = 800009 // 等级不足
+	CodeInsufficientAttributes ErrorCode = 800010 // 属性不足
+	CodeInsufficientSkills     ErrorCode = 800011 // 技能不足
 
 	// 技能相关 (81xxxx)
 	CodeSkillNotFound   ErrorCode = 810001 // 技能不存在
@@ -201,6 +204,9 @@ var codeMessages = map[ErrorCode]string{
 	CodeInsufficientResource:   "资源不足",
 	CodeOperationExpired:       "操作已过期",
 	CodeInsufficientExperience: "经验不足",
+	CodeInsufficientLevel:      "等级不足",
+	CodeInsufficientAttributes: "属性不足",
+	CodeInsufficientSkills:     "技能不足",
 	CodeSkillNotFound:          "技能不存在",
 	CodeSkillNotLearned:        "技能未学习",
 	CodeSkillCooldown:          "技能冷却中",

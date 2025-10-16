@@ -16,6 +16,8 @@ type ServiceContainer struct {
 	heroSkillRepo                   interfaces.HeroSkillRepository
 	classRepo                       interfaces.ClassRepository
 	classSkillPoolRepo              interfaces.ClassSkillPoolRepository
+	classAdvancedReqRepo            interfaces.ClassAdvancedRequirementRepository
+	skillRepo                       interfaces.SkillRepository
 	heroAttributeTypeRepo           interfaces.HeroAttributeTypeRepository
 	heroLevelRequirementRepo        interfaces.HeroLevelRequirementRepository
 	attributeUpgradeCostRepo        interfaces.AttributeUpgradeCostRepository
@@ -28,6 +30,7 @@ type ServiceContainer struct {
 	HeroService           *HeroService
 	HeroAttributeService  *HeroAttributeService
 	HeroSkillService      *HeroSkillService
+	ClassService          *ClassService
 }
 
 // NewServiceContainer 创建服务容器
@@ -40,6 +43,8 @@ func NewServiceContainer(db *sql.DB) *ServiceContainer {
 	c.heroSkillRepo = impl.NewHeroSkillRepository(db)
 	c.classRepo = impl.NewClassRepository(db)
 	c.classSkillPoolRepo = impl.NewClassSkillPoolRepository(db)
+	c.classAdvancedReqRepo = impl.NewClassAdvancedRequirementRepository(db)
+	c.skillRepo = impl.NewSkillRepository(db)
 	c.heroAttributeTypeRepo = impl.NewHeroAttributeTypeRepository(db)
 	c.heroLevelRequirementRepo = impl.NewHeroLevelRequirementRepository(db)
 	c.attributeUpgradeCostRepo = impl.NewAttributeUpgradeCostRepository(db)
@@ -59,6 +64,7 @@ func NewServiceContainer(db *sql.DB) *ServiceContainer {
 		heroAttributeTypeRepo:        c.heroAttributeTypeRepo,
 		heroLevelRequirementRepo:     c.heroLevelRequirementRepo,
 		heroAllocatedAttributeRepo:   c.heroAllocatedAttributeRepo,
+		classAdvancedReqRepo:         c.classAdvancedReqRepo,
 	}
 
 	// 初始化 HeroAttributeService（依赖 repository 和 HeroService）
@@ -79,10 +85,14 @@ func NewServiceContainer(db *sql.DB) *ServiceContainer {
 		heroSkillRepo:        c.heroSkillRepo,
 		heroClassHistoryRepo: c.heroClassHistoryRepo,
 		classSkillPoolRepo:   c.classSkillPoolRepo,
+		skillRepo:            c.skillRepo,
 		skillUpgradeCostRepo: c.skillUpgradeCostRepo,
 		skillOpRepo:          c.skillOpRepo,
 		heroService:          c.HeroService,
 	}
+
+	// 初始化 ClassService（依赖 repository）
+	c.ClassService = NewClassService(c.classRepo, c.classAdvancedReqRepo)
 
 	return c
 }
@@ -100,4 +110,9 @@ func (c *ServiceContainer) GetHeroAttributeService() *HeroAttributeService {
 // GetHeroSkillService 获取英雄技能服务
 func (c *ServiceContainer) GetHeroSkillService() *HeroSkillService {
 	return c.HeroSkillService
+}
+
+// GetClassService 获取职业服务
+func (c *ServiceContainer) GetClassService() *ClassService {
+	return c.ClassService
 }

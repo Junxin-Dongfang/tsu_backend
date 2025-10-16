@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/aarondl/null/v8"
@@ -17,29 +19,31 @@ import (
 
 // HeroService 英雄服务
 type HeroService struct {
-	db                           *sql.DB
-	heroRepo                     interfaces.HeroRepository
-	heroClassHistoryRepo         interfaces.HeroClassHistoryRepository
-	heroSkillRepo                interfaces.HeroSkillRepository
-	classRepo                    interfaces.ClassRepository
-	classSkillPoolRepo           interfaces.ClassSkillPoolRepository
-	heroAttributeTypeRepo        interfaces.HeroAttributeTypeRepository
-	heroLevelRequirementRepo     interfaces.HeroLevelRequirementRepository
-	heroAllocatedAttributeRepo   interfaces.HeroAllocatedAttributeRepository
+	db                         *sql.DB
+	heroRepo                   interfaces.HeroRepository
+	heroClassHistoryRepo       interfaces.HeroClassHistoryRepository
+	heroSkillRepo              interfaces.HeroSkillRepository
+	classRepo                  interfaces.ClassRepository
+	classSkillPoolRepo         interfaces.ClassSkillPoolRepository
+	heroAttributeTypeRepo      interfaces.HeroAttributeTypeRepository
+	heroLevelRequirementRepo   interfaces.HeroLevelRequirementRepository
+	heroAllocatedAttributeRepo interfaces.HeroAllocatedAttributeRepository
+	classAdvancedReqRepo       interfaces.ClassAdvancedRequirementRepository
 }
 
 // NewHeroService 创建英雄服务
 func NewHeroService(db *sql.DB) *HeroService {
 	return &HeroService{
-		db:                           db,
-		heroRepo:                     impl.NewHeroRepository(db),
-		heroClassHistoryRepo:         impl.NewHeroClassHistoryRepository(db),
-		heroSkillRepo:                impl.NewHeroSkillRepository(db),
-		classRepo:                    impl.NewClassRepository(db),
-		classSkillPoolRepo:           impl.NewClassSkillPoolRepository(db),
-		heroAttributeTypeRepo:        impl.NewHeroAttributeTypeRepository(db),
-		heroLevelRequirementRepo:     impl.NewHeroLevelRequirementRepository(db),
-		heroAllocatedAttributeRepo:   impl.NewHeroAllocatedAttributeRepository(db),
+		db:                         db,
+		heroRepo:                   impl.NewHeroRepository(db),
+		heroClassHistoryRepo:       impl.NewHeroClassHistoryRepository(db),
+		heroSkillRepo:              impl.NewHeroSkillRepository(db),
+		classRepo:                  impl.NewClassRepository(db),
+		classSkillPoolRepo:         impl.NewClassSkillPoolRepository(db),
+		heroAttributeTypeRepo:      impl.NewHeroAttributeTypeRepository(db),
+		heroLevelRequirementRepo:   impl.NewHeroLevelRequirementRepository(db),
+		heroAllocatedAttributeRepo: impl.NewHeroAllocatedAttributeRepository(db),
+		classAdvancedReqRepo:       impl.NewClassAdvancedRequirementRepository(db),
 	}
 }
 
@@ -163,13 +167,13 @@ func (s *HeroService) initializeAllocatedAttributesInTable(ctx context.Context, 
 		// 只初始化活跃的属性
 		if attr.IsActive {
 			allocatedAttrs = append(allocatedAttrs, &game_runtime.HeroAllocatedAttribute{
-				ID:             uuid.New().String(),
-				HeroID:         heroID,
-				AttributeCode:  attr.AttributeCode,
-				Value:          1,    // 初始值为 1
-				SpentXP:        0,    // 初始花费 0
-				CreatedAt:      time.Now(),
-				UpdatedAt:      time.Now(),
+				ID:            uuid.New().String(),
+				HeroID:        heroID,
+				AttributeCode: attr.AttributeCode,
+				Value:         1, // 初始值为 1
+				SpentXP:       0, // 初始花费 0
+				CreatedAt:     time.Now(),
+				UpdatedAt:     time.Now(),
 			})
 		}
 	}
@@ -259,32 +263,194 @@ func (s *HeroService) AutoLevelUp(ctx context.Context, tx *sql.Tx, heroID string
 
 // AdvanceClass 职业进阶
 func (s *HeroService) AdvanceClass(ctx context.Context, heroID, targetClassID string) error {
-	// TODO: 实现职业进阶逻辑
-	// 1. 获取英雄信息（加锁）
-	// 2. 获取当前职业
-	// 3. 验证进阶路径（class_advanced_requirements）
-	// 4. 检查进阶条件（等级、属性、技能、荣誉值等）
-	// 5. 开启事务
-	// 6. 扣除所需资源（荣誉值、物品等）
-	// 7. 更新职业历史（旧职业 is_current=false，新职业 acquisition_type='advancement'）
-	// 8. 更新英雄的 class_id 和 promotion_count
-	// 9. 学习新职业的初始技能（is_initial_skill=true, learned_method='class_unlock'）
-	// 10. 提交事务
-	return xerrors.New(xerrors.CodeOperationNotAllowed, "职业进阶功能尚未实现")
+	// 1. 开启事务
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return xerrors.Wrap(err, xerrors.CodeInternalError, "开启事务失败")
+	}
+	defer func() {
+		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
+			// 仅当 Rollback 失败且不是已提交的事务时，才表示有问题
+		}
+	}()
+
+	// 2. 获取英雄信息（加锁）
+	hero, err := s.heroRepo.GetByIDForUpdate(ctx, tx, heroID)
+	if err != nil {
+		return xerrors.Wrap(err, xerrors.CodeHeroNotFound, "英雄不存在")
+	}
+
+	// 3. 获取当前职业历史
+	currentClassHistory, err := s.heroClassHistoryRepo.GetCurrentClass(ctx, heroID)
+	if err != nil {
+		return xerrors.Wrap(err, xerrors.CodeInternalError, "获取当前职业失败")
+	}
+
+	// 4. 验证进阶路径
+	advReq, err := s.classAdvancedReqRepo.GetByFromAndTo(ctx, currentClassHistory.ClassID, targetClassID)
+	if err != nil {
+		return xerrors.Wrap(err, xerrors.CodeInternalError, "查询进阶路径失败")
+	}
+	if advReq == nil {
+		return xerrors.New(xerrors.CodeOperationNotAllowed, "不存在该进阶路径")
+	}
+
+	// 5. 检查等级要求
+	if hero.CurrentLevel < int16(advReq.RequiredLevel) {
+		return xerrors.New(xerrors.CodeInsufficientLevel, fmt.Sprintf("需要等级 %d", advReq.RequiredLevel))
+	}
+
+	// 6. 检查属性要求
+	if !advReq.RequiredAttributes.IsZero() {
+		var reqAttrs map[string]int
+		if err := json.Unmarshal(advReq.RequiredAttributes.JSON, &reqAttrs); err != nil {
+			return xerrors.Wrap(err, xerrors.CodeInternalError, "解析属性要求失败")
+		}
+
+		// 获取英雄当前属性
+		heroAttrs, err := s.heroAllocatedAttributeRepo.GetByHeroID(ctx, heroID)
+		if err != nil {
+			return xerrors.Wrap(err, xerrors.CodeInternalError, "获取英雄属性失败")
+		}
+
+		// 构建属性值映射
+		attrMap := make(map[string]int)
+		for _, attr := range heroAttrs {
+			attrMap[attr.AttributeCode] = int(attr.Value)
+		}
+
+		// 验证每个属性要求
+		for attrCode, requiredValue := range reqAttrs {
+			currentValue, exists := attrMap[attrCode]
+			if !exists || currentValue < requiredValue {
+				return xerrors.New(xerrors.CodeInsufficientAttributes, fmt.Sprintf("属性 %s 不足，需要 %d", attrCode, requiredValue))
+			}
+		}
+	}
+
+	// 7. 检查技能要求
+	if !advReq.RequiredSkills.IsZero() {
+		var reqSkills []string
+		if err := json.Unmarshal(advReq.RequiredSkills.JSON, &reqSkills); err != nil {
+			return xerrors.Wrap(err, xerrors.CodeInternalError, "解析技能要求失败")
+		}
+
+		// 获取英雄已学习的技能
+		learnedSkills, err := s.heroSkillRepo.GetByHeroID(ctx, heroID)
+		if err != nil {
+			return xerrors.Wrap(err, xerrors.CodeInternalError, "获取已学习技能失败")
+		}
+
+		// 构建已学习技能映射
+		learnedSkillMap := make(map[string]bool)
+		for _, skill := range learnedSkills {
+			learnedSkillMap[skill.SkillID] = true
+		}
+
+		// 验证每个技能要求
+		for _, requiredSkillID := range reqSkills {
+			if !learnedSkillMap[requiredSkillID] {
+				return xerrors.New(xerrors.CodeInsufficientSkills, fmt.Sprintf("缺少必需技能: %s", requiredSkillID))
+			}
+		}
+	}
+
+	// 8. 更新职业历史（旧职业 is_current=false，新职业 acquisition_type='advancement'）
+	if err := s.heroClassHistoryRepo.SetCurrentClass(ctx, tx, heroID, targetClassID, "advancement"); err != nil {
+		return xerrors.Wrap(err, xerrors.CodeInternalError, "更新职业历史失败")
+	}
+
+	// 9. 更新英雄的 class_id 和 promotion_count
+	hero.ClassID = targetClassID
+	if hero.PromotionCount.IsZero() {
+		hero.PromotionCount = null.Int16From(1)
+	} else {
+		hero.PromotionCount = null.Int16From(hero.PromotionCount.Int16 + 1)
+	}
+	hero.UpdatedAt = time.Now()
+
+	if err := s.heroRepo.Update(ctx, tx, hero); err != nil {
+		return xerrors.Wrap(err, xerrors.CodeInternalError, "更新英雄失败")
+	}
+
+	// 10. 学习新职业的初始技能
+	if err := s.learnInitialSkills(ctx, tx, heroID, targetClassID); err != nil {
+		return xerrors.Wrap(err, xerrors.CodeInternalError, "学习初始技能失败")
+	}
+
+	// 11. 提交事务
+	if err := tx.Commit(); err != nil {
+		return xerrors.Wrap(err, xerrors.CodeInternalError, "提交事务失败")
+	}
+
+	return nil
 }
 
 // TransferClass 职业转职
 func (s *HeroService) TransferClass(ctx context.Context, heroID, targetClassID string) error {
-	// TODO: 实现职业转职逻辑
-	// 1. 获取英雄信息（加锁）
-	// 2. 获取目标职业信息
-	// 3. 验证转职条件（等级、tier要求等）
-	// 4. 开启事务
-	// 5. 更新职业历史（旧职业 is_current=false，新职业 acquisition_type='transfer'）
-	// 6. 更新英雄的 class_id
-	// 7. 学习新职业的初始技能
-	// 8. 提交事务
-	return xerrors.New(xerrors.CodeOperationNotAllowed, "职业转职功能尚未实现")
+	// 1. 开启事务
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return xerrors.Wrap(err, xerrors.CodeInternalError, "开启事务失败")
+	}
+	defer func() {
+		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
+			// 仅当 Rollback 失败且不是已提交的事务时，才表示有问题
+		}
+	}()
+
+	// 2. 获取英雄信息（加锁）
+	hero, err := s.heroRepo.GetByIDForUpdate(ctx, tx, heroID)
+	if err != nil {
+		return xerrors.Wrap(err, xerrors.CodeHeroNotFound, "英雄不存在")
+	}
+
+	// 3. 获取目标职业信息
+	targetClass, err := s.classRepo.GetByID(ctx, targetClassID)
+	if err != nil {
+		return xerrors.Wrap(err, xerrors.CodeClassNotFound, "目标职业不存在")
+	}
+
+	// 4. 验证目标职业必须是基础职业（只能转职到 basic tier）
+	if targetClass.Tier != "basic" {
+		return xerrors.New(xerrors.CodeOperationNotAllowed, "只能转职到基础职业")
+	}
+
+	// 5. 获取当前职业
+	currentClassHistory, err := s.heroClassHistoryRepo.GetCurrentClass(ctx, heroID)
+	if err != nil {
+		return xerrors.Wrap(err, xerrors.CodeInternalError, "获取当前职业失败")
+	}
+
+	// 6. 验证不能转职到相同职业
+	if currentClassHistory.ClassID == targetClassID {
+		return xerrors.New(xerrors.CodeOperationNotAllowed, "不能转职到相同职业")
+	}
+
+	// 7. 更新职业历史（旧职业 is_current=false，新职业 acquisition_type='transfer'）
+	if err := s.heroClassHistoryRepo.SetCurrentClass(ctx, tx, heroID, targetClassID, "transfer"); err != nil {
+		return xerrors.Wrap(err, xerrors.CodeInternalError, "更新职业历史失败")
+	}
+
+	// 8. 更新英雄的 class_id
+	hero.ClassID = targetClassID
+	hero.UpdatedAt = time.Now()
+
+	if err := s.heroRepo.Update(ctx, tx, hero); err != nil {
+		return xerrors.Wrap(err, xerrors.CodeInternalError, "更新英雄失败")
+	}
+
+	// 9. 学习新职业的初始技能
+	if err := s.learnInitialSkills(ctx, tx, heroID, targetClassID); err != nil {
+		return xerrors.Wrap(err, xerrors.CodeInternalError, "学习初始技能失败")
+	}
+
+	// 10. 提交事务
+	if err := tx.Commit(); err != nil {
+		return xerrors.Wrap(err, xerrors.CodeInternalError, "提交事务失败")
+	}
+
+	return nil
 }
 
 // AddExperience 增加英雄经验

@@ -41,10 +41,12 @@ services:
     build: 
       context: ../..
       dockerfile: ./deployments/docker/Dockerfile.postgres.local
-    # 容器的名称，方便识别
+    # 容器的名称,方便识别
     container_name: tsu_postgres
     
-    # 环境变量，用于初始化数据库
+    # 环境变量,用于初始化数据库
+    env_file:
+      - ../../.env  # 从 .env 文件加载环境变量
     environment:    
       - PGDATA=/var/lib/postgresql/data/pgdata # 指定数据存储目录
     ports:

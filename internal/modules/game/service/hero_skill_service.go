@@ -22,6 +22,7 @@ type HeroSkillService struct {
 	heroSkillRepo        interfaces.HeroSkillRepository
 	heroClassHistoryRepo interfaces.HeroClassHistoryRepository
 	classSkillPoolRepo   interfaces.ClassSkillPoolRepository
+	skillRepo            interfaces.SkillRepository
 	skillUpgradeCostRepo interfaces.SkillUpgradeCostRepository
 	skillOpRepo          interfaces.HeroSkillOperationRepository
 	heroService          *HeroService
@@ -414,11 +415,17 @@ func (s *HeroSkillService) GetAvailableSkills(ctx context.Context, heroID string
 	}
 
 	// 4. 转换为可学习技能信息（排除已学习的技能）
-	// TODO: 需要联接 Skills 表获取 SkillName 和 SkillCode
 	availableSkills := make([]*AvailableSkillInfo, 0)
 	for _, pool := range skillPools {
 		// 跳过已学习的技能
 		if learnedSkillIDs[pool.SkillID] {
+			continue
+		}
+
+		// 联接 Skills 表获取技能详细信息
+		skill, err := s.skillRepo.GetByID(ctx, pool.SkillID)
+		if err != nil {
+			// 如果技能不存在，跳过（配置可能有误）
 			continue
 		}
 
@@ -427,15 +434,113 @@ func (s *HeroSkillService) GetAvailableSkills(ctx context.Context, heroID string
 			maxLearnableLevel = int(pool.MaxLearnableLevel.Int)
 		}
 
+		// 获取技能的最大等级
+		maxLevel := 10 // 默认值
+		if !skill.MaxLevel.IsZero() {
+			maxLevel = int(skill.MaxLevel.Int)
+		}
+
 		availableSkills = append(availableSkills, &AvailableSkillInfo{
 			SkillID:           pool.SkillID,
-			SkillName:         "", // 暂时为空，需要查询 Skills 表
-			SkillCode:         "", // 暂时为空，需要查询 Skills 表
-			MaxLevel:          10, // 默认值
+			SkillName:         skill.SkillName,
+			SkillCode:         skill.SkillCode,
+			MaxLevel:          maxLevel,
 			MaxLearnableLevel: maxLearnableLevel,
-			CanLearn:          true, // 简化处理：暂不检查条件
+			CanLearn:          true, // 简化处理：暂不检查前置条件
 		})
 	}
 
 	return availableSkills, nil
+}
+
+// LearnedSkillInfo 已学习技能信息
+type LearnedSkillInfo struct {
+	HeroSkillID    string
+	SkillID        string
+	SkillName      string
+	SkillCode      string
+	SkillLevel     int
+	MaxLevel       int
+	LearnedMethod  string
+	FirstLearnedAt string
+	CanUpgrade     bool
+	CanRollback    bool
+}
+
+// GetLearnedSkills 获取已学习技能列表
+func (s *HeroSkillService) GetLearnedSkills(ctx context.Context, heroID string) ([]*LearnedSkillInfo, error) {
+	// 1. 获取英雄已学习的技能
+	heroSkills, err := s.heroSkillRepo.GetByHeroID(ctx, heroID)
+	if err != nil {
+		return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "查询已学习技能失败")
+	}
+
+	// 2. 获取当前职业（用于判断是否可以升级）
+	currentClass, err := s.heroClassHistoryRepo.GetCurrentClass(ctx, heroID)
+	if err != nil {
+		return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "获取当前职业失败")
+	}
+
+	// 3. 转换为已学习技能信息（联接 Skills 表）
+	learnedSkills := make([]*LearnedSkillInfo, 0, len(heroSkills))
+	for _, heroSkill := range heroSkills {
+		// 联接 Skills 表获取技能详细信息
+		skill, err := s.skillRepo.GetByID(ctx, heroSkill.SkillID)
+		if err != nil {
+			// 如果技能不存在，跳过
+			continue
+		}
+
+		// 获取技能的最大等级
+		maxLevel := 10 // 默认值
+		if !skill.MaxLevel.IsZero() {
+			maxLevel = int(skill.MaxLevel.Int)
+		}
+
+		// 判断是否可以升级（需要在当前职业技能池中）
+		canUpgrade := false
+		skillPool, err := s.classSkillPoolRepo.GetByClassIDAndSkillID(ctx, currentClass.ClassID, heroSkill.SkillID)
+		if err == nil && skillPool != nil {
+			// 检查是否达到上限
+			maxLearnableLevel := 10
+			if !skillPool.MaxLearnableLevel.IsZero() {
+				maxLearnableLevel = int(skillPool.MaxLearnableLevel.Int)
+			}
+			if int(heroSkill.SkillLevel) < maxLearnableLevel && int(heroSkill.SkillLevel) < maxLevel {
+				canUpgrade = true
+			}
+		}
+
+		// 判断是否可以回退（查询最近一次未回退且未过期的操作）
+		canRollback := false
+		operation, err := s.skillOpRepo.GetLatestRollbackable(ctx, heroSkill.ID)
+		if err == nil && operation != nil && time.Now().Before(operation.RollbackDeadline) {
+			canRollback = true
+		}
+
+		learnedMethod := "unknown"
+		if !heroSkill.LearnedMethod.IsZero() {
+			learnedMethod = heroSkill.LearnedMethod.String
+		}
+
+		firstLearnedAt := ""
+		if !heroSkill.FirstLearnedAt.IsZero() {
+			firstLearnedAt = heroSkill.FirstLearnedAt.Time.Format("2006-01-02 15:04:05")
+		}
+
+		learnedSkills = append(learnedSkills, &LearnedSkillInfo{
+			HeroSkillID:    heroSkill.ID,
+			SkillID:        heroSkill.SkillID,
+			SkillName:      skill.SkillName,
+			SkillCode:      skill.SkillCode,
+			SkillLevel:     int(heroSkill.SkillLevel),
+			MaxLevel:       maxLevel,
+			LearnedMethod:  learnedMethod,
+			FirstLearnedAt: firstLearnedAt,
+			CanUpgrade:     canUpgrade,
+			CanRollback:    canRollback,
+		})
+	}
+
+	return learnedSkills, nil
 }

@@ -39,6 +39,7 @@ type GameModule struct {
 	heroHandler             *handler.HeroHandler
 	heroAttributeHandler    *handler.HeroAttributeHandler
 	heroSkillHandler        *handler.HeroSkillHandler
+	classHandler            *handler.ClassHandler
 	cleanupTask             *tasks.CleanupTask
 	respWriter              response.Writer
 }
@@ -214,6 +215,7 @@ func (m *GameModule) initServicesAndHandlers() {
 	m.heroHandler = handler.NewHeroHandler(m.serviceContainer, m.respWriter)
 	m.heroAttributeHandler = handler.NewHeroAttributeHandler(m.serviceContainer, m.respWriter)
 	m.heroSkillHandler = handler.NewHeroSkillHandler(m.serviceContainer, m.respWriter)
+	m.classHandler = handler.NewClassHandler(m.serviceContainer, m.respWriter)
 
 	fmt.Println("[Game Module] Handlers initialized successfully")
 }
@@ -272,9 +274,18 @@ func (m *GameModule) setupRoutes() {
 
 			// 技能管理
 			heroes.GET("/:hero_id/skills/available", m.heroSkillHandler.GetAvailableSkills)      // 获取可学习技能
+			heroes.GET("/:hero_id/skills/learned", m.heroSkillHandler.GetLearnedSkills)          // 获取已学习技能列表
 			heroes.POST("/:hero_id/skills/learn", m.heroSkillHandler.LearnSkill)                 // 学习技能
 			heroes.POST("/:hero_id/skills/:skill_id/upgrade", m.heroSkillHandler.UpgradeSkill)   // 升级技能
 			heroes.POST("/:hero_id/skills/:skill_id/rollback", m.heroSkillHandler.RollbackSkill) // 回退技能
+		}
+
+		// Class routes (公开访问)
+		classes := game.Group("/classes")
+		{
+			classes.GET("", m.classHandler.GetClasses)                                         // 获取职业列表
+			classes.GET("/:class_id", m.classHandler.GetClass)                                 // 获取职业详情
+			classes.GET("/:class_id/advancement-options", m.classHandler.GetAdvancementOptions) // 获取可进阶选项
 		}
 	}
 

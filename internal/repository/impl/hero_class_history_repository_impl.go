@@ -132,3 +132,16 @@ func (r *heroClassHistoryRepositoryImpl) GetLastTransferTime(ctx context.Context
 	return &history.AcquiredAt, nil
 }
 
+// SetNonCurrent 将英雄的当前职业设为非当前
+func (r *heroClassHistoryRepositoryImpl) SetNonCurrent(ctx context.Context, tx *sql.Tx, heroID string) error {
+	_, err := game_runtime.HeroClassHistories(
+		qm.Where("hero_id = ? AND is_current = ?", heroID, true),
+	).UpdateAll(ctx, tx, game_runtime.M{"is_current": false})
+
+	if err != nil {
+		return fmt.Errorf("更新职业状态失败: %w", err)
+	}
+
+	return nil
+}
+

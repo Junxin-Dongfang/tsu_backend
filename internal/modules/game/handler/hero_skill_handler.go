@@ -44,16 +44,18 @@ type AvailableSkillResponse struct {
 	Requirements     string  `json:"requirements,omitempty"`
 }
 
-// HeroSkillResponse HTTP hero skill response
-type HeroSkillResponse struct {
-	ID              string `json:"id"`
-	HeroID          string `json:"hero_id"`
-	SkillID         string `json:"skill_id"`
-	SkillLevel      int    `json:"skill_level"`
-	LearnedMethod   string `json:"learned_method"`
-	FirstLearnedAt  string `json:"first_learned_at"`
-	CreatedAt       string `json:"created_at"`
-	UpdatedAt       string `json:"updated_at"`
+// LearnedSkillResponse HTTP learned skill response
+type LearnedSkillResponse struct {
+	HeroSkillID    string `json:"hero_skill_id"`
+	SkillID        string `json:"skill_id"`
+	SkillName      string `json:"skill_name"`
+	SkillCode      string `json:"skill_code"`
+	SkillLevel     int    `json:"skill_level"`
+	MaxLevel       int    `json:"max_level"`
+	LearnedMethod  string `json:"learned_method"`
+	FirstLearnedAt string `json:"first_learned_at"`
+	CanUpgrade     bool   `json:"can_upgrade"`
+	CanRollback    bool   `json:"can_rollback"`
 }
 
 // ==================== HTTP Handlers ====================
@@ -223,5 +225,48 @@ func (h *HeroSkillHandler) RollbackSkill(c echo.Context) error {
 	return response.EchoOK(c, h.respWriter, map[string]string{
 		"message": "技能回退成功",
 	})
+}
+
+// GetLearnedSkills handles getting learned skills
+// @Summary 获取已学习技能列表
+// @Description 获取英雄已学习的所有技能，包括技能详细信息、当前等级、是否可升级、是否可回退等状态
+// @Tags 英雄技能
+// @Accept json
+// @Produce json
+// @Param hero_id path string true "英雄ID（UUID格式）"
+// @Success 200 {object} response.Response{data=[]LearnedSkillResponse} "查询成功，返回已学习技能列表"
+// @Failure 400 {object} response.Response "请求参数错误"
+// @Failure 404 {object} response.Response "英雄不存在"
+// @Failure 500 {object} response.Response "服务器内部错误"
+// @Router /game/heroes/{hero_id}/skills/learned [get]
+func (h *HeroSkillHandler) GetLearnedSkills(c echo.Context) error {
+	heroID := c.Param("hero_id")
+	if heroID == "" {
+		return response.EchoBadRequest(c, h.respWriter, "英雄ID不能为空")
+	}
+
+	skills, err := h.skillService.GetLearnedSkills(c.Request().Context(), heroID)
+	if err != nil {
+		return response.EchoError(c, h.respWriter, err)
+	}
+
+	// 转换为 HTTP 响应
+	respList := make([]*LearnedSkillResponse, len(skills))
+	for i, skill := range skills {
+		respList[i] = &LearnedSkillResponse{
+			HeroSkillID:    skill.HeroSkillID,
+			SkillID:        skill.SkillID,
+			SkillName:      skill.SkillName,
+			SkillCode:      skill.SkillCode,
+			SkillLevel:     skill.SkillLevel,
+			MaxLevel:       skill.MaxLevel,
+			LearnedMethod:  skill.LearnedMethod,
+			FirstLearnedAt: skill.FirstLearnedAt,
+			CanUpgrade:     skill.CanUpgrade,
+			CanRollback:    skill.CanRollback,
+		}
+	}
+
+	return response.EchoOK(c, h.respWriter, respList)
 }
 

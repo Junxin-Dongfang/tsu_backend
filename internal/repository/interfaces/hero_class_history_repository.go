@@ -28,5 +28,8 @@ type HeroClassHistoryRepository interface {
 
 	// GetLastTransferTime 获取最后一次转职时间
 	GetLastTransferTime(ctx context.Context, heroID string) (*time.Time, error)
+
+	// SetNonCurrent 将英雄的当前职业设为非当前
+	SetNonCurrent(ctx context.Context, tx *sql.Tx, heroID string) error
 }
 

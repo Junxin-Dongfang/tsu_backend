@@ -1,4 +1,4 @@
-MAIN_DB_URL="postgres://tsu_user:tsu_test@localhost:5432/tsu_db?sslmode=disable"
+MAIN_DB_URL="postgres://postgres:postgres@localhost:5432/tsu_db?sslmode=disable"
 
 .PHONY: migrate-create migrate-up migrate-down
 
