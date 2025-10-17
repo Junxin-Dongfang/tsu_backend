@@ -35,8 +35,9 @@ help:
 	@echo "  Production Deployment (Layered - Recommended):"
 	@echo "    deploy-prod-step1            - Step 1: Deploy infrastructure (PostgreSQL, Redis, etc.)"
 	@echo "    deploy-prod-step2            - Step 2: Deploy Ory services (Kratos, Keto, Oathkeeper)"
-	@echo "    deploy-prod-step3            - Step 3: Deploy main service (Admin Server)"
-	@echo "    deploy-prod-step4            - Step 4: Deploy Nginx (Reverse proxy)"
+	@echo "    deploy-prod-step3            - Step 3: Deploy Admin Server"
+	@echo "    deploy-prod-step4            - Step 4: Deploy Game Server"
+	@echo "    deploy-prod-step5            - Step 5: Deploy Nginx (Reverse proxy)"
 	@echo "    deploy-prod-all              - Deploy all steps automatically"
 	@echo "    deploy-prod-all-interactive  - Deploy all steps with confirmation prompts"
 	@echo "    import-game-config-prod      - Import game config to production database"
@@ -196,17 +197,23 @@ deploy-prod-step2:
 	@chmod +x scripts/deploy-prod-step2-ory.sh
 	@./scripts/deploy-prod-step2-ory.sh
 
-# 步骤 3: 部署主服务（Admin Server + 数据库迁移）
+# 步骤 3: 部署 Admin Server（后台管理服务 + 数据库迁移）
 deploy-prod-step3:
-	@echo "🚀 步骤 3: 部署主服务..."
-	@chmod +x scripts/deploy-prod-step3-app.sh
-	@./scripts/deploy-prod-step3-app.sh
+	@echo "🚀 步骤 3: 部署 Admin Server..."
+	@chmod +x scripts/deploy-prod-step3-admin.sh
+	@./scripts/deploy-prod-step3-admin.sh
 
-# 步骤 4: 部署 Nginx（反向代理）
+# 步骤 4: 部署 Game Server（游戏服务）
 deploy-prod-step4:
-	@echo "🚀 步骤 4: 部署 Nginx..."
-	@chmod +x scripts/deploy-prod-step4-nginx.sh
-	@./scripts/deploy-prod-step4-nginx.sh
+	@echo "🚀 步骤 4: 部署 Game Server..."
+	@chmod +x scripts/deploy-prod-step4-game.sh
+	@./scripts/deploy-prod-step4-game.sh
+
+# 步骤 5: 部署 Nginx（反向代理）
+deploy-prod-step5:
+	@echo "🚀 步骤 5: 部署 Nginx..."
+	@chmod +x scripts/deploy-prod-step5-nginx.sh
+	@./scripts/deploy-prod-step5-nginx.sh
 
 # 一键部署所有步骤（自动模式）
 deploy-prod-all:

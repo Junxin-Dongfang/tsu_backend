@@ -19,6 +19,9 @@ type EffectRepository interface {
 	// GetByID 根据ID获取效果
 	GetByID(ctx context.Context, effectID string) (*game_config.Effect, error)
 
+	// GetByIDs 批量根据ID获取效果
+	GetByIDs(ctx context.Context, effectIDs []string) ([]*game_config.Effect, error)
+
 	// GetByCode 根据代码获取效果
 	GetByCode(ctx context.Context, code string) (*game_config.Effect, error)
 

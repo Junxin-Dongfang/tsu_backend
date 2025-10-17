@@ -20,6 +20,9 @@ type ActionRepository interface {
 	// GetByID 根据ID获取动作
 	GetByID(ctx context.Context, actionID string) (*game_config.Action, error)
 
+	// GetByIDs 批量根据ID获取动作
+	GetByIDs(ctx context.Context, actionIDs []string) ([]*game_config.Action, error)
+
 	// GetByCode 根据代码获取动作
 	GetByCode(ctx context.Context, code string) (*game_config.Action, error)
 

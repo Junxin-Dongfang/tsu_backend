@@ -25,37 +25,37 @@ func NewHeroSkillHandler(serviceContainer *service.ServiceContainer, respWriter 
 
 // LearnSkillRequest HTTP learn skill request
 type LearnSkillRequest struct {
-	SkillID string `json:"skill_id" validate:"required"`
+	SkillID string `json:"skill_id" validate:"required" example:"skill-flame-slash-001"` // 技能ID（必填，从可学习技能列表获取）
 }
 
 // UpgradeSkillRequest HTTP upgrade skill request
 type UpgradeSkillRequest struct {
-	Levels int `json:"levels" validate:"required,min=1"`
+	Levels int `json:"levels" validate:"required,min=1" example:"1"` // 升级等级数（必填，最小1，通常填1表示升1级）
 }
 
 // AvailableSkillResponse HTTP available skill response
 type AvailableSkillResponse struct {
-	SkillID          string  `json:"skill_id"`
-	SkillName        string  `json:"skill_name"`
-	SkillCode        string  `json:"skill_code"`
-	MaxLevel         int     `json:"max_level"`
-	MaxLearnableLevel int    `json:"max_learnable_level"`
-	CanLearn         bool    `json:"can_learn"`
-	Requirements     string  `json:"requirements,omitempty"`
+	SkillID           string `json:"skill_id" example:"skill-001"`                // 技能ID
+	SkillName         string `json:"skill_name" example:"烈焰斩"`                    // 技能名称
+	SkillCode         string `json:"skill_code" example:"FLAME_SLASH"`            // 技能代码
+	MaxLevel          int    `json:"max_level" example:"10"`                      // 技能最大等级
+	MaxLearnableLevel int    `json:"max_learnable_level" example:"5"`             // 当前可学习的最大等级（受英雄等级限制）
+	CanLearn          bool   `json:"can_learn" example:"true"`                    // 是否可以学习（满足所有条件）
+	Requirements      string `json:"requirements,omitempty" example:"需要等级5、力量15"` // 学习要求描述
 }
 
 // LearnedSkillResponse HTTP learned skill response
 type LearnedSkillResponse struct {
-	HeroSkillID    string `json:"hero_skill_id"`
-	SkillID        string `json:"skill_id"`
-	SkillName      string `json:"skill_name"`
-	SkillCode      string `json:"skill_code"`
-	SkillLevel     int    `json:"skill_level"`
-	MaxLevel       int    `json:"max_level"`
-	LearnedMethod  string `json:"learned_method"`
-	FirstLearnedAt string `json:"first_learned_at"`
-	CanUpgrade     bool   `json:"can_upgrade"`
-	CanRollback    bool   `json:"can_rollback"`
+	HeroSkillID    string `json:"hero_skill_id" example:"hero-skill-001"`                       // 英雄技能实例ID
+	SkillID        string `json:"skill_id" example:"skill-001"`                                 // 技能配置ID
+	SkillName      string `json:"skill_name" example:"烈焰斩"`                                     // 技能名称
+	SkillCode      string `json:"skill_code" example:"FLAME_SLASH"`                             // 技能代码
+	SkillLevel     int    `json:"skill_level" example:"3"`                                      // 当前等级
+	MaxLevel       int    `json:"max_level" example:"10"`                                       // 最大等级
+	LearnedMethod  string `json:"learned_method" example:"manual" enums:"initial,manual,quest"` // 学习方式：initial=初始技能，manual=手动学习，quest=任务奖励
+	FirstLearnedAt string `json:"first_learned_at" example:"2025-10-17 10:30:00"`               // 首次学习时间
+	CanUpgrade     bool   `json:"can_upgrade" example:"true"`                                   // 是否可以升级
+	CanRollback    bool   `json:"can_rollback" example:"true"`                                  // 是否可以回退（1小时内）
 }
 
 // ==================== HTTP Handlers ====================
@@ -266,4 +266,3 @@ func (h *HeroSkillHandler) GetLearnedSkills(c echo.Context) error {
 
 	return response.EchoOK(c, h.respWriter, respList)
 }
-

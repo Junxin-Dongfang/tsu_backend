@@ -25,22 +25,22 @@ func NewHeroAttributeHandler(serviceContainer *service.ServiceContainer, respWri
 
 // AllocateAttributeRequest HTTP allocate attribute request
 type AllocateAttributeRequest struct {
-	AttributeCode string `json:"attribute_code" validate:"required" example:"STR"`
-	PointsToAdd   int    `json:"points_to_add" validate:"required,min=1" example:"2"`
+	AttributeCode string `json:"attribute_code" validate:"required" example:"STR" enums:"STR,DEX,CON,INT,WIS,CHA"` // 属性代码（必填）：STR=力量，DEX=敏捷，CON=体质，INT=智力，WIS=感知，CHA=魅力
+	PointsToAdd   int    `json:"points_to_add" validate:"required,min=1" example:"2"`                              // 加点数量（必填，最小1）
 }
 
 // RollbackAttributeRequest HTTP rollback attribute request
 type RollbackAttributeRequest struct {
-	AttributeCode string `json:"attribute_code" validate:"required" example:"STR"`
+	AttributeCode string `json:"attribute_code" validate:"required" example:"STR" enums:"STR,DEX,CON,INT,WIS,CHA"` // 属性代码（必填）：要回退的属性
 }
 
 // ComputedAttributeResponse HTTP computed attribute response
 type ComputedAttributeResponse struct {
-	AttributeCode string `json:"attribute_code"`
-	AttributeName string `json:"attribute_name"`
-	BaseValue     int    `json:"base_value"`      // 基础加点值
-	ClassBonus    int    `json:"class_bonus"`     // 职业加成
-	FinalValue    int    `json:"final_value"`     // 最终值
+	AttributeCode string `json:"attribute_code" example:"STR"` // 属性代码
+	AttributeName string `json:"attribute_name" example:"力量"`  // 属性名称
+	BaseValue     int    `json:"base_value" example:"15"`      // 基础值（职业初始+玩家加点）
+	ClassBonus    int    `json:"class_bonus" example:"2"`      // 职业加成（来自职业配置）
+	FinalValue    int    `json:"final_value" example:"17"`     // 最终值（base + class_bonus）
 }
 
 // ==================== HTTP Handlers ====================
@@ -48,6 +48,25 @@ type ComputedAttributeResponse struct {
 // AllocateAttribute handles attribute allocation
 // @Summary 属性加点
 // @Description 为英雄分配属性点，消耗经验值提升属性。支持堆栈式回退（1小时内可回退）
+// @Description
+// @Description **填写说明**：
+// @Description - `attribute_code`: 选择要加点的属性，可选值：
+// @Description   - `STR` - 力量（影响物理攻击、负重）
+// @Description   - `DEX` - 敏捷（影响AC、先攻、远程攻击）
+// @Description   - `CON` - 体质（影响HP）
+// @Description   - `INT` - 智力（影响法术攻击、法术数量）
+// @Description   - `WIS` - 感知（影响察觉、意志豁免）
+// @Description   - `CHA` - 魅力（影响社交、某些法术）
+// @Description - `points_to_add`: 要加的点数，每点消耗经验（从 `GET /api/v1/game/attribute-upgrade-costs/:point_number` 查询消耗）
+// @Description
+// @Description **消耗规则**：
+// @Description - 每加1点属性需要消耗经验，消耗量根据当前属性值递增
+// @Description - 例如：力量从15加到16，需要查询 `/attribute-upgrade-costs/16` 获取消耗
+// @Description
+// @Description **回退机制**：
+// @Description - 加点后1小时内可以回退
+// @Description - 回退会返还经验
+// @Description - 回退是堆栈式的（后进先出）
 // @Tags 英雄属性
 // @Accept json
 // @Produce json
@@ -183,4 +202,3 @@ func (h *HeroAttributeHandler) GetComputedAttributes(c echo.Context) error {
 
 	return response.EchoOK(c, h.respWriter, respList)
 }
-

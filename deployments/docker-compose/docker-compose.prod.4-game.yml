@@ -1,0 +1,74 @@
+name: tsu_prod_game
+
+# ==========================================
+# Game Server 服务
+# ==========================================
+# 游戏服务
+# 依赖：第一层的基础设施 + 第二层的 Ory 服务
+
+services:
+  # ========================================
+  # Game Server 游戏服务
+  # ========================================
+  tsu_game:
+    # 镜像名称（使用环境变量）
+    image: ${DOCKER_GAME_IMAGE:-lilonyon/tsu-game-server:latest}
+    container_name: tsu_game
+    ports:
+      - "8061:8061"
+    environment:
+      # 环境标识
+      - ENV=prod
+      
+      # 主数据库配置
+      - DB_HOST=tsu_postgres_main
+      - DB_PORT=5432
+      - DB_USER=tsu_user
+      - DB_PASSWORD=mvheLNICLwpeVzIdoihDbOO3O0Aftuj9
+      - DB_NAME=tsu_db
+      - TSU_GAME_DATABASE_URL=postgres://tsu_user:mvheLNICLwpeVzIdoihDbOO3O0Aftuj9@tsu_postgres_main:5432/tsu_db?sslmode=disable&search_path=game_runtime
+      - TSU_CONFIG_DATABASE_URL=postgres://tsu_user:mvheLNICLwpeVzIdoihDbOO3O0Aftuj9@tsu_postgres_main:5432/tsu_db?sslmode=disable&search_path=game_config
+      - TSU_AUTH_DATABASE_URL=postgres://tsu_user:mvheLNICLwpeVzIdoihDbOO3O0Aftuj9@tsu_postgres_main:5432/tsu_db?sslmode=disable&search_path=auth
+      
+      # Redis 配置
+      - REDIS_HOST=tsu_redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      
+      # Consul & NATS 配置
+      - CONSUL_ADDRESS=tsu_consul:8500
+      - NATS_ADDRESS=tsu_nats:4222
+      
+      # JWT 配置
+      - JWT_SECRET=your-secret-key-min-32-characters-long-for-hs256
+      
+      # Ory 服务配置（容器名称）
+      - KRATOS_PUBLIC_URL=http://tsu_kratos:4433
+      - KRATOS_ADMIN_URL=http://tsu_kratos:4434
+      - KETO_READ_URL=http://tsu_keto:4466
+      - KETO_WRITE_URL=http://tsu_keto:4467
+    volumes:
+      # 挂载配置文件
+      - /opt/tsu/configs:/app/configs:ro
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8061/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - tsu_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "10"
+
+# ========================================
+# 网络定义（使用已存在的网络）
+# ========================================
+networks:
+  tsu_network:
+    external: true
+    name: tsu_prod_infra_tsu_network

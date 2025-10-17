@@ -40,6 +40,8 @@ type GameModule struct {
 	heroAttributeHandler    *handler.HeroAttributeHandler
 	heroSkillHandler        *handler.HeroSkillHandler
 	classHandler            *handler.ClassHandler
+	skillDetailHandler      *handler.SkillDetailHandler
+	upgradeCostHandler      *handler.UpgradeCostHandler
 	cleanupTask             *tasks.CleanupTask
 	respWriter              response.Writer
 }
@@ -216,6 +218,13 @@ func (m *GameModule) initServicesAndHandlers() {
 	m.heroAttributeHandler = handler.NewHeroAttributeHandler(m.serviceContainer, m.respWriter)
 	m.heroSkillHandler = handler.NewHeroSkillHandler(m.serviceContainer, m.respWriter)
 	m.classHandler = handler.NewClassHandler(m.serviceContainer, m.respWriter)
+	m.skillDetailHandler = handler.NewSkillDetailHandler(m.serviceContainer.GetSkillDetailService(), m.respWriter)
+	m.upgradeCostHandler = handler.NewUpgradeCostHandler(
+		m.serviceContainer.GetHeroLevelRequirementRepo(),
+		m.serviceContainer.GetSkillUpgradeCostRepo(),
+		m.serviceContainer.GetAttributeUpgradeCostRepo(),
+		m.respWriter,
+	)
 
 	fmt.Println("[Game Module] Handlers initialized successfully")
 }
@@ -260,10 +269,10 @@ func (m *GameModule) setupRoutes() {
 		heroes.Use(custommiddleware.AuthMiddleware(m.respWriter, logger))
 		{
 			// 英雄管理
-			heroes.POST("", m.heroHandler.CreateHero)                          // 创建英雄
-			heroes.GET("", m.heroHandler.GetUserHeroes)                        // 获取用户英雄列表
-			heroes.GET("/:hero_id", m.heroHandler.GetHero)                     // 获取英雄详情
-			heroes.GET("/:hero_id/full", m.heroHandler.GetHeroFull)                     // 获取英雄完整信息（含职业、属性、技能）
+			heroes.POST("", m.heroHandler.CreateHero)                                 // 创建英雄
+			heroes.GET("", m.heroHandler.GetUserHeroes)                               // 获取用户英雄列表
+			heroes.GET("/:hero_id", m.heroHandler.GetHero)                            // 获取英雄详情
+			heroes.GET("/:hero_id/full", m.heroHandler.GetHeroFull)                   // 获取英雄完整信息（含职业、属性、技能）
 			heroes.GET("/:hero_id/advancement-check", m.heroHandler.CheckAdvancement) // 检查职业进阶条件
 			heroes.POST("/:hero_id/experience", m.heroHandler.AddExperience)          // 增加经验（测试用）
 			heroes.POST("/:hero_id/advance", m.heroHandler.AdvanceClass)              // 职业进阶
@@ -285,10 +294,37 @@ func (m *GameModule) setupRoutes() {
 		// Class routes (公开访问)
 		classes := game.Group("/classes")
 		{
-			classes.GET("/basic", m.classHandler.GetBasicClasses)                              // 获取基础职业列表（创建角色用）
-			classes.GET("", m.classHandler.GetClasses)                                         // 获取职业列表
-			classes.GET("/:class_id", m.classHandler.GetClass)                                 // 获取职业详情
+			classes.GET("/basic", m.classHandler.GetBasicClasses)                               // 获取基础职业列表（创建角色用）
+			classes.GET("", m.classHandler.GetClasses)                                          // 获取职业列表
+			classes.GET("/:class_id", m.classHandler.GetClass)                                  // 获取职业详情
 			classes.GET("/:class_id/advancement-options", m.classHandler.GetAdvancementOptions) // 获取可进阶选项
+		}
+
+		// Skill detail routes (需要认证)
+		skills := game.Group("/skills")
+		skills.Use(custommiddleware.AuthMiddleware(m.respWriter, logger))
+		{
+			skills.GET("/basic", m.skillDetailHandler.ListSkillsBasic)               // 获取技能列表（简化版）
+			skills.GET("/standard", m.skillDetailHandler.ListSkillsStandard)         // 获取技能列表（标准版）
+			skills.GET("/:skill_id/basic", m.skillDetailHandler.GetSkillBasic)       // 获取技能基本信息
+			skills.GET("/:skill_id/standard", m.skillDetailHandler.GetSkillStandard) // 获取技能标准信息（含动作）
+			skills.GET("/:skill_id/full", m.skillDetailHandler.GetSkillFull)         // 获取技能完整信息（深度关联）
+		}
+
+		// Upgrade cost routes (公开访问 - 配置数据)
+		costs := game.Group("")
+		{
+			// 英雄等级需求
+			costs.GET("/hero-level-requirements", m.upgradeCostHandler.GetHeroLevelRequirements)       // 获取所有等级需求
+			costs.GET("/hero-level-requirements/:level", m.upgradeCostHandler.GetHeroLevelRequirement) // 获取指定等级需求
+
+			// 技能升级消耗
+			costs.GET("/skill-upgrade-costs", m.upgradeCostHandler.GetSkillUpgradeCosts)       // 获取所有技能升级消耗
+			costs.GET("/skill-upgrade-costs/:level", m.upgradeCostHandler.GetSkillUpgradeCost) // 获取指定等级升级消耗
+
+			// 属性升级消耗
+			costs.GET("/attribute-upgrade-costs", m.upgradeCostHandler.GetAttributeUpgradeCosts)              // 获取所有属性升级消耗
+			costs.GET("/attribute-upgrade-costs/:point_number", m.upgradeCostHandler.GetAttributeUpgradeCost) // 获取指定点数升级消耗
 		}
 	}
 

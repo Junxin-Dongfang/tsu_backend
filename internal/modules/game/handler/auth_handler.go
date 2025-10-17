@@ -35,43 +35,53 @@ func NewAuthHandler(rpcCaller module.RPCModule, respWriter response.Writer) *Aut
 
 // RegisterRequest HTTP registration request
 type RegisterRequest struct {
-	Email    string `json:"email" validate:"required,email"`
-	Username string `json:"username" validate:"required,min=3"`
-	Password string `json:"password" validate:"required,min=6"`
+	Email    string `json:"email" validate:"required,email" example:"player@example.com"` // 邮箱地址（必填，用于登录和密码找回）
+	Username string `json:"username" validate:"required,min=3" example:"warrior123"`      // 用户名（必填，3-20字符，用于登录）
+	Password string `json:"password" validate:"required,min=6" example:"password123"`     // 密码（必填，最少6字符）
 }
 
 // RegisterResponse HTTP registration response
 type RegisterResponse struct {
-	UserID     string `json:"user_id"`
-	KratosID   string `json:"kratos_id"`
-	Email      string `json:"email"`
-	Username   string `json:"username"`
-	NeedVerify bool   `json:"need_verify"`
+	UserID     string `json:"user_id" example:"user-123"`         // 用户ID
+	KratosID   string `json:"kratos_id" example:"kratos-456"`     // Kratos系统ID（内部使用）
+	Email      string `json:"email" example:"player@example.com"` // 邮箱地址
+	Username   string `json:"username" example:"warrior123"`      // 用户名
+	NeedVerify bool   `json:"need_verify" example:"false"`        // 是否需要邮箱验证（当前版本为false）
 }
 
 // GetUserResponse HTTP get user response
 type GetUserResponse struct {
-	UserID      string  `json:"user_id"`
-	Email       string  `json:"email"`
-	Username    string  `json:"username"`
-	Nickname    *string `json:"nickname,omitempty"`
-	AvatarURL   *string `json:"avatar_url,omitempty"`
-	IsBanned    bool    `json:"is_banned"`
-	LoginCount  int     `json:"login_count"`
-	LastLoginAt *string `json:"last_login_at,omitempty"`
+	UserID      string  `json:"user_id" example:"user-123"`                                    // 用户ID
+	Email       string  `json:"email" example:"player@example.com"`                            // 邮箱地址
+	Username    string  `json:"username" example:"warrior123"`                                 // 用户名
+	Nickname    *string `json:"nickname,omitempty" example:"勇敢的战士"`                            // 昵称（可选）
+	AvatarURL   *string `json:"avatar_url,omitempty" example:"https://example.com/avatar.jpg"` // 头像URL（可选）
+	IsBanned    bool    `json:"is_banned" example:"false"`                                     // 是否被封禁
+	LoginCount  int     `json:"login_count" example:"10"`                                      // 登录次数
+	LastLoginAt *string `json:"last_login_at,omitempty" example:"2025-10-17 10:30:00"`         // 最后登录时间
 }
 
 // ==================== HTTP Handlers ====================
 
 // Register handles user registration
 // @Summary 用户注册
-// @Description 注册新的用户账号
+// @Description 注册新的用户账号。注册后可以使用邮箱或用户名登录
+// @Description
+// @Description **填写说明**：
+// @Description - `email`: 有效的邮箱地址，用于登录和密码找回
+// @Description - `username`: 用户名，3-20字符，支持字母、数字、下划线，用于登录
+// @Description - `password`: 密码，最少6字符，建议包含字母和数字
+// @Description
+// @Description **注册成功后**：
+// @Description - 系统自动创建用户账号
+// @Description - 可以直接登录，无需邮箱验证（当前版本）
+// @Description - 返回用户ID，用于后续创建英雄
 // @Tags 认证
 // @Accept json
 // @Produce json
 // @Param request body RegisterRequest true "注册请求"
 // @Success 200 {object} response.Response{data=RegisterResponse} "注册成功"
-// @Failure 400 {object} response.Response "请求参数错误"
+// @Failure 400 {object} response.Response "请求参数错误（如邮箱格式不正确、用户名已存在）"
 // @Failure 500 {object} response.Response "服务器内部错误"
 // @Router /game/auth/register [post]
 func (h *AuthHandler) Register(c echo.Context) error {

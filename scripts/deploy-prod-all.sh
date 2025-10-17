@@ -6,8 +6,9 @@
 # 按顺序执行所有部署步骤：
 #   步骤 1: 基础设施
 #   步骤 2: Ory 服务
-#   步骤 3: 主服务
-#   步骤 4: Nginx
+#   步骤 3: Admin Server
+#   步骤 4: Game Server
+#   步骤 5: Nginx
 
 set -e
 
@@ -43,8 +44,9 @@ echo ""
 echo -e "${BLUE}部署计划：${NC}"
 echo "  步骤 1: 基础设施（PostgreSQL、Redis、NATS、Consul）"
 echo "  步骤 2: Ory 服务（Kratos、Keto、Oathkeeper）"
-echo "  步骤 3: 主服务（Admin Server + 数据库迁移）"
-echo "  步骤 4: Nginx（反向代理）"
+echo "  步骤 3: Admin Server（后台管理服务 + 数据库迁移）"
+echo "  步骤 4: Game Server（游戏服务）"
+echo "  步骤 5: Nginx（反向代理）"
 echo ""
 echo -e "${YELLOW}目标服务器：${NC}$SERVER_HOST"
 echo -e "${YELLOW}部署目录：${NC}$SERVER_DEPLOY_DIR"
@@ -98,11 +100,11 @@ if [ "$AUTO_MODE" = false ]; then
 fi
 
 # ==========================================
-# 步骤 3: 主服务
+# 步骤 3: Admin Server
 # ==========================================
-print_step "执行步骤 3: 主服务"
+print_step "执行步骤 3: Admin Server"
 
-if bash "$SCRIPT_DIR/deploy-prod-step3-app.sh"; then
+if bash "$SCRIPT_DIR/deploy-prod-step3-admin.sh"; then
     print_success "步骤 3 完成"
 else
     print_error "步骤 3 失败，部署中止"
@@ -115,14 +117,31 @@ if [ "$AUTO_MODE" = false ]; then
 fi
 
 # ==========================================
-# 步骤 4: Nginx
+# 步骤 4: Game Server
 # ==========================================
-print_step "执行步骤 4: Nginx"
+print_step "执行步骤 4: Game Server"
 
-if bash "$SCRIPT_DIR/deploy-prod-step4-nginx.sh"; then
+if bash "$SCRIPT_DIR/deploy-prod-step4-game.sh"; then
     print_success "步骤 4 完成"
 else
     print_error "步骤 4 失败，但前面的服务已部署"
+    exit 1
+fi
+
+if [ "$AUTO_MODE" = false ]; then
+    echo ""
+    read -p "按回车键继续到步骤 5..."
+fi
+
+# ==========================================
+# 步骤 5: Nginx
+# ==========================================
+print_step "执行步骤 5: Nginx"
+
+if bash "$SCRIPT_DIR/deploy-prod-step5-nginx.sh"; then
+    print_success "步骤 5 完成"
+else
+    print_error "步骤 5 失败，但前面的服务已部署"
     exit 1
 fi
 
@@ -161,7 +180,8 @@ echo "    ✓ Keto 权限服务 (端口 4466/4467)"
 echo "    ✓ Oathkeeper API网关 (端口 4456/4457)"
 echo ""
 echo "  【第三层 - 主服务】"
-echo "    ✓ Admin Server 业务服务 (端口 8071)"
+echo "    ✓ Admin Server 后台管理服务 (端口 8071)"
+echo "    ✓ Game Server 游戏服务 (端口 8061)"
 echo "    ✓ 数据库迁移已完成"
 echo "    ✓ Root 用户已初始化"
 echo ""

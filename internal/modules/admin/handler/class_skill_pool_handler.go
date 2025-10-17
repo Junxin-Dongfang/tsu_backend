@@ -31,36 +31,36 @@ func NewClassSkillPoolHandler(db *sql.DB, respWriter response.Writer) *ClassSkil
 
 // CreateClassSkillPoolRequest 创建职业技能池请求
 type CreateClassSkillPoolRequest struct {
-	ClassID              string   `json:"class_id" validate:"required" example:"550e8400-e29b-41d4-a716-446655440000"` // 职业ID
-	SkillID              string   `json:"skill_id" validate:"required" example:"550e8400-e29b-41d4-a716-446655440000"` // 技能ID
-	RequiredLevel        int      `json:"required_level" validate:"required,min=1" example:"5"`                        // 需要的角色等级
-	RequiredAttributes   string   `json:"required_attributes" example:"{\"STR\":15,\"INT\":10}"`                       // 所需属性要求(JSONB)
-	PrerequisiteSkillIds []string `json:"prerequisite_skill_ids" example:"550e8400-e29b-41d4-a716-446655440000"`       // 前置技能ID数组
-	LearnCostXP          int      `json:"learn_cost_xp" example:"1000"`                                                // 学习经验消耗
-	SkillTier            int      `json:"skill_tier" validate:"min=1,max=5" example:"2"`                               // 技能等级(1-5)
-	IsCore               bool     `json:"is_core" example:"true"`                                                      // 是否核心技能
-	IsExclusive          bool     `json:"is_exclusive" example:"false"`                                                // 是否职业专属
-	MaxLearnableLevel    int      `json:"max_learnable_level" example:"10"`                                            // 可学习的最大等级
-	DisplayOrder         int      `json:"display_order" example:"1"`                                                   // 显示顺序
-	IsVisible            bool     `json:"is_visible" example:"true"`                                                   // 是否可见
-	CustomIcon           string   `json:"custom_icon" example:"warrior_fireball.png"`                                  // 自定义图标
-	CustomDescription    string   `json:"custom_description" example:"战士专用的强化火球术"`                                     // 自定义描述
+	ClassID              string   `json:"class_id" validate:"required" example:"550e8400-e29b-41d4-a716-446655440000"`    // 职业ID（必填）
+	SkillID              string   `json:"skill_id" validate:"required" example:"550e8400-e29b-41d4-a716-446655440000"`    // 技能ID（必填）
+	RequiredLevel        int      `json:"required_level" validate:"required,min=1" example:"5"`                           // 需要的角色等级（必填，最小1）
+	RequiredAttributes   string   `json:"required_attributes" example:"{\"STR\":15,\"INT\":10}"`                          // 所需属性要求(JSONB格式)
+	PrerequisiteSkillIds []string `json:"prerequisite_skill_ids" example:"550e8400-e29b-41d4-a716-446655440000"`          // 前置技能ID数组
+	LearnCostXP          int      `json:"learn_cost_xp" example:"100"`                                                    // 学习经验消耗（默认100）
+	SkillTier            int      `json:"skill_tier" validate:"required,min=1,max=5" example:"1" minimum:"1" maximum:"5"` // 技能等阶（必填，范围1-5）
+	IsCore               bool     `json:"is_core" example:"false"`                                                        // 是否核心技能
+	IsExclusive          bool     `json:"is_exclusive" example:"false"`                                                   // 是否职业专属
+	MaxLearnableLevel    int      `json:"max_learnable_level" example:"10"`                                               // 可学习的最大等级
+	DisplayOrder         int      `json:"display_order" example:"1"`                                                      // 显示顺序
+	IsVisible            bool     `json:"is_visible" example:"true"`                                                      // 是否可见
+	CustomIcon           string   `json:"custom_icon" example:"warrior_fireball.png"`                                     // 自定义图标
+	CustomDescription    string   `json:"custom_description" example:"战士专用的强化火球术"`                                        // 自定义描述
 }
 
 // UpdateClassSkillPoolRequest 更新职业技能池请求
 type UpdateClassSkillPoolRequest struct {
-	RequiredLevel        int      `json:"required_level" example:"5"`                            // 需要的角色等级
-	RequiredAttributes   string   `json:"required_attributes" example:"{\"STR\":15,\"INT\":10}"` // 所需属性要求(JSONB)
-	PrerequisiteSkillIds []string `json:"prerequisite_skill_ids" example:"550e8400-e29b-41d4"`   // 前置技能ID数组
-	LearnCostXP          int      `json:"learn_cost_xp" example:"1000"`                          // 学习经验消耗
-	SkillTier            int      `json:"skill_tier" example:"2"`                                // 技能等级(1-5)
-	IsCore               bool     `json:"is_core" example:"true"`                                // 是否核心技能
-	IsExclusive          bool     `json:"is_exclusive" example:"false"`                          // 是否职业专属
-	MaxLearnableLevel    int      `json:"max_learnable_level" example:"10"`                      // 可学习的最大等级
-	DisplayOrder         int      `json:"display_order" example:"1"`                             // 显示顺序
-	IsVisible            bool     `json:"is_visible" example:"true"`                             // 是否可见
-	CustomIcon           string   `json:"custom_icon" example:"warrior_fireball.png"`            // 自定义图标
-	CustomDescription    string   `json:"custom_description" example:"战士专用的强化火球术"`               // 自定义描述
+	RequiredLevel        int      `json:"required_level" example:"5" minimum:"1"`                                        // 需要的角色等级（最小1）
+	RequiredAttributes   string   `json:"required_attributes" example:"{\"STR\":15,\"INT\":10}"`                         // 所需属性要求(JSONB格式)
+	PrerequisiteSkillIds []string `json:"prerequisite_skill_ids" example:"550e8400-e29b-41d4-a716-446655440000"`         // 前置技能ID数组
+	LearnCostXP          int      `json:"learn_cost_xp" example:"100"`                                                   // 学习经验消耗
+	SkillTier            int      `json:"skill_tier" example:"1" minimum:"1" maximum:"5"`                                // 技能等阶（范围1-5）
+	IsCore               bool     `json:"is_core" example:"false"`                                                       // 是否核心技能
+	IsExclusive          bool     `json:"is_exclusive" example:"false"`                                                  // 是否职业专属
+	MaxLearnableLevel    int      `json:"max_learnable_level" example:"10"`                                              // 可学习的最大等级
+	DisplayOrder         int      `json:"display_order" example:"1"`                                                     // 显示顺序
+	IsVisible            bool     `json:"is_visible" example:"true"`                                                     // 是否可见
+	CustomIcon           string   `json:"custom_icon" example:"warrior_fireball.png"`                                    // 自定义图标
+	CustomDescription    string   `json:"custom_description" example:"战士专用的强化火球术"`                                       // 自定义描述
 }
 
 // ClassSkillPoolInfo 职业技能池信息响应
@@ -68,12 +68,12 @@ type ClassSkillPoolInfo struct {
 	ID                   string   `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`       // ID
 	ClassID              string   `json:"class_id" example:"550e8400-e29b-41d4-a716-446655440000"` // 职业ID
 	SkillID              string   `json:"skill_id" example:"550e8400-e29b-41d4-a716-446655440000"` // 技能ID
-	RequiredLevel        int      `json:"required_level" example:"5"`                              // 需要的角色等级
-	RequiredAttributes   string   `json:"required_attributes" example:"{\"STR\":15,\"INT\":10}"`   // 所需属性要求(JSONB)
+	RequiredLevel        int      `json:"required_level" example:"5" minimum:"1"`                  // 需要的角色等级（最小1）
+	RequiredAttributes   string   `json:"required_attributes" example:"{\"STR\":15,\"INT\":10}"`   // 所需属性要求(JSONB格式)
 	PrerequisiteSkillIds []string `json:"prerequisite_skill_ids" example:"550e8400-e29b-41d4"`     // 前置技能ID数组
-	LearnCostXP          int      `json:"learn_cost_xp" example:"1000"`                            // 学习经验消耗
-	SkillTier            int      `json:"skill_tier" example:"2"`                                  // 技能等级(1-5)
-	IsCore               bool     `json:"is_core" example:"true"`                                  // 是否核心技能
+	LearnCostXP          int      `json:"learn_cost_xp" example:"100"`                             // 学习经验消耗
+	SkillTier            int      `json:"skill_tier" example:"1" minimum:"1" maximum:"5"`          // 技能等阶（范围1-5）
+	IsCore               bool     `json:"is_core" example:"false"`                                 // 是否核心技能
 	IsExclusive          bool     `json:"is_exclusive" example:"false"`                            // 是否职业专属
 	MaxLearnableLevel    int      `json:"max_learnable_level" example:"10"`                        // 可学习的最大等级
 	DisplayOrder         int      `json:"display_order" example:"1"`                               // 显示顺序
@@ -222,13 +222,13 @@ func (h *ClassSkillPoolHandler) GetClassSkillPool(c echo.Context) error {
 
 // CreateClassSkillPool 创建职业技能池配置
 // @Summary 添加技能到职业技能池
-// @Description 为指定职业添加可学习的技能,配置学习要求和特性
+// @Description 为指定职业添加可学习的技能,配置学习要求和特性。必填字段：class_id、skill_id、required_level、skill_tier（范围1-5）
 // @Tags 职业技能池
 // @Accept json
 // @Produce json
-// @Param request body CreateClassSkillPoolRequest true "创建职业技能池请求,class_id、skill_id、required_level为必填"
+// @Param request body CreateClassSkillPoolRequest true "创建职业技能池请求。必填：class_id(职业ID)、skill_id(技能ID)、required_level(需求等级,≥1)、skill_tier(技能等阶,1-5)"
 // @Success 200 {object} response.Response{data=ClassSkillPoolInfo} "成功创建并返回详情"
-// @Failure 400 {object} response.Response "请求参数错误或验证失败"
+// @Failure 400 {object} response.Response "请求参数错误或验证失败（如skill_tier未填写或不在1-5范围内）"
 // @Failure 409 {object} response.Response "该职业已配置此技能"
 // @Failure 500 {object} response.Response "服务器内部错误"
 // @Router /admin/class-skill-pools [post]

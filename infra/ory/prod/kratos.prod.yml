@@ -41,6 +41,10 @@ identity:
 
 selfservice:
   default_browser_return_url: "http://47.239.139.109/user/dashboard"
+  allowed_return_urls:
+    - "http://47.239.139.109"
+    - "http://47.239.139.109/user/dashboard"
+    - "http://47.239.139.109/user/login"
   flows:
     error:
       ui_url: "http://47.239.139.109/user/error"
@@ -55,8 +59,13 @@ selfservice:
           hooks:
             - hook: session
     recovery:
-      ui_url: "http://47.239.139.109/user/recovery"
       enabled: true
+      use: code  # 使用验证码模式（支持 API 模式）
+      lifespan: 1h
+      notify_unknown_recipients: false
+      ui_url: "http://47.239.139.109/user/recovery"
+      after:
+        default_browser_return_url: "http://47.239.139.109/user/login"
     verification:
       ui_url: "http://47.239.139.109/user/verification"
       enabled: true
@@ -72,6 +81,10 @@ selfservice:
         max_breaches: 0
     profile:
       enabled: true
+    code:
+      enabled: true  # 启用验证码方法
+      config:
+        lifespan: 15m  # 验证码有效期
     webauthn:
       enabled: false
     totp:
@@ -88,6 +101,10 @@ session:
   earliest_possible_extend: 1h
   whoami:
     required_aal: aal1
+
+# Feature Flags - 启用 Native App 支持
+feature_flags:
+  use_continue_with_transitions: true  # 启用 API 模式
 
 # Secrets 从环境变量读取
 # secrets:
@@ -106,8 +123,9 @@ hashers:
   bcrypt:
     cost: 12
 
-# 禁用 courier（邮件服务）在生产环境
-# 如需启用，请配置 SMTP
-# courier:
-#   smtp:
-#     connection_uri: "smtps://user:password@smtp.example.com:465/"
+# Courier 邮件服务配置
+courier:
+  smtp:
+    connection_uri: smtps://1902104816@qq.com:jxlumrydpmiocfdj@smtp.qq.com:465/?skip_ssl_verify=false
+    from_address: 1902104816@qq.com
+    from_name: TSU Game Platform

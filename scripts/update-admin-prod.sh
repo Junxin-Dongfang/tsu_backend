@@ -117,7 +117,7 @@ print_info "删除旧容器..."
 ssh_exec "docker rm tsu_admin || true"
 
 print_info "启动新容器..."
-ssh_exec "cd $SERVER_DEPLOY_DIR && docker compose -f docker-compose.prod.3-app.yml --env-file .env.prod up -d tsu_admin"
+ssh_exec "cd $SERVER_DEPLOY_DIR && docker compose -f docker-compose.prod.3-admin.yml --env-file .env.prod up -d tsu_admin"
 
 print_success "Admin Server 已重启"
 

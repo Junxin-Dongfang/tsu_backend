@@ -44,7 +44,7 @@ ssh_exec "rm -rf $SERVER_DEPLOY_DIR/infra/ory && mkdir -p $SERVER_DEPLOY_DIR/inf
 
 print_info "上传 Kratos 配置..."
 ssh_copy "$PROJECT_DIR/infra/ory/prod/kratos.prod.yml" "$SERVER_DEPLOY_DIR/infra/ory/prod/"
-ssh_copy "$PROJECT_DIR/infra/ory/identity.schema.json" "$SERVER_DEPLOY_DIR/infra/ory/"
+ssh_copy "$PROJECT_DIR/infra/ory/identity.schema.json" "$SERVER_DEPLOY_DIR/infra/ory/prod/"
 
 print_info "上传 Keto 配置..."
 ssh_copy "$PROJECT_DIR/infra/ory/prod/keto.prod.yml" "$SERVER_DEPLOY_DIR/infra/ory/prod/"

@@ -28,22 +28,22 @@ func NewClassHandler(serviceContainer *service.ServiceContainer, respWriter resp
 
 // ClassResponse HTTP class response
 type ClassResponse struct {
-	ID              string  `json:"id"`
-	ClassCode       string  `json:"class_code"`
-	ClassName       string  `json:"class_name"`
-	Tier            string  `json:"tier"` // basic, advanced, master
-	Description     *string `json:"description,omitempty"`
-	LoreText        *string `json:"lore_text,omitempty"`
-	Specialty       *string `json:"specialty,omitempty"`
-	Playstyle       *string `json:"playstyle,omitempty"`
-	PromotionCount  int     `json:"promotion_count"`
-	Icon            *string `json:"icon,omitempty"`
-	Color           *string `json:"color,omitempty"`
-	IsActive        bool    `json:"is_active"`
-	IsVisible       bool    `json:"is_visible"`
-	DisplayOrder    int     `json:"display_order"`
-	CreatedAt       string  `json:"created_at"`
-	UpdatedAt       string  `json:"updated_at"`
+	ID              string  `json:"id" example:"class-warrior-001"`                                        // 职业ID
+	ClassCode       string  `json:"class_code" example:"WARRIOR"`                                          // 职业代码
+	ClassName       string  `json:"class_name" example:"战士"`                                               // 职业名称
+	Tier            string  `json:"tier" example:"basic" enums:"basic,advanced,master"`                    // 职业等阶：basic=基础职业，advanced=进阶职业，master=大师职业
+	Description     *string `json:"description,omitempty" example:"擅长近战和物理攻击的职业"`                          // 职业描述（可选）
+	LoreText        *string `json:"lore_text,omitempty" example:"在古老的战场上磨练技艺"`                            // 职业背景故事（可选）
+	Specialty       *string `json:"specialty,omitempty" example:"高护甲、高生命值、近战控制"`                            // 职业特长（可选）
+	Playstyle       *string `json:"playstyle,omitempty" example:"前排坦克，保护队友"`                              // 玩法风格（可选）
+	PromotionCount  int     `json:"promotion_count" example:"0"`                                           // 转职次数加成
+	Icon            *string `json:"icon,omitempty" example:"https://example.com/warrior.png"`              // 职业图标URL（可选）
+	Color           *string `json:"color,omitempty" example:"#FF5733"`                                     // 职业代表颜色（可选）
+	IsActive        bool    `json:"is_active" example:"true"`                                              // 是否启用
+	IsVisible       bool    `json:"is_visible" example:"true"`                                             // 是否在UI中显示
+	DisplayOrder    int     `json:"display_order" example:"1"`                                             // 显示顺序
+	CreatedAt       string  `json:"created_at" example:"2025-10-17 10:30:00"`                              // 创建时间
+	UpdatedAt       string  `json:"updated_at" example:"2025-10-17 12:30:00"`                              // 更新时间
 }
 
 // AdvancementOptionResponse 进阶选项响应

@@ -1,0 +1,47 @@
+name: tsu_prod_nginx
+
+# ==========================================
+# 第四层：接入层（反向代理）
+# ==========================================
+# 包含：Nginx（反向代理和负载均衡）
+# 依赖：第三层的主服务 + 第二层的 Ory 服务
+
+services:
+  # ========================================
+  # Nginx 反向代理
+  # ========================================
+  tsu_nginx:
+    image: nginx:latest
+    container_name: tsu_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8081:8081"  # Client 前端
+      - "8082:8082"  # Admin 后台
+    volumes:
+      # Nginx 配置文件
+      - /opt/tsu/infra/nginx/prod.conf:/etc/nginx/conf.d/default.conf:ro
+      # 前端静态文件目录
+      - /opt/tsu/web:/web:ro
+    restart: always
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - tsu_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+# ========================================
+# 网络定义（使用已存在的网络）
+# ========================================
+networks:
+  tsu_network:
+    external: true
+    name: tsu_prod_infra_tsu_network

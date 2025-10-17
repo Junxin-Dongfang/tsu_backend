@@ -595,22 +595,40 @@ func (s *HeroService) GetHeroFullInfo(ctx context.Context, heroID string) (*Hero
 		attributes = append(attributes, &attr)
 	}
 
-	// 4. 获取已学习技能
-	heroSkills, err := s.heroSkillRepo.GetByHeroID(ctx, heroID)
+	// 4. 获取已学习技能（关联 skills 表获取技能名称和代码）
+	skillQuery := `
+		SELECT
+			hs.id as hero_skill_id,
+			hs.skill_id,
+			s.skill_name,
+			s.skill_code,
+			hs.skill_level,
+			hs.max_level
+		FROM game_runtime.hero_skills hs
+		INNER JOIN game_config.skills s ON hs.skill_id = s.id
+		WHERE hs.hero_id = $1
+		ORDER BY hs.created_at
+	`
+	skillRows, err := s.db.QueryContext(ctx, skillQuery, heroID)
 	if err != nil {
 		return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "查询技能失败")
 	}
+	defer skillRows.Close()
 
 	var skills []*HeroSkillBasicInfo
-	for _, hs := range heroSkills {
-		skills = append(skills, &HeroSkillBasicInfo{
-			HeroSkillID: hs.ID,
-			SkillID:     hs.SkillID,
-			SkillName:   "", // 需要关联查询 skill 表
-			SkillCode:   hs.SkillCode,
-			SkillLevel:  hs.SkillLevel,
-			MaxLevel:    hs.MaxLevel,
-		})
+	for skillRows.Next() {
+		var skill HeroSkillBasicInfo
+		if err := skillRows.Scan(
+			&skill.HeroSkillID,
+			&skill.SkillID,
+			&skill.SkillName,
+			&skill.SkillCode,
+			&skill.SkillLevel,
+			&skill.MaxLevel,
+		); err != nil {
+			return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "扫描技能失败")
+		}
+		skills = append(skills, &skill)
 	}
 
 	return &HeroFullInfo{

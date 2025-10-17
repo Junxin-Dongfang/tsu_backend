@@ -53,6 +53,9 @@ COPY configs /app/configs
 # 复制 migrations 文件（如果需要在容器内执行迁移）
 COPY migrations /app/migrations
 
+# 创建必要的目录
+RUN mkdir -p /app/bin/logs /app/bin/bi
+
 # 更改文件所有者
 RUN chown -R appuser:appuser /app
 

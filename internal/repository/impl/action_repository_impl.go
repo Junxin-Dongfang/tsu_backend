@@ -38,6 +38,23 @@ func (r *actionRepositoryImpl) GetByID(ctx context.Context, actionID string) (*g
 	return action, nil
 }
 
+func (r *actionRepositoryImpl) GetByIDs(ctx context.Context, actionIDs []string) ([]*game_config.Action, error) {
+	if len(actionIDs) == 0 {
+		return []*game_config.Action{}, nil
+	}
+
+	actions, err := game_config.Actions(
+		qm.WhereIn("id IN ?", toInterfaceSlice(actionIDs)...),
+		qm.Where("deleted_at IS NULL"),
+	).All(ctx, r.db)
+
+	if err != nil {
+		return nil, fmt.Errorf("批量查询动作失败: %w", err)
+	}
+
+	return actions, nil
+}
+
 func (r *actionRepositoryImpl) GetByCode(ctx context.Context, code string) (*game_config.Action, error) {
 	action, err := game_config.Actions(
 		qm.Where("action_code = ? AND deleted_at IS NULL", code),
@@ -144,4 +161,13 @@ func (r *actionRepositoryImpl) Exists(ctx context.Context, code string) (bool, e
 	}
 
 	return count > 0, nil
+}
+
+// toInterfaceSlice 将字符串切片转换为 interface{} 切片
+func toInterfaceSlice(strs []string) []interface{} {
+	result := make([]interface{}, len(strs))
+	for i, s := range strs {
+		result[i] = s
+	}
+	return result
 }

@@ -11,26 +11,32 @@ import (
 // 目的：避免重复创建 Repository，简化依赖注入
 type ServiceContainer struct {
 	// 所有 Repository（共享实例）
-	heroRepo                        interfaces.HeroRepository
-	heroClassHistoryRepo            interfaces.HeroClassHistoryRepository
-	heroSkillRepo                   interfaces.HeroSkillRepository
-	classRepo                       interfaces.ClassRepository
-	classSkillPoolRepo              interfaces.ClassSkillPoolRepository
-	classAdvancedReqRepo            interfaces.ClassAdvancedRequirementRepository
-	skillRepo                       interfaces.SkillRepository
-	heroAttributeTypeRepo           interfaces.HeroAttributeTypeRepository
-	heroLevelRequirementRepo        interfaces.HeroLevelRequirementRepository
-	attributeUpgradeCostRepo        interfaces.AttributeUpgradeCostRepository
-	attributeOpRepo                 interfaces.HeroAttributeOperationRepository
-	heroAllocatedAttributeRepo      interfaces.HeroAllocatedAttributeRepository
-	skillUpgradeCostRepo            interfaces.SkillUpgradeCostRepository
-	skillOpRepo                     interfaces.HeroSkillOperationRepository
+	heroRepo                   interfaces.HeroRepository
+	heroClassHistoryRepo       interfaces.HeroClassHistoryRepository
+	heroSkillRepo              interfaces.HeroSkillRepository
+	classRepo                  interfaces.ClassRepository
+	classSkillPoolRepo         interfaces.ClassSkillPoolRepository
+	classAdvancedReqRepo       interfaces.ClassAdvancedRequirementRepository
+	skillRepo                  interfaces.SkillRepository
+	heroAttributeTypeRepo      interfaces.HeroAttributeTypeRepository
+	heroLevelRequirementRepo   interfaces.HeroLevelRequirementRepository
+	attributeUpgradeCostRepo   interfaces.AttributeUpgradeCostRepository
+	attributeOpRepo            interfaces.HeroAttributeOperationRepository
+	heroAllocatedAttributeRepo interfaces.HeroAllocatedAttributeRepository
+	skillUpgradeCostRepo       interfaces.SkillUpgradeCostRepository
+	skillOpRepo                interfaces.HeroSkillOperationRepository
+	skillUnlockActionRepo      interfaces.SkillUnlockActionRepository
+	actionRepo                 interfaces.ActionRepository
+	actionEffectRepo           interfaces.ActionEffectRepository
+	effectRepo                 interfaces.EffectRepository
+	skillCategoryRepo          interfaces.SkillCategoryRepository
 
 	// 所有 Service（共享实例）
-	HeroService           *HeroService
-	HeroAttributeService  *HeroAttributeService
-	HeroSkillService      *HeroSkillService
-	ClassService          *ClassService
+	HeroService          *HeroService
+	HeroAttributeService *HeroAttributeService
+	HeroSkillService     *HeroSkillService
+	ClassService         *ClassService
+	SkillDetailService   *SkillDetailService
 }
 
 // NewServiceContainer 创建服务容器
@@ -52,30 +58,35 @@ func NewServiceContainer(db *sql.DB) *ServiceContainer {
 	c.heroAllocatedAttributeRepo = impl.NewHeroAllocatedAttributeRepository(db)
 	c.skillUpgradeCostRepo = impl.NewSkillUpgradeCostRepository(db)
 	c.skillOpRepo = impl.NewHeroSkillOperationRepository(db)
+	c.skillUnlockActionRepo = impl.NewSkillUnlockActionRepository(db)
+	c.actionRepo = impl.NewActionRepository(db)
+	c.actionEffectRepo = impl.NewActionEffectRepository(db)
+	c.effectRepo = impl.NewEffectRepository(db)
+	c.skillCategoryRepo = impl.NewSkillCategoryRepository(db)
 
 	// 初始化 HeroService（依赖 repository）
 	c.HeroService = &HeroService{
-		db:                           db,
-		heroRepo:                     c.heroRepo,
-		heroClassHistoryRepo:         c.heroClassHistoryRepo,
-		heroSkillRepo:                c.heroSkillRepo,
-		classRepo:                    c.classRepo,
-		classSkillPoolRepo:           c.classSkillPoolRepo,
-		heroAttributeTypeRepo:        c.heroAttributeTypeRepo,
-		heroLevelRequirementRepo:     c.heroLevelRequirementRepo,
-		heroAllocatedAttributeRepo:   c.heroAllocatedAttributeRepo,
-		classAdvancedReqRepo:         c.classAdvancedReqRepo,
+		db:                         db,
+		heroRepo:                   c.heroRepo,
+		heroClassHistoryRepo:       c.heroClassHistoryRepo,
+		heroSkillRepo:              c.heroSkillRepo,
+		classRepo:                  c.classRepo,
+		classSkillPoolRepo:         c.classSkillPoolRepo,
+		heroAttributeTypeRepo:      c.heroAttributeTypeRepo,
+		heroLevelRequirementRepo:   c.heroLevelRequirementRepo,
+		heroAllocatedAttributeRepo: c.heroAllocatedAttributeRepo,
+		classAdvancedReqRepo:       c.classAdvancedReqRepo,
 	}
 
 	// 初始化 HeroAttributeService（依赖 repository 和 HeroService）
 	c.HeroAttributeService = &HeroAttributeService{
-		db:                           db,
-		heroRepo:                     c.heroRepo,
-		attributeUpgradeCostRepo:     c.attributeUpgradeCostRepo,
-		attributeOpRepo:              c.attributeOpRepo,
-		heroAttributeTypeRepo:        c.heroAttributeTypeRepo,
-		heroAllocatedAttributeRepo:   c.heroAllocatedAttributeRepo,
-		heroService:                  c.HeroService,
+		db:                         db,
+		heroRepo:                   c.heroRepo,
+		attributeUpgradeCostRepo:   c.attributeUpgradeCostRepo,
+		attributeOpRepo:            c.attributeOpRepo,
+		heroAttributeTypeRepo:      c.heroAttributeTypeRepo,
+		heroAllocatedAttributeRepo: c.heroAllocatedAttributeRepo,
+		heroService:                c.HeroService,
 	}
 
 	// 初始化 HeroSkillService（依赖 repository 和 HeroService）
@@ -93,6 +104,16 @@ func NewServiceContainer(db *sql.DB) *ServiceContainer {
 
 	// 初始化 ClassService（依赖 repository）
 	c.ClassService = NewClassService(c.classRepo, c.classAdvancedReqRepo)
+
+	// 初始化 SkillDetailService（依赖 repository）
+	c.SkillDetailService = NewSkillDetailService(
+		c.skillRepo,
+		c.skillUnlockActionRepo,
+		c.actionRepo,
+		c.actionEffectRepo,
+		c.effectRepo,
+		c.skillCategoryRepo,
+	)
 
 	return c
 }
@@ -115,4 +136,24 @@ func (c *ServiceContainer) GetHeroSkillService() *HeroSkillService {
 // GetClassService 获取职业服务
 func (c *ServiceContainer) GetClassService() *ClassService {
 	return c.ClassService
+}
+
+// GetSkillDetailService 获取技能详情服务
+func (c *ServiceContainer) GetSkillDetailService() *SkillDetailService {
+	return c.SkillDetailService
+}
+
+// GetHeroLevelRequirementRepo 获取英雄等级需求仓储
+func (c *ServiceContainer) GetHeroLevelRequirementRepo() interfaces.HeroLevelRequirementRepository {
+	return c.heroLevelRequirementRepo
+}
+
+// GetSkillUpgradeCostRepo 获取技能升级消耗仓储
+func (c *ServiceContainer) GetSkillUpgradeCostRepo() interfaces.SkillUpgradeCostRepository {
+	return c.skillUpgradeCostRepo
+}
+
+// GetAttributeUpgradeCostRepo 获取属性升级消耗仓储
+func (c *ServiceContainer) GetAttributeUpgradeCostRepo() interfaces.AttributeUpgradeCostRepository {
+	return c.attributeUpgradeCostRepo
 }

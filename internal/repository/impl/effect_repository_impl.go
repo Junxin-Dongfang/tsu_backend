@@ -38,6 +38,23 @@ func (r *effectRepositoryImpl) GetByID(ctx context.Context, effectID string) (*g
 	return effect, nil
 }
 
+func (r *effectRepositoryImpl) GetByIDs(ctx context.Context, effectIDs []string) ([]*game_config.Effect, error) {
+	if len(effectIDs) == 0 {
+		return []*game_config.Effect{}, nil
+	}
+
+	effects, err := game_config.Effects(
+		qm.WhereIn("id IN ?", toInterfaceSlice(effectIDs)...),
+		qm.Where("deleted_at IS NULL"),
+	).All(ctx, r.db)
+
+	if err != nil {
+		return nil, fmt.Errorf("批量查询效果失败: %w", err)
+	}
+
+	return effects, nil
+}
+
 func (r *effectRepositoryImpl) GetByCode(ctx context.Context, code string) (*game_config.Effect, error) {
 	effect, err := game_config.Effects(
 		qm.Where("effect_code = ? AND deleted_at IS NULL", code),
