@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"strconv"
 
+	"github.com/aarondl/sqlboiler/v4/types"
 	"github.com/labstack/echo/v4"
 
 	"tsu-self/internal/entity/game_config"
@@ -49,18 +50,18 @@ type CreateClassSkillPoolRequest struct {
 
 // UpdateClassSkillPoolRequest 更新职业技能池请求
 type UpdateClassSkillPoolRequest struct {
-	RequiredLevel        int      `json:"required_level" example:"5" minimum:"1"`                                        // 需要的角色等级（最小1）
-	RequiredAttributes   string   `json:"required_attributes" example:"{\"STR\":15,\"INT\":10}"`                         // 所需属性要求(JSONB格式)
-	PrerequisiteSkillIds []string `json:"prerequisite_skill_ids" example:"550e8400-e29b-41d4-a716-446655440000"`         // 前置技能ID数组
-	LearnCostXP          int      `json:"learn_cost_xp" example:"100"`                                                   // 学习经验消耗
-	SkillTier            int      `json:"skill_tier" example:"1" minimum:"1" maximum:"5"`                                // 技能等阶（范围1-5）
-	IsCore               bool     `json:"is_core" example:"false"`                                                       // 是否核心技能
-	IsExclusive          bool     `json:"is_exclusive" example:"false"`                                                  // 是否职业专属
-	MaxLearnableLevel    int      `json:"max_learnable_level" example:"10"`                                              // 可学习的最大等级
-	DisplayOrder         int      `json:"display_order" example:"1"`                                                     // 显示顺序
-	IsVisible            bool     `json:"is_visible" example:"true"`                                                     // 是否可见
-	CustomIcon           string   `json:"custom_icon" example:"warrior_fireball.png"`                                    // 自定义图标
-	CustomDescription    string   `json:"custom_description" example:"战士专用的强化火球术"`                                       // 自定义描述
+	RequiredLevel        int       `json:"required_level" example:"5" minimum:"1"`                                // 需要的角色等级（最小1）
+	RequiredAttributes   string    `json:"required_attributes" example:"{\"STR\":15,\"INT\":10}"`                 // 所需属性要求(JSONB格式)
+	PrerequisiteSkillIds *[]string `json:"prerequisite_skill_ids" example:"550e8400-e29b-41d4-a716-446655440000"` // 前置技能ID数组（使用指针区分null和空数组）
+	LearnCostXP          int       `json:"learn_cost_xp" example:"100"`                                           // 学习经验消耗
+	SkillTier            int       `json:"skill_tier" example:"1" minimum:"1" maximum:"5"`                        // 技能等阶（范围1-5）
+	IsCore               bool      `json:"is_core" example:"false"`                                               // 是否核心技能
+	IsExclusive          bool      `json:"is_exclusive" example:"false"`                                          // 是否职业专属
+	MaxLearnableLevel    int       `json:"max_learnable_level" example:"10"`                                      // 可学习的最大等级
+	DisplayOrder         int       `json:"display_order" example:"1"`                                             // 显示顺序
+	IsVisible            bool      `json:"is_visible" example:"true"`                                             // 是否可见
+	CustomIcon           string    `json:"custom_icon" example:"warrior_fireball.png"`                            // 自定义图标
+	CustomDescription    string    `json:"custom_description" example:"战士专用的强化火球术"`                               // 自定义描述
 }
 
 // ClassSkillPoolInfo 职业技能池信息响应
@@ -263,7 +264,12 @@ func (h *ClassSkillPoolHandler) CreateClassSkillPool(c echo.Context) error {
 	}
 
 	if len(req.PrerequisiteSkillIds) > 0 {
-		pool.PrerequisiteSkillIds = req.PrerequisiteSkillIds
+		// 验证前置技能配置
+		if err := h.service.ValidatePrerequisiteSkills(ctx, req.ClassID, req.SkillID, req.PrerequisiteSkillIds); err != nil {
+			return response.EchoError(c, h.respWriter, err)
+		}
+		// 转换为 types.StringArray（PostgreSQL UUID[] 需要的类型）
+		pool.PrerequisiteSkillIds = types.StringArray(req.PrerequisiteSkillIds)
 	}
 
 	if req.LearnCostXP > 0 {
@@ -339,10 +345,30 @@ func (h *ClassSkillPoolHandler) UpdateClassSkillPool(c echo.Context) error {
 		}
 		updates[game_config.ClassSkillPoolColumns.RequiredAttributes] = json.RawMessage(req.RequiredAttributes)
 	}
-	// 注意：不更新 prerequisite_skill_ids，因为它是数组类型，需要特殊处理
-	// 如果需要更新，请使用 pq.Array 包装
-	if len(req.PrerequisiteSkillIds) > 0 {
-		updates[game_config.ClassSkillPoolColumns.PrerequisiteSkillIds] = req.PrerequisiteSkillIds
+	// 处理前置技能ID数组更新
+	// 使用指针类型区分三种情况：
+	// 1. nil（未提供字段）- 不更新
+	// 2. 空数组[]（提供了空数组）- 清空前置技能
+	// 3. 有内容的数组 - 更新为新值
+	if req.PrerequisiteSkillIds != nil {
+		// 如果提供了非空数组，需要验证
+		if len(*req.PrerequisiteSkillIds) > 0 {
+			// 先获取当前配置以得到 classID
+			pool, err := h.service.GetClassSkillPoolByID(ctx, id)
+			if err != nil {
+				return response.EchoError(c, h.respWriter, err)
+			}
+			if pool == nil {
+				return response.EchoNotFound(c, h.respWriter, "class_skill_pool", id)
+			}
+
+			// 验证前置技能配置
+			if err := h.service.ValidatePrerequisiteSkills(ctx, pool.ClassID, pool.SkillID, *req.PrerequisiteSkillIds); err != nil {
+				return response.EchoError(c, h.respWriter, err)
+			}
+		}
+		// 将 []string 转换为 types.StringArray（PostgreSQL UUID[] 需要的类型）
+		updates[game_config.ClassSkillPoolColumns.PrerequisiteSkillIds] = types.StringArray(*req.PrerequisiteSkillIds)
 	}
 	if req.LearnCostXP > 0 {
 		updates[game_config.ClassSkillPoolColumns.LearnCostXP] = req.LearnCostXP

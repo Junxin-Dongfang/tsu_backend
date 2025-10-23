@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"strconv"
 
+	"github.com/aarondl/sqlboiler/v4/types"
 	"github.com/labstack/echo/v4"
 
 	"tsu-self/internal/entity/game_config"
@@ -32,49 +33,49 @@ func NewSkillHandler(db *sql.DB, respWriter response.Writer) *SkillHandler {
 // CreateSkillRequest 创建技能请求
 // 注意：技能的学习限制（等级要求、职业限制、前置技能）现在由 class_skill_pools 表管理
 type CreateSkillRequest struct {
-	SkillCode           string   `json:"skill_code" validate:"required,max=50" example:"FIREBALL"`                                                                                           // 技能唯一代码（建议大写）
-	SkillName           string   `json:"skill_name" validate:"required,max=100" example:"火球术"`                                                                                                 // 技能名称
-	SkillType           string   `json:"skill_type" validate:"required" example:"magic" enums:"weapon,magic,physical,usage,reaction,guard,movement,command"`                                // 技能类型（必填）：weapon=武器技能, magic=魔法技能, physical=物理技能, usage=使用物品技能, reaction=反应技能, guard=防御技能, movement=移动技能, command=指挥技能
-	CategoryID          string   `json:"category_id" example:"550e8400-e29b-41d4-a716-446655440000"`                                                                                        // 技能类别ID
-	MaxLevel            int      `json:"max_level" example:"5"`                                                                                                                              // 最大等级
-	FeatureTags         []string `json:"feature_tags" example:"fire,damage"`                                                                                                                 // 特性标签数组
-	PassiveEffects      string   `json:"passive_effects" example:"{\"effects\":[]}"`                                                                                                         // 被动效果JSON配置
-	Description         string   `json:"description" example:"释放一个火球攻击敌人"`                                                                                                                   // 简短描述
-	DetailedDescription string   `json:"detailed_description" example:"向目标发射一个强大的火球,造成火焰伤害"`                                                                                                 // 详细描述
-	Icon                string   `json:"icon" example:"fireball_icon.png"`                                                                                                                   // 技能图标路径
-	IsActive            bool     `json:"is_active" example:"true"`                                                                                                                           // 是否启用
+	SkillCode           string   `json:"skill_code" validate:"required,max=50" example:"FIREBALL"`                                                           // 技能唯一代码（建议大写）
+	SkillName           string   `json:"skill_name" validate:"required,max=100" example:"火球术"`                                                               // 技能名称
+	SkillType           string   `json:"skill_type" validate:"required" example:"magic" enums:"weapon,magic,physical,usage,reaction,guard,movement,command"` // 技能类型（必填）：weapon=武器技能, magic=魔法技能, physical=物理技能, usage=使用物品技能, reaction=反应技能, guard=防御技能, movement=移动技能, command=指挥技能
+	CategoryID          string   `json:"category_id" example:"550e8400-e29b-41d4-a716-446655440000"`                                                         // 技能类别ID
+	MaxLevel            int      `json:"max_level" example:"5"`                                                                                              // 最大等级
+	FeatureTags         []string `json:"feature_tags" example:"fire,damage"`                                                                                 // 特性标签数组
+	PassiveEffects      string   `json:"passive_effects" example:"{\"effects\":[]}"`                                                                         // 被动效果JSON配置
+	Description         string   `json:"description" example:"释放一个火球攻击敌人"`                                                                                   // 简短描述
+	DetailedDescription string   `json:"detailed_description" example:"向目标发射一个强大的火球,造成火焰伤害"`                                                                 // 详细描述
+	Icon                string   `json:"icon" example:"fireball_icon.png"`                                                                                   // 技能图标路径
+	IsActive            bool     `json:"is_active" example:"true"`                                                                                           // 是否启用
 }
 
 // UpdateSkillRequest 更新技能请求
 type UpdateSkillRequest struct {
-	SkillCode           string `json:"skill_code" example:"FIREBALL"`                                                                              // 技能唯一代码（建议大写）
-	SkillName           string `json:"skill_name" example:"火球术"`                                                                                   // 技能名称
-	SkillType           string `json:"skill_type" example:"magic" enums:"weapon,magic,physical,usage,reaction,guard,movement,command"`            // 技能类型：weapon=武器技能, magic=魔法技能, physical=物理技能, usage=使用物品技能, reaction=反应技能, guard=防御技能, movement=移动技能, command=指挥技能
-	CategoryID          string `json:"category_id" example:"550e8400-e29b-41d4-a716-446655440000"`                                                 // 技能类别ID
-	MaxLevel            int    `json:"max_level" example:"5"`                                                                                      // 最大等级
-	Description         string `json:"description" example:"释放一个火球攻击敌人"`                                                                           // 简短描述
-	DetailedDescription string `json:"detailed_description" example:"向目标发射一个强大的火球,造成火焰伤害"`                                                         // 详细描述
-	Icon                string `json:"icon" example:"fireball_icon.png"`                                                                           // 技能图标路径
-	IsActive            bool   `json:"is_active" example:"true"`                                                                                   // 是否启用
+	SkillCode           string `json:"skill_code" example:"FIREBALL"`                                                                  // 技能唯一代码（建议大写）
+	SkillName           string `json:"skill_name" example:"火球术"`                                                                       // 技能名称
+	SkillType           string `json:"skill_type" example:"magic" enums:"weapon,magic,physical,usage,reaction,guard,movement,command"` // 技能类型：weapon=武器技能, magic=魔法技能, physical=物理技能, usage=使用物品技能, reaction=反应技能, guard=防御技能, movement=移动技能, command=指挥技能
+	CategoryID          string `json:"category_id" example:"550e8400-e29b-41d4-a716-446655440000"`                                     // 技能类别ID
+	MaxLevel            int    `json:"max_level" example:"5"`                                                                          // 最大等级
+	Description         string `json:"description" example:"释放一个火球攻击敌人"`                                                               // 简短描述
+	DetailedDescription string `json:"detailed_description" example:"向目标发射一个强大的火球,造成火焰伤害"`                                             // 详细描述
+	Icon                string `json:"icon" example:"fireball_icon.png"`                                                               // 技能图标路径
+	IsActive            bool   `json:"is_active" example:"true"`                                                                       // 是否启用
 }
 
 // SkillInfo 技能信息响应
 // 注意：技能的学习限制（等级要求、职业限制、前置技能）现在由 class_skill_pools 表管理
 type SkillInfo struct {
-	ID                  string   `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`                                                         // 技能ID
-	SkillCode           string   `json:"skill_code" example:"FIREBALL"`                                                                             // 技能唯一代码
-	SkillName           string   `json:"skill_name" example:"火球术"`                                                                                  // 技能名称
-	SkillType           string   `json:"skill_type" example:"magic" enums:"weapon,magic,physical,usage,reaction,guard,movement,command"`           // 技能类型：weapon=武器技能, magic=魔法技能, physical=物理技能, usage=使用物品技能, reaction=反应技能, guard=防御技能, movement=移动技能, command=指挥技能
-	CategoryID          string   `json:"category_id" example:"550e8400-e29b-41d4-a716-446655440000"`                                                // 技能类别ID
-	MaxLevel            int      `json:"max_level" example:"5"`                                                                                     // 最大等级
-	FeatureTags         []string `json:"feature_tags" example:"fire,damage"`                                                                        // 特性标签数组
-	PassiveEffects      string   `json:"passive_effects" example:"{\"effects\":[]}"`                                                                // 被动效果JSON配置
-	Description         string   `json:"description" example:"释放一个火球攻击敌人"`                                                                          // 简短描述
-	DetailedDescription string   `json:"detailed_description" example:"向目标发射一个强大的火球,造成火焰伤害"`                                                        // 详细描述
-	Icon                string   `json:"icon" example:"fireball_icon.png"`                                                                          // 技能图标路径
-	IsActive            bool     `json:"is_active" example:"true"`                                                                                  // 是否启用
-	CreatedAt           int64    `json:"created_at" example:"1633024800"`                                                                           // 创建时间戳
-	UpdatedAt           int64    `json:"updated_at" example:"1633024800"`                                                                           // 更新时间戳
+	ID                  string   `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`                                              // 技能ID
+	SkillCode           string   `json:"skill_code" example:"FIREBALL"`                                                                  // 技能唯一代码
+	SkillName           string   `json:"skill_name" example:"火球术"`                                                                       // 技能名称
+	SkillType           string   `json:"skill_type" example:"magic" enums:"weapon,magic,physical,usage,reaction,guard,movement,command"` // 技能类型：weapon=武器技能, magic=魔法技能, physical=物理技能, usage=使用物品技能, reaction=反应技能, guard=防御技能, movement=移动技能, command=指挥技能
+	CategoryID          string   `json:"category_id" example:"550e8400-e29b-41d4-a716-446655440000"`                                     // 技能类别ID
+	MaxLevel            int      `json:"max_level" example:"5"`                                                                          // 最大等级
+	FeatureTags         []string `json:"feature_tags" example:"fire,damage"`                                                             // 特性标签数组
+	PassiveEffects      string   `json:"passive_effects" example:"{\"effects\":[]}"`                                                     // 被动效果JSON配置
+	Description         string   `json:"description" example:"释放一个火球攻击敌人"`                                                               // 简短描述
+	DetailedDescription string   `json:"detailed_description" example:"向目标发射一个强大的火球,造成火焰伤害"`                                             // 详细描述
+	Icon                string   `json:"icon" example:"fireball_icon.png"`                                                               // 技能图标路径
+	IsActive            bool     `json:"is_active" example:"true"`                                                                       // 是否启用
+	CreatedAt           int64    `json:"created_at" example:"1633024800"`                                                                // 创建时间戳
+	UpdatedAt           int64    `json:"updated_at" example:"1633024800"`                                                                // 更新时间戳
 }
 
 // ==================== HTTP Handlers ====================
@@ -206,7 +207,8 @@ func (h *SkillHandler) CreateSkill(c echo.Context) error {
 	}
 
 	if len(req.FeatureTags) > 0 {
-		skill.FeatureTags = req.FeatureTags
+		// 转换为 types.StringArray（PostgreSQL TEXT[] 需要的类型）
+		skill.FeatureTags = types.StringArray(req.FeatureTags)
 	}
 
 	if req.PassiveEffects != "" {

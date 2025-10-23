@@ -73,11 +73,13 @@ var ErrorMessages = map[xerrors.ErrorCode]map[language.Tag]string{
 	xerrors.CodeHeroStatInvalid: {language.Chinese: "角色属性无效", language.English: "Invalid hero stat"},
 
 	// 技能相关 (81xxxx)
-	xerrors.CodeSkillNotFound:   {language.Chinese: "技能不存在", language.English: "Skill not found"},
-	xerrors.CodeSkillNotLearned: {language.Chinese: "技能未学习", language.English: "Skill not learned"},
-	xerrors.CodeSkillCooldown:   {language.Chinese: "技能冷却中", language.English: "Skill on cooldown"},
-	xerrors.CodeSkillManaCost:   {language.Chinese: "法力值不足", language.English: "Insufficient mana"},
-	xerrors.CodeSkillInvalidUse: {language.Chinese: "技能使用条件不满足", language.English: "Skill requirements not met"},
+	xerrors.CodeSkillNotFound:            {language.Chinese: "技能不存在", language.English: "Skill not found"},
+	xerrors.CodeSkillNotLearned:          {language.Chinese: "技能未学习", language.English: "Skill not learned"},
+	xerrors.CodeSkillCooldown:            {language.Chinese: "技能冷却中", language.English: "Skill on cooldown"},
+	xerrors.CodeSkillManaCost:            {language.Chinese: "法力值不足", language.English: "Insufficient mana"},
+	xerrors.CodeSkillInvalidUse:          {language.Chinese: "技能使用条件不满足", language.English: "Skill requirements not met"},
+	xerrors.CodeSkillPrerequisiteNotMet:  {language.Chinese: "前置技能未满足", language.English: "Prerequisite skills not met"},
+	xerrors.CodeSkillInvalidPrerequisite: {language.Chinese: "前置技能配置无效", language.English: "Invalid prerequisite configuration"},
 
 	// 职业相关 (82xxxx)
 	xerrors.CodeClassNotFound:       {language.Chinese: "职业不存在", language.English: "Class not found"},

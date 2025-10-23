@@ -27,7 +27,6 @@ type HeroSkill struct {
 	ID              string    `boil:"id" json:"id" toml:"id" yaml:"id"`
 	HeroID          string    `boil:"hero_id" json:"hero_id" toml:"hero_id" yaml:"hero_id"`
 	SkillID         string    `boil:"skill_id" json:"skill_id" toml:"skill_id" yaml:"skill_id"`
-	SkillCode       string    `boil:"skill_code" json:"skill_code" toml:"skill_code" yaml:"skill_code"`
 	SkillLevel      int       `boil:"skill_level" json:"skill_level" toml:"skill_level" yaml:"skill_level"`
 	SkillExperience int       `boil:"skill_experience" json:"skill_experience" toml:"skill_experience" yaml:"skill_experience"`
 	MaxLevel        int       `boil:"max_level" json:"max_level" toml:"max_level" yaml:"max_level"`
@@ -50,7 +49,6 @@ var HeroSkillColumns = struct {
 	ID              string
 	HeroID          string
 	SkillID         string
-	SkillCode       string
 	SkillLevel      string
 	SkillExperience string
 	MaxLevel        string
@@ -66,7 +64,6 @@ var HeroSkillColumns = struct {
 	ID:              "id",
 	HeroID:          "hero_id",
 	SkillID:         "skill_id",
-	SkillCode:       "skill_code",
 	SkillLevel:      "skill_level",
 	SkillExperience: "skill_experience",
 	MaxLevel:        "max_level",
@@ -84,7 +81,6 @@ var HeroSkillTableColumns = struct {
 	ID              string
 	HeroID          string
 	SkillID         string
-	SkillCode       string
 	SkillLevel      string
 	SkillExperience string
 	MaxLevel        string
@@ -100,7 +96,6 @@ var HeroSkillTableColumns = struct {
 	ID:              "hero_skills.id",
 	HeroID:          "hero_skills.hero_id",
 	SkillID:         "hero_skills.skill_id",
-	SkillCode:       "hero_skills.skill_code",
 	SkillLevel:      "hero_skills.skill_level",
 	SkillExperience: "hero_skills.skill_experience",
 	MaxLevel:        "hero_skills.max_level",
@@ -176,7 +171,6 @@ var HeroSkillWhere = struct {
 	ID              whereHelperstring
 	HeroID          whereHelperstring
 	SkillID         whereHelperstring
-	SkillCode       whereHelperstring
 	SkillLevel      whereHelperint
 	SkillExperience whereHelperint
 	MaxLevel        whereHelperint
@@ -192,7 +186,6 @@ var HeroSkillWhere = struct {
 	ID:              whereHelperstring{field: "\"game_runtime\".\"hero_skills\".\"id\""},
 	HeroID:          whereHelperstring{field: "\"game_runtime\".\"hero_skills\".\"hero_id\""},
 	SkillID:         whereHelperstring{field: "\"game_runtime\".\"hero_skills\".\"skill_id\""},
-	SkillCode:       whereHelperstring{field: "\"game_runtime\".\"hero_skills\".\"skill_code\""},
 	SkillLevel:      whereHelperint{field: "\"game_runtime\".\"hero_skills\".\"skill_level\""},
 	SkillExperience: whereHelperint{field: "\"game_runtime\".\"hero_skills\".\"skill_experience\""},
 	MaxLevel:        whereHelperint{field: "\"game_runtime\".\"hero_skills\".\"max_level\""},
@@ -262,8 +255,8 @@ func (r *heroSkillR) GetHeroSkillOperations() HeroSkillOperationSlice {
 type heroSkillL struct{}
 
 var (
-	heroSkillAllColumns            = []string{"id", "hero_id", "skill_id", "skill_code", "skill_level", "skill_experience", "max_level", "is_active", "is_equipped", "learned_at", "learned_method", "created_at", "updated_at", "deleted_at", "first_learned_at"}
-	heroSkillColumnsWithoutDefault = []string{"hero_id", "skill_id", "skill_code"}
+	heroSkillAllColumns            = []string{"id", "hero_id", "skill_id", "skill_level", "skill_experience", "max_level", "is_active", "is_equipped", "learned_at", "learned_method", "created_at", "updated_at", "deleted_at", "first_learned_at"}
+	heroSkillColumnsWithoutDefault = []string{"hero_id", "skill_id"}
 	heroSkillColumnsWithDefault    = []string{"id", "skill_level", "skill_experience", "max_level", "is_active", "is_equipped", "learned_at", "learned_method", "created_at", "updated_at", "deleted_at", "first_learned_at"}
 	heroSkillPrimaryKeyColumns     = []string{"id"}
 	heroSkillGeneratedColumns      = []string{}

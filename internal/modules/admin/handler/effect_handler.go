@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"strconv"
 
+	"github.com/aarondl/sqlboiler/v4/types"
 	"github.com/labstack/echo/v4"
 
 	"tsu-self/internal/entity/game_config"
@@ -235,7 +236,8 @@ func (h *EffectHandler) CreateEffect(c echo.Context) error {
 	}
 
 	if len(req.FeatureTags) > 0 {
-		effect.FeatureTags = req.FeatureTags
+		// 转换为 types.StringArray（PostgreSQL TEXT[] 需要的类型）
+		effect.FeatureTags = types.StringArray(req.FeatureTags)
 	}
 
 	if req.VisualConfig != "" {

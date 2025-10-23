@@ -107,11 +107,13 @@ const (
 	CodeInsufficientSkills     ErrorCode = 800011 // 技能不足
 
 	// 技能相关 (81xxxx)
-	CodeSkillNotFound   ErrorCode = 810001 // 技能不存在
-	CodeSkillNotLearned ErrorCode = 810002 // 技能未学习
-	CodeSkillCooldown   ErrorCode = 810003 // 技能冷却中
-	CodeSkillManaCost   ErrorCode = 810004 // 法力值不足
-	CodeSkillInvalidUse ErrorCode = 810005 // 技能使用条件不满足
+	CodeSkillNotFound            ErrorCode = 810001 // 技能不存在
+	CodeSkillNotLearned          ErrorCode = 810002 // 技能未学习
+	CodeSkillCooldown            ErrorCode = 810003 // 技能冷却中
+	CodeSkillManaCost            ErrorCode = 810004 // 法力值不足
+	CodeSkillInvalidUse          ErrorCode = 810005 // 技能使用条件不满足
+	CodeSkillPrerequisiteNotMet  ErrorCode = 810006 // 前置技能未满足
+	CodeSkillInvalidPrerequisite ErrorCode = 810007 // 前置技能配置无效
 
 	// 职业相关 (82xxxx)
 	CodeClassNotFound       ErrorCode = 820001 // 职业不存在
@@ -207,14 +209,16 @@ var codeMessages = map[ErrorCode]string{
 	CodeInsufficientLevel:      "等级不足",
 	CodeInsufficientAttributes: "属性不足",
 	CodeInsufficientSkills:     "技能不足",
-	CodeSkillNotFound:          "技能不存在",
-	CodeSkillNotLearned:        "技能未学习",
-	CodeSkillCooldown:          "技能冷却中",
-	CodeSkillManaCost:          "法力值不足",
-	CodeSkillInvalidUse:        "技能使用条件不满足",
-	CodeClassNotFound:          "职业不存在",
-	CodeClassNotMeetReq:        "不满足职业要求",
-	CodeClassAlreadyAdvaced:    "职业已进阶",
+	CodeSkillNotFound:            "技能不存在",
+	CodeSkillNotLearned:          "技能未学习",
+	CodeSkillCooldown:            "技能冷却中",
+	CodeSkillManaCost:            "法力值不足",
+	CodeSkillInvalidUse:          "技能使用条件不满足",
+	CodeSkillPrerequisiteNotMet:  "前置技能未满足",
+	CodeSkillInvalidPrerequisite: "前置技能配置无效",
+	CodeClassNotFound:            "职业不存在",
+	CodeClassNotMeetReq:          "不满足职业要求",
+	CodeClassAlreadyAdvaced:      "职业已进阶",
 }
 
 // GetHTTPStatus 根据业务错误码获取HTTP状态码

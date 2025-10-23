@@ -29,4 +29,5 @@ build/
 .postgres-data/
 infra/.ory-postgres-data/
 .*/
+!.specify/
 .env.*

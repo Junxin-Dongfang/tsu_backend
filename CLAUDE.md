@@ -1,1106 +1,440 @@
 # CLAUDE.md
 
-Claude Code AI 助手工作指南 - DnD RPG 游戏服务端
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
----
+## 项目概述
 
-## 🎯 核心原则
+TSU 是一个基于 Go 的游戏服务器项目,采用微服务架构,包含:
+- **Game Server**: 游戏核心逻辑服务(端口 8072)
+- **Admin Server**: 后台管理服务(端口 8071)
+- **认证系统**: 使用 Ory Kratos/Keto/Oathkeeper
+- **数据库**: PostgreSQL(多 schema 架构)
+- **缓存**: Redis
+- **消息队列**: NATS
+- **服务发现**: Consul
 
-1. **教学引导式开发** - 先问"为什么"再给方案，展示不同选项的权衡
-2. **用中文回答** - 所有响应使用中文
-3. **使用 TodoWrite** - 复杂任务必须跟踪进度
+## 常用命令
 
----
-
-## 📋 项目概述
-
-**DnD 5e 规则的回合制 RPG**，采用 Go 微服务架构
-
-**技术栈**:
-- 框架: mqant (微服务) + Echo (HTTP)
-- 数据: PostgreSQL + SQLBoiler (ORM)
-- 消息: NATS
-- 认证: Ory Kratos + Keto
-
-**快速启动**:
+### 开发环境
 ```bash
-make dev-up          # 启动 Docker 环境
-make migrate-up      # 数据库迁移
-make generate        # 生成代码 (Protobuf + ORM)
-air -c .air.admin.toml # 热重载启动 admin-server
+# 启动完整开发环境(包括 Ory、主服务、Nginx)
+make dev-up
+
+# 停止开发环境
+make dev-down
+
+# 查看服务日志
+make dev-logs
+
+# 重新构建并重启
+make dev-rebuild
+
+# 清理所有资源
+make clean
 ```
 
----
-
-## 🏗️ 架构设计
-
-### 模块职责
-
-| 模块 | 职责 | 数据访问 |
-|------|------|---------|
-| **Admin** | 游戏配置、用户管理 (策划/运营) | `game_config` (读写), `auth` (只读) |
-| **Auth** | 认证、权限、Kratos/Keto 同步 | `auth` (读写) |
-| **Game** | 战斗、角色、DnD 规则引擎 (玩家) | `game_runtime` (读写), `game_config` (只读) |
-
-### 数据库架构 - Schema 分离
-
-```
-PostgreSQL: tsu_db
-├─ auth           # 用户账号 (Auth 拥有)
-├─ game_config    # 游戏配置 (Admin 管理)
-├─ game_runtime   # 运行时数据 (Game 管理)
-└─ admin          # 后台数据
-```
-
-**黄金规则**: ✅ 跨 schema 写操作必须通过 RPC，只读可直接 SQL
-
-### 数据流 - Protobuf RPC 架构
-
-```
-HTTP 请求
-  ↓
-HTTP Handler (HTTP Models 在 handler 内定义)
-  ↓ 转 Protobuf
-RPC Handler (使用 internal/pb/*)
-  ↓ mqant RPC (Protobuf 序列化)
-Service 层 (pb ↔ entity 转换)
-  ↓
-Repository (使用 internal/entity/*)
-  ↓
-Database
-```
-
-**目录结构**:
-```
-tsu-self/
-├── proto/                   # Protobuf 定义 (RPC 契约)
-│   ├── common/             # 跨模块共享 (UserInfo)
-│   └── auth/               # Auth RPC 服务
-│
-├── internal/
-│   ├── pb/                 # Protobuf 生成代码
-│   ├── entity/             # ORM 模型 (SQLBoiler)
-│   │   ├── auth/
-│   │   ├── game_config/
-│   │   └── game_runtime/
-│   ├── repository/         # 数据访问层
-│   │   ├── interfaces/    # Repository 接口
-│   │   └── impl/          # SQLBoiler 实现
-│   ├── modules/
-│   │   ├── admin/         # Admin 模块
-│   │   │   ├── handler/   # HTTP Handler + RPC Handler
-│   │   │   └── service/   # 业务逻辑
-│   │   ├── auth/          # Auth 模块
-│   │   │   ├── client/    # Kratos/Keto Client
-│   │   │   ├── handler/
-│   │   │   └── service/
-│   │   └── game/          # Game 模块 (待开发)
-│   └── pkg/               # 共享组件
-│       ├── response/      # HTTP 响应
-│       ├── xerrors/       # 错误系统
-│       ├── validator/
-│       ├── config/
-│       └── log/
-```
-
-**关键原则**:
-- ✅ **RPC 必须用 Protobuf** (mqant 官方推荐)
-- ✅ **跨模块共享结构在 proto/common/**
-- ✅ **HTTP Models 简单时在 Handler 内定义**
-
----
-
-## ⚠️ mqant 框架关键规则
-
-### 1. Module 初始化 - 值类型嵌入
-
-```go
-// ✅ 正确
-type AuthModule struct {
-    basemodule.BaseModule  // 值类型
-    db *sql.DB
-}
-
-func (m *AuthModule) OnInit(app module.App, settings *conf.ModuleSettings) {
-    // 在每个模块配置服务注册 (不要在 main.go 全局配置!)
-    m.BaseModule.OnInit(m, app, settings,
-        server.RegisterInterval(15*time.Second),  // 心跳
-        server.RegisterTTL(30*time.Second),       // TTL > 心跳
-    )
-}
-
-// ❌ 错误 - 指针嵌入会 panic
-type AuthModule struct {
-    *basemodule.BaseModule
-}
-```
-
-### 2. RPC 方法签名 - 固定格式
-
-```go
-// ✅ 正确 - RegisterGO 签名: func([]byte) ([]byte, error)
-func (h *RPCHandler) Register(reqBytes []byte) ([]byte, error) {
-    ctx := context.Background()  // 内部创建
-    req := &authpb.RegisterRequest{}
-    proto.Unmarshal(reqBytes, req)
-    // ...
-    return proto.Marshal(resp)
-}
-
-// ❌ 错误 - 带 context 参数会 "params not adapted"
-func (h *RPCHandler) Register(ctx context.Context, reqBytes []byte) ([]byte, error)
-```
-
-### 3. RPC 调用方法 ⭐ 必须使用 Call
-
-**官方推荐**: 使用 **`Call`** 方法，支持超时和节点选择
-
-**完整示例** (HTTP Handler → RPC):
-```go
-import (
-    "context"
-    "time"
-
-    "github.com/liangdas/mqant/module"
-    "github.com/liangdas/mqant/rpc"
-    "google.golang.org/protobuf/proto"
-)
-
-// Handler 结构体 - 使用 rpcCaller 字段
-type AuthHandler struct {
-    rpcCaller  module.RPCModule  // 用于 RPC 调用
-    respWriter response.Writer
-}
-
-func NewAuthHandler(rpcCaller module.RPCModule, respWriter response.Writer) *AuthHandler {
-    return &AuthHandler{
-        rpcCaller:  rpcCaller,
-        respWriter: respWriter,
-    }
-}
-
-func (h *AuthHandler) GetUser(c echo.Context) error {
-    // 1. 构造 Protobuf 请求
-    rpcReq := &authpb.GetUserRequest{UserId: c.Param("id")}
-    rpcReqBytes, _ := proto.Marshal(rpcReq)
-
-    // 2. 调用 RPC (使用 Call 方法)
-    ctx, cancel := context.WithTimeout(c.Request().Context(), 2*time.Second)
-    defer cancel()
-
-    result, errStr := h.rpcCaller.Call(
-        ctx,
-        "auth",                  // 目标模块类型
-        "GetUser",               // RPC 方法名
-        rpc.Param(rpcReqBytes),  // 参数 (必须用 rpc.Param 包装)
-    )
-
-    // 3. 错误处理 (区分超时和业务错误)
-    if errStr != "" {
-        if ctx.Err() == context.DeadlineExceeded {
-            return response.EchoError(c, h.respWriter,
-                xerrors.New(xerrors.CodeExternalServiceError, "Auth服务超时"))
-        }
-        return response.EchoError(c, h.respWriter,
-            xerrors.NewUserNotFoundError(userID))
-    }
-
-    // 4. 解析响应
-    resultBytes, _ := result.([]byte)
-    rpcResp := &authpb.GetUserResponse{}
-    proto.Unmarshal(resultBytes, rpcResp)
-
-    return response.EchoOK(c, h.respWriter, rpcResp.User)
-}
-```
-
-**关键要点**:
-- ✅ 导入 `"github.com/liangdas/mqant/rpc"` (不是 rpc/util)
-- ✅ 参数必须用 `rpc.Param()` 包装 (类型为 `rpc.ParamOption`)
-- ✅ Handler 字段命名为 `rpcCaller` (语义明确，只用于 RPC 调用)
-- ✅ 始终使用 `context.WithTimeout()` 设置超时
-- ✅ 检查 `ctx.Err() == context.DeadlineExceeded` 区分超时
-
-**Call vs Invoke 对比**:
-
-| 特性 | Call | Invoke |
-|------|------|--------|
-| **超时控制** | ✅ 支持 context | ❌ 不支持 |
-| **节点选择** | ✅ 支持过滤器 | ❌ 不支持 |
-| **错误处理** | ✅ 可区分超时/取消/业务错误 | ⚠️ 只返回错误字符串 |
-| **推荐度** | ⭐⭐⭐⭐⭐ **必须使用** | ⚠️ 已过时 |
-
-**❌ 已废弃的方法**:
-```go
-// 不要使用 Invoke (无超时控制)
-result, errStr := h.app.Invoke(h.thisModule, "auth", "GetUser", rpcReqBytes)
-
-// 不要使用 RpcInvoke (间歇性 "none available" 错误)
-result, errStr := h.app.RpcInvoke(...)
-```
-
-### 4. 服务注册配置 ⭐ 重要
-
-**参考**: [mqant 官方文档 - 服务注册](https://liangdas.github.io/mqant/server_introduce.html)
-
-```go
-// ✅ 在每个 Module 的 OnInit 中配置
-m.BaseModule.OnInit(m, app, settings,
-    server.RegisterInterval(15*time.Second),
-    server.RegisterTTL(30*time.Second),  // 必须 > 心跳
-)
-
-// ❌ 不要在 main.go 全局配置 (会导致 RPC 不稳定)
-```
-
----
-
-## 🗄️ 数据库开发规范
-
-### SQLBoiler 多 Schema 配置
-
-```
-sqlboiler.auth.toml         → internal/entity/auth/
-sqlboiler.game_config.toml  → internal/entity/game_config/
-sqlboiler.game_runtime.toml → internal/entity/game_runtime/
-```
-
-**使用示例**:
-```go
-import (
-    authModels "tsu-self/internal/entity/auth"
-    configModels "tsu-self/internal/entity/game_config"
-)
-
-user, _ := authModels.Users().One(ctx, db)
-// SELECT * FROM "auth"."users" ...
-
-skill, _ := configModels.Skills(
-    configModels.SkillWhere.SkillCode.EQ("FIREBALL"),
-).One(ctx, db)
-```
-
-### 迁移文件规范
-
-```
-migrations/
-├── 000001_create_schemas.up.sql              # Schema 和用户
-├── 000002_create_core_infrastructure.up.sql  # 枚举、触发器
-├── 000003_create_users_system.up.sql         # auth schema
-└── {version}_{action}_{object}.{up|down}.sql
-```
-
-**黄金规则**:
-1. 一个迁移 = 一个原子变更
-2. 只包含 DDL，不包含数据 (种子数据另建迁移)
-3. 部署后不可修改
-
-### 开发工作流
-
+### 代码生成
 ```bash
-# 代码生成
-make proto            # 生成 Protobuf
-make generate-entity  # 生成 SQLBoiler ORM
-make generate-errors  # 生成前端错误码枚举
-make generate         # 一键生成所有
+# 生成所有代码(Protobuf + 数据库实体)
+make generate
 
-# 数据库迁移
-make migrate-create  # 创建迁移文件
-make migrate-up      # 应用迁移
-make migrate-down    # 回滚迁移
+# 单独生成 Protobuf 代码
+make proto
 
-# Swagger 文档
-make swagger-admin   # 生成 Admin API 文档
-```
+# 单独生成数据库实体模型(SQLBoiler)
+make generate-entity
 
-### Swagger Tags 规范 🆕
-
-**命名规则**: 使用**纯中文**，简洁清晰
-
-```go
-// ✅ 正确 - 纯中文 tag
-// @Tags 认证
-// @Tags 用户管理
-// @Tags 职业
-// @Tags 技能
-// @Tags 属性类型
-
-// ❌ 错误 - 带路径的 tag
-// @Tags Auth / 认证
-// @Tags Game / Class / 职业
-```
-
-**当前 16 个 Tags**：
-
-**系统管理（3个）**：
-1. 认证 - 登录、登出、注册
-2. 用户管理 - 用户 CRUD
-3. 角色权限 - 角色和权限管理
-
-**基础配置（6个）**：
-4. 属性类型 - 力量、敏捷等
-5. 伤害类型 - 物理、魔法等
-6. 动作类别 - 近战、远程等
-7. 技能类别 - 主动、被动等
-8. 标签 - 通用标签系统
-9. 标签关联 - 标签与实体关系
-
-**游戏系统（7个）**：
-10. 职业 - 职业 CRUD
-11. 职业技能池 - 职业可用技能
-12. 技能 - 技能配置
-13. 动作 - 动作配置
-14. Buff - Buff 配置
-15. 效果 - 原子效果
-16. 元数据 - 只读配置（效果类型、公式变量等）
-
-**示例**：
-```go
-// @Summary 获取技能列表
-// @Description 获取技能列表，支持分页和筛选
-// @Tags 技能
-// @Accept json
-// @Produce json
-// @Param limit query int false "每页数量"
-// @Success 200 {object} response.Response{data=object{list=[]SkillInfo,total=int}}
-// @Router /admin/skills [get]
-func (h *SkillHandler) GetSkills(c echo.Context) error {
-    // ...
-}
-```
-
----
-
-## 🚀 Game Server 架构设计
-
-### 多 Server 部署策略
-
-**架构决策**: ✅ **game-server 启动独立的 Auth Module 实例**
-
-**服务部署拓扑**:
-```
-admin-server (进程1):
-├─ Auth Module (实例1)
-└─ Admin Module
-
-game-server (进程2):
-├─ Auth Module (实例2)  ← 独立实例
-└─ Game Module
-
-Consul 服务注册:
-- auth: 2个实例 (自动负载均衡)
-- admin: 1个实例
-- game: 1个实例
-```
-
-**优势**:
-
-| 维度 | 说明 |
-|------|------|
-| **高可用性** | admin-server 挂了，game-server 的认证仍可用 |
-| **性能隔离** | Admin 的认证高峰不影响 Game 玩家登录 |
-| **本地 RPC** | Game → Auth 调用在同进程内，延迟更低 |
-| **独立扩容** | game-server 可独立水平扩展 |
-| **负载均衡** | mqant 自动 Round-Robin 分发 RPC 请求 |
-
-**mqant RPC 机制**:
-```go
-// mqant 通过 Module Type 标识服务
-func (m *AuthModule) GetType() string {
-    return "auth"  // ← 所有 Auth 实例共享此 Type
-}
-
-// RPC 调用时自动负载均衡
-result, _ := m.app.Invoke(m, "auth", "GetUser", reqBytes)
-// ↑ Consul 发现所有 "auth" 实例，自动选择一个
-```
-
-**关键点**:
-- ✅ 服务是逻辑概念，可以有多个物理实例
-- ✅ mqant 自动处理服务发现和负载均衡
-- ✅ 配置相同的环境变量 (共享 Kratos/Keto/DB)
-
----
-
-## 🌐 WebSocket 实时通信架构
-
-### 请求流程对比
-
-**HTTP REST API 流程**:
-```
-Client → Nginx → Oathkeeper (验证) → Game HTTP Handler
-         ↑ 每次请求都验证 Session
-```
-
-**WebSocket 流程**:
-```
-Client → Nginx → Oathkeeper (握手验证) → Game WS Handler
-         ↑ 只在连接建立时验证一次
-         ↓ 连接后透传消息
-Client ←────────────────────────────────→ Game
-         (Game 内部定期检查 Session 过期)
-```
-
-### Oathkeeper WebSocket 支持 ⭐
-
-**重要发现**: Oathkeeper **支持 WebSocket 代理**
-
-**官方文档**: https://www.ory.sh/docs/oathkeeper/guides/proxy-websockets
-
-**限制**:
-> "WebSockets bypass Ory Oathkeeper after the first request"
-
-**这意味着**:
-- ✅ Oathkeeper 在 WebSocket 握手时验证 Session
-- ✅ 连接建立后，消息直接透传到后端
-- ⚠️ 后续消息不会再验证，需要 Game Module 自己检查
-
-### WebSocket 架构设计
-
-**统一入口模式** (推荐):
-
-```
-internal/modules/game/
-├── handler/
-│   ├── websocket/
-│   │   ├── connection_manager.go   # 连接管理器
-│   │   ├── session_checker.go      # Session 定期验证
-│   │   ├── message_router.go       # 消息路由
-│   │   ├── battle_handler.go       # 战斗事件
-│   │   ├── chat_handler.go         # 聊天
-│   │   └── team_handler.go         # 组队
-│   └── http/
-│       ├── hero_handler.go         # 英雄 REST API
-│       └── inventory_handler.go
-```
-
-**Nginx 配置**:
-```nginx
-# WebSocket 路由 (与 REST API 一样走 Oathkeeper)
-location /ws/ {
-    proxy_pass http://tsu_oathkeeper:4456;
-
-    # WebSocket 必需配置
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection "upgrade";
-    proxy_set_header Host $host;
-
-    # 长连接超时
-    proxy_read_timeout 3600s;
-}
-```
-
-**Oathkeeper 规则**:
-```yaml
-# oathkeeper/rules/websocket.yml
-- id: "ws:game"
-  upstream:
-    url: "http://tsu_game:8072"
-  match:
-    url: "http://<.*>/ws/game<**>"
-    methods:
-      - GET
-  authenticators:
-    - handler: cookie_session  # 验证 Kratos session
-  authorizer:
-    handler: allow
-  mutators:
-    - handler: noop
-```
-
-**Game Module WebSocket Handler**:
-```go
-// connection_manager.go
-type ConnectionManager struct {
-    clients        sync.Map  // userID -> *Client
-    sessionChecker *SessionChecker
-}
-
-func (m *ConnectionManager) HandleWebSocket(c echo.Context) error {
-    // 1. Oathkeeper 已验证，从 header 获取 userID
-    userID := c.Request().Header.Get("X-User-ID")
-
-    // 2. 获取 session token (用于后续验证)
-    cookie, _ := c.Cookie("ory_kratos_session")
-    sessionToken := cookie.Value
-
-    // 3. 升级连接
-    conn, _ := m.upgrader.Upgrade(c.Response(), c.Request(), nil)
-
-    // 4. 创建客户端并注册
-    client := &Client{
-        userID:       userID,
-        sessionToken: sessionToken,
-        conn:         conn,
-        send:         make(chan []byte, 256),
-    }
-
-    m.clients.Store(userID, client)
-    defer m.clients.Delete(userID)
-
-    // 5. 启动读写协程
-    go client.writePump()
-    client.readPump()
-
-    return nil
-}
-
-// session_checker.go - 定期检查 Session 过期
-func (s *SessionChecker) StartSessionCheck() {
-    ticker := time.NewTicker(5 * time.Minute)
-    defer ticker.Stop()
-
-    for range ticker.C {
-        s.manager.clients.Range(func(key, value interface{}) bool {
-            client := value.(*Client)
-
-            // 验证 Session 是否仍有效
-            _, err := s.kratosClient.ValidateSession(ctx, client.sessionToken)
-            if err != nil {
-                // Session 过期，关闭连接
-                client.conn.WriteMessage(websocket.CloseMessage,
-                    websocket.FormatCloseMessage(4401, "Session expired"))
-                client.conn.Close()
-                s.manager.clients.Delete(key)
-            }
-
-            return true
-        })
-    }
-}
-```
-
-**消息格式**:
-```go
-// models/ws_message.go
-type WSMessage struct {
-    Type      string      `json:"type"`      // "battle.action", "chat.send"
-    Data      interface{} `json:"data"`
-    Timestamp int64       `json:"timestamp"`
-}
-
-// 战斗动作
-type BattleActionData struct {
-    BattleID string `json:"battle_id"`
-    ActionID string `json:"action_id"`
-    TargetID string `json:"target_id"`
-}
-```
-
-**客户端心跳**:
-```javascript
-// 前端每30秒发送心跳
-setInterval(() => {
-    ws.send(JSON.stringify({
-        type: 'ping',
-        timestamp: Date.now()
-    }));
-}, 30000);
-```
-
-### REST vs WebSocket 使用场景
-
-**使用 REST API**:
-- ✅ CRUD 操作 (创建英雄、查询背包)
-- ✅ 数据查询 (排行榜、成就列表)
-- ✅ 配置更新 (设置、偏好)
-
-**使用 WebSocket**:
-- ✅ 战斗实时事件
-- ✅ 聊天消息
-- ✅ 组队邀请/通知
-- ✅ 服务器推送 (系统公告)
-
-**关键特点**:
-- 回合制游戏可容忍 100-500ms 延迟
-- 使用事件驱动 (玩家操作 → 服务器计算 → 推送结果)
-- 不需要帧同步 (像 MOBA/FPS)
-
----
-
-## 🔒 认证与权限系统
-
-### Kratos 认证架构
-
-**职责分离**:
-- **Kratos**: 身份认证 (密码、Session、登录流程)
-- **业务 DB (auth.users)**: 用户元数据 (nickname, avatar, is_banned 等)
-
-**核心流程**:
-```
-Login: KratosClient.LoginWithPassword()
-  → CreateNativeLoginFlow()
-  → UpdateLoginFlow(credentials)
-  → 返回 Session Token
-
-Logout: KratosClient.RevokeSession()
-  → ValidateSession(token)
-  → DisableSession(sessionID)
-```
-
-**API 示例**:
-```bash
-# 登录 (支持 email/username/phone)
-POST /api/v1/auth/login
-{"identifier":"user@example.com","password":"xxx"}
-
-# 登出
-POST /api/v1/auth/logout
-X-Session-Token: ory_st_xxx
-```
-
-### Keto 权限架构 (RBAC)
-
-**设计理念**:
-- **数据库**: 存储角色/权限**元数据** (用于管理界面)
-- **Keto**: 存储用户-角色-权限**关系** (用于运行时检查)
-
-**Relation Tuples 设计**:
-```
-# 用户-角色
-namespace: roles
-object: admin
-relation: member
-subject_id: users:alice
-
-# 角色-权限 (SubjectSet)
-namespace: permissions
-object: user:create
-relation: granted
-subject_set: {namespace:roles, object:admin, relation:member}
-```
-
-**核心方法**:
-```go
-ketoClient.AssignRoleToUser(ctx, userID, roleCode)
-ketoClient.CheckUserPermission(ctx, userID, permissionCode)
-ketoClient.GetUserRoles(ctx, userID)
-```
-
----
-
-## 🎮 游戏配置系统 (Admin Module)
-
-### 已实现功能 (24 个 Repository)
-
-**基础配置** (5):
-- SkillCategories, ActionCategories, DamageTypes
-- HeroAttributeType, Tags + TagsRelations
-
-**元数据表** (4, 只读):
-- EffectTypeDefinitions, FormulaVariables
-- RangeConfigRules, ActionTypeDefinitions
-
-**职业系统** (2):
-- Classes (CRUD + 软删除)
-- ClassAttributeBonuses (一对多关联)
-
-**技能系统** (2):
-- Skills, SkillLevelConfigs
-
-**效果和 Buff** (4):
-- Effects, Buffs, BuffEffects
-- ActionFlags
-
-**动作系统** (3):
-- Actions, ActionEffects, SkillUnlockActions
-
-**实现模式** (每个功能):
-```
-Repository Interface (interfaces/*.go)
-     ↓
-Repository Impl (impl/*_impl.go)
-     ↓
-Service (modules/admin/service/*.go)
-     ↓
-Handler (modules/admin/handler/*.go)
-     ↓
-注册到 admin_module.go
-```
-
-### 技能系统设计理念 ⭐
-
-**原子效果组合模式** (类似 Unreal GAS):
-```
-Skill → unlocks → Action → composed of → Effects (原子效果)
-                                       ↓
-                                    Buffs
-```
-
-**优点**:
-- ✅ 高度可复用 (一个"造成伤害"效果用于多个技能)
-- ✅ 策划自主 (组合现有效果创建新技能)
-- ✅ 配置驱动 (元数据表定义规范)
-
-**JSONB 灵活参数**:
-```sql
-effects.parameters JSONB           -- 效果参数
-actions.range_config JSONB         -- 射程配置
-actions.target_config JSONB        -- 目标选择
-buffs.parameter_definitions JSONB -- Buff 参数
-```
-
-**注意**: 应用层必须严格验证 JSONB 结构！
-
----
-
-## 🛠️ 错误处理与响应系统
-
-### xerrors 错误码体系
-
-```
-1xxxxx: 通用系统错误
-2xxxxx: 认证相关 (CodeAuthenticationFailed, CodeTokenExpired)
-3xxxxx: 权限相关 (CodePermissionDenied)
-4xxxxx: 用户管理 (CodeUserNotFound, CodeUserBanned)
-5xxxxx: 角色权限 (CodeRoleNotFound)
-6xxxxx: 业务逻辑
-7xxxxx: 外部服务
-8xxxxx: 游戏业务
-  80xxxx: 角色相关
-  81xxxx: 技能相关
-  82xxxx: 职业相关
-```
-
-### 前端错误码生成工具 🆕
-
-**自动生成 TypeScript 错误码定义**：
-
-```bash
 # 生成前端错误码枚举
 make generate-errors
 
-# 生成文件
-generated/frontend/error-codes.ts    # TypeScript 定义 (923行)
-generated/frontend/error-codes.json  # JSON 元数据 (536行)
+# 生成 Swagger 文档
+make swagger-gen          # 生成所有服务文档
+make swagger-admin        # 仅生成 Admin 服务文档
+make swagger-game         # 仅生成 Game 服务文档
 ```
 
-**包含功能**：
-- ✅ 53个错误码的 TypeScript 枚举
-- ✅ 完整的类型定义和元数据
-- ✅ 辅助函数（`getErrorMessage()`、`isAuthError()`、`isRetryableError()` 等）
-- ✅ Axios 拦截器示例
-- ✅ 中英文双语支持
-
-**前端使用示例**：
-```typescript
-import { ErrorCode, isAuthError, getErrorMessage } from '@/utils/error-codes';
-
-// 检查错误类型
-if (isAuthError(error.code)) {
-  router.push('/login');
-}
-
-// 获取本地化消息
-const message = getErrorMessage(ErrorCode.USER_NOT_FOUND, 'zh');
-```
-
-### response 响应处理
-
-```go
-// Echo 适配器
-return response.EchoOK(c, h.respWriter, data)
-return response.EchoError(c, h.respWriter, xerrors.NewUserNotFoundError(id))
-return response.EchoBadRequest(c, h.respWriter, "参数错误")
-
-// 统一响应格式
-{
-  "code": 100000,
-  "message": "操作成功",
-  "data": {...},
-  "timestamp": 1759501201,
-  "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736"
-}
-```
-
-### Context Key 统一管理 🆕
-
-**统一的 Context Key 系统** (`internal/pkg/ctxkey/ctxkey.go`)：
-
-```go
-import "tsu-self/internal/pkg/ctxkey"
-
-// 统一的 Context Key 定义
-const (
-    Language    ContextKey = "language"     // i18n 语言
-    TraceID     ContextKey = "trace_id"     // 分布式追踪ID
-    HTTPMethod  ContextKey = "http_method"  // HTTP 方法
-    UserID      ContextKey = "user_id"      // 用户ID
-    SessionID   ContextKey = "session_id"   // Session ID
-    RequestID   ContextKey = "request_id"   // 请求ID
-    CurrentUser ContextKey = "current_user" // 当前用户对象
-)
-
-// 使用示例
-ctx = ctxkey.WithValue(ctx, ctxkey.UserID, userID)
-userID := ctxkey.GetString(ctx, ctxkey.UserID)
-```
-
-**避免重复定义**：所有 Context Key 在此统一管理，杜绝跨包重复。
-
-### TraceID 分布式追踪 🆕
-
-**32字符十六进制格式** (兼容 W3C Traceparent 标准)：
-
-```go
-import "tsu-self/internal/pkg/trace"
-
-// 自动提取或生成 TraceID
-// 支持: X-Trace-Id, X-Request-Id, Traceparent (W3C)
-traceID := trace.ExtractFromHeader(c.Request().Header)
-
-// 设置到 Context
-ctx = trace.WithTraceID(ctx, traceID)
-
-// 获取 TraceID
-traceID := trace.GetTraceID(ctx)
-```
-
-**为什么不用 UUID？**
-- ✅ 更短（32字符 vs 36字符）
-- ✅ 兼容 OpenTelemetry、Jaeger、Zipkin
-- ✅ 支持 W3C Traceparent 标准
-- ✅ 性能更好（无需设置 version/variant bits）
-
-### 中间件架构 🆕
-
-**中间件顺序很重要**（从外到内）：
-
-```go
-// 1. TraceID - 生成/提取追踪ID
-m.httpServer.Use(trace.Middleware())
-
-// 2. Metrics - 记录 HTTP 方法到 Context
-m.httpServer.Use(metrics.Middleware())
-
-// 3. i18n - 语言检测
-m.httpServer.Use(i18n.Middleware())
-
-// 4. Logging - 详细日志记录
-loggingConfig := custommiddleware.DefaultLoggingConfig()
-if environment == "development" {
-    loggingConfig.DetailedLog = true
-    loggingConfig.LogRequestBody = true
-}
-m.httpServer.Use(custommiddleware.LoggingMiddlewareWithConfig(logger, loggingConfig))
-
-// 5. Recovery - Panic 恢复
-m.httpServer.Use(custommiddleware.RecoveryMiddleware(respWriter, logger))
-
-// 6. Error - 统一错误处理
-m.httpServer.Use(custommiddleware.ErrorMiddleware(respWriter, logger))
-
-// 7. CORS - 跨域支持
-m.httpServer.Use(middleware.CORS())
-```
-
-**中间件分类**：
-- **pkg（通用）**: trace, metrics, i18n
-- **internal/middleware（业务）**: auth, permission, logging, recovery, error
-
-### 日志中间件配置 🆕
-
-```go
-type LoggingConfig struct {
-    SkipPaths       []string  // 跳过的路径 (如 /health, /metrics)
-    DetailedLog     bool      // 详细日志（开发环境）
-    LogRequestBody  bool      // 记录请求体
-    LogResponseBody bool      // 记录响应体
-    MaxBodySize     int64     // 最大记录大小 (默认10KB)
-    SensitiveHeaders []string // 敏感 header（自动脱敏）
-}
-
-// 敏感信息自动脱敏
-SensitiveHeaders: []string{
-    "Authorization", "Cookie", "X-Session-Token", "X-Api-Key",
-}
-```
-
----
-
-## 🔧 常见问题排查
-
-### 1. Module panic: nil pointer
-
-```go
-// 改为值类型嵌入
-type AuthModule struct {
-    basemodule.BaseModule  // 不是 *basemodule.BaseModule
-}
-```
-
-### 2. RPC "params not adapted"
-
-```go
-// 移除 context.Context 参数
-func (h *RPCHandler) Method(req []byte) ([]byte, error) {
-    ctx := context.Background()
-    // ...
-}
-```
-
-### 3. RPC 间歇性 "none available" ⭐
-
-**原因**: 服务注册配置不当，Consul 误判下线
-
-**解决**: 在每个 Module 的 OnInit 配置 (不是 main.go):
-```go
-m.BaseModule.OnInit(m, app, settings,
-    server.RegisterInterval(15*time.Second),
-    server.RegisterTTL(30*time.Second),
-)
-```
-
-**诊断**:
+### 数据库迁移
 ```bash
-# 查看 Consul 服务
-curl http://localhost:8500/v1/catalog/services | jq
+# 创建新迁移文件
+make migrate-create       # 会提示输入迁移名称
 
-# 服务健康状态
-curl http://localhost:8500/v1/health/service/auth | jq
+# 应用所有待执行的迁移
+make migrate-up
+
+# 回滚最后一次迁移
+make migrate-down
 ```
 
-### 4. SQLBoiler 类型注意事项
+### 测试
+```bash
+# 运行所有测试
+go test ./...
 
-```go
-// ⚠️ 复数形式拼写
-*game_config.ClassAttributeBonuse  // 不是 Bonus!
+# 运行特定包的测试
+go test ./internal/modules/game/service/...
 
-// Decimal 类型处理
-if err := bonus.BaseBonusValue.UnmarshalText([]byte("2.5")); err != nil {
-    // 处理错误
-}
+# 运行单个测试
+go test -run TestHeroAttributeUpdate ./internal/modules/game/service/
 
-// NullDecimal 判断
-if !bonus.DamageMultiplier.IsZero() {
-    // 有值
-}
+# 查看测试覆盖率
+go test -cover ./...
+
+# 生成覆盖率报告
+go test -coverprofile=coverage.out ./...
+go tool cover -html=coverage.out
 ```
 
----
+### 代码质量检查
+```bash
+# 运行 golangci-lint
+golangci-lint run
 
-## 📚 Make 命令速查
+# 自动修复可修复的问题
+golangci-lint run --fix
 
-| 命令 | 说明 |
-|------|------|
-| `make dev-up` | 启动开发环境 |
-| `make proto` | 生成 Protobuf 代码 |
-| `make generate-entity` | 生成 SQLBoiler ORM |
-| `make generate-errors` | 生成前端错误码枚举 |
-| `make generate` | 一键生成所有 |
-| `make migrate-up` | 应用数据库迁移 |
-| `make migrate-create` | 创建新迁移文件 |
-| `make swagger-admin` | 生成 Swagger 文档 |
-| `make clean` | 清理环境 |
+# 检查特定目录
+golangci-lint run ./internal/modules/game/...
+```
 
----
+### 生产部署
+```bash
+# 分步部署(推荐)
+make deploy-prod-step1    # 部署基础设施(PostgreSQL, Redis, NATS, Consul)
+make deploy-prod-step2    # 部署 Ory 服务
+make deploy-prod-step3    # 部署 Admin Server
+make deploy-prod-step4    # 部署 Game Server
+make deploy-prod-step5    # 部署 Nginx
 
-## 📖 参考文档
+# 一键部署所有服务
+make deploy-prod-all              # 自动模式
+make deploy-prod-all-interactive  # 交互确认模式
 
-- mqant 官方文档: https://liangdas.github.io/mqant/
-- Ory Kratos: https://www.ory.sh/docs/kratos/
-- Ory Keto: https://www.ory.sh/docs/keto/
-- SQLBoiler: https://github.com/volatiletech/sqlboiler
-- Echo Framework: https://echo.labstack.com/
+# 导入游戏配置到生产环境
+make import-game-config-prod
+```
 
----
+## 项目架构
 
----
+### 目录结构
+```
+tsu-self/
+├── cmd/                        # 服务入口
+│   ├── game-server/           # 游戏服务器主程序
+│   └── admin-server/          # 管理服务器主程序
+├── internal/                   # 内部包(不对外暴露)
+│   ├── entity/                # 数据库实体(SQLBoiler 生成)
+│   │   ├── auth/             # auth schema 实体
+│   │   ├── game_config/      # game_config schema 实体
+│   │   └── game_runtime/     # game_runtime schema 实体
+│   ├── modules/              # 业务模块
+│   │   ├── auth/             # 认证模块
+│   │   ├── admin/            # 管理模块
+│   │   └── game/             # 游戏模块
+│   │       ├── handler/      # HTTP 处理器
+│   │       ├── service/      # 业务逻辑层
+│   │       └── tasks/        # 定时任务
+│   ├── middleware/           # HTTP 中间件
+│   ├── pb/                   # Protobuf 生成的代码
+│   ├── pkg/                  # 通用工具包
+│   │   ├── auth/            # 认证工具
+│   │   ├── config/          # 配置管理
+│   │   ├── i18n/            # 国际化
+│   │   ├── log/             # 日志
+│   │   ├── metrics/         # Prometheus 指标
+│   │   ├── redis/           # Redis 客户端
+│   │   ├── response/        # 统一响应格式
+│   │   ├── security/        # 安全工具
+│   │   ├── validation/      # 数据验证
+│   │   └── xerrors/         # 错误处理
+│   ├── repository/          # 数据访问层
+│   │   ├── interfaces/     # 接口定义
+│   │   └── impl/           # 接口实现
+│   └── test/               # 测试工具
+├── configs/                 # 配置文件
+│   ├── base/               # 基础配置
+│   ├── environments/       # 环境特定配置
+│   ├── game/               # 游戏配置(技能、角色等)
+│   └── server/             # 服务器配置
+├── migrations/             # 数据库迁移文件
+├── deployments/            # 部署配置
+│   └── docker-compose/    # Docker Compose 文件
+├── proto/                  # Protobuf 定义文件
+├── docs/                   # 文档
+├── scripts/                # 部署和工具脚本
+├── test/                   # 测试用例和报告
+└── web/                    # 前端资源
+```
 
-## 📝 架构决策记录
+### 数据库架构
 
-### ADR-001: game-server 启动独立 Auth Module
+项目使用 PostgreSQL 的多 schema 设计:
 
-**日期**: 2025-10-10
+1. **auth schema**: 存储认证相关数据
+   - 与 Ory Kratos 集成
+   - 用户身份信息
 
-**状态**: ✅ 已采纳
+2. **game_config schema**: 存储游戏配置数据(只读)
+   - 英雄配置 (heroes)
+   - 技能配置 (skills, skill_levels, skill_level_attributes)
+   - 游戏内容配置
+   - 由配置管理系统维护,业务代码只读
 
-**决策**: game-server 启动独立的 Auth Module 实例，而不是复用 admin-server 的 Auth
+3. **game_runtime schema**: 存储游戏运行时数据
+   - 玩家英雄实例 (player_heroes)
+   - 英雄属性 (hero_attributes)
+   - 英雄技能学习记录 (hero_learned_skills)
+   - 玩家游戏状态
 
-**理由**:
-1. **高可用性**: admin-server 故障不影响游戏玩家登录
-2. **性能隔离**: 运营后台与游戏服务的认证流量完全隔离
-3. **本地 RPC 优化**: Game → Auth 调用在同进程内，延迟更低
-4. **mqant 天然支持**: 自动负载均衡，无需额外代码
-5. **独立扩容**: 游戏服务可独立水平扩展，Auth 实例随之扩展
+### 代码生成工具
 
-**替代方案**: 共用 admin-server 的 Auth (单点故障风险高)
+- **SQLBoiler**: 从数据库 schema 生成类型安全的 ORM 代码
+  - 配置文件: `sqlboiler.auth.toml`, `sqlboiler.game_config.toml`, `sqlboiler.game_runtime.toml`
+  - 生成目录: `internal/entity/{auth,game_config,game_runtime}/`
 
-### ADR-002: WebSocket 走 Oathkeeper 认证
+- **Protobuf**: 定义服务间通信协议
+  - 定义文件: `proto/`
+  - 生成目录: `internal/pb/`
 
-**日期**: 2025-10-10
+- **Swagger**: 生成 API 文档
+  - Game Server 文档: `docs/game/`
+  - Admin Server 文档: `docs/admin/`
 
-**状态**: ✅ 已采纳
+### 服务架构
 
-**决策**: WebSocket 连接通过 Oathkeeper 进行握手时认证，连接后由 Game Module 定期检查 Session
+#### 分层架构
+```
+Handler Layer (HTTP/RPC 处理)
+    ↓
+Service Layer (业务逻辑)
+    ↓
+Repository Layer (数据访问)
+    ↓
+Entity Layer (数据模型)
+```
 
-**理由**:
-1. **统一认证入口**: 所有请求 (REST + WebSocket) 都走 Oathkeeper
-2. **Oathkeeper 原生支持**: 官方文档确认支持 WebSocket 代理
-3. **架构一致性**: Nginx 配置统一，无特殊路由
-4. **安全性**: 握手时验证 + 定期 Session 检查
+#### 关键组件
 
-**限制**: Oathkeeper 只在握手时验证一次，需要 Game Module 实现 Session 定期检查
+1. **认证与授权**
+   - Ory Kratos: 用户认证
+   - Ory Keto: 权限管理(RBAC)
+   - Ory Oathkeeper: API 网关和访问控制
 
-**替代方案**: WebSocket 绕过 Oathkeeper (需要在 Game Module 完全实现认证逻辑)
+2. **服务通信**
+   - HTTP/REST: 客户端-服务器通信
+   - NATS: 服务间异步消息
+   - Protobuf: 结构化数据序列化
 
-### ADR-003: 统一 WebSocket 入口 (Connection Manager)
+3. **数据存储**
+   - PostgreSQL: 主数据库(事务性数据)
+   - Redis: 缓存和会话存储
+   - Consul: 服务配置和键值存储
 
-**日期**: 2025-10-10
+## 开发规范
 
-**状态**: ✅ 已采纳
+### 代码质量要求
 
-**决策**: 使用单一 WebSocket 端点 `/ws/game`，通过消息类型路由到不同业务 Handler
+**严格遵循** `.specify/memory/constitution.md` 中定义的项目宪法:
 
-**理由**:
-1. **客户端简单**: 只需建立一个 WebSocket 连接
-2. **连接复用**: 战斗、聊天、组队共用一个连接
-3. **认证开销低**: 只需在建立连接时认证一次
-4. **符合回合制特点**: 不需要极致性能，架构清晰更重要
+1. **测试驱动开发(TDD)** - 不可协商
+   - 必须先写测试,后写实现
+   - 单元测试覆盖率至少 80%
+   - 所有 API 端点必须有集成测试
 
-**替代方案**: 多个 WebSocket 端点 (客户端管理复杂)
+2. **代码质量**
+   - 必须通过 `golangci-lint` 检查
+   - 遵循 Go 语言最佳实践
+   - 公共函数必须有文档注释
+   - 错误处理必须显式且有意义
 
-### ADR-004: Swagger Tags 纯中文命名
+3. **性能标准**
+   - API 端点 p95 延迟 <200ms
+   - 数据库查询必须优化索引
+   - 使用 Redis 缓存热数据
 
-**日期**: 2025-10-13
+4. **可观测性**
+   - 结构化日志(包含请求 ID、用户 ID)
+   - Prometheus 指标
+   - 健康检查端点
 
-**状态**: ✅ 已采纳
+### 历史代码处理原则
 
-**决策**: Swagger API 文档的 Tags 使用纯中文命名，不使用英文路径层级
+- **不主动大规模重构**: 除非有明确业务需求或严重问题
+- **童子军军规**: 修改代码时顺手改进(参考 `TECH_DEBT.md`)
+- **新旧隔离**: 新模块必须严格遵守宪法,与旧代码交互的边界明确定义
 
-**理由**:
-1. **简洁明了**: 纯中文更符合国内开发者习惯
-2. **易于搜索**: 在 Swagger UI 中快速定位
-3. **维护方便**: 命名规则统一，无需考虑路径结构
-4. **直观易读**: 一目了然，无冗余信息
+### 提交规范
 
-**示例**:
-- ✅ 采纳: `@Tags 技能`
-- ❌ 拒绝: `@Tags Game / Skill / 技能`
+遵循约定式提交(Conventional Commits):
+```
+feat: 添加新功能
+fix: 修复 bug
+docs: 文档更新
+refactor: 代码重构
+test: 测试相关
+chore: 构建/工具链相关
+```
 
-**替代方案**: 使用英文路径+中文（过于复杂，不利于快速浏览）
+### 分支策略
+```
+main                 # 主分支
+feature/xxx          # 新功能分支
+bugfix/xxx           # Bug 修复分支
+hotfix/xxx           # 紧急修复分支
+```
 
-### ADR-005: TraceID 使用 32 字符十六进制而非 UUID
+## 环境配置
 
-**日期**: 2025-10-13
+### 开发环境要求
 
-**状态**: ✅ 已采纳
+- Go 1.25.1+
+- Docker & Docker Compose
+- PostgreSQL 14+
+- Redis 7+
+- protoc 编译器
+- SQLBoiler
+- golangci-lint
 
-**决策**: TraceID 使用 32 字符十六进制格式（16字节随机数）而不是 UUID v4
+### 环境变量
 
-**理由**:
-1. **长度优化**: 32字符 vs UUID 的 36字符，节省 4 字节
-2. **标准兼容**: 兼容 W3C Traceparent、OpenTelemetry、Jaeger、Zipkin
-3. **性能更好**: 无需设置 UUID version/variant bits
-4. **多标准支持**: 可从 X-Trace-Id、X-Request-Id、Traceparent 等头部提取
+主要配置文件:
+- `.env`: 本地开发环境配置
+- `.env.prod`: 生产环境配置
+- `.env.smtp`: SMTP 邮件配置
 
-**格式对比**:
-- UUID v4: `550e8400-e29b-41d4-a716-446655440000` (36字符，含4个连字符)
-- TraceID: `4bf92f3577b34da6a3ce929d0e0e4736` (32字符，纯十六进制)
+关键环境变量:
+- `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`: 数据库连接
+- `REDIS_ADDR`, `REDIS_PASSWORD`: Redis 连接
+- `NATS_URL`: NATS 连接
+- `CONSUL_ADDR`: Consul 地址
+- `KRATOS_PUBLIC_URL`, `KRATOS_ADMIN_URL`: Ory Kratos 地址
 
-**替代方案**: UUID v4（标准但更长，且需额外计算）
+### 服务端口
 
----
+本地开发:
+- Game Server: 8072
+- Admin Server: 8071
+- PostgreSQL: 5432
+- Redis: 6379
+- NATS: 4222
+- Consul: 8500
+- Nginx: 80
 
-**最后更新**: 2025-10-13
+访问地址:
+- 统一 Swagger 入口: http://localhost/swagger
+- Game Swagger: http://localhost/game/swagger/index.html
+
+## 常见任务
+
+### 添加新的 API 端点
+
+1. 在 `internal/modules/{module}/handler/` 添加处理函数
+2. 在 `internal/modules/{module}/service/` 实现业务逻辑
+3. 在 `cmd/{server}/main.go` 注册路由
+4. 添加 Swagger 注释
+5. 编写单元测试和集成测试
+6. 运行 `make swagger-gen` 更新文档
+
+### 添加新的数据库表
+
+1. 创建迁移文件: `make migrate-create`
+2. 编写 up/down SQL
+3. 应用迁移: `make migrate-up`
+4. 更新相应的 `sqlboiler.*.toml` 配置
+5. 重新生成实体: `make generate-entity`
+6. 编写 repository 接口和实现
+7. 添加单元测试
+
+### 添加新的游戏技能
+
+1. 在 `configs/game/` 添加技能配置 JSON
+2. 导入到 `game_config.skills` 表
+3. 在 `internal/modules/game/service/` 实现技能逻辑
+4. 添加技能效果计算函数
+5. 编写技能测试用例
+6. 更新 `configs/技能配置规范.md`
+
+## 重要文档
+
+- `TECH_DEBT.md`: 技术债务审计报告
+- `.specify/memory/constitution.md`: 项目宪法(开发规范)
+- `docs/error-response-guide.md`: 错误响应规范
+- `docs/i18n-guide.md`: 国际化指南
+- `docs/prometheus-metrics-guide.md`: 监控指标指南
+- `configs/技能配置规范.md`: 游戏技能配置规范
+- `test/TEST_RESULTS_SUMMARY.md`: 测试结果总结
+
+## 调试技巧
+
+### 查看容器日志
+```bash
+# 查看特定服务日志
+docker logs tsu_game_server_local
+docker logs tsu_postgres
+
+# 实时跟踪日志
+docker logs -f tsu_game_server_local
+```
+
+### 数据库调试
+```bash
+# 连接到开发数据库
+psql -h localhost -p 5432 -U postgres -d tsu_db
+
+# 查看迁移状态
+SELECT * FROM schema_migrations;
+```
+
+### Redis 调试
+```bash
+# 连接到 Redis
+docker exec -it tsu_redis redis-cli
+
+# 查看所有 key
+KEYS *
+
+# 查看特定 key
+GET key_name
+```
+
+## 性能优化
+
+### 数据库优化
+- 使用 `EXPLAIN ANALYZE` 分析慢查询
+- 为频繁查询的列添加索引
+- 使用 connection pooling
+- 避免 N+1 查询问题
+
+### Redis 缓存策略
+- 缓存热数据(用户信息、配置数据)
+- 使用 pipeline 批量操作
+- 设置合理的过期时间
+- 使用 Redis 集群提高吞吐量
+
+### Go 性能优化
+- 使用 `pprof` 分析性能瓶颈
+- 避免 goroutine 泄漏
+- 合理使用 `sync.Pool` 减少内存分配
+- 使用 `context` 控制超时和取消
+
+## 故障排查
+
+### 服务无法启动
+1. 检查 Docker 容器状态: `docker ps -a`
+2. 查看服务日志: `docker logs <container_name>`
+3. 确认环境变量配置: `.env` 文件
+4. 确认依赖服务(PostgreSQL, Redis)是否就绪
+
+### 数据库连接失败
+1. 检查数据库容器是否运行
+2. 确认数据库连接字符串
+3. 检查网络连接: `docker network ls`
+4. 查看数据库日志
+
+### 认证失败
+1. 检查 Ory Kratos 服务状态
+2. 确认 Kratos 配置正确
+3. 检查认证 token 是否有效
+4. 查看 Oathkeeper 访问规则
+
+<!-- MANUAL ADDITIONS START -->
+<!-- MANUAL ADDITIONS END -->

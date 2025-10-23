@@ -10,10 +10,13 @@ import (
 	"github.com/google/uuid"
 
 	"tsu-self/internal/entity/game_runtime"
+	"tsu-self/internal/pkg/log"
 	"tsu-self/internal/pkg/xerrors"
 	"tsu-self/internal/repository/impl"
 	"tsu-self/internal/repository/interfaces"
 )
+
+// TODO:当前的技能的学习的升级只考虑了经验，没有考虑金币和材料
 
 // HeroSkillService 英雄技能服务
 type HeroSkillService struct {
@@ -74,6 +77,38 @@ func (s *HeroSkillService) LearnSkill(ctx context.Context, req *LearnSkillReques
 	}
 	if skillPool == nil {
 		return xerrors.New(xerrors.CodeSkillNotFound, "该职业无法学习此技能")
+	}
+
+	// 3.5. 验证前置技能要求
+	if len(skillPool.PrerequisiteSkillIds) > 0 {
+		// 获取已学习的技能
+		learnedSkills, err := s.heroSkillRepo.GetByHeroID(ctx, req.HeroID)
+		if err != nil {
+			return xerrors.Wrap(err, xerrors.CodeInternalError, "查询已学习技能失败")
+		}
+
+		// 构建已学习技能ID的map用于快速查找
+		learnedSkillMap := make(map[string]bool)
+		for _, skill := range learnedSkills {
+			learnedSkillMap[skill.SkillID] = true
+		}
+
+		// 检查所有前置技能是否都已学习
+		var missingSkillIDs []string
+		for _, prerequisiteID := range skillPool.PrerequisiteSkillIds {
+			if !learnedSkillMap[prerequisiteID] {
+				missingSkillIDs = append(missingSkillIDs, prerequisiteID)
+			}
+		}
+
+		if len(missingSkillIDs) > 0 {
+			// 使用 log 记录详细信息
+			log.WarnContext(ctx, "未满足前置技能要求",
+				"hero_id", req.HeroID,
+				"skill_id", req.SkillID,
+				"missing_prerequisite_skills", missingSkillIDs)
+			return xerrors.New(xerrors.CodeSkillPrerequisiteNotMet, "未满足前置技能要求")
+		}
 	}
 
 	// 4. 检查是否已经学习
@@ -274,7 +309,7 @@ func (s *HeroSkillService) UpgradeSkill(ctx context.Context, req *UpgradeSkillRe
 	operation := &game_runtime.HeroSkillOperation{
 		ID:               uuid.New().String(),
 		HeroSkillID:      heroSkill.ID,
-		LevelsAdded:      1,  // 当前实现只支持升级1级（req.Levels 被忽略）
+		LevelsAdded:      1, // 当前实现只支持升级1级（req.Levels 被忽略）
 		XPSpent:          costXP,
 		GoldSpent:        costGold,
 		MaterialsSpent:   cost.CostMaterials,
@@ -383,13 +418,15 @@ func (s *HeroSkillService) RollbackSkillOperation(ctx context.Context, heroID, s
 
 // AvailableSkillInfo 可学习技能信息
 type AvailableSkillInfo struct {
-	SkillID           string
-	SkillName         string
-	SkillCode         string
-	MaxLevel          int
-	MaxLearnableLevel int
-	CanLearn          bool
-	Requirements      string
+	SkillID              string   // 技能ID
+	SkillName            string   // 技能名称
+	SkillCode            string   // 技能代码
+	MaxLevel             int      // 技能最大等级
+	MaxLearnableLevel    int      // 职业可学习的最大等级
+	CanLearn             bool     // 是否可以学习（考虑前置技能）
+	PrerequisiteSkillIds []string // 前置技能ID列表
+	MissingSkillIds      []string // 未满足的前置技能ID列表
+	Requirements         string   // 其他要求描述
 }
 
 // GetAvailableSkills 获取可学习技能
@@ -444,13 +481,27 @@ func (s *HeroSkillService) GetAvailableSkills(ctx context.Context, heroID string
 			maxLevel = int(skill.MaxLevel.Int)
 		}
 
+		// 检查前置技能要求
+		canLearn := true
+		var missingSkillIDs []string
+		if len(pool.PrerequisiteSkillIds) > 0 {
+			for _, prerequisiteID := range pool.PrerequisiteSkillIds {
+				if !learnedSkillIDs[prerequisiteID] {
+					canLearn = false
+					missingSkillIDs = append(missingSkillIDs, prerequisiteID)
+				}
+			}
+		}
+
 		availableSkills = append(availableSkills, &AvailableSkillInfo{
-			SkillID:           pool.SkillID,
-			SkillName:         skill.SkillName,
-			SkillCode:         skill.SkillCode,
-			MaxLevel:          maxLevel,
-			MaxLearnableLevel: maxLearnableLevel,
-			CanLearn:          true, // 简化处理：暂不检查前置条件
+			SkillID:              pool.SkillID,
+			SkillName:            skill.SkillName,
+			SkillCode:            skill.SkillCode,
+			MaxLevel:             maxLevel,
+			MaxLearnableLevel:    maxLearnableLevel,
+			CanLearn:             canLearn,
+			PrerequisiteSkillIds: pool.PrerequisiteSkillIds,
+			MissingSkillIds:      missingSkillIDs,
 		})
 	}
 

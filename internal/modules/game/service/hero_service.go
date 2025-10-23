@@ -23,6 +23,7 @@ type HeroService struct {
 	heroRepo                   interfaces.HeroRepository
 	heroClassHistoryRepo       interfaces.HeroClassHistoryRepository
 	heroSkillRepo              interfaces.HeroSkillRepository
+	skillRepo                  interfaces.SkillRepository
 	classRepo                  interfaces.ClassRepository
 	classSkillPoolRepo         interfaces.ClassSkillPoolRepository
 	heroAttributeTypeRepo      interfaces.HeroAttributeTypeRepository
@@ -38,6 +39,7 @@ func NewHeroService(db *sql.DB) *HeroService {
 		heroRepo:                   impl.NewHeroRepository(db),
 		heroClassHistoryRepo:       impl.NewHeroClassHistoryRepository(db),
 		heroSkillRepo:              impl.NewHeroSkillRepository(db),
+		skillRepo:                  impl.NewSkillRepository(db),
 		classRepo:                  impl.NewClassRepository(db),
 		classSkillPoolRepo:         impl.NewClassSkillPoolRepository(db),
 		heroAttributeTypeRepo:      impl.NewHeroAttributeTypeRepository(db),
@@ -343,8 +345,12 @@ func (s *HeroService) AdvanceClass(ctx context.Context, heroID, targetClassID st
 
 		// 构建已学习技能映射
 		learnedSkillMap := make(map[string]bool)
-		for _, skill := range learnedSkills {
-			learnedSkillMap[skill.SkillID] = true
+		for _, heroSkill := range learnedSkills {
+			// 通过 skill_id 查询 game_config.skills 获取 skill_code
+			skill, err := s.skillRepo.GetByID(ctx, heroSkill.SkillID)
+			if err == nil && skill != nil {
+				learnedSkillMap[skill.SkillCode] = true
+			}
 		}
 
 		// 验证每个技能要求
@@ -641,12 +647,12 @@ func (s *HeroService) GetHeroFullInfo(ctx context.Context, heroID string) (*Hero
 
 // AdvancementCheckResult 进阶条件检查结果
 type AdvancementCheckResult struct {
-	CanAdvance         bool     `json:"can_advance"`
+	CanAdvance          bool     `json:"can_advance"`
 	MissingRequirements []string `json:"missing_requirements,omitempty"`
-	RequiredLevel      int      `json:"required_level"`
-	CurrentLevel       int      `json:"current_level"`
-	RequiredHonor      int      `json:"required_honor"`
-	CurrentHonor       int      `json:"current_honor"`
+	RequiredLevel       int      `json:"required_level"`
+	CurrentLevel        int      `json:"current_level"`
+	RequiredHonor       int      `json:"required_honor"`
+	CurrentHonor        int      `json:"current_honor"`
 }
 
 // CheckAdvancementRequirements 检查是否满足职业进阶条件
@@ -719,15 +725,20 @@ func (s *HeroService) CheckAdvancementRequirements(ctx context.Context, heroID, 
 	if !requirement.RequiredSkills.IsZero() {
 		var requiredSkills []string
 		if err := requirement.RequiredSkills.Unmarshal(&requiredSkills); err == nil && len(requiredSkills) > 0 {
-			// 获取已学习技能
+			// 获取英雄已学习的技能
 			learnedSkills, err := s.heroSkillRepo.GetByHeroID(ctx, heroID)
 			if err != nil {
 				return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "查询技能失败")
 			}
 
+			// 构建已学习技能的 skill_code map（需要查询 game_config.skills 表）
 			learnedSkillCodes := make(map[string]bool)
-			for _, skill := range learnedSkills {
-				learnedSkillCodes[skill.SkillCode] = true
+			for _, heroSkill := range learnedSkills {
+				// 通过 skill_id 查询 game_config.skills 获取 skill_code
+				skill, err := s.skillRepo.GetByID(ctx, heroSkill.SkillID)
+				if err == nil && skill != nil {
+					learnedSkillCodes[skill.SkillCode] = true
+				}
 			}
 
 			// 检查每个技能要求

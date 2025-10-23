@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"strconv"
 
+	"github.com/aarondl/sqlboiler/v4/types"
 	"github.com/labstack/echo/v4"
 
 	"tsu-self/internal/entity/game_config"
@@ -243,11 +244,11 @@ func (h *ActionHandler) CreateAction(c echo.Context) error {
 
 	// 设置数组字段
 	if len(req.FeatureTags) > 0 {
-		action.FeatureTags = req.FeatureTags
+		action.FeatureTags = types.StringArray(req.FeatureTags)
 	}
 
 	if len(req.StartFlags) > 0 {
-		action.StartFlags = req.StartFlags
+		action.StartFlags = types.StringArray(req.StartFlags)
 	}
 
 	// 验证并设置 RangeConfig (必需字段)
@@ -374,6 +375,14 @@ func (h *ActionHandler) UpdateAction(c echo.Context) error {
 	updates["mana_cost_formula"] = req.ManaCostFormula
 	updates["legacy_effect_config"] = req.LegacyEffectConfig
 	updates["is_active"] = req.IsActive
+
+	// 更新数组字段
+	if req.FeatureTags != nil {
+		updates[game_config.ActionColumns.FeatureTags] = types.StringArray(req.FeatureTags)
+	}
+	if req.StartFlags != nil {
+		updates[game_config.ActionColumns.StartFlags] = types.StringArray(req.StartFlags)
+	}
 
 	// 更新动作
 	if err := h.service.UpdateAction(ctx, id, updates); err != nil {

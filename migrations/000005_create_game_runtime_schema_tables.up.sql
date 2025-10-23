@@ -109,7 +109,6 @@ CREATE TABLE IF NOT EXISTS game_runtime.hero_skills (
 
     hero_id UUID NOT NULL REFERENCES game_runtime.heroes(id) ON DELETE CASCADE,
     skill_id UUID NOT NULL REFERENCES game_config.skills(id),
-    skill_code VARCHAR(32) NOT NULL,
 
     -- 技能等级信息
     skill_level INTEGER NOT NULL DEFAULT 1 CHECK (skill_level >= 1),
@@ -128,8 +127,7 @@ CREATE TABLE IF NOT EXISTS game_runtime.hero_skills (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_at TIMESTAMPTZ,
 
-    UNIQUE(hero_id, skill_id),
-    UNIQUE(hero_id, skill_code)
+    UNIQUE(hero_id, skill_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_hero_skills_hero ON game_runtime.hero_skills(hero_id) WHERE deleted_at IS NULL;
