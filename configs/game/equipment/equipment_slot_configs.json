@@ -1,0 +1,49 @@
+[
+  {
+    "class_id": "warrior",
+    "slot_type": "mainhand",
+    "slot_name": "主手武器",
+    "default_count": 1,
+    "max_count": 1,
+    "unlock_level": 1,
+    "description": "战士的主手武器槽位"
+  },
+  {
+    "class_id": "warrior",
+    "slot_type": "offhand",
+    "slot_name": "副手武器",
+    "default_count": 0,
+    "max_count": 1,
+    "unlock_level": 5,
+    "description": "战士的副手武器槽位,5级解锁"
+  },
+  {
+    "class_id": "warrior",
+    "slot_type": "chest",
+    "slot_name": "胸甲",
+    "default_count": 1,
+    "max_count": 1,
+    "unlock_level": 1,
+    "description": "战士的胸甲槽位"
+  },
+
+  {
+    "class_id": "mage",
+    "slot_type": "mainhand",
+    "slot_name": "法杖",
+    "default_count": 1,
+    "max_count": 1,
+    "unlock_level": 1,
+    "description": "法师的主手武器槽位"
+  },
+  {
+    "class_id": "mage",
+    "slot_type": "chest",
+    "slot_name": "法袍",
+    "default_count": 1,
+    "max_count": 1,
+    "unlock_level": 1,
+    "description": "法师的胸甲槽位"
+  }
+]
+

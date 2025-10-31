@@ -129,19 +129,38 @@ var TagWhere = struct {
 
 // TagRels is where relationship names are stored.
 var TagRels = struct {
-	TagsRelations string
+	SetTagEquipmentSetConfigs string
+	TagsRelations             string
 }{
-	TagsRelations: "TagsRelations",
+	SetTagEquipmentSetConfigs: "SetTagEquipmentSetConfigs",
+	TagsRelations:             "TagsRelations",
 }
 
 // tagR is where relationships are stored.
 type tagR struct {
-	TagsRelations TagsRelationSlice `boil:"TagsRelations" json:"TagsRelations" toml:"TagsRelations" yaml:"TagsRelations"`
+	SetTagEquipmentSetConfigs EquipmentSetConfigSlice `boil:"SetTagEquipmentSetConfigs" json:"SetTagEquipmentSetConfigs" toml:"SetTagEquipmentSetConfigs" yaml:"SetTagEquipmentSetConfigs"`
+	TagsRelations             TagsRelationSlice       `boil:"TagsRelations" json:"TagsRelations" toml:"TagsRelations" yaml:"TagsRelations"`
 }
 
 // NewStruct creates a new relationship struct
 func (*tagR) NewStruct() *tagR {
 	return &tagR{}
+}
+
+func (o *Tag) GetSetTagEquipmentSetConfigs() EquipmentSetConfigSlice {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetSetTagEquipmentSetConfigs()
+}
+
+func (r *tagR) GetSetTagEquipmentSetConfigs() EquipmentSetConfigSlice {
+	if r == nil {
+		return nil
+	}
+
+	return r.SetTagEquipmentSetConfigs
 }
 
 func (o *Tag) GetTagsRelations() TagsRelationSlice {
@@ -576,6 +595,20 @@ func (q tagQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (bool, 
 	return count > 0, nil
 }
 
+// SetTagEquipmentSetConfigs retrieves all the equipment_set_config's EquipmentSetConfigs with an executor via set_tag_id column.
+func (o *Tag) SetTagEquipmentSetConfigs(mods ...qm.QueryMod) equipmentSetConfigQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"game_config\".\"equipment_set_configs\".\"set_tag_id\"=?", o.ID),
+	)
+
+	return EquipmentSetConfigs(queryMods...)
+}
+
 // TagsRelations retrieves all the tags_relation's TagsRelations with an executor.
 func (o *Tag) TagsRelations(mods ...qm.QueryMod) tagsRelationQuery {
 	var queryMods []qm.QueryMod
@@ -588,6 +621,120 @@ func (o *Tag) TagsRelations(mods ...qm.QueryMod) tagsRelationQuery {
 	)
 
 	return TagsRelations(queryMods...)
+}
+
+// LoadSetTagEquipmentSetConfigs allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (tagL) LoadSetTagEquipmentSetConfigs(ctx context.Context, e boil.ContextExecutor, singular bool, maybeTag interface{}, mods queries.Applicator) error {
+	var slice []*Tag
+	var object *Tag
+
+	if singular {
+		var ok bool
+		object, ok = maybeTag.(*Tag)
+		if !ok {
+			object = new(Tag)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeTag)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeTag))
+			}
+		}
+	} else {
+		s, ok := maybeTag.(*[]*Tag)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeTag)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeTag))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &tagR{}
+		}
+		args[object.ID] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &tagR{}
+			}
+			args[obj.ID] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`game_config.equipment_set_configs`),
+		qm.WhereIn(`game_config.equipment_set_configs.set_tag_id in ?`, argsSlice...),
+		qmhelper.WhereIsNull(`game_config.equipment_set_configs.deleted_at`),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load equipment_set_configs")
+	}
+
+	var resultSlice []*EquipmentSetConfig
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice equipment_set_configs")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on equipment_set_configs")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for equipment_set_configs")
+	}
+
+	if len(equipmentSetConfigAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.SetTagEquipmentSetConfigs = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &equipmentSetConfigR{}
+			}
+			foreign.R.SetTag = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if queries.Equal(local.ID, foreign.SetTagID) {
+				local.R.SetTagEquipmentSetConfigs = append(local.R.SetTagEquipmentSetConfigs, foreign)
+				if foreign.R == nil {
+					foreign.R = &equipmentSetConfigR{}
+				}
+				foreign.R.SetTag = local
+				break
+			}
+		}
+	}
+
+	return nil
 }
 
 // LoadTagsRelations allows an eager lookup of values, cached into the
@@ -698,6 +845,229 @@ func (tagL) LoadTagsRelations(ctx context.Context, e boil.ContextExecutor, singu
 				foreign.R.Tag = local
 				break
 			}
+		}
+	}
+
+	return nil
+}
+
+// AddSetTagEquipmentSetConfigsG adds the given related objects to the existing relationships
+// of the tag, optionally inserting them as new records.
+// Appends related to o.R.SetTagEquipmentSetConfigs.
+// Sets related.R.SetTag appropriately.
+// Uses the global database handle.
+func (o *Tag) AddSetTagEquipmentSetConfigsG(ctx context.Context, insert bool, related ...*EquipmentSetConfig) error {
+	return o.AddSetTagEquipmentSetConfigs(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// AddSetTagEquipmentSetConfigsP adds the given related objects to the existing relationships
+// of the tag, optionally inserting them as new records.
+// Appends related to o.R.SetTagEquipmentSetConfigs.
+// Sets related.R.SetTag appropriately.
+// Panics on error.
+func (o *Tag) AddSetTagEquipmentSetConfigsP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*EquipmentSetConfig) {
+	if err := o.AddSetTagEquipmentSetConfigs(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddSetTagEquipmentSetConfigsGP adds the given related objects to the existing relationships
+// of the tag, optionally inserting them as new records.
+// Appends related to o.R.SetTagEquipmentSetConfigs.
+// Sets related.R.SetTag appropriately.
+// Uses the global database handle and panics on error.
+func (o *Tag) AddSetTagEquipmentSetConfigsGP(ctx context.Context, insert bool, related ...*EquipmentSetConfig) {
+	if err := o.AddSetTagEquipmentSetConfigs(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddSetTagEquipmentSetConfigs adds the given related objects to the existing relationships
+// of the tag, optionally inserting them as new records.
+// Appends related to o.R.SetTagEquipmentSetConfigs.
+// Sets related.R.SetTag appropriately.
+func (o *Tag) AddSetTagEquipmentSetConfigs(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*EquipmentSetConfig) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			queries.Assign(&rel.SetTagID, o.ID)
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"game_config\".\"equipment_set_configs\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"set_tag_id"}),
+				strmangle.WhereClause("\"", "\"", 2, equipmentSetConfigPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			queries.Assign(&rel.SetTagID, o.ID)
+		}
+	}
+
+	if o.R == nil {
+		o.R = &tagR{
+			SetTagEquipmentSetConfigs: related,
+		}
+	} else {
+		o.R.SetTagEquipmentSetConfigs = append(o.R.SetTagEquipmentSetConfigs, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &equipmentSetConfigR{
+				SetTag: o,
+			}
+		} else {
+			rel.R.SetTag = o
+		}
+	}
+	return nil
+}
+
+// SetSetTagEquipmentSetConfigsG removes all previously related items of the
+// tag replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.SetTag's SetTagEquipmentSetConfigs accordingly.
+// Replaces o.R.SetTagEquipmentSetConfigs with related.
+// Sets related.R.SetTag's SetTagEquipmentSetConfigs accordingly.
+// Uses the global database handle.
+func (o *Tag) SetSetTagEquipmentSetConfigsG(ctx context.Context, insert bool, related ...*EquipmentSetConfig) error {
+	return o.SetSetTagEquipmentSetConfigs(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// SetSetTagEquipmentSetConfigsP removes all previously related items of the
+// tag replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.SetTag's SetTagEquipmentSetConfigs accordingly.
+// Replaces o.R.SetTagEquipmentSetConfigs with related.
+// Sets related.R.SetTag's SetTagEquipmentSetConfigs accordingly.
+// Panics on error.
+func (o *Tag) SetSetTagEquipmentSetConfigsP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*EquipmentSetConfig) {
+	if err := o.SetSetTagEquipmentSetConfigs(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// SetSetTagEquipmentSetConfigsGP removes all previously related items of the
+// tag replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.SetTag's SetTagEquipmentSetConfigs accordingly.
+// Replaces o.R.SetTagEquipmentSetConfigs with related.
+// Sets related.R.SetTag's SetTagEquipmentSetConfigs accordingly.
+// Uses the global database handle and panics on error.
+func (o *Tag) SetSetTagEquipmentSetConfigsGP(ctx context.Context, insert bool, related ...*EquipmentSetConfig) {
+	if err := o.SetSetTagEquipmentSetConfigs(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// SetSetTagEquipmentSetConfigs removes all previously related items of the
+// tag replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.SetTag's SetTagEquipmentSetConfigs accordingly.
+// Replaces o.R.SetTagEquipmentSetConfigs with related.
+// Sets related.R.SetTag's SetTagEquipmentSetConfigs accordingly.
+func (o *Tag) SetSetTagEquipmentSetConfigs(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*EquipmentSetConfig) error {
+	query := "update \"game_config\".\"equipment_set_configs\" set \"set_tag_id\" = null where \"set_tag_id\" = $1"
+	values := []interface{}{o.ID}
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, query)
+		fmt.Fprintln(writer, values)
+	}
+	_, err := exec.ExecContext(ctx, query, values...)
+	if err != nil {
+		return errors.Wrap(err, "failed to remove relationships before set")
+	}
+
+	if o.R != nil {
+		for _, rel := range o.R.SetTagEquipmentSetConfigs {
+			queries.SetScanner(&rel.SetTagID, nil)
+			if rel.R == nil {
+				continue
+			}
+
+			rel.R.SetTag = nil
+		}
+		o.R.SetTagEquipmentSetConfigs = nil
+	}
+
+	return o.AddSetTagEquipmentSetConfigs(ctx, exec, insert, related...)
+}
+
+// RemoveSetTagEquipmentSetConfigsG relationships from objects passed in.
+// Removes related items from R.SetTagEquipmentSetConfigs (uses pointer comparison, removal does not keep order)
+// Sets related.R.SetTag.
+// Uses the global database handle.
+func (o *Tag) RemoveSetTagEquipmentSetConfigsG(ctx context.Context, related ...*EquipmentSetConfig) error {
+	return o.RemoveSetTagEquipmentSetConfigs(ctx, boil.GetContextDB(), related...)
+}
+
+// RemoveSetTagEquipmentSetConfigsP relationships from objects passed in.
+// Removes related items from R.SetTagEquipmentSetConfigs (uses pointer comparison, removal does not keep order)
+// Sets related.R.SetTag.
+// Panics on error.
+func (o *Tag) RemoveSetTagEquipmentSetConfigsP(ctx context.Context, exec boil.ContextExecutor, related ...*EquipmentSetConfig) {
+	if err := o.RemoveSetTagEquipmentSetConfigs(ctx, exec, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// RemoveSetTagEquipmentSetConfigsGP relationships from objects passed in.
+// Removes related items from R.SetTagEquipmentSetConfigs (uses pointer comparison, removal does not keep order)
+// Sets related.R.SetTag.
+// Uses the global database handle and panics on error.
+func (o *Tag) RemoveSetTagEquipmentSetConfigsGP(ctx context.Context, related ...*EquipmentSetConfig) {
+	if err := o.RemoveSetTagEquipmentSetConfigs(ctx, boil.GetContextDB(), related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// RemoveSetTagEquipmentSetConfigs relationships from objects passed in.
+// Removes related items from R.SetTagEquipmentSetConfigs (uses pointer comparison, removal does not keep order)
+// Sets related.R.SetTag.
+func (o *Tag) RemoveSetTagEquipmentSetConfigs(ctx context.Context, exec boil.ContextExecutor, related ...*EquipmentSetConfig) error {
+	if len(related) == 0 {
+		return nil
+	}
+
+	var err error
+	for _, rel := range related {
+		queries.SetScanner(&rel.SetTagID, nil)
+		if rel.R != nil {
+			rel.R.SetTag = nil
+		}
+		if _, err = rel.Update(ctx, exec, boil.Whitelist("set_tag_id")); err != nil {
+			return err
+		}
+	}
+	if o.R == nil {
+		return nil
+	}
+
+	for _, rel := range related {
+		for i, ri := range o.R.SetTagEquipmentSetConfigs {
+			if rel != ri {
+				continue
+			}
+
+			ln := len(o.R.SetTagEquipmentSetConfigs)
+			if ln > 1 && i < ln-1 {
+				o.R.SetTagEquipmentSetConfigs[i] = o.R.SetTagEquipmentSetConfigs[ln-1]
+			}
+			o.R.SetTagEquipmentSetConfigs = o.R.SetTagEquipmentSetConfigs[:ln-1]
+			break
 		}
 	}
 

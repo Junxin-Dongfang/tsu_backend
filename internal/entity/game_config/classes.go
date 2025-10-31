@@ -168,11 +168,15 @@ var ClassRels = struct {
 	ToClassClassAdvancedRequirements   string
 	ClassAttributeBonuses              string
 	ClassSkillPools                    string
+	EquipmentSlotConfigs               string
+	ItemClassRelations                 string
 }{
 	FromClassClassAdvancedRequirements: "FromClassClassAdvancedRequirements",
 	ToClassClassAdvancedRequirements:   "ToClassClassAdvancedRequirements",
 	ClassAttributeBonuses:              "ClassAttributeBonuses",
 	ClassSkillPools:                    "ClassSkillPools",
+	EquipmentSlotConfigs:               "EquipmentSlotConfigs",
+	ItemClassRelations:                 "ItemClassRelations",
 }
 
 // classR is where relationships are stored.
@@ -181,6 +185,8 @@ type classR struct {
 	ToClassClassAdvancedRequirements   ClassAdvancedRequirementSlice `boil:"ToClassClassAdvancedRequirements" json:"ToClassClassAdvancedRequirements" toml:"ToClassClassAdvancedRequirements" yaml:"ToClassClassAdvancedRequirements"`
 	ClassAttributeBonuses              ClassAttributeBonuseSlice     `boil:"ClassAttributeBonuses" json:"ClassAttributeBonuses" toml:"ClassAttributeBonuses" yaml:"ClassAttributeBonuses"`
 	ClassSkillPools                    ClassSkillPoolSlice           `boil:"ClassSkillPools" json:"ClassSkillPools" toml:"ClassSkillPools" yaml:"ClassSkillPools"`
+	EquipmentSlotConfigs               EquipmentSlotConfigSlice      `boil:"EquipmentSlotConfigs" json:"EquipmentSlotConfigs" toml:"EquipmentSlotConfigs" yaml:"EquipmentSlotConfigs"`
+	ItemClassRelations                 ItemClassRelationSlice        `boil:"ItemClassRelations" json:"ItemClassRelations" toml:"ItemClassRelations" yaml:"ItemClassRelations"`
 }
 
 // NewStruct creates a new relationship struct
@@ -250,6 +256,38 @@ func (r *classR) GetClassSkillPools() ClassSkillPoolSlice {
 	}
 
 	return r.ClassSkillPools
+}
+
+func (o *Class) GetEquipmentSlotConfigs() EquipmentSlotConfigSlice {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetEquipmentSlotConfigs()
+}
+
+func (r *classR) GetEquipmentSlotConfigs() EquipmentSlotConfigSlice {
+	if r == nil {
+		return nil
+	}
+
+	return r.EquipmentSlotConfigs
+}
+
+func (o *Class) GetItemClassRelations() ItemClassRelationSlice {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetItemClassRelations()
+}
+
+func (r *classR) GetItemClassRelations() ItemClassRelationSlice {
+	if r == nil {
+		return nil
+	}
+
+	return r.ItemClassRelations
 }
 
 // classL is where Load methods for each relationship are stored.
@@ -724,6 +762,34 @@ func (o *Class) ClassSkillPools(mods ...qm.QueryMod) classSkillPoolQuery {
 	return ClassSkillPools(queryMods...)
 }
 
+// EquipmentSlotConfigs retrieves all the equipment_slot_config's EquipmentSlotConfigs with an executor.
+func (o *Class) EquipmentSlotConfigs(mods ...qm.QueryMod) equipmentSlotConfigQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"game_config\".\"equipment_slot_configs\".\"class_id\"=?", o.ID),
+	)
+
+	return EquipmentSlotConfigs(queryMods...)
+}
+
+// ItemClassRelations retrieves all the item_class_relation's ItemClassRelations with an executor.
+func (o *Class) ItemClassRelations(mods ...qm.QueryMod) itemClassRelationQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"game_config\".\"item_class_relations\".\"class_id\"=?", o.ID),
+	)
+
+	return ItemClassRelations(queryMods...)
+}
+
 // LoadFromClassClassAdvancedRequirements allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
 func (classL) LoadFromClassClassAdvancedRequirements(ctx context.Context, e boil.ContextExecutor, singular bool, maybeClass interface{}, mods queries.Applicator) error {
@@ -1179,6 +1245,232 @@ func (classL) LoadClassSkillPools(ctx context.Context, e boil.ContextExecutor, s
 	return nil
 }
 
+// LoadEquipmentSlotConfigs allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (classL) LoadEquipmentSlotConfigs(ctx context.Context, e boil.ContextExecutor, singular bool, maybeClass interface{}, mods queries.Applicator) error {
+	var slice []*Class
+	var object *Class
+
+	if singular {
+		var ok bool
+		object, ok = maybeClass.(*Class)
+		if !ok {
+			object = new(Class)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeClass)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeClass))
+			}
+		}
+	} else {
+		s, ok := maybeClass.(*[]*Class)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeClass)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeClass))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &classR{}
+		}
+		args[object.ID] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &classR{}
+			}
+			args[obj.ID] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`game_config.equipment_slot_configs`),
+		qm.WhereIn(`game_config.equipment_slot_configs.class_id in ?`, argsSlice...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load equipment_slot_configs")
+	}
+
+	var resultSlice []*EquipmentSlotConfig
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice equipment_slot_configs")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on equipment_slot_configs")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for equipment_slot_configs")
+	}
+
+	if len(equipmentSlotConfigAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.EquipmentSlotConfigs = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &equipmentSlotConfigR{}
+			}
+			foreign.R.Class = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.ClassID {
+				local.R.EquipmentSlotConfigs = append(local.R.EquipmentSlotConfigs, foreign)
+				if foreign.R == nil {
+					foreign.R = &equipmentSlotConfigR{}
+				}
+				foreign.R.Class = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadItemClassRelations allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (classL) LoadItemClassRelations(ctx context.Context, e boil.ContextExecutor, singular bool, maybeClass interface{}, mods queries.Applicator) error {
+	var slice []*Class
+	var object *Class
+
+	if singular {
+		var ok bool
+		object, ok = maybeClass.(*Class)
+		if !ok {
+			object = new(Class)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeClass)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeClass))
+			}
+		}
+	} else {
+		s, ok := maybeClass.(*[]*Class)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeClass)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeClass))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &classR{}
+		}
+		args[object.ID] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &classR{}
+			}
+			args[obj.ID] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`game_config.item_class_relations`),
+		qm.WhereIn(`game_config.item_class_relations.class_id in ?`, argsSlice...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load item_class_relations")
+	}
+
+	var resultSlice []*ItemClassRelation
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice item_class_relations")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on item_class_relations")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for item_class_relations")
+	}
+
+	if len(itemClassRelationAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.ItemClassRelations = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &itemClassRelationR{}
+			}
+			foreign.R.Class = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.ClassID {
+				local.R.ItemClassRelations = append(local.R.ItemClassRelations, foreign)
+				if foreign.R == nil {
+					foreign.R = &itemClassRelationR{}
+				}
+				foreign.R.Class = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
 // AddFromClassClassAdvancedRequirementsG adds the given related objects to the existing relationships
 // of the class, optionally inserting them as new records.
 // Appends related to o.R.FromClassClassAdvancedRequirements.
@@ -1506,6 +1798,174 @@ func (o *Class) AddClassSkillPools(ctx context.Context, exec boil.ContextExecuto
 	for _, rel := range related {
 		if rel.R == nil {
 			rel.R = &classSkillPoolR{
+				Class: o,
+			}
+		} else {
+			rel.R.Class = o
+		}
+	}
+	return nil
+}
+
+// AddEquipmentSlotConfigsG adds the given related objects to the existing relationships
+// of the class, optionally inserting them as new records.
+// Appends related to o.R.EquipmentSlotConfigs.
+// Sets related.R.Class appropriately.
+// Uses the global database handle.
+func (o *Class) AddEquipmentSlotConfigsG(ctx context.Context, insert bool, related ...*EquipmentSlotConfig) error {
+	return o.AddEquipmentSlotConfigs(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// AddEquipmentSlotConfigsP adds the given related objects to the existing relationships
+// of the class, optionally inserting them as new records.
+// Appends related to o.R.EquipmentSlotConfigs.
+// Sets related.R.Class appropriately.
+// Panics on error.
+func (o *Class) AddEquipmentSlotConfigsP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*EquipmentSlotConfig) {
+	if err := o.AddEquipmentSlotConfigs(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddEquipmentSlotConfigsGP adds the given related objects to the existing relationships
+// of the class, optionally inserting them as new records.
+// Appends related to o.R.EquipmentSlotConfigs.
+// Sets related.R.Class appropriately.
+// Uses the global database handle and panics on error.
+func (o *Class) AddEquipmentSlotConfigsGP(ctx context.Context, insert bool, related ...*EquipmentSlotConfig) {
+	if err := o.AddEquipmentSlotConfigs(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddEquipmentSlotConfigs adds the given related objects to the existing relationships
+// of the class, optionally inserting them as new records.
+// Appends related to o.R.EquipmentSlotConfigs.
+// Sets related.R.Class appropriately.
+func (o *Class) AddEquipmentSlotConfigs(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*EquipmentSlotConfig) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.ClassID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"game_config\".\"equipment_slot_configs\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"class_id"}),
+				strmangle.WhereClause("\"", "\"", 2, equipmentSlotConfigPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.ClassID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &classR{
+			EquipmentSlotConfigs: related,
+		}
+	} else {
+		o.R.EquipmentSlotConfigs = append(o.R.EquipmentSlotConfigs, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &equipmentSlotConfigR{
+				Class: o,
+			}
+		} else {
+			rel.R.Class = o
+		}
+	}
+	return nil
+}
+
+// AddItemClassRelationsG adds the given related objects to the existing relationships
+// of the class, optionally inserting them as new records.
+// Appends related to o.R.ItemClassRelations.
+// Sets related.R.Class appropriately.
+// Uses the global database handle.
+func (o *Class) AddItemClassRelationsG(ctx context.Context, insert bool, related ...*ItemClassRelation) error {
+	return o.AddItemClassRelations(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// AddItemClassRelationsP adds the given related objects to the existing relationships
+// of the class, optionally inserting them as new records.
+// Appends related to o.R.ItemClassRelations.
+// Sets related.R.Class appropriately.
+// Panics on error.
+func (o *Class) AddItemClassRelationsP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*ItemClassRelation) {
+	if err := o.AddItemClassRelations(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddItemClassRelationsGP adds the given related objects to the existing relationships
+// of the class, optionally inserting them as new records.
+// Appends related to o.R.ItemClassRelations.
+// Sets related.R.Class appropriately.
+// Uses the global database handle and panics on error.
+func (o *Class) AddItemClassRelationsGP(ctx context.Context, insert bool, related ...*ItemClassRelation) {
+	if err := o.AddItemClassRelations(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddItemClassRelations adds the given related objects to the existing relationships
+// of the class, optionally inserting them as new records.
+// Appends related to o.R.ItemClassRelations.
+// Sets related.R.Class appropriately.
+func (o *Class) AddItemClassRelations(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*ItemClassRelation) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.ClassID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"game_config\".\"item_class_relations\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"class_id"}),
+				strmangle.WhereClause("\"", "\"", 2, itemClassRelationPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.ClassID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &classR{
+			ItemClassRelations: related,
+		}
+	} else {
+		o.R.ItemClassRelations = append(o.R.ItemClassRelations, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &itemClassRelationR{
 				Class: o,
 			}
 		} else {

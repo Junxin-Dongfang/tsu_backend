@@ -57,6 +57,15 @@ help:
 	@echo "    migrate-up       - Apply all new migrations"
 	@echo "    migrate-down     - Rollback the last migration"
 	@echo ""
+	@echo "  Testing & Quality:"
+	@echo "    test             - Run all tests"
+	@echo "    test-coverage    - Run tests with coverage report"
+	@echo "    test-coverage-html - Generate HTML coverage report"
+	@echo "    lint             - Run golangci-lint"
+	@echo "    lint-fix         - Run golangci-lint with auto-fix"
+	@echo "    quality-check    - Run all quality checks (lint + test)"
+	@echo "    install-hooks    - Install Git pre-commit hooks"
+	@echo ""
 	@echo "  Utilities:"
 	@echo "    clean            - Clean up Docker resources"
 
@@ -188,47 +197,100 @@ clean:
 # 步骤 1: 部署基础设施（PostgreSQL、Redis、NATS、Consul）
 deploy-prod-step1:
 	@echo "🚀 步骤 1: 部署基础设施..."
-	@chmod +x scripts/deploy-prod-step1-infra.sh
-	@./scripts/deploy-prod-step1-infra.sh
+	@chmod +x scripts/deployment/deploy-prod-step1-infra.sh
+	@./scripts/deployment/deploy-prod-step1-infra.sh
 
 # 步骤 2: 部署 Ory 服务（Kratos、Keto、Oathkeeper）
 deploy-prod-step2:
 	@echo "🚀 步骤 2: 部署 Ory 服务..."
-	@chmod +x scripts/deploy-prod-step2-ory.sh
-	@./scripts/deploy-prod-step2-ory.sh
+	@chmod +x scripts/deployment/deploy-prod-step2-ory.sh
+	@./scripts/deployment/deploy-prod-step2-ory.sh
 
 # 步骤 3: 部署 Admin Server（后台管理服务 + 数据库迁移）
 deploy-prod-step3:
 	@echo "🚀 步骤 3: 部署 Admin Server..."
-	@chmod +x scripts/deploy-prod-step3-admin.sh
-	@./scripts/deploy-prod-step3-admin.sh
+	@chmod +x scripts/deployment/deploy-prod-step3-admin.sh
+	@./scripts/deployment/deploy-prod-step3-admin.sh
 
 # 步骤 4: 部署 Game Server（游戏服务）
 deploy-prod-step4:
 	@echo "🚀 步骤 4: 部署 Game Server..."
-	@chmod +x scripts/deploy-prod-step4-game.sh
-	@./scripts/deploy-prod-step4-game.sh
+	@chmod +x scripts/deployment/deploy-prod-step4-game.sh
+	@./scripts/deployment/deploy-prod-step4-game.sh
 
 # 步骤 5: 部署 Nginx（反向代理）
 deploy-prod-step5:
 	@echo "🚀 步骤 5: 部署 Nginx..."
-	@chmod +x scripts/deploy-prod-step5-nginx.sh
-	@./scripts/deploy-prod-step5-nginx.sh
+	@chmod +x scripts/deployment/deploy-prod-step5-nginx.sh
+	@./scripts/deployment/deploy-prod-step5-nginx.sh
 
 # 一键部署所有步骤（自动模式）
 deploy-prod-all:
 	@echo "🎯 一键部署所有步骤..."
-	@chmod +x scripts/deploy-prod-all.sh
-	@./scripts/deploy-prod-all.sh --auto
+	@chmod +x scripts/deployment/deploy-prod-all.sh
+	@./scripts/deployment/deploy-prod-all.sh --auto
 
 # 一键部署所有步骤（交互模式）
 deploy-prod-all-interactive:
 	@echo "🎯 一键部署所有步骤（交互模式）..."
-	@chmod +x scripts/deploy-prod-all.sh
-	@./scripts/deploy-prod-all.sh
+	@chmod +x scripts/deployment/deploy-prod-all.sh
+	@./scripts/deployment/deploy-prod-all.sh
 
 # 导入游戏配置到生产服务器
 import-game-config-prod:
 	@echo "📦 导入游戏配置到生产服务器..."
-	@chmod +x scripts/import-game-config-prod.sh
-	@./scripts/import-game-config-prod.sh
+	@chmod +x scripts/game-config/import-game-config-prod.sh
+	@./scripts/game-config/import-game-config-prod.sh
+
+# ==================== Testing & Quality Targets ====================
+
+# 运行所有测试
+.PHONY: test
+test:
+	@echo "🧪 运行所有测试..."
+	@go test -v ./...
+
+# 运行测试并生成覆盖率报告
+.PHONY: test-coverage
+test-coverage:
+	@echo "🧪 运行测试并生成覆盖率报告..."
+	@go test -v -coverprofile=coverage.out -covermode=atomic ./...
+	@echo ""
+	@echo "📊 覆盖率统计:"
+	@go tool cover -func=coverage.out | tail -n 1
+
+# 生成 HTML 覆盖率报告
+.PHONY: test-coverage-html
+test-coverage-html: test-coverage
+	@echo "📊 生成 HTML 覆盖率报告..."
+	@go tool cover -html=coverage.out -o coverage.html
+	@echo "✅ 覆盖率报告已生成: coverage.html"
+	@echo "   在浏览器中打开查看详细覆盖率"
+
+# 运行 golangci-lint
+.PHONY: lint
+lint:
+	@echo "🔍 运行 golangci-lint 检查..."
+	@golangci-lint run ./...
+
+# 运行 golangci-lint 并自动修复问题
+.PHONY: lint-fix
+lint-fix:
+	@echo "🔧 运行 golangci-lint 并自动修复..."
+	@golangci-lint run --fix ./...
+
+# 运行所有质量检查
+.PHONY: quality-check
+quality-check: lint test-coverage
+	@echo ""
+	@echo "✅ 所有质量检查完成!"
+	@echo "   - Linter: 通过"
+	@echo "   - 测试: 通过"
+	@echo "   - 覆盖率: 见上方统计"
+
+# 安装 Git hooks
+.PHONY: install-hooks
+install-hooks:
+	@echo "🔧 安装 Git hooks..."
+	@chmod +x scripts/git-hooks/install-git-hooks.sh
+	@./scripts/git-hooks/install-git-hooks.sh

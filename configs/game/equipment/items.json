@@ -1,0 +1,222 @@
+[
+  {
+    "item_code": "weapon-sword-001",
+    "item_name": "新手铁剑",
+    "item_type": "equipment",
+    "item_quality": "normal",
+    "item_description": "一把普通的铁剑,适合新手使用",
+    "equip_slot": "mainhand",
+    "required_class_id": null,
+    "required_level": 1,
+    "max_durability": 100,
+    "base_price": 100,
+    "sell_price": 50,
+    "is_tradable": true,
+    "is_droppable": true,
+    "uniqueness_type": "none",
+    "out_of_combat_effects": [
+      {
+        "Data_type": "Status",
+        "Data_ID": "STR",
+        "Bouns_type": "bonus",
+        "Bouns_Number": "5"
+      },
+      {
+        "Data_type": "Status",
+        "Data_ID": "ATK",
+        "Bouns_type": "bonus",
+        "Bouns_Number": "10"
+      }
+    ],
+    "in_combat_effects": null,
+    "socket_configs": null,
+    "set_id": null
+  },
+  {
+    "item_code": "weapon-sword-002",
+    "item_name": "烈焰之剑",
+    "item_type": "equipment",
+    "item_quality": "epic",
+    "item_description": "蕴含火焰之力的强大武器",
+    "equip_slot": "mainhand",
+    "required_class_id": "warrior",
+    "required_level": 10,
+    "max_durability": 200,
+    "base_price": 5000,
+    "sell_price": 2500,
+    "is_tradable": true,
+    "is_droppable": true,
+    "uniqueness_type": "none",
+    "out_of_combat_effects": [
+      {
+        "Data_type": "Status",
+        "Data_ID": "STR",
+        "Bouns_type": "bonus",
+        "Bouns_Number": "20"
+      },
+      {
+        "Data_type": "Status",
+        "Data_ID": "ATK",
+        "Bouns_type": "bonus",
+        "Bouns_Number": "50"
+      },
+      {
+        "Data_type": "Status",
+        "Data_ID": "CRIT_RATE",
+        "Bouns_type": "percent",
+        "Bouns_Number": "5"
+      }
+    ],
+    "in_combat_effects": null,
+    "socket_configs": [
+      {
+        "socket_index": 0,
+        "socket_size": "medium",
+        "allowed_gem_colors": ["red", "orange"]
+      }
+    ],
+    "set_id": "flame_set"
+  },
+  {
+    "item_code": "armor-chest-001",
+    "item_name": "新手皮甲",
+    "item_type": "equipment",
+    "item_quality": "normal",
+    "item_description": "简单的皮质护甲",
+    "equip_slot": "chest",
+    "required_class_id": null,
+    "required_level": 1,
+    "max_durability": 100,
+    "base_price": 150,
+    "sell_price": 75,
+    "is_tradable": true,
+    "is_droppable": true,
+    "uniqueness_type": "none",
+    "out_of_combat_effects": [
+      {
+        "Data_type": "Status",
+        "Data_ID": "VIT",
+        "Bouns_type": "bonus",
+        "Bouns_Number": "5"
+      },
+      {
+        "Data_type": "Status",
+        "Data_ID": "DEF",
+        "Bouns_type": "bonus",
+        "Bouns_Number": "15"
+      }
+    ],
+    "in_combat_effects": null,
+    "socket_configs": null,
+    "set_id": null
+  },
+  {
+    "item_code": "armor-chest-002",
+    "item_name": "烈焰胸甲",
+    "item_type": "equipment",
+    "item_quality": "epic",
+    "item_description": "烈焰套装的胸甲部分",
+    "equip_slot": "chest",
+    "required_class_id": "warrior",
+    "required_level": 10,
+    "max_durability": 200,
+    "base_price": 6000,
+    "sell_price": 3000,
+    "is_tradable": true,
+    "is_droppable": true,
+    "uniqueness_type": "none",
+    "out_of_combat_effects": [
+      {
+        "Data_type": "Status",
+        "Data_ID": "VIT",
+        "Bouns_type": "bonus",
+        "Bouns_Number": "25"
+      },
+      {
+        "Data_type": "Status",
+        "Data_ID": "DEF",
+        "Bouns_type": "bonus",
+        "Bouns_Number": "60"
+      },
+      {
+        "Data_type": "Status",
+        "Data_ID": "MAX_HP",
+        "Bouns_type": "percent",
+        "Bouns_Number": "10"
+      }
+    ],
+    "in_combat_effects": null,
+    "socket_configs": [
+      {
+        "socket_index": 0,
+        "socket_size": "large",
+        "allowed_gem_colors": ["red", "yellow"]
+      }
+    ],
+    "set_id": "flame_set"
+  },
+  {
+    "item_code": "consumable-potion-001",
+    "item_name": "小型生命药水",
+    "item_type": "consumable",
+    "item_quality": "normal",
+    "item_description": "恢复100点生命值",
+    "equip_slot": null,
+    "required_class_id": null,
+    "required_level": 1,
+    "max_durability": null,
+    "base_price": 10,
+    "sell_price": 5,
+    "is_tradable": true,
+    "is_droppable": true,
+    "uniqueness_type": "none",
+    "out_of_combat_effects": null,
+    "in_combat_effects": null,
+    "socket_configs": null,
+    "set_id": null,
+    "max_stack_size": 99
+  },
+  {
+    "item_code": "gem-ruby-001",
+    "item_name": "红宝石",
+    "item_type": "gem",
+    "item_quality": "fine",
+    "item_description": "增加攻击力的宝石",
+    "equip_slot": null,
+    "required_class_id": null,
+    "required_level": 1,
+    "max_durability": null,
+    "base_price": 500,
+    "sell_price": 250,
+    "is_tradable": true,
+    "is_droppable": true,
+    "uniqueness_type": "none",
+    "out_of_combat_effects": null,
+    "in_combat_effects": null,
+    "socket_configs": null,
+    "set_id": null,
+    "max_stack_size": 99
+  },
+  {
+    "item_code": "material-iron-ore",
+    "item_name": "铁矿石",
+    "item_type": "material",
+    "item_quality": "normal",
+    "item_description": "用于锻造的基础材料",
+    "equip_slot": null,
+    "required_class_id": null,
+    "required_level": null,
+    "max_durability": null,
+    "base_price": 5,
+    "sell_price": 2,
+    "is_tradable": true,
+    "is_droppable": true,
+    "uniqueness_type": "none",
+    "out_of_combat_effects": null,
+    "in_combat_effects": null,
+    "socket_configs": null,
+    "set_id": null,
+    "max_stack_size": 999
+  }
+]
+

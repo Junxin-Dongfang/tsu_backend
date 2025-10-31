@@ -30,6 +30,9 @@ type ServiceContainer struct {
 	actionEffectRepo           interfaces.ActionEffectRepository
 	effectRepo                 interfaces.EffectRepository
 	skillCategoryRepo          interfaces.SkillCategoryRepository
+	equipmentSetRepo           interfaces.EquipmentSetRepository
+	equipmentRepo              interfaces.EquipmentRepository
+	itemRepo                   interfaces.ItemRepository
 
 	// 所有 Service（共享实例）
 	HeroService          *HeroService
@@ -37,6 +40,7 @@ type ServiceContainer struct {
 	HeroSkillService     *HeroSkillService
 	ClassService         *ClassService
 	SkillDetailService   *SkillDetailService
+	EquipmentSetService  *EquipmentSetService
 }
 
 // NewServiceContainer 创建服务容器
@@ -63,6 +67,9 @@ func NewServiceContainer(db *sql.DB) *ServiceContainer {
 	c.actionEffectRepo = impl.NewActionEffectRepository(db)
 	c.effectRepo = impl.NewEffectRepository(db)
 	c.skillCategoryRepo = impl.NewSkillCategoryRepository(db)
+	c.equipmentSetRepo = impl.NewEquipmentSetRepository(db)
+	c.equipmentRepo = impl.NewEquipmentRepository(db)
+	c.itemRepo = impl.NewItemRepository(db)
 
 	// 初始化 HeroService（依赖 repository）
 	c.HeroService = &HeroService{
@@ -115,6 +122,13 @@ func NewServiceContainer(db *sql.DB) *ServiceContainer {
 		c.skillCategoryRepo,
 	)
 
+	// 初始化 EquipmentSetService（依赖 repository）
+	c.EquipmentSetService = NewEquipmentSetService(
+		c.equipmentSetRepo,
+		c.equipmentRepo,
+		c.itemRepo,
+	)
+
 	return c
 }
 
@@ -156,4 +170,9 @@ func (c *ServiceContainer) GetSkillUpgradeCostRepo() interfaces.SkillUpgradeCost
 // GetAttributeUpgradeCostRepo 获取属性升级消耗仓储
 func (c *ServiceContainer) GetAttributeUpgradeCostRepo() interfaces.AttributeUpgradeCostRepository {
 	return c.attributeUpgradeCostRepo
+}
+
+// GetEquipmentSetService 获取装备套装服务
+func (c *ServiceContainer) GetEquipmentSetService() *EquipmentSetService {
+	return c.EquipmentSetService
 }

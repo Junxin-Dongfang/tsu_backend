@@ -1,0 +1,41 @@
+[
+  {
+    "set_code": "flame_set",
+    "set_name": "烈焰套装",
+    "set_description": "蕴含火焰之力的强大套装",
+    "set_bonuses": [
+      {
+        "required_pieces": 2,
+        "bonus_description": "2件套: 攻击力+10%",
+        "bonus_effects": [
+          {
+            "Data_type": "Status",
+            "Data_ID": "ATK",
+            "Bouns_type": "percent",
+            "Bouns_Number": "10"
+          }
+        ]
+      },
+      {
+        "required_pieces": 4,
+        "bonus_description": "4件套: 攻击力+20%, 暴击率+10%",
+        "bonus_effects": [
+          {
+            "Data_type": "Status",
+            "Data_ID": "ATK",
+            "Bouns_type": "percent",
+            "Bouns_Number": "20"
+          },
+          {
+            "Data_type": "Status",
+            "Data_ID": "CRIT_RATE",
+            "Bouns_type": "percent",
+            "Bouns_Number": "10"
+          }
+        ]
+      }
+    ],
+    "is_active": true
+  }
+]
+

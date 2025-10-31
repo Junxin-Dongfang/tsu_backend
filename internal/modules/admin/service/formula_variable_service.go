@@ -9,24 +9,23 @@ import (
 	"tsu-self/internal/repository/interfaces"
 )
 
+// FormulaVariableService 公式变量服务（现在使用通用字典表）
 type FormulaVariableService struct {
-	repo interfaces.FormulaVariableRepository
+	dictRepo interfaces.MetadataDictionaryRepository
 }
 
 func NewFormulaVariableService(db *sql.DB) *FormulaVariableService {
 	return &FormulaVariableService{
-		repo: impl.NewFormulaVariableRepository(db),
+		dictRepo: impl.NewMetadataDictionaryRepository(db),
 	}
 }
 
-func (s *FormulaVariableService) GetList(ctx context.Context, params interfaces.FormulaVariableQueryParams) ([]*game_config.FormulaVariable, int64, error) {
-	return s.repo.List(ctx, params)
+// GetAll 获取所有公式变量（向后兼容）
+func (s *FormulaVariableService) GetAll(ctx context.Context) ([]*game_config.MetadataDictionary, error) {
+	return s.dictRepo.GetFormulaVariables(ctx)
 }
 
-func (s *FormulaVariableService) GetByID(ctx context.Context, id string) (*game_config.FormulaVariable, error) {
-	return s.repo.GetByID(ctx, id)
-}
-
-func (s *FormulaVariableService) GetAll(ctx context.Context) ([]*game_config.FormulaVariable, error) {
-	return s.repo.GetAll(ctx)
+// GetByID 根据ID获取公式变量
+func (s *FormulaVariableService) GetByID(ctx context.Context, id string) (*game_config.MetadataDictionary, error) {
+	return s.dictRepo.GetByID(ctx, id)
 }

@@ -17,18 +17,28 @@ var TableNames = struct {
 	ClassSkillPools           string
 	Classes                   string
 	DamageTypes               string
+	DropPoolItems             string
+	DropPools                 string
 	EffectTypeDefinitions     string
 	Effects                   string
-	FormulaVariables          string
+	EquipmentSetConfigs       string
+	EquipmentSlotConfigs      string
+	EquipmentSlots            string
+	GemEffectConfigs          string
 	HeroAttributeType         string
 	HeroLevelRequirements     string
+	ItemClassRelations        string
+	Items                     string
+	MetadataDictionary        string
 	RangeConfigRules          string
 	SkillCategories           string
 	SkillUnlockActions        string
 	SkillUpgradeCosts         string
 	Skills                    string
+	SocketTypeConfigs         string
 	Tags                      string
 	TagsRelations             string
+	WorldDropConfigs          string
 }{
 	ActionCategories:          "action_categories",
 	ActionEffects:             "action_effects",
@@ -43,16 +53,26 @@ var TableNames = struct {
 	ClassSkillPools:           "class_skill_pools",
 	Classes:                   "classes",
 	DamageTypes:               "damage_types",
+	DropPoolItems:             "drop_pool_items",
+	DropPools:                 "drop_pools",
 	EffectTypeDefinitions:     "effect_type_definitions",
 	Effects:                   "effects",
-	FormulaVariables:          "formula_variables",
+	EquipmentSetConfigs:       "equipment_set_configs",
+	EquipmentSlotConfigs:      "equipment_slot_configs",
+	EquipmentSlots:            "equipment_slots",
+	GemEffectConfigs:          "gem_effect_configs",
 	HeroAttributeType:         "hero_attribute_type",
 	HeroLevelRequirements:     "hero_level_requirements",
+	ItemClassRelations:        "item_class_relations",
+	Items:                     "items",
+	MetadataDictionary:        "metadata_dictionary",
 	RangeConfigRules:          "range_config_rules",
 	SkillCategories:           "skill_categories",
 	SkillUnlockActions:        "skill_unlock_actions",
 	SkillUpgradeCosts:         "skill_upgrade_costs",
 	Skills:                    "skills",
+	SocketTypeConfigs:         "socket_type_configs",
 	Tags:                      "tags",
 	TagsRelations:             "tags_relations",
+	WorldDropConfigs:          "world_drop_configs",
 }

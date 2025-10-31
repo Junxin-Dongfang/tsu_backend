@@ -18,20 +18,19 @@ import (
 	"github.com/aarondl/sqlboiler/v4/queries"
 	"github.com/aarondl/sqlboiler/v4/queries/qm"
 	"github.com/aarondl/sqlboiler/v4/queries/qmhelper"
-	"github.com/aarondl/sqlboiler/v4/types"
 	"github.com/aarondl/strmangle"
 	"github.com/friendsofgo/errors"
 )
 
 // HeroComputedAttribute is an object representing the database table.
 type HeroComputedAttribute struct {
-	HeroID          null.String       `boil:"hero_id" json:"hero_id,omitempty" toml:"hero_id" yaml:"hero_id,omitempty"`
-	AttributeTypeID null.String       `boil:"attribute_type_id" json:"attribute_type_id,omitempty" toml:"attribute_type_id" yaml:"attribute_type_id,omitempty"`
-	AttributeCode   null.String       `boil:"attribute_code" json:"attribute_code,omitempty" toml:"attribute_code" yaml:"attribute_code,omitempty"`
-	AttributeName   null.String       `boil:"attribute_name" json:"attribute_name,omitempty" toml:"attribute_name" yaml:"attribute_name,omitempty"`
-	BaseValue       null.Int          `boil:"base_value" json:"base_value,omitempty" toml:"base_value" yaml:"base_value,omitempty"`
-	ClassBonus      types.NullDecimal `boil:"class_bonus" json:"class_bonus,omitempty" toml:"class_bonus" yaml:"class_bonus,omitempty"`
-	FinalValue      types.NullDecimal `boil:"final_value" json:"final_value,omitempty" toml:"final_value" yaml:"final_value,omitempty"`
+	HeroID          null.String `boil:"hero_id" json:"hero_id,omitempty" toml:"hero_id" yaml:"hero_id,omitempty"`
+	AttributeTypeID null.String `boil:"attribute_type_id" json:"attribute_type_id,omitempty" toml:"attribute_type_id" yaml:"attribute_type_id,omitempty"`
+	AttributeCode   null.String `boil:"attribute_code" json:"attribute_code,omitempty" toml:"attribute_code" yaml:"attribute_code,omitempty"`
+	AttributeName   null.String `boil:"attribute_name" json:"attribute_name,omitempty" toml:"attribute_name" yaml:"attribute_name,omitempty"`
+	BaseValue       null.Int    `boil:"base_value" json:"base_value,omitempty" toml:"base_value" yaml:"base_value,omitempty"`
+	ClassBonus      null.Int    `boil:"class_bonus" json:"class_bonus,omitempty" toml:"class_bonus" yaml:"class_bonus,omitempty"`
+	FinalValue      null.Int    `boil:"final_value" json:"final_value,omitempty" toml:"final_value" yaml:"final_value,omitempty"`
 }
 
 var HeroComputedAttributeColumns = struct {
@@ -72,86 +71,22 @@ var HeroComputedAttributeTableColumns = struct {
 
 // Generated where
 
-type whereHelpernull_Int struct{ field string }
-
-func (w whereHelpernull_Int) EQ(x null.Int) qm.QueryMod {
-	return qmhelper.WhereNullEQ(w.field, false, x)
-}
-func (w whereHelpernull_Int) NEQ(x null.Int) qm.QueryMod {
-	return qmhelper.WhereNullEQ(w.field, true, x)
-}
-func (w whereHelpernull_Int) LT(x null.Int) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.LT, x)
-}
-func (w whereHelpernull_Int) LTE(x null.Int) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.LTE, x)
-}
-func (w whereHelpernull_Int) GT(x null.Int) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.GT, x)
-}
-func (w whereHelpernull_Int) GTE(x null.Int) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.GTE, x)
-}
-func (w whereHelpernull_Int) IN(slice []int) qm.QueryMod {
-	values := make([]interface{}, 0, len(slice))
-	for _, value := range slice {
-		values = append(values, value)
-	}
-	return qm.WhereIn(fmt.Sprintf("%s IN ?", w.field), values...)
-}
-func (w whereHelpernull_Int) NIN(slice []int) qm.QueryMod {
-	values := make([]interface{}, 0, len(slice))
-	for _, value := range slice {
-		values = append(values, value)
-	}
-	return qm.WhereNotIn(fmt.Sprintf("%s NOT IN ?", w.field), values...)
-}
-
-func (w whereHelpernull_Int) IsNull() qm.QueryMod    { return qmhelper.WhereIsNull(w.field) }
-func (w whereHelpernull_Int) IsNotNull() qm.QueryMod { return qmhelper.WhereIsNotNull(w.field) }
-
-type whereHelpertypes_NullDecimal struct{ field string }
-
-func (w whereHelpertypes_NullDecimal) EQ(x types.NullDecimal) qm.QueryMod {
-	return qmhelper.WhereNullEQ(w.field, false, x)
-}
-func (w whereHelpertypes_NullDecimal) NEQ(x types.NullDecimal) qm.QueryMod {
-	return qmhelper.WhereNullEQ(w.field, true, x)
-}
-func (w whereHelpertypes_NullDecimal) LT(x types.NullDecimal) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.LT, x)
-}
-func (w whereHelpertypes_NullDecimal) LTE(x types.NullDecimal) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.LTE, x)
-}
-func (w whereHelpertypes_NullDecimal) GT(x types.NullDecimal) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.GT, x)
-}
-func (w whereHelpertypes_NullDecimal) GTE(x types.NullDecimal) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.GTE, x)
-}
-
-func (w whereHelpertypes_NullDecimal) IsNull() qm.QueryMod { return qmhelper.WhereIsNull(w.field) }
-func (w whereHelpertypes_NullDecimal) IsNotNull() qm.QueryMod {
-	return qmhelper.WhereIsNotNull(w.field)
-}
-
 var HeroComputedAttributeWhere = struct {
 	HeroID          whereHelpernull_String
 	AttributeTypeID whereHelpernull_String
 	AttributeCode   whereHelpernull_String
 	AttributeName   whereHelpernull_String
 	BaseValue       whereHelpernull_Int
-	ClassBonus      whereHelpertypes_NullDecimal
-	FinalValue      whereHelpertypes_NullDecimal
+	ClassBonus      whereHelpernull_Int
+	FinalValue      whereHelpernull_Int
 }{
 	HeroID:          whereHelpernull_String{field: "\"game_runtime\".\"hero_computed_attributes\".\"hero_id\""},
 	AttributeTypeID: whereHelpernull_String{field: "\"game_runtime\".\"hero_computed_attributes\".\"attribute_type_id\""},
 	AttributeCode:   whereHelpernull_String{field: "\"game_runtime\".\"hero_computed_attributes\".\"attribute_code\""},
 	AttributeName:   whereHelpernull_String{field: "\"game_runtime\".\"hero_computed_attributes\".\"attribute_name\""},
 	BaseValue:       whereHelpernull_Int{field: "\"game_runtime\".\"hero_computed_attributes\".\"base_value\""},
-	ClassBonus:      whereHelpertypes_NullDecimal{field: "\"game_runtime\".\"hero_computed_attributes\".\"class_bonus\""},
-	FinalValue:      whereHelpertypes_NullDecimal{field: "\"game_runtime\".\"hero_computed_attributes\".\"final_value\""},
+	ClassBonus:      whereHelpernull_Int{field: "\"game_runtime\".\"hero_computed_attributes\".\"class_bonus\""},
+	FinalValue:      whereHelpernull_Int{field: "\"game_runtime\".\"hero_computed_attributes\".\"final_value\""},
 }
 
 var (

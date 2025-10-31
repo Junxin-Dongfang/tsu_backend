@@ -50,3 +50,35 @@ func makeCacheKey(cols boil.Columns, nzDefaults []string) string {
 	strmangle.PutBuffer(buf)
 	return str
 }
+
+// Enum values for SlotTypeEnum
+const (
+	SlotTypeEnumWeapon    string = "weapon"
+	SlotTypeEnumArmor     string = "armor"
+	SlotTypeEnumAccessory string = "accessory"
+	SlotTypeEnumSpecial   string = "special"
+)
+
+func AllSlotTypeEnum() []string {
+	return []string{
+		SlotTypeEnumWeapon,
+		SlotTypeEnumArmor,
+		SlotTypeEnumAccessory,
+		SlotTypeEnumSpecial,
+	}
+}
+
+// Enum values for DictCategoryEnum
+const (
+	DictCategoryEnumFormula         string = "formula"
+	DictCategoryEnumActionAttribute string = "action_attribute"
+	DictCategoryEnumEffectParam     string = "effect_param"
+)
+
+func AllDictCategoryEnum() []string {
+	return []string{
+		DictCategoryEnumFormula,
+		DictCategoryEnumActionAttribute,
+		DictCategoryEnumEffectParam,
+	}
+}

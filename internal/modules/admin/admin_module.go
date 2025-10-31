@@ -44,6 +44,11 @@ type AdminModule struct {
 	heroAttributeTypeHandler    *handler.HeroAttributeTypeHandler
 	tagHandler                  *handler.TagHandler
 	tagRelationHandler          *handler.TagRelationHandler
+	itemConfigHandler           *handler.ItemConfigHandler
+	equipmentSlotHandler        *handler.EquipmentSlotHandler
+	equipmentSetHandler         *handler.EquipmentSetHandler
+	dropPoolHandler             *handler.DropPoolHandler
+	worldDropHandler            *handler.WorldDropHandler
 	effectTypeDefinitionHandler *handler.EffectTypeDefinitionHandler
 	formulaVariableHandler      *handler.FormulaVariableHandler
 	rangeConfigRuleHandler      *handler.RangeConfigRuleHandler
@@ -232,6 +237,11 @@ func (m *AdminModule) initHandlers() {
 	m.heroAttributeTypeHandler = handler.NewHeroAttributeTypeHandler(m.db, m.respWriter)
 	m.tagHandler = handler.NewTagHandler(m.db, m.respWriter)
 	m.tagRelationHandler = handler.NewTagRelationHandler(m.db, m.respWriter)
+	m.itemConfigHandler = handler.NewItemConfigHandler(m.db, m.respWriter)
+	m.equipmentSlotHandler = handler.NewEquipmentSlotHandler(m.db, m.respWriter)
+	m.equipmentSetHandler = handler.NewEquipmentSetHandler(m.db, m.respWriter)
+	m.dropPoolHandler = handler.NewDropPoolHandler(m.db, m.respWriter)
+	m.worldDropHandler = handler.NewWorldDropHandler(m.db, m.respWriter)
 	m.effectTypeDefinitionHandler = handler.NewEffectTypeDefinitionHandler(m.db, m.respWriter)
 	m.formulaVariableHandler = handler.NewFormulaVariableHandler(m.db, m.respWriter)
 	m.rangeConfigRuleHandler = handler.NewRangeConfigRuleHandler(m.db, m.respWriter)
@@ -393,6 +403,62 @@ func (m *AdminModule) setupRoutes() {
 		adminProtected.POST("/entities/:entity_type/:entity_id/tags/batch", m.tagRelationHandler.BatchSetEntityTags)
 		adminProtected.DELETE("/entities/:entity_type/:entity_id/tags/:tag_id", m.tagRelationHandler.RemoveTagFromEntity)
 
+		// 物品配置管理
+		adminProtected.GET("/items", m.itemConfigHandler.ListItems)
+		adminProtected.POST("/items", m.itemConfigHandler.CreateItem)
+		adminProtected.GET("/items/:id", m.itemConfigHandler.GetItem)
+		adminProtected.PUT("/items/:id", m.itemConfigHandler.UpdateItem)
+		adminProtected.DELETE("/items/:id", m.itemConfigHandler.DeleteItem)
+		adminProtected.GET("/items/:id/tags", m.itemConfigHandler.GetItemTags)
+		adminProtected.POST("/items/:id/tags", m.itemConfigHandler.AddItemTags)
+		adminProtected.PUT("/items/:id/tags", m.itemConfigHandler.UpdateItemTags)
+		adminProtected.DELETE("/items/:id/tags/:tag_id", m.itemConfigHandler.RemoveItemTag)
+		// 物品职业关联管理
+		adminProtected.POST("/items/:id/classes", m.itemConfigHandler.AddItemClasses)
+		adminProtected.GET("/items/:id/classes", m.itemConfigHandler.GetItemClasses)
+		adminProtected.PUT("/items/:id/classes", m.itemConfigHandler.UpdateItemClasses)
+		adminProtected.DELETE("/items/:id/classes/:class_id", m.itemConfigHandler.RemoveItemClass)
+
+		// 装备槽位配置管理
+		adminProtected.GET("/equipment-slots", m.equipmentSlotHandler.GetSlotList)
+		adminProtected.POST("/equipment-slots", m.equipmentSlotHandler.CreateSlot)
+		adminProtected.GET("/equipment-slots/:id", m.equipmentSlotHandler.GetSlot)
+		adminProtected.PUT("/equipment-slots/:id", m.equipmentSlotHandler.UpdateSlot)
+		adminProtected.DELETE("/equipment-slots/:id", m.equipmentSlotHandler.DeleteSlot)
+
+		// 装备套装配置管理
+		adminProtected.POST("/equipment-sets", m.equipmentSetHandler.CreateSet)
+		adminProtected.GET("/equipment-sets", m.equipmentSetHandler.GetSetList)
+		adminProtected.GET("/equipment-sets/unassigned-items", m.equipmentSetHandler.GetUnassignedItems)
+		adminProtected.GET("/equipment-sets/:id", m.equipmentSetHandler.GetSet)
+		adminProtected.PUT("/equipment-sets/:id", m.equipmentSetHandler.UpdateSet)
+		adminProtected.DELETE("/equipment-sets/:id", m.equipmentSetHandler.DeleteSet)
+		adminProtected.GET("/equipment-sets/:id/items", m.equipmentSetHandler.GetSetItems)
+		adminProtected.POST("/equipment-sets/:set_id/items/batch-assign", m.equipmentSetHandler.BatchAssignItems)
+		adminProtected.POST("/equipment-sets/:set_id/items/batch-remove", m.equipmentSetHandler.BatchRemoveItems)
+		adminProtected.DELETE("/equipment-sets/:set_id/items/:item_id", m.equipmentSetHandler.RemoveItem)
+
+		// 掉落池配置管理
+		adminProtected.GET("/drop-pools", m.dropPoolHandler.GetDropPoolList)
+		adminProtected.POST("/drop-pools", m.dropPoolHandler.CreateDropPool)
+		adminProtected.GET("/drop-pools/:id", m.dropPoolHandler.GetDropPool)
+		adminProtected.PUT("/drop-pools/:id", m.dropPoolHandler.UpdateDropPool)
+		adminProtected.DELETE("/drop-pools/:id", m.dropPoolHandler.DeleteDropPool)
+
+		// 掉落池物品管理
+		adminProtected.POST("/drop-pools/:pool_id/items", m.dropPoolHandler.AddDropPoolItem)
+		adminProtected.GET("/drop-pools/:pool_id/items", m.dropPoolHandler.GetDropPoolItems)
+		adminProtected.GET("/drop-pools/:pool_id/items/:item_id", m.dropPoolHandler.GetDropPoolItem)
+		adminProtected.PUT("/drop-pools/:pool_id/items/:item_id", m.dropPoolHandler.UpdateDropPoolItem)
+		adminProtected.DELETE("/drop-pools/:pool_id/items/:item_id", m.dropPoolHandler.RemoveDropPoolItem)
+
+		// 世界掉落配置管理
+		adminProtected.GET("/world-drops", m.worldDropHandler.GetWorldDropList)
+		adminProtected.POST("/world-drops", m.worldDropHandler.CreateWorldDrop)
+		adminProtected.GET("/world-drops/:id", m.worldDropHandler.GetWorldDrop)
+		adminProtected.PUT("/world-drops/:id", m.worldDropHandler.UpdateWorldDrop)
+		adminProtected.DELETE("/world-drops/:id", m.worldDropHandler.DeleteWorldDrop)
+
 		// 元数据管理 (需要认证)
 		metadata := adminProtected.Group("/metadata")
 		{
@@ -401,7 +467,7 @@ func (m *AdminModule) setupRoutes() {
 			metadata.GET("/effect-type-definitions/all", m.effectTypeDefinitionHandler.GetAllEffectTypeDefinitions)
 			metadata.GET("/effect-type-definitions/:id", m.effectTypeDefinitionHandler.GetEffectTypeDefinition)
 
-			// 公式变量
+			// 公式变量（向后兼容，数据来自 metadata_dictionary 表）
 			metadata.GET("/formula-variables", m.formulaVariableHandler.GetFormulaVariables)
 			metadata.GET("/formula-variables/all", m.formulaVariableHandler.GetAllFormulaVariables)
 			metadata.GET("/formula-variables/:id", m.formulaVariableHandler.GetFormulaVariable)
@@ -475,8 +541,11 @@ func (m *AdminModule) setupRoutes() {
 		// 技能解锁动作管理
 		adminProtected.GET("/skills/:skill_id/unlock-actions", m.skillUnlockActionHandler.GetSkillUnlockActions)
 		adminProtected.POST("/skills/:skill_id/unlock-actions", m.skillUnlockActionHandler.AddSkillUnlockAction)
+		adminProtected.PUT("/skills/:skill_id/unlock-actions/:unlock_action_id", m.skillUnlockActionHandler.UpdateSkillUnlockAction)
 		adminProtected.POST("/skills/:skill_id/unlock-actions/batch", m.skillUnlockActionHandler.BatchSetSkillUnlockActions)
-		adminProtected.DELETE("/skills/:skill_id/unlock-actions/:action_id", m.skillUnlockActionHandler.RemoveSkillUnlockAction)
+		adminProtected.DELETE("/skills/:skill_id/unlock-actions/:unlock_action_id", m.skillUnlockActionHandler.RemoveSkillUnlockAction)
+		// 获取动作的可配置属性列表
+		adminProtected.GET("/actions/:action_id/scalable-attributes", m.skillUnlockActionHandler.GetActionScalableAttributes)
 	}
 
 	// Swagger UI

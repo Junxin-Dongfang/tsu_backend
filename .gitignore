@@ -9,6 +9,7 @@
 logs/
 *.log
 /tmp/
+cache/
 
 # Build artifacts
 bin/

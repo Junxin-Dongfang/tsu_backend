@@ -8,11 +8,17 @@ import (
 
 // SkillUnlockActionRepository 技能解锁动作仓储接口
 type SkillUnlockActionRepository interface {
+	// GetByID 根据ID获取技能解锁动作
+	GetByID(ctx context.Context, id string) (*game_config.SkillUnlockAction, error)
+
 	// GetBySkillID 获取技能的所有解锁动作
 	GetBySkillID(ctx context.Context, skillID string) ([]*game_config.SkillUnlockAction, error)
 
 	// Create 创建技能解锁动作关联
 	Create(ctx context.Context, unlockAction *game_config.SkillUnlockAction) error
+
+	// Update 更新技能解锁动作
+	Update(ctx context.Context, unlockAction *game_config.SkillUnlockAction) error
 
 	// Delete 删除技能解锁动作关联
 	Delete(ctx context.Context, unlockActionID string) error

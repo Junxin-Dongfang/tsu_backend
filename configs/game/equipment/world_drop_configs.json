@@ -1,0 +1,42 @@
+[
+  {
+    "item_code": "weapon-sword-002",
+    "total_drop_limit": 100,
+    "daily_drop_limit": 5,
+    "hourly_drop_limit": 2,
+    "min_drop_interval": 3600,
+    "max_drop_interval": null,
+    "trigger_conditions": {
+      "type": "level_range",
+      "min_level": 10,
+      "max_level": 100
+    },
+    "base_drop_rate": 0.0001,
+    "drop_rate_modifiers": {
+      "dungeon_level_bonus": 0.00001,
+      "team_size_bonus": 0.00005,
+      "first_kill_bonus": 0.0005
+    },
+    "is_active": true
+  },
+  {
+    "item_code": "armor-chest-002",
+    "total_drop_limit": 100,
+    "daily_drop_limit": 5,
+    "hourly_drop_limit": 2,
+    "min_drop_interval": 3600,
+    "max_drop_interval": null,
+    "trigger_conditions": {
+      "type": "dungeon_type",
+      "dungeon_types": ["elite", "boss"]
+    },
+    "base_drop_rate": 0.0001,
+    "drop_rate_modifiers": {
+      "dungeon_level_bonus": 0.00001,
+      "team_size_bonus": 0.00005,
+      "first_kill_bonus": 0.0005
+    },
+    "is_active": true
+  }
+]
+

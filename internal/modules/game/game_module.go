@@ -42,6 +42,9 @@ type GameModule struct {
 	classHandler            *handler.ClassHandler
 	skillDetailHandler      *handler.SkillDetailHandler
 	upgradeCostHandler      *handler.UpgradeCostHandler
+	equipmentHandler        *handler.EquipmentHandler
+	equipmentSetHandler     *handler.EquipmentSetHandler
+	inventoryHandler        *handler.InventoryHandler
 	cleanupTask             *tasks.CleanupTask
 	respWriter              response.Writer
 }
@@ -225,6 +228,9 @@ func (m *GameModule) initServicesAndHandlers() {
 		m.serviceContainer.GetAttributeUpgradeCostRepo(),
 		m.respWriter,
 	)
+	m.equipmentHandler = handler.NewEquipmentHandler(m.db, m.respWriter)
+	m.equipmentSetHandler = handler.NewEquipmentSetHandler(m.serviceContainer.GetEquipmentSetService(), m.respWriter)
+	m.inventoryHandler = handler.NewInventoryHandler(m.db, m.respWriter)
 
 	fmt.Println("[Game Module] Handlers initialized successfully")
 }
@@ -326,6 +332,32 @@ func (m *GameModule) setupRoutes() {
 			costs.GET("/attribute-upgrade-costs", m.upgradeCostHandler.GetAttributeUpgradeCosts)              // 获取所有属性升级消耗
 			costs.GET("/attribute-upgrade-costs/:point_number", m.upgradeCostHandler.GetAttributeUpgradeCost) // 获取指定点数升级消耗
 		}
+
+		// // Equipment routes (需要认证)
+		// equipment := game.Group("/equipment")
+		// equipment.Use(custommiddleware.AuthMiddleware(m.respWriter, logger))
+		// {
+		// 	equipment.POST("/equip", m.equipmentHandler.EquipItem)                      // 穿戴装备
+		// 	equipment.POST("/unequip", m.equipmentHandler.UnequipItem)                  // 卸下装备
+		// 	equipment.GET("/equipped/:hero_id", m.equipmentHandler.GetEquippedItems)    // 查询已装备物品
+		// 	equipment.GET("/slots/:hero_id", m.equipmentHandler.GetEquipmentSlots)      // 查询装备槽位
+		// 	equipment.GET("/bonus/:hero_id", m.equipmentHandler.GetEquipmentBonus)      // 查询装备属性加成
+
+		// 	// Equipment Set routes (套装相关)
+		// 	equipment.GET("/sets", m.equipmentSetHandler.ListSets)                      // 查询可用套装列表
+		// 	equipment.GET("/sets/:set_id", m.equipmentSetHandler.GetSetInfo)            // 查询套装详细信息
+		// 	equipment.GET("/sets/active/:hero_id", m.equipmentSetHandler.GetActiveSets) // 查询英雄激活的套装
+		// }
+
+		// // Inventory routes (需要认证)
+		// inventory := game.Group("/inventory")
+		// inventory.Use(custommiddleware.AuthMiddleware(m.respWriter, logger))
+		// {
+		// 	inventory.GET("", m.inventoryHandler.GetInventory)       // 查询背包/仓库
+		// 	inventory.POST("/move", m.inventoryHandler.MoveItem)     // 移动物品
+		// 	inventory.POST("/discard", m.inventoryHandler.DiscardItem) // 丢弃物品
+		// 	inventory.POST("/sort", m.inventoryHandler.SortInventory)  // 整理背包
+		// }
 	}
 
 	// Swagger UI

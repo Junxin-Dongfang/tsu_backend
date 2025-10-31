@@ -12,7 +12,8 @@ run:
 # 输出配置
 output:
   # 输出格式: colored-line-number|line-number|json|tab|checkstyle|code-climate
-  format: colored-line-number
+  formats:
+    - format: colored-line-number
   # 打印检查的文件
   print-issued-lines: true
   # 打印linter名称
@@ -21,28 +22,35 @@ output:
 # Linter 配置
 linters:
   # 禁用所有默认linters
-  disable-all: false
-  # 启用特定linters
+  disable-all: true
+  # 启用特定linters (按照质量契约要求)
   enable:
-    - gofmt
-    - govet
-    - errcheck
-    - staticcheck
-    - unused
-    - gosimple
-    - ineffassign
-    - typecheck
+    # 基础检查
+    - errcheck      # 检查未处理的错误
+    - govet         # 检查可疑的代码构造
+    - staticcheck   # 静态分析检查
+    - unused        # 检查未使用的代码
+    - gosimple      # 建议代码简化
+    - ineffassign   # 检查无效的赋值
+    - gofmt         # 检查代码格式
+    - goimports     # 检查导入排序
+    - typecheck     # 类型检查
 
-  # 禁用特定linters
-  disable:
-    - stylecheck  # 禁用 stylecheck (包含 ST1005 规则)
+    # 额外推荐的 linters
+    - gocritic      # 提供大量代码质量检查
+    - gocyclo       # 检查圈复杂度
+    - misspell      # 检查拼写错误
+    - unconvert     # 检查不必要的类型转换
+    - unparam       # 检查未使用的函数参数
+    - revive        # 快速、可配置的 Go linter
+    # 注意: stylecheck 已通过 disable-all 禁用 (包含 ST1005 规则,与中文错误消息冲突)
 
 # Linter 特定设置
 linters-settings:
   # 如果只想禁用 ST1005，可以使用 stylecheck 的配置
   # stylecheck:
   #   checks: [ "all", "-ST1005" ]  # 禁用 ST1005 (错误字符串大写检查)
-  
+
   errcheck:
     # 检查类型断言
     check-type-assertions: true
@@ -51,12 +59,49 @@ linters-settings:
 
   govet:
     # 启用所有检查
-    check-shadowing: true
     enable-all: true
+    # 禁用字段对齐检查（对性能影响很小，但会降低代码可读性）
+    disable:
+      - fieldalignment
 
   staticcheck:
     # 启用所有检查
     checks: ["all"]
+
+  gocyclo:
+    # 圈复杂度阈值 (超过此值会报警)
+    # Update方法由于需要处理多个可选字段，复杂度较高是正常的
+    min-complexity: 25
+
+  gocritic:
+    # 启用所有检查
+    enabled-tags:
+      - diagnostic
+      - style
+      - performance
+    disabled-checks:
+      - commentFormatting  # 允许中文注释
+      - whyNoLint         # 不强制要求 nolint 注释说明原因
+
+  revive:
+    # 启用推荐规则
+    rules:
+      - name: blank-imports
+      - name: context-as-argument
+      - name: dot-imports
+      - name: error-return
+      - name: error-strings
+      - name: error-naming
+      - name: exported
+      - name: increment-decrement
+      - name: var-naming
+      - name: package-comments
+      - name: range
+      - name: receiver-naming
+      - name: indent-error-flow
+      - name: superfluous-else
+      - name: unreachable-code
+      - name: redefines-builtin-id
 
 # Issues 配置
 issues:

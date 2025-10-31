@@ -181,14 +181,12 @@ func (h *HeroAttributeHandler) GetComputedAttributes(c echo.Context) error {
 
 		classBonus := 0
 		if !attr.ClassBonus.IsZero() {
-			classBonusInt, _ := attr.ClassBonus.Int64()
-			classBonus = int(classBonusInt)
+			classBonus = attr.ClassBonus.Int
 		}
 
 		finalValue := 0
 		if !attr.FinalValue.IsZero() {
-			finalValueInt, _ := attr.FinalValue.Int64()
-			finalValue = int(finalValueInt)
+			finalValue = attr.FinalValue.Int
 		}
 
 		respList[i] = &ComputedAttributeResponse{

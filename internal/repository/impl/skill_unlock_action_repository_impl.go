@@ -23,6 +23,21 @@ func NewSkillUnlockActionRepository(db *sql.DB) interfaces.SkillUnlockActionRepo
 	return &skillUnlockActionRepositoryImpl{db: db}
 }
 
+func (r *skillUnlockActionRepositoryImpl) GetByID(ctx context.Context, id string) (*game_config.SkillUnlockAction, error) {
+	unlockAction, err := game_config.SkillUnlockActions(
+		qm.Where("id = ? AND deleted_at IS NULL", id),
+	).One(ctx, r.db)
+
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("技能解锁动作不存在: %s", id)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("查询技能解锁动作失败: %w", err)
+	}
+
+	return unlockAction, nil
+}
+
 func (r *skillUnlockActionRepositoryImpl) GetBySkillID(ctx context.Context, skillID string) ([]*game_config.SkillUnlockAction, error) {
 	unlockActions, err := game_config.SkillUnlockActions(
 		qm.Where("skill_id = ? AND deleted_at IS NULL", skillID),
@@ -45,6 +60,18 @@ func (r *skillUnlockActionRepositoryImpl) Create(ctx context.Context, unlockActi
 
 	if err := unlockAction.Insert(ctx, r.db, boil.Infer()); err != nil {
 		return fmt.Errorf("创建技能解锁动作失败: %w", err)
+	}
+
+	return nil
+}
+
+func (r *skillUnlockActionRepositoryImpl) Update(ctx context.Context, unlockAction *game_config.SkillUnlockAction) error {
+	// 只更新允许更新的字段
+	cols := []string{"unlock_level", "is_default", "level_scaling_config"}
+
+	_, err := unlockAction.Update(ctx, r.db, boil.Whitelist(cols...))
+	if err != nil {
+		return fmt.Errorf("更新技能解锁动作失败: %w", err)
 	}
 
 	return nil

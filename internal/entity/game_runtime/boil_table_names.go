@@ -7,14 +7,24 @@ var TableNames = struct {
 	HeroAllocatedAttributes string
 	HeroAttributeOperations string
 	HeroClassHistory        string
+	HeroEquipmentSlots      string
 	HeroSkillOperations     string
 	HeroSkills              string
 	Heroes                  string
+	ItemDropRecords         string
+	ItemOperationLogs       string
+	PlayerItems             string
+	WorldDropStats          string
 }{
 	HeroAllocatedAttributes: "hero_allocated_attributes",
 	HeroAttributeOperations: "hero_attribute_operations",
 	HeroClassHistory:        "hero_class_history",
+	HeroEquipmentSlots:      "hero_equipment_slots",
 	HeroSkillOperations:     "hero_skill_operations",
 	HeroSkills:              "hero_skills",
 	Heroes:                  "heroes",
+	ItemDropRecords:         "item_drop_records",
+	ItemOperationLogs:       "item_operation_logs",
+	PlayerItems:             "player_items",
+	WorldDropStats:          "world_drop_stats",
 }

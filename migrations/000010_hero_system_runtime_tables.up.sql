@@ -140,15 +140,15 @@ SELECT
   hat.attribute_name,
   -- 基础加点值（从 hero_allocated_attributes 表获取）
   COALESCE(haa.value, 1) as base_value,
-  -- 职业加成（仅当前职业）
+  -- 职业加成（仅当前职业）- 转换为整数
+  (COALESCE(cab.base_bonus_value, 0) +
+    CASE WHEN cab.bonus_per_level THEN COALESCE(cab.per_level_bonus_value * h.current_level, 0)
+    ELSE 0 END)::INTEGER as class_bonus,
+  -- 最终值（未来可加入技能、装备加成）- 转换为整数
+  (COALESCE(haa.value, 1) +
   COALESCE(cab.base_bonus_value, 0) +
     CASE WHEN cab.bonus_per_level THEN COALESCE(cab.per_level_bonus_value * h.current_level, 0)
-    ELSE 0 END as class_bonus,
-  -- 最终值（未来可加入技能、装备加成）
-  COALESCE(haa.value, 1) +
-  COALESCE(cab.base_bonus_value, 0) +
-    CASE WHEN cab.bonus_per_level THEN COALESCE(cab.per_level_bonus_value * h.current_level, 0)
-    ELSE 0 END as final_value
+    ELSE 0 END)::INTEGER as final_value
 FROM game_runtime.heroes h
 CROSS JOIN game_config.hero_attribute_type hat
 LEFT JOIN game_runtime.hero_allocated_attributes haa ON haa.hero_id = h.id AND haa.attribute_code = hat.attribute_code AND haa.deleted_at IS NULL

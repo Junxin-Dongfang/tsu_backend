@@ -1,0 +1,129 @@
+[
+  {
+    "pool_code": "monster_goblin_common",
+    "pool_name": "哥布林普通掉落池",
+    "pool_type": "monster",
+    "description": "普通哥布林的掉落池",
+    "min_drops": 1,
+    "max_drops": 2,
+    "guaranteed_drops": 0,
+    "is_active": true,
+    "items": [
+      {
+        "item_code": "consumable-potion-001",
+        "drop_weight": 50,
+        "drop_rate": null,
+        "quality_weights": null,
+        "min_quantity": 1,
+        "max_quantity": 3,
+        "min_level": 1,
+        "max_level": 100,
+        "is_active": true
+      },
+      {
+        "item_code": "material-iron-ore",
+        "drop_weight": 30,
+        "drop_rate": null,
+        "quality_weights": null,
+        "min_quantity": 1,
+        "max_quantity": 5,
+        "min_level": 1,
+        "max_level": 100,
+        "is_active": true
+      },
+      {
+        "item_code": "weapon-sword-001",
+        "drop_weight": 15,
+        "drop_rate": null,
+        "quality_weights": {
+          "poor": 50,
+          "normal": 40,
+          "fine": 10
+        },
+        "min_quantity": 1,
+        "max_quantity": 1,
+        "min_level": 1,
+        "max_level": 10,
+        "is_active": true
+      },
+      {
+        "item_code": "armor-chest-001",
+        "drop_weight": 5,
+        "drop_rate": null,
+        "quality_weights": {
+          "poor": 60,
+          "normal": 35,
+          "fine": 5
+        },
+        "min_quantity": 1,
+        "max_quantity": 1,
+        "min_level": 1,
+        "max_level": 10,
+        "is_active": true
+      }
+    ]
+  },
+  {
+    "pool_code": "boss_dragon",
+    "pool_name": "巨龙Boss掉落池",
+    "pool_type": "boss",
+    "description": "巨龙Boss的掉落池",
+    "min_drops": 3,
+    "max_drops": 5,
+    "guaranteed_drops": 2,
+    "is_active": true,
+    "items": [
+      {
+        "item_code": "weapon-sword-002",
+        "drop_weight": 1,
+        "drop_rate": 0.15,
+        "quality_weights": {
+          "epic": 70,
+          "legendary": 30
+        },
+        "min_quantity": 1,
+        "max_quantity": 1,
+        "min_level": 10,
+        "max_level": 100,
+        "is_active": true
+      },
+      {
+        "item_code": "armor-chest-002",
+        "drop_weight": 1,
+        "drop_rate": 0.15,
+        "quality_weights": {
+          "epic": 70,
+          "legendary": 30
+        },
+        "min_quantity": 1,
+        "max_quantity": 1,
+        "min_level": 10,
+        "max_level": 100,
+        "is_active": true
+      },
+      {
+        "item_code": "gem-ruby-001",
+        "drop_weight": 50,
+        "drop_rate": null,
+        "quality_weights": null,
+        "min_quantity": 1,
+        "max_quantity": 3,
+        "min_level": 1,
+        "max_level": 100,
+        "is_active": true
+      },
+      {
+        "item_code": "material-iron-ore",
+        "drop_weight": 50,
+        "drop_rate": null,
+        "quality_weights": null,
+        "min_quantity": 10,
+        "max_quantity": 20,
+        "min_level": 1,
+        "max_level": 100,
+        "is_active": true
+      }
+    ]
+  }
+]
+

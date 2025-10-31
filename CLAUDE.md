@@ -1,3 +1,22 @@
+<!-- OPENSPEC:START -->
+# OpenSpec Instructions
+
+These instructions are for AI assistants working in this project.
+
+Always open `@/openspec/AGENTS.md` when the request:
+- Mentions planning or proposals (words like proposal, spec, change, plan)
+- Introduces new capabilities, breaking changes, architecture shifts, or big performance/security work
+- Sounds ambiguous and you need the authoritative spec before coding
+
+Use `@/openspec/AGENTS.md` to learn:
+- How to create and apply change proposals
+- Spec format and conventions
+- Project structure and guidelines
+
+Keep this managed block so 'openspec update' can refresh the instructions.
+
+<!-- OPENSPEC:END -->
+
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
@@ -233,25 +252,33 @@ Entity Layer (数据模型)
 
 ### 代码质量要求
 
-**严格遵循** `.specify/memory/constitution.md` 中定义的项目宪法:
+**严格遵循** `.specify/memory/constitution.md` 中定义的项目宪法和 `openspec/specs/code-quality/spec.md` 中的渐进式质量改进契约:
 
-1. **测试驱动开发(TDD)** - 不可协商
+1. **渐进式质量改进契约** - 不可协商
+   - **童子军军规**: 每次代码变更必须让代码库比修改前更好
+   - **修改现有代码**: 必须偿还至少一处技术债务(添加测试、文档、解决 TODO、改进错误处理等)
+   - **新增代码**: 必须满足 100% 质量标准(测试覆盖率 80%+、完整文档注释、通过 linter)
+   - **技术债务优先级**: P0(严重) > P1(高) > P2(中) > P3(低)
+   - 详见 `openspec/specs/code-quality/spec.md`
+
+2. **测试驱动开发(TDD)** - 不可协商
    - 必须先写测试,后写实现
    - 单元测试覆盖率至少 80%
    - 所有 API 端点必须有集成测试
+   - 使用 table-driven tests 处理多个测试场景
 
-2. **代码质量**
-   - 必须通过 `golangci-lint` 检查
+3. **代码质量**
+   - 必须通过 `golangci-lint` 检查(无警告)
    - 遵循 Go 语言最佳实践
-   - 公共函数必须有文档注释
-   - 错误处理必须显式且有意义
+   - 所有公开函数必须有文档注释
+   - 错误处理必须显式且有意义(使用 `xerrors.Wrap` 添加上下文)
 
-3. **性能标准**
+4. **性能标准**
    - API 端点 p95 延迟 <200ms
    - 数据库查询必须优化索引
    - 使用 Redis 缓存热数据
 
-4. **可观测性**
+5. **可观测性**
    - 结构化日志(包含请求 ID、用户 ID)
    - Prometheus 指标
    - 健康检查端点
@@ -259,8 +286,9 @@ Entity Layer (数据模型)
 ### 历史代码处理原则
 
 - **不主动大规模重构**: 除非有明确业务需求或严重问题
-- **童子军军规**: 修改代码时顺手改进(参考 `TECH_DEBT.md`)
+- **童子军军规**: 修改代码时必须顺手改进周边代码,偿还至少一处技术债务(参考 `TECH_DEBT.md`)
 - **新旧隔离**: 新模块必须严格遵守宪法,与旧代码交互的边界明确定义
+- **技术债务偿还**: 优先偿还高优先级债务(P0-P1),低优先级债务可以延后
 
 ### 提交规范
 
