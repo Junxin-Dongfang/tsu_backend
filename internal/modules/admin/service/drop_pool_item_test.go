@@ -340,4 +340,3 @@ func int64Ptr(i int) *int {
 func float64Ptr(f float64) *float64 {
 	return &f
 }
-

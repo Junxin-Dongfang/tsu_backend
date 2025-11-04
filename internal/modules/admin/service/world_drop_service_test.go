@@ -360,4 +360,3 @@ func TestWorldDropService_DeleteWorldDrop(t *testing.T) {
 func intPtr(i int) *int {
 	return &i
 }
-

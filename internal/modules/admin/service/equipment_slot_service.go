@@ -199,4 +199,3 @@ func (s *EquipmentSlotService) toSlotConfigResponse(slot *game_config.EquipmentS
 
 	return resp
 }
-

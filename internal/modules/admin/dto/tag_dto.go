@@ -4,15 +4,15 @@ import "time"
 
 // TagResponse 标签响应
 type TagResponse struct {
-	ID           string `json:"id"`
-	TagCode      string `json:"tag_code"`
-	TagName      string `json:"tag_name"`
-	Category     string `json:"category"`
-	Description  string `json:"description,omitempty"`
-	Icon         string `json:"icon,omitempty"`
-	Color        string `json:"color,omitempty"`
-	DisplayOrder int    `json:"display_order"`
-	IsActive     bool   `json:"is_active"`
+	ID           string    `json:"id"`
+	TagCode      string    `json:"tag_code"`
+	TagName      string    `json:"tag_name"`
+	Category     string    `json:"category"`
+	Description  string    `json:"description,omitempty"`
+	Icon         string    `json:"icon,omitempty"`
+	Color        string    `json:"color,omitempty"`
+	DisplayOrder int       `json:"display_order"`
+	IsActive     bool      `json:"is_active"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }
@@ -47,4 +47,3 @@ type TagListResponse struct {
 	Page     int           `json:"page"`
 	PageSize int           `json:"page_size"`
 }
-

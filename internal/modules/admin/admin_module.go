@@ -64,6 +64,7 @@ type AdminModule struct {
 	actionEffectHandler         *handler.ActionEffectHandler
 	skillUnlockActionHandler    *handler.SkillUnlockActionHandler
 	classSkillPoolHandler       *handler.ClassSkillPoolHandler
+	monsterHandler              *handler.MonsterHandler
 	respWriter                  response.Writer
 }
 
@@ -257,6 +258,7 @@ func (m *AdminModule) initHandlers() {
 	m.actionEffectHandler = handler.NewActionEffectHandler(m.db, m.respWriter)
 	m.skillUnlockActionHandler = handler.NewSkillUnlockActionHandler(m.db, m.respWriter)
 	m.classSkillPoolHandler = handler.NewClassSkillPoolHandler(m.db, m.respWriter)
+	m.monsterHandler = handler.NewMonsterHandler(m.db, m.respWriter)
 }
 
 // setupRoutes sets up HTTP routes
@@ -546,6 +548,25 @@ func (m *AdminModule) setupRoutes() {
 		adminProtected.DELETE("/skills/:skill_id/unlock-actions/:unlock_action_id", m.skillUnlockActionHandler.RemoveSkillUnlockAction)
 		// 获取动作的可配置属性列表
 		adminProtected.GET("/actions/:action_id/scalable-attributes", m.skillUnlockActionHandler.GetActionScalableAttributes)
+
+		// 怪物配置管理
+		adminProtected.GET("/monsters", m.monsterHandler.GetMonsters)
+		adminProtected.POST("/monsters", m.monsterHandler.CreateMonster)
+		adminProtected.GET("/monsters/:id", m.monsterHandler.GetMonster)
+		adminProtected.PUT("/monsters/:id", m.monsterHandler.UpdateMonster)
+		adminProtected.DELETE("/monsters/:id", m.monsterHandler.DeleteMonster)
+
+		// 怪物技能管理
+		adminProtected.GET("/monsters/:id/skills", m.monsterHandler.GetMonsterSkills)
+		adminProtected.POST("/monsters/:id/skills", m.monsterHandler.AddMonsterSkill)
+		adminProtected.PUT("/monsters/:id/skills/:skill_id", m.monsterHandler.UpdateMonsterSkill)
+		adminProtected.DELETE("/monsters/:id/skills/:skill_id", m.monsterHandler.RemoveMonsterSkill)
+
+		// 怪物掉落管理
+		adminProtected.GET("/monsters/:id/drops", m.monsterHandler.GetMonsterDrops)
+		adminProtected.POST("/monsters/:id/drops", m.monsterHandler.AddMonsterDrop)
+		adminProtected.PUT("/monsters/:id/drops/:drop_pool_id", m.monsterHandler.UpdateMonsterDrop)
+		adminProtected.DELETE("/monsters/:id/drops/:drop_pool_id", m.monsterHandler.RemoveMonsterDrop)
 	}
 
 	// Swagger UI

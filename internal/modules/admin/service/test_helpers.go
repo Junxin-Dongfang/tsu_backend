@@ -11,4 +11,3 @@ func stringPtr(s string) *string {
 func int16Ptr(i int16) *int16 {
 	return &i
 }
-

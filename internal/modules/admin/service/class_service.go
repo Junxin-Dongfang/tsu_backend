@@ -1,10 +1,10 @@
 package service
 
 import (
-	"tsu-self/internal/pkg/xerrors"
 	"context"
 	"database/sql"
 	"fmt"
+	"tsu-self/internal/pkg/xerrors"
 
 	"tsu-self/internal/entity/game_config"
 	"tsu-self/internal/repository/impl"
@@ -13,14 +13,14 @@ import (
 
 // ClassService 职业服务
 type ClassService struct {
-	classRepo         interfaces.ClassRepository
+	classRepo          interfaces.ClassRepository
 	attributeBonusRepo interfaces.AttributeBonusRepository
 }
 
 // NewClassService 创建职业服务
 func NewClassService(db *sql.DB) *ClassService {
 	return &ClassService{
-		classRepo:         impl.NewClassRepository(db),
+		classRepo:          impl.NewClassRepository(db),
 		attributeBonusRepo: impl.NewAttributeBonusRepository(db),
 	}
 }

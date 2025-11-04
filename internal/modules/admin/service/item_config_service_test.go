@@ -312,4 +312,3 @@ func TestValidateEquipSlot(t *testing.T) {
 		})
 	}
 }
-

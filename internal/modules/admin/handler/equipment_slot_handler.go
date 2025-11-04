@@ -239,4 +239,3 @@ func (h *EquipmentSlotHandler) DeleteSlot(c echo.Context) error {
 
 	return response.EchoOK(c, h.respWriter, map[string]string{"message": "槽位配置删除成功"})
 }
-

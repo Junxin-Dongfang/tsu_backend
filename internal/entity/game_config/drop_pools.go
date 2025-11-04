@@ -132,13 +132,16 @@ var DropPoolWhere = struct {
 // DropPoolRels is where relationship names are stored.
 var DropPoolRels = struct {
 	DropPoolItems string
+	MonsterDrops  string
 }{
 	DropPoolItems: "DropPoolItems",
+	MonsterDrops:  "MonsterDrops",
 }
 
 // dropPoolR is where relationships are stored.
 type dropPoolR struct {
 	DropPoolItems DropPoolItemSlice `boil:"DropPoolItems" json:"DropPoolItems" toml:"DropPoolItems" yaml:"DropPoolItems"`
+	MonsterDrops  MonsterDropSlice  `boil:"MonsterDrops" json:"MonsterDrops" toml:"MonsterDrops" yaml:"MonsterDrops"`
 }
 
 // NewStruct creates a new relationship struct
@@ -160,6 +163,22 @@ func (r *dropPoolR) GetDropPoolItems() DropPoolItemSlice {
 	}
 
 	return r.DropPoolItems
+}
+
+func (o *DropPool) GetMonsterDrops() MonsterDropSlice {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetMonsterDrops()
+}
+
+func (r *dropPoolR) GetMonsterDrops() MonsterDropSlice {
+	if r == nil {
+		return nil
+	}
+
+	return r.MonsterDrops
 }
 
 // dropPoolL is where Load methods for each relationship are stored.
@@ -592,6 +611,20 @@ func (o *DropPool) DropPoolItems(mods ...qm.QueryMod) dropPoolItemQuery {
 	return DropPoolItems(queryMods...)
 }
 
+// MonsterDrops retrieves all the monster_drop's MonsterDrops with an executor.
+func (o *DropPool) MonsterDrops(mods ...qm.QueryMod) monsterDropQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"game_config\".\"monster_drops\".\"drop_pool_id\"=?", o.ID),
+	)
+
+	return MonsterDrops(queryMods...)
+}
+
 // LoadDropPoolItems allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
 func (dropPoolL) LoadDropPoolItems(ctx context.Context, e boil.ContextExecutor, singular bool, maybeDropPool interface{}, mods queries.Applicator) error {
@@ -706,6 +739,120 @@ func (dropPoolL) LoadDropPoolItems(ctx context.Context, e boil.ContextExecutor, 
 	return nil
 }
 
+// LoadMonsterDrops allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (dropPoolL) LoadMonsterDrops(ctx context.Context, e boil.ContextExecutor, singular bool, maybeDropPool interface{}, mods queries.Applicator) error {
+	var slice []*DropPool
+	var object *DropPool
+
+	if singular {
+		var ok bool
+		object, ok = maybeDropPool.(*DropPool)
+		if !ok {
+			object = new(DropPool)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeDropPool)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeDropPool))
+			}
+		}
+	} else {
+		s, ok := maybeDropPool.(*[]*DropPool)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeDropPool)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeDropPool))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &dropPoolR{}
+		}
+		args[object.ID] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &dropPoolR{}
+			}
+			args[obj.ID] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`game_config.monster_drops`),
+		qm.WhereIn(`game_config.monster_drops.drop_pool_id in ?`, argsSlice...),
+		qmhelper.WhereIsNull(`game_config.monster_drops.deleted_at`),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load monster_drops")
+	}
+
+	var resultSlice []*MonsterDrop
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice monster_drops")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on monster_drops")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for monster_drops")
+	}
+
+	if len(monsterDropAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.MonsterDrops = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &monsterDropR{}
+			}
+			foreign.R.DropPool = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.DropPoolID {
+				local.R.MonsterDrops = append(local.R.MonsterDrops, foreign)
+				if foreign.R == nil {
+					foreign.R = &monsterDropR{}
+				}
+				foreign.R.DropPool = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
 // AddDropPoolItemsG adds the given related objects to the existing relationships
 // of the drop_pool, optionally inserting them as new records.
 // Appends related to o.R.DropPoolItems.
@@ -781,6 +928,90 @@ func (o *DropPool) AddDropPoolItems(ctx context.Context, exec boil.ContextExecut
 	for _, rel := range related {
 		if rel.R == nil {
 			rel.R = &dropPoolItemR{
+				DropPool: o,
+			}
+		} else {
+			rel.R.DropPool = o
+		}
+	}
+	return nil
+}
+
+// AddMonsterDropsG adds the given related objects to the existing relationships
+// of the drop_pool, optionally inserting them as new records.
+// Appends related to o.R.MonsterDrops.
+// Sets related.R.DropPool appropriately.
+// Uses the global database handle.
+func (o *DropPool) AddMonsterDropsG(ctx context.Context, insert bool, related ...*MonsterDrop) error {
+	return o.AddMonsterDrops(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// AddMonsterDropsP adds the given related objects to the existing relationships
+// of the drop_pool, optionally inserting them as new records.
+// Appends related to o.R.MonsterDrops.
+// Sets related.R.DropPool appropriately.
+// Panics on error.
+func (o *DropPool) AddMonsterDropsP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*MonsterDrop) {
+	if err := o.AddMonsterDrops(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddMonsterDropsGP adds the given related objects to the existing relationships
+// of the drop_pool, optionally inserting them as new records.
+// Appends related to o.R.MonsterDrops.
+// Sets related.R.DropPool appropriately.
+// Uses the global database handle and panics on error.
+func (o *DropPool) AddMonsterDropsGP(ctx context.Context, insert bool, related ...*MonsterDrop) {
+	if err := o.AddMonsterDrops(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddMonsterDrops adds the given related objects to the existing relationships
+// of the drop_pool, optionally inserting them as new records.
+// Appends related to o.R.MonsterDrops.
+// Sets related.R.DropPool appropriately.
+func (o *DropPool) AddMonsterDrops(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*MonsterDrop) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.DropPoolID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"game_config\".\"monster_drops\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"drop_pool_id"}),
+				strmangle.WhereClause("\"", "\"", 2, monsterDropPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.DropPoolID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &dropPoolR{
+			MonsterDrops: related,
+		}
+	} else {
+		o.R.MonsterDrops = append(o.R.MonsterDrops, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &monsterDropR{
 				DropPool: o,
 			}
 		} else {

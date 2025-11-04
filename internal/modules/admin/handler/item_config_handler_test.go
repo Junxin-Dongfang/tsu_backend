@@ -52,17 +52,17 @@ func TestItemConfigHandler_CreateItem_RequestBinding(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// 创建Echo实例
 			e := echo.New()
-			
+
 			// 创建请求
 			req := httptest.NewRequest(http.MethodPost, "/admin/items", strings.NewReader(tt.requestBody))
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-			
+
 			// 创建响应记录器
 			rec := httptest.NewRecorder()
-			
+
 			// 创建Echo Context
 			c := e.NewContext(req, rec)
-			
+
 			// 测试请求绑定
 			var reqBody map[string]interface{}
 			err := c.Bind(&reqBody)
@@ -117,12 +117,12 @@ func TestItemConfigHandler_ListItems_QueryParams(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// 创建Echo实例
 			e := echo.New()
-			
+
 			// 创建请求
 			req := httptest.NewRequest(http.MethodGet, "/admin/items"+tt.queryParams, nil)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
-			
+
 			// 解析查询参数
 			page := tt.expectPage
 			pageSize := tt.expectSize
@@ -169,7 +169,7 @@ func TestItemConfigHandler_UpdateItem_PartialUpdate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// 创建Echo实例
 			e := echo.New()
-			
+
 			// 创建请求
 			req := httptest.NewRequest(http.MethodPut, "/admin/items/test-id", strings.NewReader(tt.requestBody))
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
@@ -177,14 +177,14 @@ func TestItemConfigHandler_UpdateItem_PartialUpdate(t *testing.T) {
 			c := e.NewContext(req, rec)
 			c.SetParamNames("id")
 			c.SetParamValues("test-id")
-			
+
 			// 测试请求绑定
 			var reqBody map[string]interface{}
 			err := c.Bind(&reqBody)
-			
+
 			assert.NoError(t, err)
 			assert.NotNil(t, reqBody)
-			
+
 			// 验证字段存在
 			if tt.expectField == "item_name" {
 				assert.Contains(t, reqBody, "item_name")
@@ -226,7 +226,7 @@ func TestItemConfigHandler_AddItemTags_RequestValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// 创建Echo实例
 			e := echo.New()
-			
+
 			// 创建请求
 			req := httptest.NewRequest(http.MethodPost, "/admin/items/test-id/tags", strings.NewReader(tt.requestBody))
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
@@ -234,13 +234,13 @@ func TestItemConfigHandler_AddItemTags_RequestValidation(t *testing.T) {
 			c := e.NewContext(req, rec)
 			c.SetParamNames("id")
 			c.SetParamValues("test-id")
-			
+
 			// 测试请求绑定
 			var reqBody struct {
 				TagIDs []string `json:"tag_ids"`
 			}
 			err := c.Bind(&reqBody)
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 			} else {
@@ -379,12 +379,12 @@ func TestItemConfigHandler_ResponseFormat(t *testing.T) {
 			"code":    100000,
 			"message": "操作成功",
 			"data": map[string]interface{}{
-				"id":          "test-id",
-				"item_code":   "test_sword",
-				"item_name":   "测试剑",
-				"item_type":   "equipment",
+				"id":           "test-id",
+				"item_code":    "test_sword",
+				"item_name":    "测试剑",
+				"item_type":    "equipment",
 				"item_quality": "rare",
-				"item_level":  10,
+				"item_level":   10,
 			},
 			"timestamp": 1234567890,
 		}
@@ -429,4 +429,3 @@ func TestItemConfigHandler_ResponseFormat(t *testing.T) {
 		assert.Equal(t, float64(20), data["page_size"])
 	})
 }
-

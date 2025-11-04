@@ -30,17 +30,17 @@ func NewHeroAttributeTypeHandler(db *sql.DB, respWriter response.Writer) *HeroAt
 
 // CreateHeroAttributeTypeRequest 创建属性类型请求
 type CreateHeroAttributeTypeRequest struct {
-	AttributeCode string  `json:"attribute_code" validate:"required,max=32" example:"strength"`                     // 属性代码(必需,最多32字符)
-	AttributeName string  `json:"attribute_name" validate:"required,max=64" example:"力量"`                           // 属性名称(必需,最多64字符)
-	Category      string  `json:"category" validate:"required,oneof=basic derived resistance" example:"basic"`      // 属性类别(必需,basic=基础属性/derived=派生属性/resistance=抗性属性)
+	AttributeCode string  `json:"attribute_code" validate:"required,max=32" example:"strength"`                             // 属性代码(必需,最多32字符)
+	AttributeName string  `json:"attribute_name" validate:"required,max=64" example:"力量"`                                   // 属性名称(必需,最多64字符)
+	Category      string  `json:"category" validate:"required,oneof=basic derived resistance" example:"basic"`              // 属性类别(必需,basic=基础属性/derived=派生属性/resistance=抗性属性)
 	DataType      string  `json:"data_type" validate:"required,oneof=integer decimal percentage boolean" example:"integer"` // 数据类型(必需,integer=整数/decimal=小数/percentage=百分比/boolean=布尔)
-	Icon          *string `json:"icon" example:"strength_icon.png"`                                                 // 图标(可选)
-	Color         *string `json:"color" example:"#FF0000"`                                                          // 颜色(可选)
-	Unit          *string `json:"unit" example:"点"`                                                                 // 单位(可选)
-	DisplayOrder  *int    `json:"display_order" example:"1"`                                                        // 显示顺序(可选)
-	IsActive      *bool   `json:"is_active" example:"true"`                                                         // 是否启用(可选)
-	IsVisible     *bool   `json:"is_visible" example:"true"`                                                        // 是否可见(可选)
-	Description   *string `json:"description" example:"角色的力量属性"`                                                    // 描述(可选)
+	Icon          *string `json:"icon" example:"strength_icon.png"`                                                         // 图标(可选)
+	Color         *string `json:"color" example:"#FF0000"`                                                                  // 颜色(可选)
+	Unit          *string `json:"unit" example:"点"`                                                                         // 单位(可选)
+	DisplayOrder  *int    `json:"display_order" example:"1"`                                                                // 显示顺序(可选)
+	IsActive      *bool   `json:"is_active" example:"true"`                                                                 // 是否启用(可选)
+	IsVisible     *bool   `json:"is_visible" example:"true"`                                                                // 是否可见(可选)
+	Description   *string `json:"description" example:"角色的力量属性"`                                                            // 描述(可选)
 }
 
 // UpdateHeroAttributeTypeRequest 更新属性类型请求

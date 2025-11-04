@@ -1,10 +1,10 @@
 package service
 
 import (
-	"tsu-self/internal/pkg/xerrors"
 	"context"
 	"database/sql"
 	"fmt"
+	"tsu-self/internal/pkg/xerrors"
 
 	"tsu-self/internal/entity/game_config"
 	"tsu-self/internal/repository/impl"

@@ -1,3 +1,4 @@
+//go:build integration
 // +build integration
 
 package service
@@ -325,4 +326,3 @@ func TestItemConfigService_DeleteItem_Integration(t *testing.T) {
 		assert.Error(t, err)
 	})
 }
-

@@ -186,14 +186,38 @@ var HeroAttributeTypeWhere = struct {
 
 // HeroAttributeTypeRels is where relationship names are stored.
 var HeroAttributeTypeRels = struct {
-	AttributeClassAttributeBonuses string
+	AttributeClassAttributeBonuses         string
+	AttributeCodeMonsterAttributeOverrides string
+	AccuracyAttributeCodeMonsters          string
+	BodyResistAttributeCodeMonsters        string
+	DodgeAttributeCodeMonsters             string
+	EnvironmentResistAttributeCodeMonsters string
+	InitiativeAttributeCodeMonsters        string
+	MagicResistAttributeCodeMonsters       string
+	MentalResistAttributeCodeMonsters      string
 }{
-	AttributeClassAttributeBonuses: "AttributeClassAttributeBonuses",
+	AttributeClassAttributeBonuses:         "AttributeClassAttributeBonuses",
+	AttributeCodeMonsterAttributeOverrides: "AttributeCodeMonsterAttributeOverrides",
+	AccuracyAttributeCodeMonsters:          "AccuracyAttributeCodeMonsters",
+	BodyResistAttributeCodeMonsters:        "BodyResistAttributeCodeMonsters",
+	DodgeAttributeCodeMonsters:             "DodgeAttributeCodeMonsters",
+	EnvironmentResistAttributeCodeMonsters: "EnvironmentResistAttributeCodeMonsters",
+	InitiativeAttributeCodeMonsters:        "InitiativeAttributeCodeMonsters",
+	MagicResistAttributeCodeMonsters:       "MagicResistAttributeCodeMonsters",
+	MentalResistAttributeCodeMonsters:      "MentalResistAttributeCodeMonsters",
 }
 
 // heroAttributeTypeR is where relationships are stored.
 type heroAttributeTypeR struct {
-	AttributeClassAttributeBonuses ClassAttributeBonuseSlice `boil:"AttributeClassAttributeBonuses" json:"AttributeClassAttributeBonuses" toml:"AttributeClassAttributeBonuses" yaml:"AttributeClassAttributeBonuses"`
+	AttributeClassAttributeBonuses         ClassAttributeBonuseSlice     `boil:"AttributeClassAttributeBonuses" json:"AttributeClassAttributeBonuses" toml:"AttributeClassAttributeBonuses" yaml:"AttributeClassAttributeBonuses"`
+	AttributeCodeMonsterAttributeOverrides MonsterAttributeOverrideSlice `boil:"AttributeCodeMonsterAttributeOverrides" json:"AttributeCodeMonsterAttributeOverrides" toml:"AttributeCodeMonsterAttributeOverrides" yaml:"AttributeCodeMonsterAttributeOverrides"`
+	AccuracyAttributeCodeMonsters          MonsterSlice                  `boil:"AccuracyAttributeCodeMonsters" json:"AccuracyAttributeCodeMonsters" toml:"AccuracyAttributeCodeMonsters" yaml:"AccuracyAttributeCodeMonsters"`
+	BodyResistAttributeCodeMonsters        MonsterSlice                  `boil:"BodyResistAttributeCodeMonsters" json:"BodyResistAttributeCodeMonsters" toml:"BodyResistAttributeCodeMonsters" yaml:"BodyResistAttributeCodeMonsters"`
+	DodgeAttributeCodeMonsters             MonsterSlice                  `boil:"DodgeAttributeCodeMonsters" json:"DodgeAttributeCodeMonsters" toml:"DodgeAttributeCodeMonsters" yaml:"DodgeAttributeCodeMonsters"`
+	EnvironmentResistAttributeCodeMonsters MonsterSlice                  `boil:"EnvironmentResistAttributeCodeMonsters" json:"EnvironmentResistAttributeCodeMonsters" toml:"EnvironmentResistAttributeCodeMonsters" yaml:"EnvironmentResistAttributeCodeMonsters"`
+	InitiativeAttributeCodeMonsters        MonsterSlice                  `boil:"InitiativeAttributeCodeMonsters" json:"InitiativeAttributeCodeMonsters" toml:"InitiativeAttributeCodeMonsters" yaml:"InitiativeAttributeCodeMonsters"`
+	MagicResistAttributeCodeMonsters       MonsterSlice                  `boil:"MagicResistAttributeCodeMonsters" json:"MagicResistAttributeCodeMonsters" toml:"MagicResistAttributeCodeMonsters" yaml:"MagicResistAttributeCodeMonsters"`
+	MentalResistAttributeCodeMonsters      MonsterSlice                  `boil:"MentalResistAttributeCodeMonsters" json:"MentalResistAttributeCodeMonsters" toml:"MentalResistAttributeCodeMonsters" yaml:"MentalResistAttributeCodeMonsters"`
 }
 
 // NewStruct creates a new relationship struct
@@ -215,6 +239,134 @@ func (r *heroAttributeTypeR) GetAttributeClassAttributeBonuses() ClassAttributeB
 	}
 
 	return r.AttributeClassAttributeBonuses
+}
+
+func (o *HeroAttributeType) GetAttributeCodeMonsterAttributeOverrides() MonsterAttributeOverrideSlice {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetAttributeCodeMonsterAttributeOverrides()
+}
+
+func (r *heroAttributeTypeR) GetAttributeCodeMonsterAttributeOverrides() MonsterAttributeOverrideSlice {
+	if r == nil {
+		return nil
+	}
+
+	return r.AttributeCodeMonsterAttributeOverrides
+}
+
+func (o *HeroAttributeType) GetAccuracyAttributeCodeMonsters() MonsterSlice {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetAccuracyAttributeCodeMonsters()
+}
+
+func (r *heroAttributeTypeR) GetAccuracyAttributeCodeMonsters() MonsterSlice {
+	if r == nil {
+		return nil
+	}
+
+	return r.AccuracyAttributeCodeMonsters
+}
+
+func (o *HeroAttributeType) GetBodyResistAttributeCodeMonsters() MonsterSlice {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetBodyResistAttributeCodeMonsters()
+}
+
+func (r *heroAttributeTypeR) GetBodyResistAttributeCodeMonsters() MonsterSlice {
+	if r == nil {
+		return nil
+	}
+
+	return r.BodyResistAttributeCodeMonsters
+}
+
+func (o *HeroAttributeType) GetDodgeAttributeCodeMonsters() MonsterSlice {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetDodgeAttributeCodeMonsters()
+}
+
+func (r *heroAttributeTypeR) GetDodgeAttributeCodeMonsters() MonsterSlice {
+	if r == nil {
+		return nil
+	}
+
+	return r.DodgeAttributeCodeMonsters
+}
+
+func (o *HeroAttributeType) GetEnvironmentResistAttributeCodeMonsters() MonsterSlice {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetEnvironmentResistAttributeCodeMonsters()
+}
+
+func (r *heroAttributeTypeR) GetEnvironmentResistAttributeCodeMonsters() MonsterSlice {
+	if r == nil {
+		return nil
+	}
+
+	return r.EnvironmentResistAttributeCodeMonsters
+}
+
+func (o *HeroAttributeType) GetInitiativeAttributeCodeMonsters() MonsterSlice {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetInitiativeAttributeCodeMonsters()
+}
+
+func (r *heroAttributeTypeR) GetInitiativeAttributeCodeMonsters() MonsterSlice {
+	if r == nil {
+		return nil
+	}
+
+	return r.InitiativeAttributeCodeMonsters
+}
+
+func (o *HeroAttributeType) GetMagicResistAttributeCodeMonsters() MonsterSlice {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetMagicResistAttributeCodeMonsters()
+}
+
+func (r *heroAttributeTypeR) GetMagicResistAttributeCodeMonsters() MonsterSlice {
+	if r == nil {
+		return nil
+	}
+
+	return r.MagicResistAttributeCodeMonsters
+}
+
+func (o *HeroAttributeType) GetMentalResistAttributeCodeMonsters() MonsterSlice {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetMentalResistAttributeCodeMonsters()
+}
+
+func (r *heroAttributeTypeR) GetMentalResistAttributeCodeMonsters() MonsterSlice {
+	if r == nil {
+		return nil
+	}
+
+	return r.MentalResistAttributeCodeMonsters
 }
 
 // heroAttributeTypeL is where Load methods for each relationship are stored.
@@ -647,6 +799,118 @@ func (o *HeroAttributeType) AttributeClassAttributeBonuses(mods ...qm.QueryMod) 
 	return ClassAttributeBonuses(queryMods...)
 }
 
+// AttributeCodeMonsterAttributeOverrides retrieves all the monster_attribute_override's MonsterAttributeOverrides with an executor via attribute_code column.
+func (o *HeroAttributeType) AttributeCodeMonsterAttributeOverrides(mods ...qm.QueryMod) monsterAttributeOverrideQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"game_config\".\"monster_attribute_overrides\".\"attribute_code\"=?", o.AttributeCode),
+	)
+
+	return MonsterAttributeOverrides(queryMods...)
+}
+
+// AccuracyAttributeCodeMonsters retrieves all the monster's Monsters with an executor via accuracy_attribute_code column.
+func (o *HeroAttributeType) AccuracyAttributeCodeMonsters(mods ...qm.QueryMod) monsterQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"game_config\".\"monsters\".\"accuracy_attribute_code\"=?", o.AttributeCode),
+	)
+
+	return Monsters(queryMods...)
+}
+
+// BodyResistAttributeCodeMonsters retrieves all the monster's Monsters with an executor via body_resist_attribute_code column.
+func (o *HeroAttributeType) BodyResistAttributeCodeMonsters(mods ...qm.QueryMod) monsterQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"game_config\".\"monsters\".\"body_resist_attribute_code\"=?", o.AttributeCode),
+	)
+
+	return Monsters(queryMods...)
+}
+
+// DodgeAttributeCodeMonsters retrieves all the monster's Monsters with an executor via dodge_attribute_code column.
+func (o *HeroAttributeType) DodgeAttributeCodeMonsters(mods ...qm.QueryMod) monsterQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"game_config\".\"monsters\".\"dodge_attribute_code\"=?", o.AttributeCode),
+	)
+
+	return Monsters(queryMods...)
+}
+
+// EnvironmentResistAttributeCodeMonsters retrieves all the monster's Monsters with an executor via environment_resist_attribute_code column.
+func (o *HeroAttributeType) EnvironmentResistAttributeCodeMonsters(mods ...qm.QueryMod) monsterQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"game_config\".\"monsters\".\"environment_resist_attribute_code\"=?", o.AttributeCode),
+	)
+
+	return Monsters(queryMods...)
+}
+
+// InitiativeAttributeCodeMonsters retrieves all the monster's Monsters with an executor via initiative_attribute_code column.
+func (o *HeroAttributeType) InitiativeAttributeCodeMonsters(mods ...qm.QueryMod) monsterQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"game_config\".\"monsters\".\"initiative_attribute_code\"=?", o.AttributeCode),
+	)
+
+	return Monsters(queryMods...)
+}
+
+// MagicResistAttributeCodeMonsters retrieves all the monster's Monsters with an executor via magic_resist_attribute_code column.
+func (o *HeroAttributeType) MagicResistAttributeCodeMonsters(mods ...qm.QueryMod) monsterQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"game_config\".\"monsters\".\"magic_resist_attribute_code\"=?", o.AttributeCode),
+	)
+
+	return Monsters(queryMods...)
+}
+
+// MentalResistAttributeCodeMonsters retrieves all the monster's Monsters with an executor via mental_resist_attribute_code column.
+func (o *HeroAttributeType) MentalResistAttributeCodeMonsters(mods ...qm.QueryMod) monsterQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"game_config\".\"monsters\".\"mental_resist_attribute_code\"=?", o.AttributeCode),
+	)
+
+	return Monsters(queryMods...)
+}
+
 // LoadAttributeClassAttributeBonuses allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
 func (heroAttributeTypeL) LoadAttributeClassAttributeBonuses(ctx context.Context, e boil.ContextExecutor, singular bool, maybeHeroAttributeType interface{}, mods queries.Applicator) error {
@@ -760,6 +1024,918 @@ func (heroAttributeTypeL) LoadAttributeClassAttributeBonuses(ctx context.Context
 	return nil
 }
 
+// LoadAttributeCodeMonsterAttributeOverrides allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (heroAttributeTypeL) LoadAttributeCodeMonsterAttributeOverrides(ctx context.Context, e boil.ContextExecutor, singular bool, maybeHeroAttributeType interface{}, mods queries.Applicator) error {
+	var slice []*HeroAttributeType
+	var object *HeroAttributeType
+
+	if singular {
+		var ok bool
+		object, ok = maybeHeroAttributeType.(*HeroAttributeType)
+		if !ok {
+			object = new(HeroAttributeType)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeHeroAttributeType)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeHeroAttributeType))
+			}
+		}
+	} else {
+		s, ok := maybeHeroAttributeType.(*[]*HeroAttributeType)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeHeroAttributeType)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeHeroAttributeType))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &heroAttributeTypeR{}
+		}
+		args[object.AttributeCode] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &heroAttributeTypeR{}
+			}
+			args[obj.AttributeCode] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`game_config.monster_attribute_overrides`),
+		qm.WhereIn(`game_config.monster_attribute_overrides.attribute_code in ?`, argsSlice...),
+		qmhelper.WhereIsNull(`game_config.monster_attribute_overrides.deleted_at`),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load monster_attribute_overrides")
+	}
+
+	var resultSlice []*MonsterAttributeOverride
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice monster_attribute_overrides")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on monster_attribute_overrides")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for monster_attribute_overrides")
+	}
+
+	if len(monsterAttributeOverrideAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.AttributeCodeMonsterAttributeOverrides = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &monsterAttributeOverrideR{}
+			}
+			foreign.R.AttributeCodeHeroAttributeType = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.AttributeCode == foreign.AttributeCode {
+				local.R.AttributeCodeMonsterAttributeOverrides = append(local.R.AttributeCodeMonsterAttributeOverrides, foreign)
+				if foreign.R == nil {
+					foreign.R = &monsterAttributeOverrideR{}
+				}
+				foreign.R.AttributeCodeHeroAttributeType = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadAccuracyAttributeCodeMonsters allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (heroAttributeTypeL) LoadAccuracyAttributeCodeMonsters(ctx context.Context, e boil.ContextExecutor, singular bool, maybeHeroAttributeType interface{}, mods queries.Applicator) error {
+	var slice []*HeroAttributeType
+	var object *HeroAttributeType
+
+	if singular {
+		var ok bool
+		object, ok = maybeHeroAttributeType.(*HeroAttributeType)
+		if !ok {
+			object = new(HeroAttributeType)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeHeroAttributeType)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeHeroAttributeType))
+			}
+		}
+	} else {
+		s, ok := maybeHeroAttributeType.(*[]*HeroAttributeType)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeHeroAttributeType)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeHeroAttributeType))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &heroAttributeTypeR{}
+		}
+		args[object.AttributeCode] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &heroAttributeTypeR{}
+			}
+			args[obj.AttributeCode] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`game_config.monsters`),
+		qm.WhereIn(`game_config.monsters.accuracy_attribute_code in ?`, argsSlice...),
+		qmhelper.WhereIsNull(`game_config.monsters.deleted_at`),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load monsters")
+	}
+
+	var resultSlice []*Monster
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice monsters")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on monsters")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for monsters")
+	}
+
+	if len(monsterAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.AccuracyAttributeCodeMonsters = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &monsterR{}
+			}
+			foreign.R.AccuracyAttributeCodeHeroAttributeType = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if queries.Equal(local.AttributeCode, foreign.AccuracyAttributeCode) {
+				local.R.AccuracyAttributeCodeMonsters = append(local.R.AccuracyAttributeCodeMonsters, foreign)
+				if foreign.R == nil {
+					foreign.R = &monsterR{}
+				}
+				foreign.R.AccuracyAttributeCodeHeroAttributeType = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadBodyResistAttributeCodeMonsters allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (heroAttributeTypeL) LoadBodyResistAttributeCodeMonsters(ctx context.Context, e boil.ContextExecutor, singular bool, maybeHeroAttributeType interface{}, mods queries.Applicator) error {
+	var slice []*HeroAttributeType
+	var object *HeroAttributeType
+
+	if singular {
+		var ok bool
+		object, ok = maybeHeroAttributeType.(*HeroAttributeType)
+		if !ok {
+			object = new(HeroAttributeType)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeHeroAttributeType)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeHeroAttributeType))
+			}
+		}
+	} else {
+		s, ok := maybeHeroAttributeType.(*[]*HeroAttributeType)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeHeroAttributeType)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeHeroAttributeType))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &heroAttributeTypeR{}
+		}
+		args[object.AttributeCode] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &heroAttributeTypeR{}
+			}
+			args[obj.AttributeCode] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`game_config.monsters`),
+		qm.WhereIn(`game_config.monsters.body_resist_attribute_code in ?`, argsSlice...),
+		qmhelper.WhereIsNull(`game_config.monsters.deleted_at`),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load monsters")
+	}
+
+	var resultSlice []*Monster
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice monsters")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on monsters")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for monsters")
+	}
+
+	if len(monsterAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.BodyResistAttributeCodeMonsters = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &monsterR{}
+			}
+			foreign.R.BodyResistAttributeCodeHeroAttributeType = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if queries.Equal(local.AttributeCode, foreign.BodyResistAttributeCode) {
+				local.R.BodyResistAttributeCodeMonsters = append(local.R.BodyResistAttributeCodeMonsters, foreign)
+				if foreign.R == nil {
+					foreign.R = &monsterR{}
+				}
+				foreign.R.BodyResistAttributeCodeHeroAttributeType = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadDodgeAttributeCodeMonsters allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (heroAttributeTypeL) LoadDodgeAttributeCodeMonsters(ctx context.Context, e boil.ContextExecutor, singular bool, maybeHeroAttributeType interface{}, mods queries.Applicator) error {
+	var slice []*HeroAttributeType
+	var object *HeroAttributeType
+
+	if singular {
+		var ok bool
+		object, ok = maybeHeroAttributeType.(*HeroAttributeType)
+		if !ok {
+			object = new(HeroAttributeType)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeHeroAttributeType)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeHeroAttributeType))
+			}
+		}
+	} else {
+		s, ok := maybeHeroAttributeType.(*[]*HeroAttributeType)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeHeroAttributeType)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeHeroAttributeType))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &heroAttributeTypeR{}
+		}
+		args[object.AttributeCode] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &heroAttributeTypeR{}
+			}
+			args[obj.AttributeCode] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`game_config.monsters`),
+		qm.WhereIn(`game_config.monsters.dodge_attribute_code in ?`, argsSlice...),
+		qmhelper.WhereIsNull(`game_config.monsters.deleted_at`),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load monsters")
+	}
+
+	var resultSlice []*Monster
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice monsters")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on monsters")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for monsters")
+	}
+
+	if len(monsterAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.DodgeAttributeCodeMonsters = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &monsterR{}
+			}
+			foreign.R.DodgeAttributeCodeHeroAttributeType = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if queries.Equal(local.AttributeCode, foreign.DodgeAttributeCode) {
+				local.R.DodgeAttributeCodeMonsters = append(local.R.DodgeAttributeCodeMonsters, foreign)
+				if foreign.R == nil {
+					foreign.R = &monsterR{}
+				}
+				foreign.R.DodgeAttributeCodeHeroAttributeType = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadEnvironmentResistAttributeCodeMonsters allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (heroAttributeTypeL) LoadEnvironmentResistAttributeCodeMonsters(ctx context.Context, e boil.ContextExecutor, singular bool, maybeHeroAttributeType interface{}, mods queries.Applicator) error {
+	var slice []*HeroAttributeType
+	var object *HeroAttributeType
+
+	if singular {
+		var ok bool
+		object, ok = maybeHeroAttributeType.(*HeroAttributeType)
+		if !ok {
+			object = new(HeroAttributeType)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeHeroAttributeType)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeHeroAttributeType))
+			}
+		}
+	} else {
+		s, ok := maybeHeroAttributeType.(*[]*HeroAttributeType)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeHeroAttributeType)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeHeroAttributeType))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &heroAttributeTypeR{}
+		}
+		args[object.AttributeCode] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &heroAttributeTypeR{}
+			}
+			args[obj.AttributeCode] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`game_config.monsters`),
+		qm.WhereIn(`game_config.monsters.environment_resist_attribute_code in ?`, argsSlice...),
+		qmhelper.WhereIsNull(`game_config.monsters.deleted_at`),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load monsters")
+	}
+
+	var resultSlice []*Monster
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice monsters")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on monsters")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for monsters")
+	}
+
+	if len(monsterAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.EnvironmentResistAttributeCodeMonsters = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &monsterR{}
+			}
+			foreign.R.EnvironmentResistAttributeCodeHeroAttributeType = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if queries.Equal(local.AttributeCode, foreign.EnvironmentResistAttributeCode) {
+				local.R.EnvironmentResistAttributeCodeMonsters = append(local.R.EnvironmentResistAttributeCodeMonsters, foreign)
+				if foreign.R == nil {
+					foreign.R = &monsterR{}
+				}
+				foreign.R.EnvironmentResistAttributeCodeHeroAttributeType = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadInitiativeAttributeCodeMonsters allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (heroAttributeTypeL) LoadInitiativeAttributeCodeMonsters(ctx context.Context, e boil.ContextExecutor, singular bool, maybeHeroAttributeType interface{}, mods queries.Applicator) error {
+	var slice []*HeroAttributeType
+	var object *HeroAttributeType
+
+	if singular {
+		var ok bool
+		object, ok = maybeHeroAttributeType.(*HeroAttributeType)
+		if !ok {
+			object = new(HeroAttributeType)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeHeroAttributeType)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeHeroAttributeType))
+			}
+		}
+	} else {
+		s, ok := maybeHeroAttributeType.(*[]*HeroAttributeType)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeHeroAttributeType)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeHeroAttributeType))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &heroAttributeTypeR{}
+		}
+		args[object.AttributeCode] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &heroAttributeTypeR{}
+			}
+			args[obj.AttributeCode] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`game_config.monsters`),
+		qm.WhereIn(`game_config.monsters.initiative_attribute_code in ?`, argsSlice...),
+		qmhelper.WhereIsNull(`game_config.monsters.deleted_at`),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load monsters")
+	}
+
+	var resultSlice []*Monster
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice monsters")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on monsters")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for monsters")
+	}
+
+	if len(monsterAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.InitiativeAttributeCodeMonsters = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &monsterR{}
+			}
+			foreign.R.InitiativeAttributeCodeHeroAttributeType = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if queries.Equal(local.AttributeCode, foreign.InitiativeAttributeCode) {
+				local.R.InitiativeAttributeCodeMonsters = append(local.R.InitiativeAttributeCodeMonsters, foreign)
+				if foreign.R == nil {
+					foreign.R = &monsterR{}
+				}
+				foreign.R.InitiativeAttributeCodeHeroAttributeType = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadMagicResistAttributeCodeMonsters allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (heroAttributeTypeL) LoadMagicResistAttributeCodeMonsters(ctx context.Context, e boil.ContextExecutor, singular bool, maybeHeroAttributeType interface{}, mods queries.Applicator) error {
+	var slice []*HeroAttributeType
+	var object *HeroAttributeType
+
+	if singular {
+		var ok bool
+		object, ok = maybeHeroAttributeType.(*HeroAttributeType)
+		if !ok {
+			object = new(HeroAttributeType)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeHeroAttributeType)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeHeroAttributeType))
+			}
+		}
+	} else {
+		s, ok := maybeHeroAttributeType.(*[]*HeroAttributeType)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeHeroAttributeType)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeHeroAttributeType))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &heroAttributeTypeR{}
+		}
+		args[object.AttributeCode] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &heroAttributeTypeR{}
+			}
+			args[obj.AttributeCode] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`game_config.monsters`),
+		qm.WhereIn(`game_config.monsters.magic_resist_attribute_code in ?`, argsSlice...),
+		qmhelper.WhereIsNull(`game_config.monsters.deleted_at`),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load monsters")
+	}
+
+	var resultSlice []*Monster
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice monsters")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on monsters")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for monsters")
+	}
+
+	if len(monsterAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.MagicResistAttributeCodeMonsters = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &monsterR{}
+			}
+			foreign.R.MagicResistAttributeCodeHeroAttributeType = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if queries.Equal(local.AttributeCode, foreign.MagicResistAttributeCode) {
+				local.R.MagicResistAttributeCodeMonsters = append(local.R.MagicResistAttributeCodeMonsters, foreign)
+				if foreign.R == nil {
+					foreign.R = &monsterR{}
+				}
+				foreign.R.MagicResistAttributeCodeHeroAttributeType = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadMentalResistAttributeCodeMonsters allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (heroAttributeTypeL) LoadMentalResistAttributeCodeMonsters(ctx context.Context, e boil.ContextExecutor, singular bool, maybeHeroAttributeType interface{}, mods queries.Applicator) error {
+	var slice []*HeroAttributeType
+	var object *HeroAttributeType
+
+	if singular {
+		var ok bool
+		object, ok = maybeHeroAttributeType.(*HeroAttributeType)
+		if !ok {
+			object = new(HeroAttributeType)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeHeroAttributeType)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeHeroAttributeType))
+			}
+		}
+	} else {
+		s, ok := maybeHeroAttributeType.(*[]*HeroAttributeType)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeHeroAttributeType)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeHeroAttributeType))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &heroAttributeTypeR{}
+		}
+		args[object.AttributeCode] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &heroAttributeTypeR{}
+			}
+			args[obj.AttributeCode] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`game_config.monsters`),
+		qm.WhereIn(`game_config.monsters.mental_resist_attribute_code in ?`, argsSlice...),
+		qmhelper.WhereIsNull(`game_config.monsters.deleted_at`),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load monsters")
+	}
+
+	var resultSlice []*Monster
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice monsters")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on monsters")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for monsters")
+	}
+
+	if len(monsterAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.MentalResistAttributeCodeMonsters = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &monsterR{}
+			}
+			foreign.R.MentalResistAttributeCodeHeroAttributeType = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if queries.Equal(local.AttributeCode, foreign.MentalResistAttributeCode) {
+				local.R.MentalResistAttributeCodeMonsters = append(local.R.MentalResistAttributeCodeMonsters, foreign)
+				if foreign.R == nil {
+					foreign.R = &monsterR{}
+				}
+				foreign.R.MentalResistAttributeCodeHeroAttributeType = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
 // AddAttributeClassAttributeBonusesG adds the given related objects to the existing relationships
 // of the hero_attribute_type, optionally inserting them as new records.
 // Appends related to o.R.AttributeClassAttributeBonuses.
@@ -841,6 +2017,1651 @@ func (o *HeroAttributeType) AddAttributeClassAttributeBonuses(ctx context.Contex
 			rel.R.Attribute = o
 		}
 	}
+	return nil
+}
+
+// AddAttributeCodeMonsterAttributeOverridesG adds the given related objects to the existing relationships
+// of the hero_attribute_type, optionally inserting them as new records.
+// Appends related to o.R.AttributeCodeMonsterAttributeOverrides.
+// Sets related.R.AttributeCodeHeroAttributeType appropriately.
+// Uses the global database handle.
+func (o *HeroAttributeType) AddAttributeCodeMonsterAttributeOverridesG(ctx context.Context, insert bool, related ...*MonsterAttributeOverride) error {
+	return o.AddAttributeCodeMonsterAttributeOverrides(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// AddAttributeCodeMonsterAttributeOverridesP adds the given related objects to the existing relationships
+// of the hero_attribute_type, optionally inserting them as new records.
+// Appends related to o.R.AttributeCodeMonsterAttributeOverrides.
+// Sets related.R.AttributeCodeHeroAttributeType appropriately.
+// Panics on error.
+func (o *HeroAttributeType) AddAttributeCodeMonsterAttributeOverridesP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*MonsterAttributeOverride) {
+	if err := o.AddAttributeCodeMonsterAttributeOverrides(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddAttributeCodeMonsterAttributeOverridesGP adds the given related objects to the existing relationships
+// of the hero_attribute_type, optionally inserting them as new records.
+// Appends related to o.R.AttributeCodeMonsterAttributeOverrides.
+// Sets related.R.AttributeCodeHeroAttributeType appropriately.
+// Uses the global database handle and panics on error.
+func (o *HeroAttributeType) AddAttributeCodeMonsterAttributeOverridesGP(ctx context.Context, insert bool, related ...*MonsterAttributeOverride) {
+	if err := o.AddAttributeCodeMonsterAttributeOverrides(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddAttributeCodeMonsterAttributeOverrides adds the given related objects to the existing relationships
+// of the hero_attribute_type, optionally inserting them as new records.
+// Appends related to o.R.AttributeCodeMonsterAttributeOverrides.
+// Sets related.R.AttributeCodeHeroAttributeType appropriately.
+func (o *HeroAttributeType) AddAttributeCodeMonsterAttributeOverrides(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*MonsterAttributeOverride) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.AttributeCode = o.AttributeCode
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"game_config\".\"monster_attribute_overrides\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"attribute_code"}),
+				strmangle.WhereClause("\"", "\"", 2, monsterAttributeOverridePrimaryKeyColumns),
+			)
+			values := []interface{}{o.AttributeCode, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.AttributeCode = o.AttributeCode
+		}
+	}
+
+	if o.R == nil {
+		o.R = &heroAttributeTypeR{
+			AttributeCodeMonsterAttributeOverrides: related,
+		}
+	} else {
+		o.R.AttributeCodeMonsterAttributeOverrides = append(o.R.AttributeCodeMonsterAttributeOverrides, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &monsterAttributeOverrideR{
+				AttributeCodeHeroAttributeType: o,
+			}
+		} else {
+			rel.R.AttributeCodeHeroAttributeType = o
+		}
+	}
+	return nil
+}
+
+// AddAccuracyAttributeCodeMonstersG adds the given related objects to the existing relationships
+// of the hero_attribute_type, optionally inserting them as new records.
+// Appends related to o.R.AccuracyAttributeCodeMonsters.
+// Sets related.R.AccuracyAttributeCodeHeroAttributeType appropriately.
+// Uses the global database handle.
+func (o *HeroAttributeType) AddAccuracyAttributeCodeMonstersG(ctx context.Context, insert bool, related ...*Monster) error {
+	return o.AddAccuracyAttributeCodeMonsters(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// AddAccuracyAttributeCodeMonstersP adds the given related objects to the existing relationships
+// of the hero_attribute_type, optionally inserting them as new records.
+// Appends related to o.R.AccuracyAttributeCodeMonsters.
+// Sets related.R.AccuracyAttributeCodeHeroAttributeType appropriately.
+// Panics on error.
+func (o *HeroAttributeType) AddAccuracyAttributeCodeMonstersP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Monster) {
+	if err := o.AddAccuracyAttributeCodeMonsters(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddAccuracyAttributeCodeMonstersGP adds the given related objects to the existing relationships
+// of the hero_attribute_type, optionally inserting them as new records.
+// Appends related to o.R.AccuracyAttributeCodeMonsters.
+// Sets related.R.AccuracyAttributeCodeHeroAttributeType appropriately.
+// Uses the global database handle and panics on error.
+func (o *HeroAttributeType) AddAccuracyAttributeCodeMonstersGP(ctx context.Context, insert bool, related ...*Monster) {
+	if err := o.AddAccuracyAttributeCodeMonsters(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddAccuracyAttributeCodeMonsters adds the given related objects to the existing relationships
+// of the hero_attribute_type, optionally inserting them as new records.
+// Appends related to o.R.AccuracyAttributeCodeMonsters.
+// Sets related.R.AccuracyAttributeCodeHeroAttributeType appropriately.
+func (o *HeroAttributeType) AddAccuracyAttributeCodeMonsters(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Monster) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			queries.Assign(&rel.AccuracyAttributeCode, o.AttributeCode)
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"game_config\".\"monsters\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"accuracy_attribute_code"}),
+				strmangle.WhereClause("\"", "\"", 2, monsterPrimaryKeyColumns),
+			)
+			values := []interface{}{o.AttributeCode, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			queries.Assign(&rel.AccuracyAttributeCode, o.AttributeCode)
+		}
+	}
+
+	if o.R == nil {
+		o.R = &heroAttributeTypeR{
+			AccuracyAttributeCodeMonsters: related,
+		}
+	} else {
+		o.R.AccuracyAttributeCodeMonsters = append(o.R.AccuracyAttributeCodeMonsters, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &monsterR{
+				AccuracyAttributeCodeHeroAttributeType: o,
+			}
+		} else {
+			rel.R.AccuracyAttributeCodeHeroAttributeType = o
+		}
+	}
+	return nil
+}
+
+// SetAccuracyAttributeCodeMonstersG removes all previously related items of the
+// hero_attribute_type replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.AccuracyAttributeCodeHeroAttributeType's AccuracyAttributeCodeMonsters accordingly.
+// Replaces o.R.AccuracyAttributeCodeMonsters with related.
+// Sets related.R.AccuracyAttributeCodeHeroAttributeType's AccuracyAttributeCodeMonsters accordingly.
+// Uses the global database handle.
+func (o *HeroAttributeType) SetAccuracyAttributeCodeMonstersG(ctx context.Context, insert bool, related ...*Monster) error {
+	return o.SetAccuracyAttributeCodeMonsters(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// SetAccuracyAttributeCodeMonstersP removes all previously related items of the
+// hero_attribute_type replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.AccuracyAttributeCodeHeroAttributeType's AccuracyAttributeCodeMonsters accordingly.
+// Replaces o.R.AccuracyAttributeCodeMonsters with related.
+// Sets related.R.AccuracyAttributeCodeHeroAttributeType's AccuracyAttributeCodeMonsters accordingly.
+// Panics on error.
+func (o *HeroAttributeType) SetAccuracyAttributeCodeMonstersP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Monster) {
+	if err := o.SetAccuracyAttributeCodeMonsters(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// SetAccuracyAttributeCodeMonstersGP removes all previously related items of the
+// hero_attribute_type replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.AccuracyAttributeCodeHeroAttributeType's AccuracyAttributeCodeMonsters accordingly.
+// Replaces o.R.AccuracyAttributeCodeMonsters with related.
+// Sets related.R.AccuracyAttributeCodeHeroAttributeType's AccuracyAttributeCodeMonsters accordingly.
+// Uses the global database handle and panics on error.
+func (o *HeroAttributeType) SetAccuracyAttributeCodeMonstersGP(ctx context.Context, insert bool, related ...*Monster) {
+	if err := o.SetAccuracyAttributeCodeMonsters(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// SetAccuracyAttributeCodeMonsters removes all previously related items of the
+// hero_attribute_type replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.AccuracyAttributeCodeHeroAttributeType's AccuracyAttributeCodeMonsters accordingly.
+// Replaces o.R.AccuracyAttributeCodeMonsters with related.
+// Sets related.R.AccuracyAttributeCodeHeroAttributeType's AccuracyAttributeCodeMonsters accordingly.
+func (o *HeroAttributeType) SetAccuracyAttributeCodeMonsters(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Monster) error {
+	query := "update \"game_config\".\"monsters\" set \"accuracy_attribute_code\" = null where \"accuracy_attribute_code\" = $1"
+	values := []interface{}{o.AttributeCode}
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, query)
+		fmt.Fprintln(writer, values)
+	}
+	_, err := exec.ExecContext(ctx, query, values...)
+	if err != nil {
+		return errors.Wrap(err, "failed to remove relationships before set")
+	}
+
+	if o.R != nil {
+		for _, rel := range o.R.AccuracyAttributeCodeMonsters {
+			queries.SetScanner(&rel.AccuracyAttributeCode, nil)
+			if rel.R == nil {
+				continue
+			}
+
+			rel.R.AccuracyAttributeCodeHeroAttributeType = nil
+		}
+		o.R.AccuracyAttributeCodeMonsters = nil
+	}
+
+	return o.AddAccuracyAttributeCodeMonsters(ctx, exec, insert, related...)
+}
+
+// RemoveAccuracyAttributeCodeMonstersG relationships from objects passed in.
+// Removes related items from R.AccuracyAttributeCodeMonsters (uses pointer comparison, removal does not keep order)
+// Sets related.R.AccuracyAttributeCodeHeroAttributeType.
+// Uses the global database handle.
+func (o *HeroAttributeType) RemoveAccuracyAttributeCodeMonstersG(ctx context.Context, related ...*Monster) error {
+	return o.RemoveAccuracyAttributeCodeMonsters(ctx, boil.GetContextDB(), related...)
+}
+
+// RemoveAccuracyAttributeCodeMonstersP relationships from objects passed in.
+// Removes related items from R.AccuracyAttributeCodeMonsters (uses pointer comparison, removal does not keep order)
+// Sets related.R.AccuracyAttributeCodeHeroAttributeType.
+// Panics on error.
+func (o *HeroAttributeType) RemoveAccuracyAttributeCodeMonstersP(ctx context.Context, exec boil.ContextExecutor, related ...*Monster) {
+	if err := o.RemoveAccuracyAttributeCodeMonsters(ctx, exec, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// RemoveAccuracyAttributeCodeMonstersGP relationships from objects passed in.
+// Removes related items from R.AccuracyAttributeCodeMonsters (uses pointer comparison, removal does not keep order)
+// Sets related.R.AccuracyAttributeCodeHeroAttributeType.
+// Uses the global database handle and panics on error.
+func (o *HeroAttributeType) RemoveAccuracyAttributeCodeMonstersGP(ctx context.Context, related ...*Monster) {
+	if err := o.RemoveAccuracyAttributeCodeMonsters(ctx, boil.GetContextDB(), related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// RemoveAccuracyAttributeCodeMonsters relationships from objects passed in.
+// Removes related items from R.AccuracyAttributeCodeMonsters (uses pointer comparison, removal does not keep order)
+// Sets related.R.AccuracyAttributeCodeHeroAttributeType.
+func (o *HeroAttributeType) RemoveAccuracyAttributeCodeMonsters(ctx context.Context, exec boil.ContextExecutor, related ...*Monster) error {
+	if len(related) == 0 {
+		return nil
+	}
+
+	var err error
+	for _, rel := range related {
+		queries.SetScanner(&rel.AccuracyAttributeCode, nil)
+		if rel.R != nil {
+			rel.R.AccuracyAttributeCodeHeroAttributeType = nil
+		}
+		if _, err = rel.Update(ctx, exec, boil.Whitelist("accuracy_attribute_code")); err != nil {
+			return err
+		}
+	}
+	if o.R == nil {
+		return nil
+	}
+
+	for _, rel := range related {
+		for i, ri := range o.R.AccuracyAttributeCodeMonsters {
+			if rel != ri {
+				continue
+			}
+
+			ln := len(o.R.AccuracyAttributeCodeMonsters)
+			if ln > 1 && i < ln-1 {
+				o.R.AccuracyAttributeCodeMonsters[i] = o.R.AccuracyAttributeCodeMonsters[ln-1]
+			}
+			o.R.AccuracyAttributeCodeMonsters = o.R.AccuracyAttributeCodeMonsters[:ln-1]
+			break
+		}
+	}
+
+	return nil
+}
+
+// AddBodyResistAttributeCodeMonstersG adds the given related objects to the existing relationships
+// of the hero_attribute_type, optionally inserting them as new records.
+// Appends related to o.R.BodyResistAttributeCodeMonsters.
+// Sets related.R.BodyResistAttributeCodeHeroAttributeType appropriately.
+// Uses the global database handle.
+func (o *HeroAttributeType) AddBodyResistAttributeCodeMonstersG(ctx context.Context, insert bool, related ...*Monster) error {
+	return o.AddBodyResistAttributeCodeMonsters(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// AddBodyResistAttributeCodeMonstersP adds the given related objects to the existing relationships
+// of the hero_attribute_type, optionally inserting them as new records.
+// Appends related to o.R.BodyResistAttributeCodeMonsters.
+// Sets related.R.BodyResistAttributeCodeHeroAttributeType appropriately.
+// Panics on error.
+func (o *HeroAttributeType) AddBodyResistAttributeCodeMonstersP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Monster) {
+	if err := o.AddBodyResistAttributeCodeMonsters(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddBodyResistAttributeCodeMonstersGP adds the given related objects to the existing relationships
+// of the hero_attribute_type, optionally inserting them as new records.
+// Appends related to o.R.BodyResistAttributeCodeMonsters.
+// Sets related.R.BodyResistAttributeCodeHeroAttributeType appropriately.
+// Uses the global database handle and panics on error.
+func (o *HeroAttributeType) AddBodyResistAttributeCodeMonstersGP(ctx context.Context, insert bool, related ...*Monster) {
+	if err := o.AddBodyResistAttributeCodeMonsters(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddBodyResistAttributeCodeMonsters adds the given related objects to the existing relationships
+// of the hero_attribute_type, optionally inserting them as new records.
+// Appends related to o.R.BodyResistAttributeCodeMonsters.
+// Sets related.R.BodyResistAttributeCodeHeroAttributeType appropriately.
+func (o *HeroAttributeType) AddBodyResistAttributeCodeMonsters(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Monster) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			queries.Assign(&rel.BodyResistAttributeCode, o.AttributeCode)
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"game_config\".\"monsters\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"body_resist_attribute_code"}),
+				strmangle.WhereClause("\"", "\"", 2, monsterPrimaryKeyColumns),
+			)
+			values := []interface{}{o.AttributeCode, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			queries.Assign(&rel.BodyResistAttributeCode, o.AttributeCode)
+		}
+	}
+
+	if o.R == nil {
+		o.R = &heroAttributeTypeR{
+			BodyResistAttributeCodeMonsters: related,
+		}
+	} else {
+		o.R.BodyResistAttributeCodeMonsters = append(o.R.BodyResistAttributeCodeMonsters, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &monsterR{
+				BodyResistAttributeCodeHeroAttributeType: o,
+			}
+		} else {
+			rel.R.BodyResistAttributeCodeHeroAttributeType = o
+		}
+	}
+	return nil
+}
+
+// SetBodyResistAttributeCodeMonstersG removes all previously related items of the
+// hero_attribute_type replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.BodyResistAttributeCodeHeroAttributeType's BodyResistAttributeCodeMonsters accordingly.
+// Replaces o.R.BodyResistAttributeCodeMonsters with related.
+// Sets related.R.BodyResistAttributeCodeHeroAttributeType's BodyResistAttributeCodeMonsters accordingly.
+// Uses the global database handle.
+func (o *HeroAttributeType) SetBodyResistAttributeCodeMonstersG(ctx context.Context, insert bool, related ...*Monster) error {
+	return o.SetBodyResistAttributeCodeMonsters(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// SetBodyResistAttributeCodeMonstersP removes all previously related items of the
+// hero_attribute_type replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.BodyResistAttributeCodeHeroAttributeType's BodyResistAttributeCodeMonsters accordingly.
+// Replaces o.R.BodyResistAttributeCodeMonsters with related.
+// Sets related.R.BodyResistAttributeCodeHeroAttributeType's BodyResistAttributeCodeMonsters accordingly.
+// Panics on error.
+func (o *HeroAttributeType) SetBodyResistAttributeCodeMonstersP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Monster) {
+	if err := o.SetBodyResistAttributeCodeMonsters(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// SetBodyResistAttributeCodeMonstersGP removes all previously related items of the
+// hero_attribute_type replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.BodyResistAttributeCodeHeroAttributeType's BodyResistAttributeCodeMonsters accordingly.
+// Replaces o.R.BodyResistAttributeCodeMonsters with related.
+// Sets related.R.BodyResistAttributeCodeHeroAttributeType's BodyResistAttributeCodeMonsters accordingly.
+// Uses the global database handle and panics on error.
+func (o *HeroAttributeType) SetBodyResistAttributeCodeMonstersGP(ctx context.Context, insert bool, related ...*Monster) {
+	if err := o.SetBodyResistAttributeCodeMonsters(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// SetBodyResistAttributeCodeMonsters removes all previously related items of the
+// hero_attribute_type replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.BodyResistAttributeCodeHeroAttributeType's BodyResistAttributeCodeMonsters accordingly.
+// Replaces o.R.BodyResistAttributeCodeMonsters with related.
+// Sets related.R.BodyResistAttributeCodeHeroAttributeType's BodyResistAttributeCodeMonsters accordingly.
+func (o *HeroAttributeType) SetBodyResistAttributeCodeMonsters(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Monster) error {
+	query := "update \"game_config\".\"monsters\" set \"body_resist_attribute_code\" = null where \"body_resist_attribute_code\" = $1"
+	values := []interface{}{o.AttributeCode}
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, query)
+		fmt.Fprintln(writer, values)
+	}
+	_, err := exec.ExecContext(ctx, query, values...)
+	if err != nil {
+		return errors.Wrap(err, "failed to remove relationships before set")
+	}
+
+	if o.R != nil {
+		for _, rel := range o.R.BodyResistAttributeCodeMonsters {
+			queries.SetScanner(&rel.BodyResistAttributeCode, nil)
+			if rel.R == nil {
+				continue
+			}
+
+			rel.R.BodyResistAttributeCodeHeroAttributeType = nil
+		}
+		o.R.BodyResistAttributeCodeMonsters = nil
+	}
+
+	return o.AddBodyResistAttributeCodeMonsters(ctx, exec, insert, related...)
+}
+
+// RemoveBodyResistAttributeCodeMonstersG relationships from objects passed in.
+// Removes related items from R.BodyResistAttributeCodeMonsters (uses pointer comparison, removal does not keep order)
+// Sets related.R.BodyResistAttributeCodeHeroAttributeType.
+// Uses the global database handle.
+func (o *HeroAttributeType) RemoveBodyResistAttributeCodeMonstersG(ctx context.Context, related ...*Monster) error {
+	return o.RemoveBodyResistAttributeCodeMonsters(ctx, boil.GetContextDB(), related...)
+}
+
+// RemoveBodyResistAttributeCodeMonstersP relationships from objects passed in.
+// Removes related items from R.BodyResistAttributeCodeMonsters (uses pointer comparison, removal does not keep order)
+// Sets related.R.BodyResistAttributeCodeHeroAttributeType.
+// Panics on error.
+func (o *HeroAttributeType) RemoveBodyResistAttributeCodeMonstersP(ctx context.Context, exec boil.ContextExecutor, related ...*Monster) {
+	if err := o.RemoveBodyResistAttributeCodeMonsters(ctx, exec, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// RemoveBodyResistAttributeCodeMonstersGP relationships from objects passed in.
+// Removes related items from R.BodyResistAttributeCodeMonsters (uses pointer comparison, removal does not keep order)
+// Sets related.R.BodyResistAttributeCodeHeroAttributeType.
+// Uses the global database handle and panics on error.
+func (o *HeroAttributeType) RemoveBodyResistAttributeCodeMonstersGP(ctx context.Context, related ...*Monster) {
+	if err := o.RemoveBodyResistAttributeCodeMonsters(ctx, boil.GetContextDB(), related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// RemoveBodyResistAttributeCodeMonsters relationships from objects passed in.
+// Removes related items from R.BodyResistAttributeCodeMonsters (uses pointer comparison, removal does not keep order)
+// Sets related.R.BodyResistAttributeCodeHeroAttributeType.
+func (o *HeroAttributeType) RemoveBodyResistAttributeCodeMonsters(ctx context.Context, exec boil.ContextExecutor, related ...*Monster) error {
+	if len(related) == 0 {
+		return nil
+	}
+
+	var err error
+	for _, rel := range related {
+		queries.SetScanner(&rel.BodyResistAttributeCode, nil)
+		if rel.R != nil {
+			rel.R.BodyResistAttributeCodeHeroAttributeType = nil
+		}
+		if _, err = rel.Update(ctx, exec, boil.Whitelist("body_resist_attribute_code")); err != nil {
+			return err
+		}
+	}
+	if o.R == nil {
+		return nil
+	}
+
+	for _, rel := range related {
+		for i, ri := range o.R.BodyResistAttributeCodeMonsters {
+			if rel != ri {
+				continue
+			}
+
+			ln := len(o.R.BodyResistAttributeCodeMonsters)
+			if ln > 1 && i < ln-1 {
+				o.R.BodyResistAttributeCodeMonsters[i] = o.R.BodyResistAttributeCodeMonsters[ln-1]
+			}
+			o.R.BodyResistAttributeCodeMonsters = o.R.BodyResistAttributeCodeMonsters[:ln-1]
+			break
+		}
+	}
+
+	return nil
+}
+
+// AddDodgeAttributeCodeMonstersG adds the given related objects to the existing relationships
+// of the hero_attribute_type, optionally inserting them as new records.
+// Appends related to o.R.DodgeAttributeCodeMonsters.
+// Sets related.R.DodgeAttributeCodeHeroAttributeType appropriately.
+// Uses the global database handle.
+func (o *HeroAttributeType) AddDodgeAttributeCodeMonstersG(ctx context.Context, insert bool, related ...*Monster) error {
+	return o.AddDodgeAttributeCodeMonsters(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// AddDodgeAttributeCodeMonstersP adds the given related objects to the existing relationships
+// of the hero_attribute_type, optionally inserting them as new records.
+// Appends related to o.R.DodgeAttributeCodeMonsters.
+// Sets related.R.DodgeAttributeCodeHeroAttributeType appropriately.
+// Panics on error.
+func (o *HeroAttributeType) AddDodgeAttributeCodeMonstersP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Monster) {
+	if err := o.AddDodgeAttributeCodeMonsters(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddDodgeAttributeCodeMonstersGP adds the given related objects to the existing relationships
+// of the hero_attribute_type, optionally inserting them as new records.
+// Appends related to o.R.DodgeAttributeCodeMonsters.
+// Sets related.R.DodgeAttributeCodeHeroAttributeType appropriately.
+// Uses the global database handle and panics on error.
+func (o *HeroAttributeType) AddDodgeAttributeCodeMonstersGP(ctx context.Context, insert bool, related ...*Monster) {
+	if err := o.AddDodgeAttributeCodeMonsters(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddDodgeAttributeCodeMonsters adds the given related objects to the existing relationships
+// of the hero_attribute_type, optionally inserting them as new records.
+// Appends related to o.R.DodgeAttributeCodeMonsters.
+// Sets related.R.DodgeAttributeCodeHeroAttributeType appropriately.
+func (o *HeroAttributeType) AddDodgeAttributeCodeMonsters(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Monster) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			queries.Assign(&rel.DodgeAttributeCode, o.AttributeCode)
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"game_config\".\"monsters\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"dodge_attribute_code"}),
+				strmangle.WhereClause("\"", "\"", 2, monsterPrimaryKeyColumns),
+			)
+			values := []interface{}{o.AttributeCode, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			queries.Assign(&rel.DodgeAttributeCode, o.AttributeCode)
+		}
+	}
+
+	if o.R == nil {
+		o.R = &heroAttributeTypeR{
+			DodgeAttributeCodeMonsters: related,
+		}
+	} else {
+		o.R.DodgeAttributeCodeMonsters = append(o.R.DodgeAttributeCodeMonsters, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &monsterR{
+				DodgeAttributeCodeHeroAttributeType: o,
+			}
+		} else {
+			rel.R.DodgeAttributeCodeHeroAttributeType = o
+		}
+	}
+	return nil
+}
+
+// SetDodgeAttributeCodeMonstersG removes all previously related items of the
+// hero_attribute_type replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.DodgeAttributeCodeHeroAttributeType's DodgeAttributeCodeMonsters accordingly.
+// Replaces o.R.DodgeAttributeCodeMonsters with related.
+// Sets related.R.DodgeAttributeCodeHeroAttributeType's DodgeAttributeCodeMonsters accordingly.
+// Uses the global database handle.
+func (o *HeroAttributeType) SetDodgeAttributeCodeMonstersG(ctx context.Context, insert bool, related ...*Monster) error {
+	return o.SetDodgeAttributeCodeMonsters(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// SetDodgeAttributeCodeMonstersP removes all previously related items of the
+// hero_attribute_type replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.DodgeAttributeCodeHeroAttributeType's DodgeAttributeCodeMonsters accordingly.
+// Replaces o.R.DodgeAttributeCodeMonsters with related.
+// Sets related.R.DodgeAttributeCodeHeroAttributeType's DodgeAttributeCodeMonsters accordingly.
+// Panics on error.
+func (o *HeroAttributeType) SetDodgeAttributeCodeMonstersP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Monster) {
+	if err := o.SetDodgeAttributeCodeMonsters(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// SetDodgeAttributeCodeMonstersGP removes all previously related items of the
+// hero_attribute_type replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.DodgeAttributeCodeHeroAttributeType's DodgeAttributeCodeMonsters accordingly.
+// Replaces o.R.DodgeAttributeCodeMonsters with related.
+// Sets related.R.DodgeAttributeCodeHeroAttributeType's DodgeAttributeCodeMonsters accordingly.
+// Uses the global database handle and panics on error.
+func (o *HeroAttributeType) SetDodgeAttributeCodeMonstersGP(ctx context.Context, insert bool, related ...*Monster) {
+	if err := o.SetDodgeAttributeCodeMonsters(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// SetDodgeAttributeCodeMonsters removes all previously related items of the
+// hero_attribute_type replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.DodgeAttributeCodeHeroAttributeType's DodgeAttributeCodeMonsters accordingly.
+// Replaces o.R.DodgeAttributeCodeMonsters with related.
+// Sets related.R.DodgeAttributeCodeHeroAttributeType's DodgeAttributeCodeMonsters accordingly.
+func (o *HeroAttributeType) SetDodgeAttributeCodeMonsters(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Monster) error {
+	query := "update \"game_config\".\"monsters\" set \"dodge_attribute_code\" = null where \"dodge_attribute_code\" = $1"
+	values := []interface{}{o.AttributeCode}
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, query)
+		fmt.Fprintln(writer, values)
+	}
+	_, err := exec.ExecContext(ctx, query, values...)
+	if err != nil {
+		return errors.Wrap(err, "failed to remove relationships before set")
+	}
+
+	if o.R != nil {
+		for _, rel := range o.R.DodgeAttributeCodeMonsters {
+			queries.SetScanner(&rel.DodgeAttributeCode, nil)
+			if rel.R == nil {
+				continue
+			}
+
+			rel.R.DodgeAttributeCodeHeroAttributeType = nil
+		}
+		o.R.DodgeAttributeCodeMonsters = nil
+	}
+
+	return o.AddDodgeAttributeCodeMonsters(ctx, exec, insert, related...)
+}
+
+// RemoveDodgeAttributeCodeMonstersG relationships from objects passed in.
+// Removes related items from R.DodgeAttributeCodeMonsters (uses pointer comparison, removal does not keep order)
+// Sets related.R.DodgeAttributeCodeHeroAttributeType.
+// Uses the global database handle.
+func (o *HeroAttributeType) RemoveDodgeAttributeCodeMonstersG(ctx context.Context, related ...*Monster) error {
+	return o.RemoveDodgeAttributeCodeMonsters(ctx, boil.GetContextDB(), related...)
+}
+
+// RemoveDodgeAttributeCodeMonstersP relationships from objects passed in.
+// Removes related items from R.DodgeAttributeCodeMonsters (uses pointer comparison, removal does not keep order)
+// Sets related.R.DodgeAttributeCodeHeroAttributeType.
+// Panics on error.
+func (o *HeroAttributeType) RemoveDodgeAttributeCodeMonstersP(ctx context.Context, exec boil.ContextExecutor, related ...*Monster) {
+	if err := o.RemoveDodgeAttributeCodeMonsters(ctx, exec, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// RemoveDodgeAttributeCodeMonstersGP relationships from objects passed in.
+// Removes related items from R.DodgeAttributeCodeMonsters (uses pointer comparison, removal does not keep order)
+// Sets related.R.DodgeAttributeCodeHeroAttributeType.
+// Uses the global database handle and panics on error.
+func (o *HeroAttributeType) RemoveDodgeAttributeCodeMonstersGP(ctx context.Context, related ...*Monster) {
+	if err := o.RemoveDodgeAttributeCodeMonsters(ctx, boil.GetContextDB(), related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// RemoveDodgeAttributeCodeMonsters relationships from objects passed in.
+// Removes related items from R.DodgeAttributeCodeMonsters (uses pointer comparison, removal does not keep order)
+// Sets related.R.DodgeAttributeCodeHeroAttributeType.
+func (o *HeroAttributeType) RemoveDodgeAttributeCodeMonsters(ctx context.Context, exec boil.ContextExecutor, related ...*Monster) error {
+	if len(related) == 0 {
+		return nil
+	}
+
+	var err error
+	for _, rel := range related {
+		queries.SetScanner(&rel.DodgeAttributeCode, nil)
+		if rel.R != nil {
+			rel.R.DodgeAttributeCodeHeroAttributeType = nil
+		}
+		if _, err = rel.Update(ctx, exec, boil.Whitelist("dodge_attribute_code")); err != nil {
+			return err
+		}
+	}
+	if o.R == nil {
+		return nil
+	}
+
+	for _, rel := range related {
+		for i, ri := range o.R.DodgeAttributeCodeMonsters {
+			if rel != ri {
+				continue
+			}
+
+			ln := len(o.R.DodgeAttributeCodeMonsters)
+			if ln > 1 && i < ln-1 {
+				o.R.DodgeAttributeCodeMonsters[i] = o.R.DodgeAttributeCodeMonsters[ln-1]
+			}
+			o.R.DodgeAttributeCodeMonsters = o.R.DodgeAttributeCodeMonsters[:ln-1]
+			break
+		}
+	}
+
+	return nil
+}
+
+// AddEnvironmentResistAttributeCodeMonstersG adds the given related objects to the existing relationships
+// of the hero_attribute_type, optionally inserting them as new records.
+// Appends related to o.R.EnvironmentResistAttributeCodeMonsters.
+// Sets related.R.EnvironmentResistAttributeCodeHeroAttributeType appropriately.
+// Uses the global database handle.
+func (o *HeroAttributeType) AddEnvironmentResistAttributeCodeMonstersG(ctx context.Context, insert bool, related ...*Monster) error {
+	return o.AddEnvironmentResistAttributeCodeMonsters(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// AddEnvironmentResistAttributeCodeMonstersP adds the given related objects to the existing relationships
+// of the hero_attribute_type, optionally inserting them as new records.
+// Appends related to o.R.EnvironmentResistAttributeCodeMonsters.
+// Sets related.R.EnvironmentResistAttributeCodeHeroAttributeType appropriately.
+// Panics on error.
+func (o *HeroAttributeType) AddEnvironmentResistAttributeCodeMonstersP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Monster) {
+	if err := o.AddEnvironmentResistAttributeCodeMonsters(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddEnvironmentResistAttributeCodeMonstersGP adds the given related objects to the existing relationships
+// of the hero_attribute_type, optionally inserting them as new records.
+// Appends related to o.R.EnvironmentResistAttributeCodeMonsters.
+// Sets related.R.EnvironmentResistAttributeCodeHeroAttributeType appropriately.
+// Uses the global database handle and panics on error.
+func (o *HeroAttributeType) AddEnvironmentResistAttributeCodeMonstersGP(ctx context.Context, insert bool, related ...*Monster) {
+	if err := o.AddEnvironmentResistAttributeCodeMonsters(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddEnvironmentResistAttributeCodeMonsters adds the given related objects to the existing relationships
+// of the hero_attribute_type, optionally inserting them as new records.
+// Appends related to o.R.EnvironmentResistAttributeCodeMonsters.
+// Sets related.R.EnvironmentResistAttributeCodeHeroAttributeType appropriately.
+func (o *HeroAttributeType) AddEnvironmentResistAttributeCodeMonsters(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Monster) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			queries.Assign(&rel.EnvironmentResistAttributeCode, o.AttributeCode)
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"game_config\".\"monsters\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"environment_resist_attribute_code"}),
+				strmangle.WhereClause("\"", "\"", 2, monsterPrimaryKeyColumns),
+			)
+			values := []interface{}{o.AttributeCode, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			queries.Assign(&rel.EnvironmentResistAttributeCode, o.AttributeCode)
+		}
+	}
+
+	if o.R == nil {
+		o.R = &heroAttributeTypeR{
+			EnvironmentResistAttributeCodeMonsters: related,
+		}
+	} else {
+		o.R.EnvironmentResistAttributeCodeMonsters = append(o.R.EnvironmentResistAttributeCodeMonsters, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &monsterR{
+				EnvironmentResistAttributeCodeHeroAttributeType: o,
+			}
+		} else {
+			rel.R.EnvironmentResistAttributeCodeHeroAttributeType = o
+		}
+	}
+	return nil
+}
+
+// SetEnvironmentResistAttributeCodeMonstersG removes all previously related items of the
+// hero_attribute_type replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.EnvironmentResistAttributeCodeHeroAttributeType's EnvironmentResistAttributeCodeMonsters accordingly.
+// Replaces o.R.EnvironmentResistAttributeCodeMonsters with related.
+// Sets related.R.EnvironmentResistAttributeCodeHeroAttributeType's EnvironmentResistAttributeCodeMonsters accordingly.
+// Uses the global database handle.
+func (o *HeroAttributeType) SetEnvironmentResistAttributeCodeMonstersG(ctx context.Context, insert bool, related ...*Monster) error {
+	return o.SetEnvironmentResistAttributeCodeMonsters(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// SetEnvironmentResistAttributeCodeMonstersP removes all previously related items of the
+// hero_attribute_type replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.EnvironmentResistAttributeCodeHeroAttributeType's EnvironmentResistAttributeCodeMonsters accordingly.
+// Replaces o.R.EnvironmentResistAttributeCodeMonsters with related.
+// Sets related.R.EnvironmentResistAttributeCodeHeroAttributeType's EnvironmentResistAttributeCodeMonsters accordingly.
+// Panics on error.
+func (o *HeroAttributeType) SetEnvironmentResistAttributeCodeMonstersP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Monster) {
+	if err := o.SetEnvironmentResistAttributeCodeMonsters(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// SetEnvironmentResistAttributeCodeMonstersGP removes all previously related items of the
+// hero_attribute_type replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.EnvironmentResistAttributeCodeHeroAttributeType's EnvironmentResistAttributeCodeMonsters accordingly.
+// Replaces o.R.EnvironmentResistAttributeCodeMonsters with related.
+// Sets related.R.EnvironmentResistAttributeCodeHeroAttributeType's EnvironmentResistAttributeCodeMonsters accordingly.
+// Uses the global database handle and panics on error.
+func (o *HeroAttributeType) SetEnvironmentResistAttributeCodeMonstersGP(ctx context.Context, insert bool, related ...*Monster) {
+	if err := o.SetEnvironmentResistAttributeCodeMonsters(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// SetEnvironmentResistAttributeCodeMonsters removes all previously related items of the
+// hero_attribute_type replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.EnvironmentResistAttributeCodeHeroAttributeType's EnvironmentResistAttributeCodeMonsters accordingly.
+// Replaces o.R.EnvironmentResistAttributeCodeMonsters with related.
+// Sets related.R.EnvironmentResistAttributeCodeHeroAttributeType's EnvironmentResistAttributeCodeMonsters accordingly.
+func (o *HeroAttributeType) SetEnvironmentResistAttributeCodeMonsters(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Monster) error {
+	query := "update \"game_config\".\"monsters\" set \"environment_resist_attribute_code\" = null where \"environment_resist_attribute_code\" = $1"
+	values := []interface{}{o.AttributeCode}
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, query)
+		fmt.Fprintln(writer, values)
+	}
+	_, err := exec.ExecContext(ctx, query, values...)
+	if err != nil {
+		return errors.Wrap(err, "failed to remove relationships before set")
+	}
+
+	if o.R != nil {
+		for _, rel := range o.R.EnvironmentResistAttributeCodeMonsters {
+			queries.SetScanner(&rel.EnvironmentResistAttributeCode, nil)
+			if rel.R == nil {
+				continue
+			}
+
+			rel.R.EnvironmentResistAttributeCodeHeroAttributeType = nil
+		}
+		o.R.EnvironmentResistAttributeCodeMonsters = nil
+	}
+
+	return o.AddEnvironmentResistAttributeCodeMonsters(ctx, exec, insert, related...)
+}
+
+// RemoveEnvironmentResistAttributeCodeMonstersG relationships from objects passed in.
+// Removes related items from R.EnvironmentResistAttributeCodeMonsters (uses pointer comparison, removal does not keep order)
+// Sets related.R.EnvironmentResistAttributeCodeHeroAttributeType.
+// Uses the global database handle.
+func (o *HeroAttributeType) RemoveEnvironmentResistAttributeCodeMonstersG(ctx context.Context, related ...*Monster) error {
+	return o.RemoveEnvironmentResistAttributeCodeMonsters(ctx, boil.GetContextDB(), related...)
+}
+
+// RemoveEnvironmentResistAttributeCodeMonstersP relationships from objects passed in.
+// Removes related items from R.EnvironmentResistAttributeCodeMonsters (uses pointer comparison, removal does not keep order)
+// Sets related.R.EnvironmentResistAttributeCodeHeroAttributeType.
+// Panics on error.
+func (o *HeroAttributeType) RemoveEnvironmentResistAttributeCodeMonstersP(ctx context.Context, exec boil.ContextExecutor, related ...*Monster) {
+	if err := o.RemoveEnvironmentResistAttributeCodeMonsters(ctx, exec, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// RemoveEnvironmentResistAttributeCodeMonstersGP relationships from objects passed in.
+// Removes related items from R.EnvironmentResistAttributeCodeMonsters (uses pointer comparison, removal does not keep order)
+// Sets related.R.EnvironmentResistAttributeCodeHeroAttributeType.
+// Uses the global database handle and panics on error.
+func (o *HeroAttributeType) RemoveEnvironmentResistAttributeCodeMonstersGP(ctx context.Context, related ...*Monster) {
+	if err := o.RemoveEnvironmentResistAttributeCodeMonsters(ctx, boil.GetContextDB(), related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// RemoveEnvironmentResistAttributeCodeMonsters relationships from objects passed in.
+// Removes related items from R.EnvironmentResistAttributeCodeMonsters (uses pointer comparison, removal does not keep order)
+// Sets related.R.EnvironmentResistAttributeCodeHeroAttributeType.
+func (o *HeroAttributeType) RemoveEnvironmentResistAttributeCodeMonsters(ctx context.Context, exec boil.ContextExecutor, related ...*Monster) error {
+	if len(related) == 0 {
+		return nil
+	}
+
+	var err error
+	for _, rel := range related {
+		queries.SetScanner(&rel.EnvironmentResistAttributeCode, nil)
+		if rel.R != nil {
+			rel.R.EnvironmentResistAttributeCodeHeroAttributeType = nil
+		}
+		if _, err = rel.Update(ctx, exec, boil.Whitelist("environment_resist_attribute_code")); err != nil {
+			return err
+		}
+	}
+	if o.R == nil {
+		return nil
+	}
+
+	for _, rel := range related {
+		for i, ri := range o.R.EnvironmentResistAttributeCodeMonsters {
+			if rel != ri {
+				continue
+			}
+
+			ln := len(o.R.EnvironmentResistAttributeCodeMonsters)
+			if ln > 1 && i < ln-1 {
+				o.R.EnvironmentResistAttributeCodeMonsters[i] = o.R.EnvironmentResistAttributeCodeMonsters[ln-1]
+			}
+			o.R.EnvironmentResistAttributeCodeMonsters = o.R.EnvironmentResistAttributeCodeMonsters[:ln-1]
+			break
+		}
+	}
+
+	return nil
+}
+
+// AddInitiativeAttributeCodeMonstersG adds the given related objects to the existing relationships
+// of the hero_attribute_type, optionally inserting them as new records.
+// Appends related to o.R.InitiativeAttributeCodeMonsters.
+// Sets related.R.InitiativeAttributeCodeHeroAttributeType appropriately.
+// Uses the global database handle.
+func (o *HeroAttributeType) AddInitiativeAttributeCodeMonstersG(ctx context.Context, insert bool, related ...*Monster) error {
+	return o.AddInitiativeAttributeCodeMonsters(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// AddInitiativeAttributeCodeMonstersP adds the given related objects to the existing relationships
+// of the hero_attribute_type, optionally inserting them as new records.
+// Appends related to o.R.InitiativeAttributeCodeMonsters.
+// Sets related.R.InitiativeAttributeCodeHeroAttributeType appropriately.
+// Panics on error.
+func (o *HeroAttributeType) AddInitiativeAttributeCodeMonstersP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Monster) {
+	if err := o.AddInitiativeAttributeCodeMonsters(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddInitiativeAttributeCodeMonstersGP adds the given related objects to the existing relationships
+// of the hero_attribute_type, optionally inserting them as new records.
+// Appends related to o.R.InitiativeAttributeCodeMonsters.
+// Sets related.R.InitiativeAttributeCodeHeroAttributeType appropriately.
+// Uses the global database handle and panics on error.
+func (o *HeroAttributeType) AddInitiativeAttributeCodeMonstersGP(ctx context.Context, insert bool, related ...*Monster) {
+	if err := o.AddInitiativeAttributeCodeMonsters(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddInitiativeAttributeCodeMonsters adds the given related objects to the existing relationships
+// of the hero_attribute_type, optionally inserting them as new records.
+// Appends related to o.R.InitiativeAttributeCodeMonsters.
+// Sets related.R.InitiativeAttributeCodeHeroAttributeType appropriately.
+func (o *HeroAttributeType) AddInitiativeAttributeCodeMonsters(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Monster) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			queries.Assign(&rel.InitiativeAttributeCode, o.AttributeCode)
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"game_config\".\"monsters\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"initiative_attribute_code"}),
+				strmangle.WhereClause("\"", "\"", 2, monsterPrimaryKeyColumns),
+			)
+			values := []interface{}{o.AttributeCode, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			queries.Assign(&rel.InitiativeAttributeCode, o.AttributeCode)
+		}
+	}
+
+	if o.R == nil {
+		o.R = &heroAttributeTypeR{
+			InitiativeAttributeCodeMonsters: related,
+		}
+	} else {
+		o.R.InitiativeAttributeCodeMonsters = append(o.R.InitiativeAttributeCodeMonsters, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &monsterR{
+				InitiativeAttributeCodeHeroAttributeType: o,
+			}
+		} else {
+			rel.R.InitiativeAttributeCodeHeroAttributeType = o
+		}
+	}
+	return nil
+}
+
+// SetInitiativeAttributeCodeMonstersG removes all previously related items of the
+// hero_attribute_type replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.InitiativeAttributeCodeHeroAttributeType's InitiativeAttributeCodeMonsters accordingly.
+// Replaces o.R.InitiativeAttributeCodeMonsters with related.
+// Sets related.R.InitiativeAttributeCodeHeroAttributeType's InitiativeAttributeCodeMonsters accordingly.
+// Uses the global database handle.
+func (o *HeroAttributeType) SetInitiativeAttributeCodeMonstersG(ctx context.Context, insert bool, related ...*Monster) error {
+	return o.SetInitiativeAttributeCodeMonsters(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// SetInitiativeAttributeCodeMonstersP removes all previously related items of the
+// hero_attribute_type replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.InitiativeAttributeCodeHeroAttributeType's InitiativeAttributeCodeMonsters accordingly.
+// Replaces o.R.InitiativeAttributeCodeMonsters with related.
+// Sets related.R.InitiativeAttributeCodeHeroAttributeType's InitiativeAttributeCodeMonsters accordingly.
+// Panics on error.
+func (o *HeroAttributeType) SetInitiativeAttributeCodeMonstersP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Monster) {
+	if err := o.SetInitiativeAttributeCodeMonsters(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// SetInitiativeAttributeCodeMonstersGP removes all previously related items of the
+// hero_attribute_type replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.InitiativeAttributeCodeHeroAttributeType's InitiativeAttributeCodeMonsters accordingly.
+// Replaces o.R.InitiativeAttributeCodeMonsters with related.
+// Sets related.R.InitiativeAttributeCodeHeroAttributeType's InitiativeAttributeCodeMonsters accordingly.
+// Uses the global database handle and panics on error.
+func (o *HeroAttributeType) SetInitiativeAttributeCodeMonstersGP(ctx context.Context, insert bool, related ...*Monster) {
+	if err := o.SetInitiativeAttributeCodeMonsters(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// SetInitiativeAttributeCodeMonsters removes all previously related items of the
+// hero_attribute_type replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.InitiativeAttributeCodeHeroAttributeType's InitiativeAttributeCodeMonsters accordingly.
+// Replaces o.R.InitiativeAttributeCodeMonsters with related.
+// Sets related.R.InitiativeAttributeCodeHeroAttributeType's InitiativeAttributeCodeMonsters accordingly.
+func (o *HeroAttributeType) SetInitiativeAttributeCodeMonsters(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Monster) error {
+	query := "update \"game_config\".\"monsters\" set \"initiative_attribute_code\" = null where \"initiative_attribute_code\" = $1"
+	values := []interface{}{o.AttributeCode}
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, query)
+		fmt.Fprintln(writer, values)
+	}
+	_, err := exec.ExecContext(ctx, query, values...)
+	if err != nil {
+		return errors.Wrap(err, "failed to remove relationships before set")
+	}
+
+	if o.R != nil {
+		for _, rel := range o.R.InitiativeAttributeCodeMonsters {
+			queries.SetScanner(&rel.InitiativeAttributeCode, nil)
+			if rel.R == nil {
+				continue
+			}
+
+			rel.R.InitiativeAttributeCodeHeroAttributeType = nil
+		}
+		o.R.InitiativeAttributeCodeMonsters = nil
+	}
+
+	return o.AddInitiativeAttributeCodeMonsters(ctx, exec, insert, related...)
+}
+
+// RemoveInitiativeAttributeCodeMonstersG relationships from objects passed in.
+// Removes related items from R.InitiativeAttributeCodeMonsters (uses pointer comparison, removal does not keep order)
+// Sets related.R.InitiativeAttributeCodeHeroAttributeType.
+// Uses the global database handle.
+func (o *HeroAttributeType) RemoveInitiativeAttributeCodeMonstersG(ctx context.Context, related ...*Monster) error {
+	return o.RemoveInitiativeAttributeCodeMonsters(ctx, boil.GetContextDB(), related...)
+}
+
+// RemoveInitiativeAttributeCodeMonstersP relationships from objects passed in.
+// Removes related items from R.InitiativeAttributeCodeMonsters (uses pointer comparison, removal does not keep order)
+// Sets related.R.InitiativeAttributeCodeHeroAttributeType.
+// Panics on error.
+func (o *HeroAttributeType) RemoveInitiativeAttributeCodeMonstersP(ctx context.Context, exec boil.ContextExecutor, related ...*Monster) {
+	if err := o.RemoveInitiativeAttributeCodeMonsters(ctx, exec, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// RemoveInitiativeAttributeCodeMonstersGP relationships from objects passed in.
+// Removes related items from R.InitiativeAttributeCodeMonsters (uses pointer comparison, removal does not keep order)
+// Sets related.R.InitiativeAttributeCodeHeroAttributeType.
+// Uses the global database handle and panics on error.
+func (o *HeroAttributeType) RemoveInitiativeAttributeCodeMonstersGP(ctx context.Context, related ...*Monster) {
+	if err := o.RemoveInitiativeAttributeCodeMonsters(ctx, boil.GetContextDB(), related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// RemoveInitiativeAttributeCodeMonsters relationships from objects passed in.
+// Removes related items from R.InitiativeAttributeCodeMonsters (uses pointer comparison, removal does not keep order)
+// Sets related.R.InitiativeAttributeCodeHeroAttributeType.
+func (o *HeroAttributeType) RemoveInitiativeAttributeCodeMonsters(ctx context.Context, exec boil.ContextExecutor, related ...*Monster) error {
+	if len(related) == 0 {
+		return nil
+	}
+
+	var err error
+	for _, rel := range related {
+		queries.SetScanner(&rel.InitiativeAttributeCode, nil)
+		if rel.R != nil {
+			rel.R.InitiativeAttributeCodeHeroAttributeType = nil
+		}
+		if _, err = rel.Update(ctx, exec, boil.Whitelist("initiative_attribute_code")); err != nil {
+			return err
+		}
+	}
+	if o.R == nil {
+		return nil
+	}
+
+	for _, rel := range related {
+		for i, ri := range o.R.InitiativeAttributeCodeMonsters {
+			if rel != ri {
+				continue
+			}
+
+			ln := len(o.R.InitiativeAttributeCodeMonsters)
+			if ln > 1 && i < ln-1 {
+				o.R.InitiativeAttributeCodeMonsters[i] = o.R.InitiativeAttributeCodeMonsters[ln-1]
+			}
+			o.R.InitiativeAttributeCodeMonsters = o.R.InitiativeAttributeCodeMonsters[:ln-1]
+			break
+		}
+	}
+
+	return nil
+}
+
+// AddMagicResistAttributeCodeMonstersG adds the given related objects to the existing relationships
+// of the hero_attribute_type, optionally inserting them as new records.
+// Appends related to o.R.MagicResistAttributeCodeMonsters.
+// Sets related.R.MagicResistAttributeCodeHeroAttributeType appropriately.
+// Uses the global database handle.
+func (o *HeroAttributeType) AddMagicResistAttributeCodeMonstersG(ctx context.Context, insert bool, related ...*Monster) error {
+	return o.AddMagicResistAttributeCodeMonsters(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// AddMagicResistAttributeCodeMonstersP adds the given related objects to the existing relationships
+// of the hero_attribute_type, optionally inserting them as new records.
+// Appends related to o.R.MagicResistAttributeCodeMonsters.
+// Sets related.R.MagicResistAttributeCodeHeroAttributeType appropriately.
+// Panics on error.
+func (o *HeroAttributeType) AddMagicResistAttributeCodeMonstersP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Monster) {
+	if err := o.AddMagicResistAttributeCodeMonsters(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddMagicResistAttributeCodeMonstersGP adds the given related objects to the existing relationships
+// of the hero_attribute_type, optionally inserting them as new records.
+// Appends related to o.R.MagicResistAttributeCodeMonsters.
+// Sets related.R.MagicResistAttributeCodeHeroAttributeType appropriately.
+// Uses the global database handle and panics on error.
+func (o *HeroAttributeType) AddMagicResistAttributeCodeMonstersGP(ctx context.Context, insert bool, related ...*Monster) {
+	if err := o.AddMagicResistAttributeCodeMonsters(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddMagicResistAttributeCodeMonsters adds the given related objects to the existing relationships
+// of the hero_attribute_type, optionally inserting them as new records.
+// Appends related to o.R.MagicResistAttributeCodeMonsters.
+// Sets related.R.MagicResistAttributeCodeHeroAttributeType appropriately.
+func (o *HeroAttributeType) AddMagicResistAttributeCodeMonsters(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Monster) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			queries.Assign(&rel.MagicResistAttributeCode, o.AttributeCode)
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"game_config\".\"monsters\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"magic_resist_attribute_code"}),
+				strmangle.WhereClause("\"", "\"", 2, monsterPrimaryKeyColumns),
+			)
+			values := []interface{}{o.AttributeCode, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			queries.Assign(&rel.MagicResistAttributeCode, o.AttributeCode)
+		}
+	}
+
+	if o.R == nil {
+		o.R = &heroAttributeTypeR{
+			MagicResistAttributeCodeMonsters: related,
+		}
+	} else {
+		o.R.MagicResistAttributeCodeMonsters = append(o.R.MagicResistAttributeCodeMonsters, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &monsterR{
+				MagicResistAttributeCodeHeroAttributeType: o,
+			}
+		} else {
+			rel.R.MagicResistAttributeCodeHeroAttributeType = o
+		}
+	}
+	return nil
+}
+
+// SetMagicResistAttributeCodeMonstersG removes all previously related items of the
+// hero_attribute_type replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.MagicResistAttributeCodeHeroAttributeType's MagicResistAttributeCodeMonsters accordingly.
+// Replaces o.R.MagicResistAttributeCodeMonsters with related.
+// Sets related.R.MagicResistAttributeCodeHeroAttributeType's MagicResistAttributeCodeMonsters accordingly.
+// Uses the global database handle.
+func (o *HeroAttributeType) SetMagicResistAttributeCodeMonstersG(ctx context.Context, insert bool, related ...*Monster) error {
+	return o.SetMagicResistAttributeCodeMonsters(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// SetMagicResistAttributeCodeMonstersP removes all previously related items of the
+// hero_attribute_type replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.MagicResistAttributeCodeHeroAttributeType's MagicResistAttributeCodeMonsters accordingly.
+// Replaces o.R.MagicResistAttributeCodeMonsters with related.
+// Sets related.R.MagicResistAttributeCodeHeroAttributeType's MagicResistAttributeCodeMonsters accordingly.
+// Panics on error.
+func (o *HeroAttributeType) SetMagicResistAttributeCodeMonstersP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Monster) {
+	if err := o.SetMagicResistAttributeCodeMonsters(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// SetMagicResistAttributeCodeMonstersGP removes all previously related items of the
+// hero_attribute_type replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.MagicResistAttributeCodeHeroAttributeType's MagicResistAttributeCodeMonsters accordingly.
+// Replaces o.R.MagicResistAttributeCodeMonsters with related.
+// Sets related.R.MagicResistAttributeCodeHeroAttributeType's MagicResistAttributeCodeMonsters accordingly.
+// Uses the global database handle and panics on error.
+func (o *HeroAttributeType) SetMagicResistAttributeCodeMonstersGP(ctx context.Context, insert bool, related ...*Monster) {
+	if err := o.SetMagicResistAttributeCodeMonsters(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// SetMagicResistAttributeCodeMonsters removes all previously related items of the
+// hero_attribute_type replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.MagicResistAttributeCodeHeroAttributeType's MagicResistAttributeCodeMonsters accordingly.
+// Replaces o.R.MagicResistAttributeCodeMonsters with related.
+// Sets related.R.MagicResistAttributeCodeHeroAttributeType's MagicResistAttributeCodeMonsters accordingly.
+func (o *HeroAttributeType) SetMagicResistAttributeCodeMonsters(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Monster) error {
+	query := "update \"game_config\".\"monsters\" set \"magic_resist_attribute_code\" = null where \"magic_resist_attribute_code\" = $1"
+	values := []interface{}{o.AttributeCode}
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, query)
+		fmt.Fprintln(writer, values)
+	}
+	_, err := exec.ExecContext(ctx, query, values...)
+	if err != nil {
+		return errors.Wrap(err, "failed to remove relationships before set")
+	}
+
+	if o.R != nil {
+		for _, rel := range o.R.MagicResistAttributeCodeMonsters {
+			queries.SetScanner(&rel.MagicResistAttributeCode, nil)
+			if rel.R == nil {
+				continue
+			}
+
+			rel.R.MagicResistAttributeCodeHeroAttributeType = nil
+		}
+		o.R.MagicResistAttributeCodeMonsters = nil
+	}
+
+	return o.AddMagicResistAttributeCodeMonsters(ctx, exec, insert, related...)
+}
+
+// RemoveMagicResistAttributeCodeMonstersG relationships from objects passed in.
+// Removes related items from R.MagicResistAttributeCodeMonsters (uses pointer comparison, removal does not keep order)
+// Sets related.R.MagicResistAttributeCodeHeroAttributeType.
+// Uses the global database handle.
+func (o *HeroAttributeType) RemoveMagicResistAttributeCodeMonstersG(ctx context.Context, related ...*Monster) error {
+	return o.RemoveMagicResistAttributeCodeMonsters(ctx, boil.GetContextDB(), related...)
+}
+
+// RemoveMagicResistAttributeCodeMonstersP relationships from objects passed in.
+// Removes related items from R.MagicResistAttributeCodeMonsters (uses pointer comparison, removal does not keep order)
+// Sets related.R.MagicResistAttributeCodeHeroAttributeType.
+// Panics on error.
+func (o *HeroAttributeType) RemoveMagicResistAttributeCodeMonstersP(ctx context.Context, exec boil.ContextExecutor, related ...*Monster) {
+	if err := o.RemoveMagicResistAttributeCodeMonsters(ctx, exec, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// RemoveMagicResistAttributeCodeMonstersGP relationships from objects passed in.
+// Removes related items from R.MagicResistAttributeCodeMonsters (uses pointer comparison, removal does not keep order)
+// Sets related.R.MagicResistAttributeCodeHeroAttributeType.
+// Uses the global database handle and panics on error.
+func (o *HeroAttributeType) RemoveMagicResistAttributeCodeMonstersGP(ctx context.Context, related ...*Monster) {
+	if err := o.RemoveMagicResistAttributeCodeMonsters(ctx, boil.GetContextDB(), related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// RemoveMagicResistAttributeCodeMonsters relationships from objects passed in.
+// Removes related items from R.MagicResistAttributeCodeMonsters (uses pointer comparison, removal does not keep order)
+// Sets related.R.MagicResistAttributeCodeHeroAttributeType.
+func (o *HeroAttributeType) RemoveMagicResistAttributeCodeMonsters(ctx context.Context, exec boil.ContextExecutor, related ...*Monster) error {
+	if len(related) == 0 {
+		return nil
+	}
+
+	var err error
+	for _, rel := range related {
+		queries.SetScanner(&rel.MagicResistAttributeCode, nil)
+		if rel.R != nil {
+			rel.R.MagicResistAttributeCodeHeroAttributeType = nil
+		}
+		if _, err = rel.Update(ctx, exec, boil.Whitelist("magic_resist_attribute_code")); err != nil {
+			return err
+		}
+	}
+	if o.R == nil {
+		return nil
+	}
+
+	for _, rel := range related {
+		for i, ri := range o.R.MagicResistAttributeCodeMonsters {
+			if rel != ri {
+				continue
+			}
+
+			ln := len(o.R.MagicResistAttributeCodeMonsters)
+			if ln > 1 && i < ln-1 {
+				o.R.MagicResistAttributeCodeMonsters[i] = o.R.MagicResistAttributeCodeMonsters[ln-1]
+			}
+			o.R.MagicResistAttributeCodeMonsters = o.R.MagicResistAttributeCodeMonsters[:ln-1]
+			break
+		}
+	}
+
+	return nil
+}
+
+// AddMentalResistAttributeCodeMonstersG adds the given related objects to the existing relationships
+// of the hero_attribute_type, optionally inserting them as new records.
+// Appends related to o.R.MentalResistAttributeCodeMonsters.
+// Sets related.R.MentalResistAttributeCodeHeroAttributeType appropriately.
+// Uses the global database handle.
+func (o *HeroAttributeType) AddMentalResistAttributeCodeMonstersG(ctx context.Context, insert bool, related ...*Monster) error {
+	return o.AddMentalResistAttributeCodeMonsters(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// AddMentalResistAttributeCodeMonstersP adds the given related objects to the existing relationships
+// of the hero_attribute_type, optionally inserting them as new records.
+// Appends related to o.R.MentalResistAttributeCodeMonsters.
+// Sets related.R.MentalResistAttributeCodeHeroAttributeType appropriately.
+// Panics on error.
+func (o *HeroAttributeType) AddMentalResistAttributeCodeMonstersP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Monster) {
+	if err := o.AddMentalResistAttributeCodeMonsters(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddMentalResistAttributeCodeMonstersGP adds the given related objects to the existing relationships
+// of the hero_attribute_type, optionally inserting them as new records.
+// Appends related to o.R.MentalResistAttributeCodeMonsters.
+// Sets related.R.MentalResistAttributeCodeHeroAttributeType appropriately.
+// Uses the global database handle and panics on error.
+func (o *HeroAttributeType) AddMentalResistAttributeCodeMonstersGP(ctx context.Context, insert bool, related ...*Monster) {
+	if err := o.AddMentalResistAttributeCodeMonsters(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddMentalResistAttributeCodeMonsters adds the given related objects to the existing relationships
+// of the hero_attribute_type, optionally inserting them as new records.
+// Appends related to o.R.MentalResistAttributeCodeMonsters.
+// Sets related.R.MentalResistAttributeCodeHeroAttributeType appropriately.
+func (o *HeroAttributeType) AddMentalResistAttributeCodeMonsters(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Monster) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			queries.Assign(&rel.MentalResistAttributeCode, o.AttributeCode)
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"game_config\".\"monsters\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"mental_resist_attribute_code"}),
+				strmangle.WhereClause("\"", "\"", 2, monsterPrimaryKeyColumns),
+			)
+			values := []interface{}{o.AttributeCode, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			queries.Assign(&rel.MentalResistAttributeCode, o.AttributeCode)
+		}
+	}
+
+	if o.R == nil {
+		o.R = &heroAttributeTypeR{
+			MentalResistAttributeCodeMonsters: related,
+		}
+	} else {
+		o.R.MentalResistAttributeCodeMonsters = append(o.R.MentalResistAttributeCodeMonsters, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &monsterR{
+				MentalResistAttributeCodeHeroAttributeType: o,
+			}
+		} else {
+			rel.R.MentalResistAttributeCodeHeroAttributeType = o
+		}
+	}
+	return nil
+}
+
+// SetMentalResistAttributeCodeMonstersG removes all previously related items of the
+// hero_attribute_type replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.MentalResistAttributeCodeHeroAttributeType's MentalResistAttributeCodeMonsters accordingly.
+// Replaces o.R.MentalResistAttributeCodeMonsters with related.
+// Sets related.R.MentalResistAttributeCodeHeroAttributeType's MentalResistAttributeCodeMonsters accordingly.
+// Uses the global database handle.
+func (o *HeroAttributeType) SetMentalResistAttributeCodeMonstersG(ctx context.Context, insert bool, related ...*Monster) error {
+	return o.SetMentalResistAttributeCodeMonsters(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// SetMentalResistAttributeCodeMonstersP removes all previously related items of the
+// hero_attribute_type replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.MentalResistAttributeCodeHeroAttributeType's MentalResistAttributeCodeMonsters accordingly.
+// Replaces o.R.MentalResistAttributeCodeMonsters with related.
+// Sets related.R.MentalResistAttributeCodeHeroAttributeType's MentalResistAttributeCodeMonsters accordingly.
+// Panics on error.
+func (o *HeroAttributeType) SetMentalResistAttributeCodeMonstersP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Monster) {
+	if err := o.SetMentalResistAttributeCodeMonsters(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// SetMentalResistAttributeCodeMonstersGP removes all previously related items of the
+// hero_attribute_type replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.MentalResistAttributeCodeHeroAttributeType's MentalResistAttributeCodeMonsters accordingly.
+// Replaces o.R.MentalResistAttributeCodeMonsters with related.
+// Sets related.R.MentalResistAttributeCodeHeroAttributeType's MentalResistAttributeCodeMonsters accordingly.
+// Uses the global database handle and panics on error.
+func (o *HeroAttributeType) SetMentalResistAttributeCodeMonstersGP(ctx context.Context, insert bool, related ...*Monster) {
+	if err := o.SetMentalResistAttributeCodeMonsters(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// SetMentalResistAttributeCodeMonsters removes all previously related items of the
+// hero_attribute_type replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.MentalResistAttributeCodeHeroAttributeType's MentalResistAttributeCodeMonsters accordingly.
+// Replaces o.R.MentalResistAttributeCodeMonsters with related.
+// Sets related.R.MentalResistAttributeCodeHeroAttributeType's MentalResistAttributeCodeMonsters accordingly.
+func (o *HeroAttributeType) SetMentalResistAttributeCodeMonsters(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Monster) error {
+	query := "update \"game_config\".\"monsters\" set \"mental_resist_attribute_code\" = null where \"mental_resist_attribute_code\" = $1"
+	values := []interface{}{o.AttributeCode}
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, query)
+		fmt.Fprintln(writer, values)
+	}
+	_, err := exec.ExecContext(ctx, query, values...)
+	if err != nil {
+		return errors.Wrap(err, "failed to remove relationships before set")
+	}
+
+	if o.R != nil {
+		for _, rel := range o.R.MentalResistAttributeCodeMonsters {
+			queries.SetScanner(&rel.MentalResistAttributeCode, nil)
+			if rel.R == nil {
+				continue
+			}
+
+			rel.R.MentalResistAttributeCodeHeroAttributeType = nil
+		}
+		o.R.MentalResistAttributeCodeMonsters = nil
+	}
+
+	return o.AddMentalResistAttributeCodeMonsters(ctx, exec, insert, related...)
+}
+
+// RemoveMentalResistAttributeCodeMonstersG relationships from objects passed in.
+// Removes related items from R.MentalResistAttributeCodeMonsters (uses pointer comparison, removal does not keep order)
+// Sets related.R.MentalResistAttributeCodeHeroAttributeType.
+// Uses the global database handle.
+func (o *HeroAttributeType) RemoveMentalResistAttributeCodeMonstersG(ctx context.Context, related ...*Monster) error {
+	return o.RemoveMentalResistAttributeCodeMonsters(ctx, boil.GetContextDB(), related...)
+}
+
+// RemoveMentalResistAttributeCodeMonstersP relationships from objects passed in.
+// Removes related items from R.MentalResistAttributeCodeMonsters (uses pointer comparison, removal does not keep order)
+// Sets related.R.MentalResistAttributeCodeHeroAttributeType.
+// Panics on error.
+func (o *HeroAttributeType) RemoveMentalResistAttributeCodeMonstersP(ctx context.Context, exec boil.ContextExecutor, related ...*Monster) {
+	if err := o.RemoveMentalResistAttributeCodeMonsters(ctx, exec, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// RemoveMentalResistAttributeCodeMonstersGP relationships from objects passed in.
+// Removes related items from R.MentalResistAttributeCodeMonsters (uses pointer comparison, removal does not keep order)
+// Sets related.R.MentalResistAttributeCodeHeroAttributeType.
+// Uses the global database handle and panics on error.
+func (o *HeroAttributeType) RemoveMentalResistAttributeCodeMonstersGP(ctx context.Context, related ...*Monster) {
+	if err := o.RemoveMentalResistAttributeCodeMonsters(ctx, boil.GetContextDB(), related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// RemoveMentalResistAttributeCodeMonsters relationships from objects passed in.
+// Removes related items from R.MentalResistAttributeCodeMonsters (uses pointer comparison, removal does not keep order)
+// Sets related.R.MentalResistAttributeCodeHeroAttributeType.
+func (o *HeroAttributeType) RemoveMentalResistAttributeCodeMonsters(ctx context.Context, exec boil.ContextExecutor, related ...*Monster) error {
+	if len(related) == 0 {
+		return nil
+	}
+
+	var err error
+	for _, rel := range related {
+		queries.SetScanner(&rel.MentalResistAttributeCode, nil)
+		if rel.R != nil {
+			rel.R.MentalResistAttributeCodeHeroAttributeType = nil
+		}
+		if _, err = rel.Update(ctx, exec, boil.Whitelist("mental_resist_attribute_code")); err != nil {
+			return err
+		}
+	}
+	if o.R == nil {
+		return nil
+	}
+
+	for _, rel := range related {
+		for i, ri := range o.R.MentalResistAttributeCodeMonsters {
+			if rel != ri {
+				continue
+			}
+
+			ln := len(o.R.MentalResistAttributeCodeMonsters)
+			if ln > 1 && i < ln-1 {
+				o.R.MentalResistAttributeCodeMonsters[i] = o.R.MentalResistAttributeCodeMonsters[ln-1]
+			}
+			o.R.MentalResistAttributeCodeMonsters = o.R.MentalResistAttributeCodeMonsters[:ln-1]
+			break
+		}
+	}
+
 	return nil
 }
 

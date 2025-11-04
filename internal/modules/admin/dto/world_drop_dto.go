@@ -8,12 +8,12 @@ import (
 
 // CreateWorldDropRequest 创建世界掉落请求
 type CreateWorldDropRequest struct {
-	ItemID            string          `json:"item_id" validate:"required,uuid"`
-	TotalDropLimit    *int            `json:"total_drop_limit,omitempty" validate:"omitempty,min=0"`
-	DailyDropLimit    *int            `json:"daily_drop_limit,omitempty" validate:"omitempty,min=0"`
-	HourlyDropLimit   *int            `json:"hourly_drop_limit,omitempty" validate:"omitempty,min=0"`
-	MinDropInterval   *int            `json:"min_drop_interval,omitempty" validate:"omitempty,min=0"`
-	MaxDropInterval   *int            `json:"max_drop_interval,omitempty" validate:"omitempty,min=0"`
+	ItemID          string `json:"item_id" validate:"required,uuid"`
+	TotalDropLimit  *int   `json:"total_drop_limit,omitempty" validate:"omitempty,min=0"`
+	DailyDropLimit  *int   `json:"daily_drop_limit,omitempty" validate:"omitempty,min=0"`
+	HourlyDropLimit *int   `json:"hourly_drop_limit,omitempty" validate:"omitempty,min=0"`
+	MinDropInterval *int   `json:"min_drop_interval,omitempty" validate:"omitempty,min=0"`
+	MaxDropInterval *int   `json:"max_drop_interval,omitempty" validate:"omitempty,min=0"`
 
 	// 触发条件 - 定义何时可以掉落该物品
 	// 格式: {"min_player_level":10,"max_player_level":20,"required_quest":"quest_id","zone":"zone_name"}
@@ -24,7 +24,7 @@ type CreateWorldDropRequest struct {
 	// 示例: {"min_player_level":10,"max_player_level":20,"zone":"forest"}
 	TriggerConditions json.RawMessage `json:"trigger_conditions,omitempty" swaggertype:"string"`
 
-	BaseDropRate      float64         `json:"base_drop_rate" validate:"required,gt=0,lte=1"`
+	BaseDropRate float64 `json:"base_drop_rate" validate:"required,gt=0,lte=1"`
 
 	// 掉落率修正器 - 根据不同条件调整掉落率
 	// 格式: {"time_of_day":{"morning":1.2,"night":0.8},"player_luck_bonus":0.1}
@@ -37,47 +37,47 @@ type CreateWorldDropRequest struct {
 
 // UpdateWorldDropRequest 更新世界掉落请求
 type UpdateWorldDropRequest struct {
-	TotalDropLimit    *int            `json:"total_drop_limit,omitempty" validate:"omitempty,min=0"`
-	DailyDropLimit    *int            `json:"daily_drop_limit,omitempty" validate:"omitempty,min=0"`
-	HourlyDropLimit   *int            `json:"hourly_drop_limit,omitempty" validate:"omitempty,min=0"`
-	MinDropInterval   *int            `json:"min_drop_interval,omitempty" validate:"omitempty,min=0"`
-	MaxDropInterval   *int            `json:"max_drop_interval,omitempty" validate:"omitempty,min=0"`
+	TotalDropLimit  *int `json:"total_drop_limit,omitempty" validate:"omitempty,min=0"`
+	DailyDropLimit  *int `json:"daily_drop_limit,omitempty" validate:"omitempty,min=0"`
+	HourlyDropLimit *int `json:"hourly_drop_limit,omitempty" validate:"omitempty,min=0"`
+	MinDropInterval *int `json:"min_drop_interval,omitempty" validate:"omitempty,min=0"`
+	MaxDropInterval *int `json:"max_drop_interval,omitempty" validate:"omitempty,min=0"`
 
 	// 触发条件 - 详细说明见CreateWorldDropRequest
 	TriggerConditions json.RawMessage `json:"trigger_conditions,omitempty" swaggertype:"string"`
 
-	BaseDropRate      *float64        `json:"base_drop_rate,omitempty" validate:"omitempty,gt=0,lte=1"`
+	BaseDropRate *float64 `json:"base_drop_rate,omitempty" validate:"omitempty,gt=0,lte=1"`
 
 	// 掉落率修正器 - 详细说明见CreateWorldDropRequest
 	DropRateModifiers json.RawMessage `json:"drop_rate_modifiers,omitempty" swaggertype:"string"`
 
-	IsActive          *bool           `json:"is_active,omitempty"`
+	IsActive *bool `json:"is_active,omitempty"`
 }
 
 // WorldDropResponse 世界掉落响应
 type WorldDropResponse struct {
-	ID                string          `json:"id"`
-	ItemID            string          `json:"item_id"`
-	ItemCode          string          `json:"item_code"`
-	ItemName          string          `json:"item_name"`
-	TotalDropLimit    *int            `json:"total_drop_limit,omitempty"`
-	DailyDropLimit    *int            `json:"daily_drop_limit,omitempty"`
-	HourlyDropLimit   *int            `json:"hourly_drop_limit,omitempty"`
-	MinDropInterval   *int            `json:"min_drop_interval,omitempty"`
-	MaxDropInterval   *int            `json:"max_drop_interval,omitempty"`
+	ID              string `json:"id"`
+	ItemID          string `json:"item_id"`
+	ItemCode        string `json:"item_code"`
+	ItemName        string `json:"item_name"`
+	TotalDropLimit  *int   `json:"total_drop_limit,omitempty"`
+	DailyDropLimit  *int   `json:"daily_drop_limit,omitempty"`
+	HourlyDropLimit *int   `json:"hourly_drop_limit,omitempty"`
+	MinDropInterval *int   `json:"min_drop_interval,omitempty"`
+	MaxDropInterval *int   `json:"max_drop_interval,omitempty"`
 
 	// 触发条件 - 详细说明见CreateWorldDropRequest
 	TriggerConditions json.RawMessage `json:"trigger_conditions,omitempty" swaggertype:"string"`
 
-	BaseDropRate      float64         `json:"base_drop_rate"`
+	BaseDropRate float64 `json:"base_drop_rate"`
 
 	// 掉落率修正器 - 详细说明见CreateWorldDropRequest
 	DropRateModifiers json.RawMessage `json:"drop_rate_modifiers,omitempty" swaggertype:"string"`
 
-	IsActive          bool            `json:"is_active"`
-	CreatedAt         time.Time       `json:"created_at"`
-	UpdatedAt         time.Time       `json:"updated_at"`
-	DeletedAt         *time.Time      `json:"deleted_at,omitempty"`
+	IsActive  bool       `json:"is_active"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 }
 
 // WorldDropListResponse 世界掉落列表响应

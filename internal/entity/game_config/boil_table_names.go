@@ -30,6 +30,10 @@ var TableNames = struct {
 	ItemClassRelations        string
 	Items                     string
 	MetadataDictionary        string
+	MonsterAttributeOverrides string
+	MonsterDrops              string
+	MonsterSkills             string
+	Monsters                  string
 	RangeConfigRules          string
 	SkillCategories           string
 	SkillUnlockActions        string
@@ -66,6 +70,10 @@ var TableNames = struct {
 	ItemClassRelations:        "item_class_relations",
 	Items:                     "items",
 	MetadataDictionary:        "metadata_dictionary",
+	MonsterAttributeOverrides: "monster_attribute_overrides",
+	MonsterDrops:              "monster_drops",
+	MonsterSkills:             "monster_skills",
+	Monsters:                  "monsters",
 	RangeConfigRules:          "range_config_rules",
 	SkillCategories:           "skill_categories",
 	SkillUnlockActions:        "skill_unlock_actions",

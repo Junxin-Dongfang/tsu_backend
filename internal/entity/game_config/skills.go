@@ -155,11 +155,13 @@ var SkillRels = struct {
 	Category            string
 	RelatedSkillActions string
 	ClassSkillPools     string
+	MonsterSkills       string
 	SkillUnlockActions  string
 }{
 	Category:            "Category",
 	RelatedSkillActions: "RelatedSkillActions",
 	ClassSkillPools:     "ClassSkillPools",
+	MonsterSkills:       "MonsterSkills",
 	SkillUnlockActions:  "SkillUnlockActions",
 }
 
@@ -168,6 +170,7 @@ type skillR struct {
 	Category            *SkillCategory         `boil:"Category" json:"Category" toml:"Category" yaml:"Category"`
 	RelatedSkillActions ActionSlice            `boil:"RelatedSkillActions" json:"RelatedSkillActions" toml:"RelatedSkillActions" yaml:"RelatedSkillActions"`
 	ClassSkillPools     ClassSkillPoolSlice    `boil:"ClassSkillPools" json:"ClassSkillPools" toml:"ClassSkillPools" yaml:"ClassSkillPools"`
+	MonsterSkills       MonsterSkillSlice      `boil:"MonsterSkills" json:"MonsterSkills" toml:"MonsterSkills" yaml:"MonsterSkills"`
 	SkillUnlockActions  SkillUnlockActionSlice `boil:"SkillUnlockActions" json:"SkillUnlockActions" toml:"SkillUnlockActions" yaml:"SkillUnlockActions"`
 }
 
@@ -222,6 +225,22 @@ func (r *skillR) GetClassSkillPools() ClassSkillPoolSlice {
 	}
 
 	return r.ClassSkillPools
+}
+
+func (o *Skill) GetMonsterSkills() MonsterSkillSlice {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetMonsterSkills()
+}
+
+func (r *skillR) GetMonsterSkills() MonsterSkillSlice {
+	if r == nil {
+		return nil
+	}
+
+	return r.MonsterSkills
 }
 
 func (o *Skill) GetSkillUnlockActions() SkillUnlockActionSlice {
@@ -695,6 +714,20 @@ func (o *Skill) ClassSkillPools(mods ...qm.QueryMod) classSkillPoolQuery {
 	return ClassSkillPools(queryMods...)
 }
 
+// MonsterSkills retrieves all the monster_skill's MonsterSkills with an executor.
+func (o *Skill) MonsterSkills(mods ...qm.QueryMod) monsterSkillQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"game_config\".\"monster_skills\".\"skill_id\"=?", o.ID),
+	)
+
+	return MonsterSkills(queryMods...)
+}
+
 // SkillUnlockActions retrieves all the skill_unlock_action's SkillUnlockActions with an executor.
 func (o *Skill) SkillUnlockActions(mods ...qm.QueryMod) skillUnlockActionQuery {
 	var queryMods []qm.QueryMod
@@ -1052,6 +1085,120 @@ func (skillL) LoadClassSkillPools(ctx context.Context, e boil.ContextExecutor, s
 				local.R.ClassSkillPools = append(local.R.ClassSkillPools, foreign)
 				if foreign.R == nil {
 					foreign.R = &classSkillPoolR{}
+				}
+				foreign.R.Skill = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadMonsterSkills allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (skillL) LoadMonsterSkills(ctx context.Context, e boil.ContextExecutor, singular bool, maybeSkill interface{}, mods queries.Applicator) error {
+	var slice []*Skill
+	var object *Skill
+
+	if singular {
+		var ok bool
+		object, ok = maybeSkill.(*Skill)
+		if !ok {
+			object = new(Skill)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeSkill)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeSkill))
+			}
+		}
+	} else {
+		s, ok := maybeSkill.(*[]*Skill)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeSkill)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeSkill))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &skillR{}
+		}
+		args[object.ID] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &skillR{}
+			}
+			args[obj.ID] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`game_config.monster_skills`),
+		qm.WhereIn(`game_config.monster_skills.skill_id in ?`, argsSlice...),
+		qmhelper.WhereIsNull(`game_config.monster_skills.deleted_at`),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load monster_skills")
+	}
+
+	var resultSlice []*MonsterSkill
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice monster_skills")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on monster_skills")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for monster_skills")
+	}
+
+	if len(monsterSkillAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.MonsterSkills = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &monsterSkillR{}
+			}
+			foreign.R.Skill = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.SkillID {
+				local.R.MonsterSkills = append(local.R.MonsterSkills, foreign)
+				if foreign.R == nil {
+					foreign.R = &monsterSkillR{}
 				}
 				foreign.R.Skill = local
 				break
@@ -1610,6 +1757,90 @@ func (o *Skill) AddClassSkillPools(ctx context.Context, exec boil.ContextExecuto
 	for _, rel := range related {
 		if rel.R == nil {
 			rel.R = &classSkillPoolR{
+				Skill: o,
+			}
+		} else {
+			rel.R.Skill = o
+		}
+	}
+	return nil
+}
+
+// AddMonsterSkillsG adds the given related objects to the existing relationships
+// of the skill, optionally inserting them as new records.
+// Appends related to o.R.MonsterSkills.
+// Sets related.R.Skill appropriately.
+// Uses the global database handle.
+func (o *Skill) AddMonsterSkillsG(ctx context.Context, insert bool, related ...*MonsterSkill) error {
+	return o.AddMonsterSkills(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// AddMonsterSkillsP adds the given related objects to the existing relationships
+// of the skill, optionally inserting them as new records.
+// Appends related to o.R.MonsterSkills.
+// Sets related.R.Skill appropriately.
+// Panics on error.
+func (o *Skill) AddMonsterSkillsP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*MonsterSkill) {
+	if err := o.AddMonsterSkills(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddMonsterSkillsGP adds the given related objects to the existing relationships
+// of the skill, optionally inserting them as new records.
+// Appends related to o.R.MonsterSkills.
+// Sets related.R.Skill appropriately.
+// Uses the global database handle and panics on error.
+func (o *Skill) AddMonsterSkillsGP(ctx context.Context, insert bool, related ...*MonsterSkill) {
+	if err := o.AddMonsterSkills(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddMonsterSkills adds the given related objects to the existing relationships
+// of the skill, optionally inserting them as new records.
+// Appends related to o.R.MonsterSkills.
+// Sets related.R.Skill appropriately.
+func (o *Skill) AddMonsterSkills(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*MonsterSkill) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.SkillID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"game_config\".\"monster_skills\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"skill_id"}),
+				strmangle.WhereClause("\"", "\"", 2, monsterSkillPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.SkillID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &skillR{
+			MonsterSkills: related,
+		}
+	} else {
+		o.R.MonsterSkills = append(o.R.MonsterSkills, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &monsterSkillR{
 				Skill: o,
 			}
 		} else {

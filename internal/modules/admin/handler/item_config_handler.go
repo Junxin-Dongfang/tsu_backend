@@ -188,9 +188,9 @@ func (h *ItemConfigHandler) ListItems(c echo.Context) error {
 
 	// 返回分页响应
 	return response.EchoOK(c, h.respWriter, map[string]interface{}{
-		"items": items,
-		"total": total,
-		"page":  params.Page,
+		"items":     items,
+		"total":     total,
+		"page":      params.Page,
 		"page_size": params.PageSize,
 	})
 }

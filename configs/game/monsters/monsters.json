@@ -1,0 +1,148 @@
+[
+  {
+    "monster_code": "MAD_DOG",
+    "monster_name": "疯狗",
+    "monster_level": 2,
+    "description": "一只失去理智的野狗，攻击性极强",
+    "max_hp": 20,
+    "hp_recovery": 2,
+    "max_mp": 0,
+    "mp_recovery": 0,
+    "base_str": 1,
+    "base_agi": 3,
+    "base_vit": 1,
+    "base_wlp": 0,
+    "base_int": 1,
+    "base_wis": 0,
+    "base_cha": 0,
+    "accuracy_formula": "STR*2+AGI",
+    "dodge_formula": "AGI*2+WIS",
+    "initiative_formula": "AGI*2+WIS",
+    "body_resist_formula": "VIT*2+WLP",
+    "magic_resist_formula": "WLP*2+WIS",
+    "mental_resist_formula": "WIS*2+WLP",
+    "environment_resist_formula": "VIT*2+WIS",
+    "damage_resistances": {
+      "SLASH_RESIST": 0,
+      "SLASH_DR": 0,
+      "PIERCE_RESIST": 0,
+      "PIERCE_DR": 0,
+      "BLUDGE_RESIST": 0,
+      "BLUDGE_DR": 0,
+      "FIRE_RESIST": 0,
+      "FIRE_DR": 0,
+      "ICE_RESIST": 0,
+      "ICE_DR": 0,
+      "ELECTRIC_RESIST": 0,
+      "ELECTRIC_DR": 0,
+      "HOLY_RESIST": 0,
+      "HOLY_DR": 0,
+      "SHADOW_RESIST": 0,
+      "SHADOW_DR": 1
+    },
+    "passive_buffs": [],
+    "drop_gold_min": 10,
+    "drop_gold_max": 30,
+    "drop_exp": 20,
+    "icon_url": "",
+    "model_url": "",
+    "tags": ["Beast"],
+    "skills": [
+      {
+        "skill_code": "MAD_DOG_BITE",
+        "skill_level": 2,
+        "gain_actions": ["MAD_DOG_BITE"]
+      },
+      {
+        "skill_code": "SANLESS_MOVE",
+        "skill_level": 2,
+        "gain_actions": ["SANLESS_MOVE"]
+      }
+    ],
+    "drops": [
+      {
+        "drop_pool_code": "MAD_DOG_MEAT_POOL",
+        "drop_type": "team",
+        "drop_chance": 1.0,
+        "min_quantity": 1,
+        "max_quantity": 3
+      }
+    ]
+  },
+  {
+    "monster_code": "GOBLIN_SOLDIER",
+    "monster_name": "哥布林刀盾手",
+    "monster_level": 3,
+    "description": "装备简陋武器和盾牌的哥布林战士",
+    "max_hp": 60,
+    "hp_recovery": 6,
+    "max_mp": 50,
+    "mp_recovery": 5,
+    "base_str": 3,
+    "base_agi": 3,
+    "base_vit": 2,
+    "base_wlp": 1,
+    "base_int": 1,
+    "base_wis": 1,
+    "base_cha": 1,
+    "accuracy_formula": "STR*2+AGI+3",
+    "dodge_formula": "AGI*2+WIS+2",
+    "initiative_formula": "AGI*2+WIS",
+    "body_resist_formula": "VIT*2+WLP+2",
+    "magic_resist_formula": "WLP*2+WIS",
+    "mental_resist_formula": "WIS*2+WLP",
+    "environment_resist_formula": "VIT*2+WIS",
+    "damage_resistances": {
+      "SLASH_RESIST": 0,
+      "SLASH_DR": 0,
+      "PIERCE_RESIST": 0,
+      "PIERCE_DR": 0,
+      "BLUDGE_RESIST": 0,
+      "BLUDGE_DR": 0,
+      "FIRE_RESIST": 0,
+      "FIRE_DR": 0,
+      "ICE_RESIST": 0,
+      "ICE_DR": 0,
+      "ELECTRIC_RESIST": 0,
+      "ELECTRIC_DR": 0,
+      "HOLY_RESIST": 0,
+      "HOLY_DR": 0,
+      "SHADOW_RESIST": 0,
+      "SHADOW_DR": 0
+    },
+    "passive_buffs": [],
+    "drop_gold_min": 20,
+    "drop_gold_max": 40,
+    "drop_exp": 30,
+    "icon_url": "",
+    "model_url": "",
+    "tags": ["Goblin", "Humanoid"],
+    "skills": [
+      {
+        "skill_code": "SLASH",
+        "skill_level": 3,
+        "gain_actions": ["SLASH"]
+      },
+      {
+        "skill_code": "SHIELDS_UP",
+        "skill_level": 3,
+        "gain_actions": ["SHIELDS_UP"]
+      },
+      {
+        "skill_code": "PUSH_FORWARD",
+        "skill_level": 3,
+        "gain_actions": ["PUSH_FORWARD"]
+      }
+    ],
+    "drops": [
+      {
+        "drop_pool_code": "GOBLIN_EQUIPMENT_POOL",
+        "drop_type": "team",
+        "drop_chance": 1.0,
+        "min_quantity": 1,
+        "max_quantity": 1
+      }
+    ]
+  }
+]
+

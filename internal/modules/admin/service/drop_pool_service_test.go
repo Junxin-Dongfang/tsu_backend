@@ -201,7 +201,7 @@ func TestDropPoolService_CreateDropPool(t *testing.T) {
 					require.ErrorAs(t, err, &xerr, "error should be xerrors.AppError")
 					assert.Equal(t, tc.errorCode, xerr.Code)
 				}
-			} else{
+			} else {
 				require.NoError(t, err)
 				require.NotNil(t, resp)
 				if tc.validate != nil {
@@ -332,4 +332,3 @@ func TestDropPoolService_UpdateDropPool(t *testing.T) {
 func generateUUID() string {
 	return uuid.New().String()
 }
-

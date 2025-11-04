@@ -22,9 +22,9 @@ type CreateItemRequest struct {
 	EquipSlot        *string  `json:"equip_slot,omitempty" validate:"omitempty,oneof=head eyes ears neck cloak chest belt shoulder wrist gloves legs feet ring badge coat pocket summon_mount mainhand offhand twohand special"`
 	RequiredClassIDs []string `json:"required_class_ids,omitempty" validate:"omitempty,dive,uuid4"` // 职业限制（空数组=通用装备）
 	RequiredLevel    *int16   `json:"required_level,omitempty" validate:"omitempty,min=1,max=100"`
-	MaterialType      *string `json:"material_type,omitempty"`
-	MaxDurability     *int    `json:"max_durability,omitempty" validate:"omitempty,min=1"`
-	UniquenessType    *string `json:"uniqueness_type,omitempty" validate:"omitempty,oneof=none unique unique_equipped"`
+	MaterialType     *string  `json:"material_type,omitempty"`
+	MaxDurability    *int     `json:"max_durability,omitempty" validate:"omitempty,min=1"`
+	UniquenessType   *string  `json:"uniqueness_type,omitempty" validate:"omitempty,oneof=none unique unique_equipped"`
 
 	// 效果相关
 	// 局外效果 - 直接影响英雄属性的效果
@@ -101,9 +101,9 @@ type UpdateItemRequest struct {
 	EquipSlot        *string   `json:"equip_slot,omitempty" validate:"omitempty,oneof=head eyes ears neck cloak chest belt shoulder wrist gloves legs feet ring badge coat pocket summon_mount mainhand offhand twohand special"`
 	RequiredClassIDs *[]string `json:"required_class_ids,omitempty" validate:"omitempty,dive,uuid4"` // nil=不更新，空数组=清除限制，非空=替换
 	RequiredLevel    *int16    `json:"required_level,omitempty" validate:"omitempty,min=1,max=100"`
-	MaterialType      *string `json:"material_type,omitempty"`
-	MaxDurability     *int    `json:"max_durability,omitempty" validate:"omitempty,min=1"`
-	UniquenessType    *string `json:"uniqueness_type,omitempty" validate:"omitempty,oneof=none unique unique_equipped"`
+	MaterialType     *string   `json:"material_type,omitempty"`
+	MaxDurability    *int      `json:"max_durability,omitempty" validate:"omitempty,min=1"`
+	UniquenessType   *string   `json:"uniqueness_type,omitempty" validate:"omitempty,oneof=none unique unique_equipped"`
 
 	// 效果相关
 	// 局外效果 - 直接影响英雄属性的效果
@@ -169,9 +169,9 @@ type ItemConfigResponse struct {
 	EquipSlot        *string  `json:"equip_slot,omitempty"`
 	RequiredClassIDs []string `json:"required_class_ids"` // 职业限制列表（空数组=通用装备）
 	RequiredLevel    *int16   `json:"required_level,omitempty"`
-	MaterialType      *string `json:"material_type,omitempty"`
-	MaxDurability     *int    `json:"max_durability,omitempty"`
-	UniquenessType    *string `json:"uniqueness_type,omitempty"`
+	MaterialType     *string  `json:"material_type,omitempty"`
+	MaxDurability    *int     `json:"max_durability,omitempty"`
+	UniquenessType   *string  `json:"uniqueness_type,omitempty"`
 
 	// 效果相关
 	// 局外效果 - 直接影响英雄属性的效果

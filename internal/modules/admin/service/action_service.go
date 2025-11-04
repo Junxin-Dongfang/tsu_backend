@@ -1,10 +1,10 @@
 package service
 
 import (
-	"tsu-self/internal/pkg/xerrors"
 	"context"
 	"database/sql"
 	"fmt"
+	"tsu-self/internal/pkg/xerrors"
 
 	"github.com/aarondl/null/v8"
 	"github.com/aarondl/sqlboiler/v4/types"
