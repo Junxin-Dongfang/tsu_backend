@@ -65,6 +65,10 @@ type AdminModule struct {
 	skillUnlockActionHandler    *handler.SkillUnlockActionHandler
 	classSkillPoolHandler       *handler.ClassSkillPoolHandler
 	monsterHandler              *handler.MonsterHandler
+	dungeonHandler              *handler.DungeonHandler
+	dungeonRoomHandler          *handler.DungeonRoomHandler
+	dungeonBattleHandler        *handler.DungeonBattleHandler
+	dungeonEventHandler         *handler.DungeonEventHandler
 	respWriter                  response.Writer
 }
 
@@ -259,6 +263,10 @@ func (m *AdminModule) initHandlers() {
 	m.skillUnlockActionHandler = handler.NewSkillUnlockActionHandler(m.db, m.respWriter)
 	m.classSkillPoolHandler = handler.NewClassSkillPoolHandler(m.db, m.respWriter)
 	m.monsterHandler = handler.NewMonsterHandler(m.db, m.respWriter)
+	m.dungeonHandler = handler.NewDungeonHandler(m.db, m.respWriter)
+	m.dungeonRoomHandler = handler.NewDungeonRoomHandler(m.db, m.respWriter)
+	m.dungeonBattleHandler = handler.NewDungeonBattleHandler(m.db, m.respWriter)
+	m.dungeonEventHandler = handler.NewDungeonEventHandler(m.db, m.respWriter)
 }
 
 // setupRoutes sets up HTTP routes
@@ -567,6 +575,32 @@ func (m *AdminModule) setupRoutes() {
 		adminProtected.POST("/monsters/:id/drops", m.monsterHandler.AddMonsterDrop)
 		adminProtected.PUT("/monsters/:id/drops/:drop_pool_id", m.monsterHandler.UpdateMonsterDrop)
 		adminProtected.DELETE("/monsters/:id/drops/:drop_pool_id", m.monsterHandler.RemoveMonsterDrop)
+
+		// 地城配置管理
+		adminProtected.GET("/dungeons", m.dungeonHandler.GetDungeons)
+		adminProtected.POST("/dungeons", m.dungeonHandler.CreateDungeon)
+		adminProtected.GET("/dungeons/:id", m.dungeonHandler.GetDungeon)
+		adminProtected.PUT("/dungeons/:id", m.dungeonHandler.UpdateDungeon)
+		adminProtected.DELETE("/dungeons/:id", m.dungeonHandler.DeleteDungeon)
+
+		// 地城房间管理
+		adminProtected.GET("/dungeon-rooms", m.dungeonRoomHandler.GetRooms)
+		adminProtected.POST("/dungeon-rooms", m.dungeonRoomHandler.CreateRoom)
+		adminProtected.GET("/dungeon-rooms/:id", m.dungeonRoomHandler.GetRoom)
+		adminProtected.PUT("/dungeon-rooms/:id", m.dungeonRoomHandler.UpdateRoom)
+		adminProtected.DELETE("/dungeon-rooms/:id", m.dungeonRoomHandler.DeleteRoom)
+
+		// 地城战斗配置管理
+		adminProtected.POST("/dungeon-battles", m.dungeonBattleHandler.CreateBattle)
+		adminProtected.GET("/dungeon-battles/:id", m.dungeonBattleHandler.GetBattle)
+		adminProtected.PUT("/dungeon-battles/:id", m.dungeonBattleHandler.UpdateBattle)
+		adminProtected.DELETE("/dungeon-battles/:id", m.dungeonBattleHandler.DeleteBattle)
+
+		// 地城事件配置管理
+		adminProtected.POST("/dungeon-events", m.dungeonEventHandler.CreateEvent)
+		adminProtected.GET("/dungeon-events/:id", m.dungeonEventHandler.GetEvent)
+		adminProtected.PUT("/dungeon-events/:id", m.dungeonEventHandler.UpdateEvent)
+		adminProtected.DELETE("/dungeon-events/:id", m.dungeonEventHandler.DeleteEvent)
 	}
 
 	// Swagger UI

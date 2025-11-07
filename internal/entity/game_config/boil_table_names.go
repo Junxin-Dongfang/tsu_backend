@@ -19,6 +19,10 @@ var TableNames = struct {
 	DamageTypes               string
 	DropPoolItems             string
 	DropPools                 string
+	DungeonBattles            string
+	DungeonEvents             string
+	DungeonRooms              string
+	Dungeons                  string
 	EffectTypeDefinitions     string
 	Effects                   string
 	EquipmentSetConfigs       string
@@ -59,6 +63,10 @@ var TableNames = struct {
 	DamageTypes:               "damage_types",
 	DropPoolItems:             "drop_pool_items",
 	DropPools:                 "drop_pools",
+	DungeonBattles:            "dungeon_battles",
+	DungeonEvents:             "dungeon_events",
+	DungeonRooms:              "dungeon_rooms",
+	Dungeons:                  "dungeons",
 	EffectTypeDefinitions:     "effect_type_definitions",
 	Effects:                   "effects",
 	EquipmentSetConfigs:       "equipment_set_configs",

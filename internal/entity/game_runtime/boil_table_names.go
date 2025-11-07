@@ -14,6 +14,8 @@ var TableNames = struct {
 	ItemDropRecords         string
 	ItemOperationLogs       string
 	PlayerItems             string
+	TeamDungeonProgress     string
+	TeamDungeonRecords      string
 	WorldDropStats          string
 }{
 	HeroAllocatedAttributes: "hero_allocated_attributes",
@@ -26,5 +28,7 @@ var TableNames = struct {
 	ItemDropRecords:         "item_drop_records",
 	ItemOperationLogs:       "item_operation_logs",
 	PlayerItems:             "player_items",
+	TeamDungeonProgress:     "team_dungeon_progress",
+	TeamDungeonRecords:      "team_dungeon_records",
 	WorldDropStats:          "world_drop_stats",
 }

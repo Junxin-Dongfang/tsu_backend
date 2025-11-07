@@ -50,11 +50,11 @@ type HeroFullResponse struct {
 
 // ClassInfo 职业信息
 type ClassInfo struct {
-	ID          string `json:"id" example:"class-warrior-001"`                                 // 职业ID
-	ClassCode   string `json:"class_code" example:"WARRIOR"`                                   // 职业代码
-	ClassName   string `json:"class_name" example:"战士"`                                        // 职业名称
-	Tier        string `json:"tier" example:"basic" enums:"basic,advanced,master"`             // 职业等阶：basic=基础职业，advanced=进阶职业，master=大师职业
-	Description string `json:"description,omitempty" example:"擅长近战和物理攻击的职业"`                   // 职业描述（可选）
+	ID          string `json:"id" example:"class-warrior-001"`                     // 职业ID
+	ClassCode   string `json:"class_code" example:"WARRIOR"`                       // 职业代码
+	ClassName   string `json:"class_name" example:"战士"`                            // 职业名称
+	Tier        string `json:"tier" example:"basic" enums:"basic,advanced,master"` // 职业等阶：basic=基础职业，advanced=进阶职业，master=大师职业
+	Description string `json:"description,omitempty" example:"擅长近战和物理攻击的职业"`       // 职业描述（可选）
 }
 
 // AttributeInfo 属性信息（来自 hero_computed_attributes 视图）
@@ -68,12 +68,12 @@ type AttributeInfo struct {
 
 // SkillInfo 技能信息
 type SkillInfo struct {
-	HeroSkillID string `json:"hero_skill_id" example:"hero-skill-001"`           // 英雄技能实例ID（UUID格式，用于升级或回退操作）
-	SkillID     string `json:"skill_id" example:"skill-fireball-001"`            // 技能配置ID（UUID格式，关联 game_config.skills）
-	SkillName   string `json:"skill_name" example:"烈焰斩"`                          // 技能名称
-	SkillCode   string `json:"skill_code" example:"FLAME_SLASH"`                 // 技能代码（用于标识技能）
-	SkillLevel  int    `json:"skill_level" example:"3"`                          // 当前等级（1 到 max_level）
-	MaxLevel    int    `json:"max_level" example:"10"`                           // 最大等级（来自技能配置）
+	HeroSkillID string `json:"hero_skill_id" example:"hero-skill-001"` // 英雄技能实例ID（UUID格式，用于升级或回退操作）
+	SkillID     string `json:"skill_id" example:"skill-fireball-001"`  // 技能配置ID（UUID格式，关联 game_config.skills）
+	SkillName   string `json:"skill_name" example:"烈焰斩"`               // 技能名称
+	SkillCode   string `json:"skill_code" example:"FLAME_SLASH"`       // 技能代码（用于标识技能）
+	SkillLevel  int    `json:"skill_level" example:"3"`                // 当前等级（1 到 max_level）
+	MaxLevel    int    `json:"max_level" example:"10"`                 // 最大等级（来自技能配置）
 }
 
 // CreateHeroRequest HTTP create hero request
@@ -90,28 +90,28 @@ type AddExperienceRequest struct {
 
 // AdvancementCheckResponse 进阶检查结果响应
 type AdvancementCheckResponse struct {
-	CanAdvance          bool     `json:"can_advance" example:"false"`                       // 是否可以进阶
+	CanAdvance          bool     `json:"can_advance" example:"false"`                     // 是否可以进阶
 	MissingRequirements []string `json:"missing_requirements,omitempty" example:"需要等级10"` // 缺少的条件列表（可选，仅当不满足时返回）
-	RequiredLevel       int      `json:"required_level" example:"10"`                       // 要求等级
-	CurrentLevel        int      `json:"current_level" example:"5"`                         // 当前等级
-	RequiredHonor       int      `json:"required_honor" example:"100"`                      // 要求荣誉值
-	CurrentHonor        int      `json:"current_honor" example:"0"`                         // 当前荣誉值
+	RequiredLevel       int      `json:"required_level" example:"10"`                     // 要求等级
+	CurrentLevel        int      `json:"current_level" example:"5"`                       // 当前等级
+	RequiredHonor       int      `json:"required_honor" example:"100"`                    // 要求荣誉值
+	CurrentHonor        int      `json:"current_honor" example:"0"`                       // 当前荣誉值
 }
 
 // HeroResponse HTTP hero response (基础信息，不含详细属性和技能)
 type HeroResponse struct {
-	ID                  string  `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`       // 英雄ID（UUID格式）
-	UserID              string  `json:"user_id" example:"123e4567-e89b-12d3-a456-426614174000"`  // 用户ID（UUID格式）
-	ClassID             string  `json:"class_id" example:"class-warrior-001"`                    // 当前职业ID
-	HeroName            string  `json:"hero_name" example:"艾泽拉斯勇士"`                              // 英雄名称（2-20字符）
-	Description         *string `json:"description,omitempty" example:"一位来自北方的战士"`               // 英雄描述（可选）
-	CurrentLevel        int     `json:"current_level" example:"5"`                               // 当前等级（1-40）
-	ExperienceTotal     int64   `json:"experience_total" example:"750"`                          // 累计总经验
-	ExperienceAvailable int64   `json:"experience_available" example:"250"`                      // 可用经验（用于加点、学技能）
-	ExperienceSpent     int64   `json:"experience_spent" example:"500"`                          // 已消耗经验
-	Status              string  `json:"status" example:"active" enums:"active,inactive"`         // 英雄状态
-	CreatedAt           string  `json:"created_at" example:"2025-10-17 10:30:00"`                // 创建时间
-	UpdatedAt           string  `json:"updated_at" example:"2025-10-17 12:30:00"`                // 更新时间
+	ID                  string  `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`      // 英雄ID（UUID格式）
+	UserID              string  `json:"user_id" example:"123e4567-e89b-12d3-a456-426614174000"` // 用户ID（UUID格式）
+	ClassID             string  `json:"class_id" example:"class-warrior-001"`                   // 当前职业ID
+	HeroName            string  `json:"hero_name" example:"艾泽拉斯勇士"`                             // 英雄名称（2-20字符）
+	Description         *string `json:"description,omitempty" example:"一位来自北方的战士"`              // 英雄描述（可选）
+	CurrentLevel        int     `json:"current_level" example:"5"`                              // 当前等级（1-40）
+	ExperienceTotal     int64   `json:"experience_total" example:"750"`                         // 累计总经验
+	ExperienceAvailable int64   `json:"experience_available" example:"250"`                     // 可用经验（用于加点、学技能）
+	ExperienceSpent     int64   `json:"experience_spent" example:"500"`                         // 已消耗经验
+	Status              string  `json:"status" example:"active" enums:"active,inactive"`        // 英雄状态
+	CreatedAt           string  `json:"created_at" example:"2025-10-17 10:30:00"`               // 创建时间
+	UpdatedAt           string  `json:"updated_at" example:"2025-10-17 12:30:00"`               // 更新时间
 }
 
 // ==================== HTTP Handlers ====================
@@ -129,7 +129,7 @@ type HeroResponse struct {
 // @Description - 英雄初始等级为1，经验为0
 // @Description - 继承选定职业的初始属性
 // @Description - 自动学习职业的初始技能
-// @Tags 英雄管理
+// @Tags 英雄
 // @Accept json
 // @Produce json
 // @Param request body CreateHeroRequest true "创建英雄请求"
