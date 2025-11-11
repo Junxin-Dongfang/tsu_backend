@@ -31,7 +31,11 @@ build/
 infra/.ory-postgres-data/
 .*/
 !.specify/
+!.claude/
+!.augment/
 .env.*
 
-# Prometheus data dir
+# Monitoring data directories
 /deployments/*/data/*
+./data/
+/data/

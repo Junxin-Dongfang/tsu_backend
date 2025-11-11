@@ -163,4 +163,4 @@ rate(tsu_game_battle_duration_seconds_sum[5m])
 
 - Prometheus 告警最佳实践: https://prometheus.io/docs/practices/alerting/
 - 项目设计文档: `openspec/changes/add-prometheus-monitoring/design.md`
-- 监控使用指南: `docs/prometheus-monitoring-guide.md`
+- 监控使用指南: `docs/monitoring/prometheus-guide.md`

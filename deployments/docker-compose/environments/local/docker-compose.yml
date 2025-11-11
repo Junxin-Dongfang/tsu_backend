@@ -1,3 +1,6 @@
+# TSU 本地开发环境 Docker Compose 配置
+# 包含所有核心服务和监控组件
+
 version: '3.8'
 
 services:
@@ -16,13 +19,13 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ../../configs/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ../../configs/prometheus/alerts:/etc/prometheus/alerts:ro
-      - ../prometheus/data:/prometheus
+      - /Users/lonyon/working/军信东方/tsu项目/tsu-server-self/tsu-self/configs/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - /Users/lonyon/working/军信东方/tsu项目/tsu-server-self/tsu-self/configs/monitoring/prometheus/alerts:/etc/prometheus/alerts:ro
+      - prometheus_data:/prometheus
     networks:
       - tsu-network
     extra_hosts:
-      - "host.docker.internal:host-gateway"  # 允许访问宿主机服务
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
       interval: 10s
@@ -46,8 +49,8 @@ services:
       - GF_ANALYTICS_REPORTING_ENABLED=false
       - GF_ANALYTICS_CHECK_FOR_UPDATES=false
     volumes:
-      - ../../configs/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ../grafana/data:/var/lib/grafana
+      - /Users/lonyon/working/军信东方/tsu项目/tsu-server-self/tsu-self/configs/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
     networks:
       - tsu-network
     depends_on:
@@ -60,6 +63,12 @@ services:
       retries: 3
       start_period: 30s
 
+volumes:
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
 networks:
   tsu-network:
-    external: true
+    driver: bridge

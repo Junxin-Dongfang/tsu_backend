@@ -1,8 +1,11 @@
 # 技术债务清单
 
-本文档记录项目中的技术债务,按照优先级分类,并追踪偿还进展。
+本文档记录项目中的技术债务清单和偿还进展。
 
-**最后更新**: 2025-10-30
+**规范定义**: `openspec/specs/code-quality/spec.md`
+**偿还指南**: `docs/development/TECH_DEBT_GUIDE.md`
+
+**最后更新**: 2025-11-11
 
 ## 债务防范机制 🛡️
 
@@ -423,7 +426,7 @@ CurrentHonor: 0, // TODO: 从英雄表或其他表获取荣誉值
 ## 参考资料
 
 - `openspec/specs/code-quality/spec.md` - 代码质量规范
-- `docs/TECH_DEBT_REPAYMENT_GUIDE.md` - 技术债务偿还指南
+- `docs/development/TECH_DEBT_GUIDE.md` - 技术债务管理与质量改进指南
 - `openspec/project.md` - 项目约定
 - `.github/PULL_REQUEST_TEMPLATE.md` - PR 模板
 

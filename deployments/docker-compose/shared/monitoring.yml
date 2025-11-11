@@ -1,0 +1,54 @@
+# 共享监控配置片段
+# 可通过 docker-compose -f shared/monitoring.yml 引用
+
+version: '3.8'
+
+# 共享网络配置
+networks:
+  tsu-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# 共享数据卷定义
+volumes:
+  prometheus_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_PATH:-./data}/prometheus
+  grafana_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_PATH:-./data}/grafana
+  alertmanager_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_PATH:-./data}/alertmanager
+
+# 共享环境变量
+x-monitoring-variables: &monitoring-vars
+  PROMETHEUS_RETENTION: ${PROMETHEUS_RETENTION:-15d}
+  GRAFANA_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+  GRAFANA_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+
+# 共享健康检查配置
+x-health-checks: &health-check-prometheus
+  test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+  interval: ${PROMETHEUS_HEALTH_CHECK_INTERVAL:-10s}
+  timeout: ${PROMETHEUS_HEALTH_CHECK_TIMEOUT:-5s}
+  retries: 3
+  start_period: ${PROMETHEUS_HEALTH_CHECK_START_PERIOD:-10s}
+
+x-health-check-grafana: &health-check-grafana
+  test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+  interval: ${GRAFANA_HEALTH_CHECK_INTERVAL:-10s}
+  timeout: ${GRAFANA_HEALTH_CHECK_TIMEOUT:-5s}
+  retries: 3
+  start_period: ${GRAFANA_HEALTH_CHECK_START_PERIOD:-30s}

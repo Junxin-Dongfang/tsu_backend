@@ -1,3 +1,6 @@
+# TSU 生产环境 Docker Compose 配置
+# 包含所有核心服务和监控组件
+
 version: '3.8'
 
 services:
@@ -17,8 +20,8 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ../../configs/prometheus/prometheus.prod.yml:/etc/prometheus/prometheus.yml:ro
-      - ../../configs/prometheus/alerts:/etc/prometheus/alerts:ro
+      - ../../../configs/monitoring/prometheus/prometheus.prod.yml:/etc/prometheus/prometheus.yml:ro
+      - ../../../configs/monitoring/prometheus/alerts:/etc/prometheus/alerts:ro
       - /data/prometheus:/prometheus
     networks:
       - tsu-network
@@ -51,7 +54,7 @@ services:
       - GF_LOG_MODE=console
       - GF_LOG_LEVEL=info
     volumes:
-      - ../../configs/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../../../configs/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
       - /data/grafana:/var/lib/grafana
     networks:
       - tsu-network
@@ -81,7 +84,7 @@ services:
     ports:
       - "9093:9093"
     volumes:
-      - ../../configs/prometheus/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ../../../configs/monitoring/prometheus/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
       - /data/alertmanager:/alertmanager
     networks:
       - tsu-network

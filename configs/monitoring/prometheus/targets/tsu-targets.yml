@@ -1,0 +1,34 @@
+# TSU 服务监控目标配置
+# 定义所有需要监控的 TSU 服务端点
+
+groups:
+  - name: tsu-services
+    targets:
+      # Game Server
+      - labels:
+          service: 'game-server'
+          env: 'development'
+          __address__: 'host.docker.internal:8072'
+        annotations:
+          description: 'TSU Game Server 主要游戏逻辑服务'
+          metrics_path: '/metrics'
+          scrape_interval: '10s'
+
+      # Admin Server
+      - labels:
+          service: 'admin-server'
+          env: 'development'
+          __address__: 'host.docker.internal:8071'
+        annotations:
+          description: 'TSU Admin Server 后台管理服务'
+          metrics_path: '/metrics'
+          scrape_interval: '10s'
+
+      # Prometheus 自身
+      - labels:
+          service: 'prometheus'
+          env: 'development'
+          __address__: 'localhost:9090'
+        annotations:
+          description: 'Prometheus 自身监控'
+          metrics_path: '/metrics'
