@@ -32,3 +32,6 @@ infra/.ory-postgres-data/
 .*/
 !.specify/
 .env.*
+
+# Prometheus data dir
+/deployments/*/data/*
