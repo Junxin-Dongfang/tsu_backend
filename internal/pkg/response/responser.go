@@ -129,7 +129,7 @@ func (h *ResponseHandler) WriteSuccess(ctx context.Context, w http.ResponseWrite
 	// 记录 Prometheus 指标
 	if h.metrics != nil {
 		method := extractMethod(ctx)
-		h.metrics.RecordHTTPResponse(http.StatusOK, method)
+		h.metrics.RecordHTTPResponse(http.StatusOK, method, metrics.GetServiceName())
 	}
 
 	return h.WriteJSON(ctx, w, resp, http.StatusOK)
@@ -172,7 +172,7 @@ func (h *ResponseHandler) WriteError(ctx context.Context, w http.ResponseWriter,
 	if h.metrics != nil {
 		method := extractMethod(ctx)
 		duration := time.Since(startTime).Seconds()
-		h.metrics.RecordError(appErr, statusCode, method, duration)
+		h.metrics.RecordError(appErr, statusCode, method, metrics.GetServiceName(), duration)
 	}
 
 	return h.WriteJSON(ctx, w, resp, statusCode)

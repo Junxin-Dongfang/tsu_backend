@@ -10,6 +10,7 @@ import (
 	"tsu-self/internal/modules/auth/client"
 	"tsu-self/internal/modules/auth/handler"
 	"tsu-self/internal/modules/auth/service"
+	"tsu-self/internal/pkg/metrics"
 	redisClient "tsu-self/internal/pkg/redis"
 
 	"github.com/liangdas/mqant/conf"
@@ -49,6 +50,7 @@ func (m *AuthModule) OnAppConfigurationLoaded(app module.App) {
 
 // OnInit module initialization
 func (m *AuthModule) OnInit(app module.App, settings *conf.ModuleSettings) {
+	metrics.SetServiceName("auth")
 	// 按照 mqant 官方推荐：在每个模块的 OnInit 中配置服务注册参数
 	// TTL = 30s, 心跳间隔 = 15s (TTL 必须大于心跳间隔)
 	m.BaseModule.OnInit(m, app, settings,
@@ -159,7 +161,7 @@ func (m *AuthModule) initRedis(settings *conf.ModuleSettings) error {
 		Port:     port,
 		Password: password,
 		DB:       db,
-	})
+	}, metrics.GetServiceName())
 	if err != nil {
 		return fmt.Errorf("failed to connect to Redis: %w", err)
 	}

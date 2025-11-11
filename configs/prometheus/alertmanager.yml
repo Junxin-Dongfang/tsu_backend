@@ -1,0 +1,85 @@
+# Alertmanager 配置
+# 用于处理 Prometheus 告警并发送通知
+
+global:
+  resolve_timeout: 5m
+  # Slack webhook(如需配置)
+  # slack_api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+
+# 告警路由规则
+route:
+  # 根路由 - 所有告警的默认处理
+  receiver: 'default'
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s        # 等待聚合的时间
+  group_interval: 10s    # 聚合后再次发送的间隔
+  repeat_interval: 12h   # 重复发送告警的间隔
+
+  # 子路由 - 根据标签路由到不同的接收器
+  routes:
+    # 严重告警立即发送
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 0s
+      repeat_interval: 5m
+
+    # 数据库相关告警
+    - match_re:
+        alertname: '.*Database.*'
+      receiver: 'database-alerts'
+
+    # 业务告警
+    - match_re:
+        alertname: '.*(Player|Battle|Quest).*'
+      receiver: 'business-alerts'
+
+# 接收器配置
+receivers:
+  # 默认接收器 - 仅记录日志
+  - name: 'default'
+    # webhook_configs:
+    #   - url: 'http://localhost:5001/webhook'
+
+  # 严重告警接收器
+  - name: 'critical-alerts'
+    # Slack 通知(示例)
+    # slack_configs:
+    #   - channel: '#alerts-critical'
+    #     title: '🚨 Critical Alert: {{ .GroupLabels.alertname }}'
+    #     text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+
+    # Email 通知(示例)
+    # email_configs:
+    #   - to: 'oncall@example.com'
+    #     from: 'alertmanager@example.com'
+    #     smarthost: 'smtp.example.com:587'
+    #     auth_username: 'alertmanager@example.com'
+    #     auth_password: 'password'
+
+  # 数据库告警接收器
+  - name: 'database-alerts'
+    # webhook_configs:
+    #   - url: 'http://localhost:5001/webhook/database'
+
+  # 业务告警接收器
+  - name: 'business-alerts'
+    # webhook_configs:
+    #   - url: 'http://localhost:5001/webhook/business'
+
+# 告警抑制规则(避免重复告警)
+inhibit_rules:
+  # 如果服务不可用,抑制该服务的其他告警
+  - source_match:
+      severity: 'critical'
+      alertname: 'ServiceDown'
+    target_match_re:
+      severity: 'warning|info'
+    equal: ['service', 'instance']
+
+  # 如果有高错误率告警,抑制高延迟告警(可能是同一个问题)
+  - source_match:
+      alertname: 'HighErrorRate'
+    target_match:
+      alertname: 'HighLatency'
+    equal: ['service']

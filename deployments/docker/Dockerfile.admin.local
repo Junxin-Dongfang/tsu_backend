@@ -2,8 +2,8 @@ FROM golang:1.25.1-alpine
 
 WORKDIR /app
 
-# 安装必要的工具，包括git
-RUN apk add --no-cache git
+# 安装必要的工具，包括git和时区数据库
+RUN apk add --no-cache git tzdata
 
 # 安装air用于热重载
 RUN go install github.com/air-verse/air@v1.63.0

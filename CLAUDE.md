@@ -115,6 +115,22 @@ golangci-lint run --fix
 golangci-lint run ./internal/modules/game/...
 ```
 
+### 监控与性能测试
+```bash
+# 查看 Prometheus 指标
+curl http://localhost:8072/metrics  # Game Server
+curl http://localhost:8071/metrics  # Admin Server
+
+# 运行性能测试套件(需要安装 wrk)
+./test/scripts/run-performance-tests.sh
+
+# 分析性能测试结果
+./test/scripts/analyze-results.sh <timestamp>
+
+# 单独测试某个端点
+./test/scripts/benchmark-api.sh "http://localhost:8072/health" 60s 100 4
+```
+
 ### 生产部署
 ```bash
 # 分步部署(推荐)
@@ -247,6 +263,12 @@ Entity Layer (数据模型)
    - PostgreSQL: 主数据库(事务性数据)
    - Redis: 缓存和会话存储
    - Consul: 服务配置和键值存储
+
+4. **监控与可观测性**
+   - Prometheus: 指标收集和监控
+   - Grafana: 指标可视化和告警
+   - 指标端点: `/metrics` (Game Server: 8072, Admin Server: 8071)
+   - 详细文档: `docs/prometheus-monitoring-guide.md`
 
 ## 开发规范
 
@@ -387,7 +409,9 @@ hotfix/xxx           # 紧急修复分支
 - `.specify/memory/constitution.md`: 项目宪法(开发规范)
 - `docs/error-response-guide.md`: 错误响应规范
 - `docs/i18n-guide.md`: 国际化指南
-- `docs/prometheus-metrics-guide.md`: 监控指标指南
+- `docs/prometheus-monitoring-guide.md`: Prometheus 监控完整指南(30+ PromQL 查询示例)
+- `test/prometheus-performance-test.md`: 监控系统性能测试报告
+- `configs/prometheus/alerts/tsu-alerts.yml`: Prometheus 告警规则配置
 - `configs/技能配置规范.md`: 游戏技能配置规范
 - `test/TEST_RESULTS_SUMMARY.md`: 测试结果总结
 

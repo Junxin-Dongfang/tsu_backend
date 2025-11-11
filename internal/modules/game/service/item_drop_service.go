@@ -12,6 +12,7 @@ import (
 
 	"tsu-self/internal/entity/game_config"
 	"tsu-self/internal/entity/game_runtime"
+	"tsu-self/internal/pkg/metrics"
 	"tsu-self/internal/pkg/xerrors"
 	"tsu-self/internal/repository/impl"
 	"tsu-self/internal/repository/interfaces"
@@ -160,6 +161,11 @@ func (s *ItemDropService) DropFromMonster(ctx context.Context, req *DropFromMons
 
 		if err := s.itemDropRecordRepo.Create(ctx, tx, dropRecord); err != nil {
 			return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "记录掉落历史失败")
+		}
+
+		// ✅ 记录装备获取指标（仅装备类型）
+		if itemConfig.ItemType == "equipment" {
+			metrics.DefaultBusinessMetrics.RecordEquipmentObtained(quality, "game")
 		}
 
 		droppedItems = append(droppedItems, playerItem)

@@ -103,6 +103,7 @@ services:
     environment:
       - CONSUL_ADDRESS=consul:8500
       - NATS_ADDRESS=nats:4222
+      - TZ=Asia/Hong_Kong
     volumes:
       - ../..:/app
     depends_on:
@@ -129,6 +130,7 @@ services:
     environment:
       - CONSUL_ADDRESS=consul:8500
       - NATS_ADDRESS=nats:4222
+      - TZ=Asia/Hong_Kong
     volumes:
       - ../..:/app
     depends_on:

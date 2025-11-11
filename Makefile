@@ -32,6 +32,13 @@ help:
 	@echo "    dev-logs         - Show logs from all services"
 	@echo "    dev-rebuild      - Rebuild and restart development environment"
 	@echo ""
+	@echo "  Monitoring:"
+	@echo "    monitoring-up    - Start monitoring services (Prometheus + Grafana)"
+	@echo "    monitoring-down  - Stop monitoring services"
+	@echo "    monitoring-logs  - Show monitoring services logs"
+	@echo "    full-up          - Start complete environment (services + monitoring)"
+	@echo "    full-down        - Stop complete environment"
+	@echo ""
 	@echo "  Production Deployment (Layered - Recommended):"
 	@echo "    deploy-prod-step1            - Step 1: Deploy infrastructure (PostgreSQL, Redis, etc.)"
 	@echo "    deploy-prod-step2            - Step 2: Deploy Ory services (Kratos, Keto, Oathkeeper)"
@@ -183,8 +190,49 @@ dev-logs-all:
 dev-rebuild:
 	docker-compose -f deployments/docker-compose/docker-compose-main.local.yml up -d --build
 
+# ==========================================
+# 监控服务（Prometheus + Grafana）
+# ==========================================
+
+# 启动监控服务
+monitoring-up:
+	docker network create tsu-network 2>/dev/null || true
+	@echo "🚀 启动监控服务 (Prometheus + Grafana)..."
+	docker-compose -f deployments/docker-compose/docker-compose-monitoring.local.yml up -d
+	@echo "✅ 监控服务已启动"
+	@echo ""
+	@echo "📋 访问地址:"
+	@echo "  - Prometheus: http://localhost:9090"
+	@echo "  - Grafana:    http://localhost:3000 (admin/admin)"
+	@echo ""
+	@echo "⏳ 等待 Grafana 完全启动... (约30秒)"
+	@sleep 30
+	@echo "✅ 可以访问 Grafana 仪表盘了!"
+
+# 停止监控服务
+monitoring-down:
+	docker-compose -f deployments/docker-compose/docker-compose-monitoring.local.yml down
+
+# 查看监控服务日志
+monitoring-logs:
+	docker-compose -f deployments/docker-compose/docker-compose-monitoring.local.yml logs -f
+
+# 启动完整环境（服务 + 监控）
+full-up: dev-up monitoring-up
+	@echo ""
+	@echo "🎉 完整开发环境已启动！"
+	@echo ""
+	@echo "📊 监控仪表盘:"
+	@echo "  - 访问 http://localhost:3000"
+	@echo "  - 查看 'TSU Server Overview' 仪表盘"
+
+# 停止完整环境
+full-down: monitoring-down dev-down
+	@echo "✅ 所有服务已停止"
+
 # 清理
 clean:
+	docker-compose -f deployments/docker-compose/docker-compose-monitoring.local.yml down -v
 	docker-compose -f deployments/docker-compose/docker-compose-nginx.local.yml down -v
 	docker-compose -f deployments/docker-compose/docker-compose-main.local.yml down -v
 	docker-compose -f deployments/docker-compose/docker-compose-ory.local.yml down -v

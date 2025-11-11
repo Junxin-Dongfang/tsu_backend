@@ -9,6 +9,7 @@ import (
 
 	"tsu-self/internal/entity/auth"
 	"tsu-self/internal/modules/auth/client"
+	"tsu-self/internal/pkg/metrics"
 
 	"github.com/aarondl/null/v8"
 	"github.com/aarondl/sqlboiler/v4/boil"
@@ -424,7 +425,10 @@ func (s *AuthService) Login(ctx context.Context, input LoginInput) (*LoginOutput
 	// 注意: 这里暂时不获取 IP,由调用方传入
 	// 如果需要在这里更新,可以添加 loginIP 参数
 
-	// 5. 返回登录结果
+	// 5. 记录玩家上线指标
+	metrics.DefaultBusinessMetrics.IncPlayers(metrics.GetServiceName())
+
+	// 6. 返回登录结果
 	return &LoginOutput{
 		SessionToken: sessionToken,
 		UserID:       user.ID,
@@ -444,6 +448,9 @@ func (s *AuthService) Logout(ctx context.Context, input LogoutInput) error {
 	if err := s.kratosClient.RevokeSession(ctx, input.SessionToken); err != nil {
 		return fmt.Errorf("登出失败: %w", err)
 	}
+
+	// 记录玩家下线指标
+	metrics.DefaultBusinessMetrics.DecPlayers(metrics.GetServiceName())
 
 	return nil
 }

@@ -89,6 +89,7 @@ func (m *AdminModule) OnAppConfigurationLoaded(app module.App) {
 
 // OnInit module initialization
 func (m *AdminModule) OnInit(app module.App, settings *conf.ModuleSettings) {
+	metrics.SetServiceName("admin")
 	// 按照 mqant 官方推荐：在每个模块的 OnInit 中配置服务注册参数
 	// TTL = 30s, 心跳间隔 = 15s (TTL 必须大于心跳间隔)
 	m.BaseModule.OnInit(m, app, settings,
@@ -154,6 +155,10 @@ func (m *AdminModule) initDatabase(settings *conf.ModuleSettings) error {
 
 	m.db = db
 	fmt.Println("[Admin Module] Database connected successfully")
+
+	// 启动数据库连接池监控
+	go m.startDBPoolMonitoring(db)
+
 	return nil
 }
 
@@ -675,6 +680,29 @@ func (m *AdminModule) OnDestroy() {
 
 	m.BaseModule.OnDestroy()
 	fmt.Println("[Admin Module] Destroyed")
+}
+
+// startDBPoolMonitoring 启动数据库连接池监控
+// 每 30 秒报告一次连接池统计信息到 Prometheus
+func (m *AdminModule) startDBPoolMonitoring(db *sql.DB) {
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		stats := db.Stats()
+
+		// 记录数据库连接池指标
+		metrics.DefaultResourceMetrics.RecordDBPoolStats(
+			metrics.GetServiceName(),
+			"postgres",            // 数据库名称
+			stats.OpenConnections, // 当前打开的连接数
+			stats.InUse,           // 正在使用的连接数
+			stats.Idle,            // 空闲连接数
+			25,                    // 最大连接数（与 SetMaxOpenConns 保持一致）
+			stats.WaitCount,       // 等待连接的总次数
+			stats.WaitDuration,    // 等待连接的总时长
+		)
+	}
 }
 
 // Module creates Admin module instance

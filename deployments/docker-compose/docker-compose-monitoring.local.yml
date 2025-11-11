@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  # Prometheus 监控服务
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: tsu_prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    volumes:
+      - ../../configs/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../../configs/prometheus/alerts:/etc/prometheus/alerts:ro
+      - ../prometheus/data:/prometheus
+    networks:
+      - tsu-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # 允许访问宿主机服务
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # Grafana 可视化服务
+  grafana:
+    image: grafana/grafana:10.2.2
+    container_name: tsu_grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+      - GF_ANALYTICS_CHECK_FOR_UPDATES=false
+    volumes:
+      - ../../configs/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../grafana/data:/var/lib/grafana
+    networks:
+      - tsu-network
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+networks:
+  tsu-network:
+    external: true

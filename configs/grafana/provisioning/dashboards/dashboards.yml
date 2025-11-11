@@ -1,0 +1,16 @@
+# Grafana 仪表盘配置提供程序
+# 自动加载仪表盘 JSON 文件
+
+apiVersion: 1
+
+providers:
+  - name: 'TSU Dashboards'
+    orgId: 1
+    folder: 'TSU'
+    type: file
+    disableDeletion: false
+    editable: true
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/json

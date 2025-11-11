@@ -1,0 +1,88 @@
+# Prometheus 配置文件
+# 用于抓取 TSU Game Server 和 Admin Server 的指标
+
+global:
+  scrape_interval: 15s        # 默认抓取间隔
+  evaluation_interval: 15s    # 规则评估间隔
+  scrape_timeout: 10s         # 抓取超时
+  external_labels:
+    cluster: 'tsu-dev'
+    environment: 'development'
+
+# Alertmanager 配置(可选)
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - 'alertmanager:9093'  # 如需告警,取消注释并配置 Alertmanager
+
+# 告警规则文件
+rule_files:
+  - '/etc/prometheus/alerts/*.yml'
+
+# 抓取配置
+scrape_configs:
+  # Prometheus 自身监控
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+
+  # TSU Game Server 监控
+  - job_name: 'tsu-game-server'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['host.docker.internal:8072']  # macOS/Windows Docker
+        labels:
+          service: 'game-server'
+          env: 'dev'
+    # Linux Docker 使用以下配置:
+    # static_configs:
+    #   - targets: ['172.17.0.1:8072']
+    #     labels:
+    #       service: 'game-server'
+    #       env: 'dev'
+
+    # 健康检查和抓取验证
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        regex: '([^:]+)(:[0-9]+)?'
+        replacement: '${1}'
+
+  # TSU Admin Server 监控
+  - job_name: 'tsu-admin-server'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['host.docker.internal:8071']  # macOS/Windows Docker
+        labels:
+          service: 'admin-server'
+          env: 'dev'
+    # Linux Docker 使用以下配置:
+    # static_configs:
+    #   - targets: ['172.17.0.1:8071']
+    #     labels:
+    #       service: 'admin-server'
+    #       env: 'dev'
+
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        regex: '([^:]+)(:[0-9]+)?'
+        replacement: '${1}'
+
+  # 生产环境配置示例(通过 Consul 服务发现)
+  # - job_name: 'tsu-services'
+  #   consul_sd_configs:
+  #     - server: 'consul:8500'
+  #       services: ['tsu-game', 'tsu-admin']
+  #   relabel_configs:
+  #     - source_labels: [__meta_consul_service]
+  #       target_label: job
+  #     - source_labels: [__meta_consul_node]
+  #       target_label: instance

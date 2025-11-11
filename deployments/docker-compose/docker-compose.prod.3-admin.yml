@@ -46,6 +46,9 @@ services:
       - KRATOS_ADMIN_URL=http://tsu_kratos:4434
       - KETO_READ_URL=http://tsu_keto:4466
       - KETO_WRITE_URL=http://tsu_keto:4467
+
+      # 时区配置
+      - TZ=Asia/Hong_Kong
     volumes:
       # 挂载配置文件
       - /opt/tsu/configs:/app/configs:ro

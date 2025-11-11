@@ -1,0 +1,176 @@
+# TSU 游戏服务器 Prometheus 告警规则
+#
+# 使用方式:
+#   1. 将此文件放入 Prometheus 配置目录
+#   2. 在 prometheus.yml 中添加:
+#      rule_files:
+#        - "alerts/tsu-alerts.yml"
+#   3. 重启 Prometheus 或执行 reload
+#
+# 阈值说明:
+#   - 初始阈值相对宽松，避免告警噪音
+#   - 上线后 1-2 周内根据实际基线数据调整
+#   - 详见: configs/prometheus/alerts/README.md
+
+groups:
+  - name: tsu_application_alerts
+    interval: 30s
+    rules:
+      # 1. 错误率告警
+      - alert: HighErrorRate
+        expr: |
+          sum by (service) (rate(tsu_errors_total[5m]))
+          / sum by (service) (rate(tsu_http_requests_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "高错误率告警 (当前: {{ $value | humanizePercentage }})"
+          description: |
+            5分钟平均错误率超过 5%
+            - 当前错误率: {{ $value | humanizePercentage }}
+            - 服务: {{ $labels.service }}
+            - 建议: 检查错误日志，排查根因
+            - 阈值说明: 初始值 5%（基线预估 0.1%-1%），需根据实际调优
+
+      # 2. 延迟告警 (p99)
+      - alert: HighLatency
+        expr: |
+          histogram_quantile(0.99,
+            sum by (service, le) (
+              rate(tsu_http_request_duration_seconds_bucket[5m])
+            )
+          ) > 1
+        for: 5m
+        labels:
+          severity: critical
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "高延迟告警 (p99: {{ $value | humanizeDuration }})"
+          description: |
+            p99 延迟超过 1 秒
+            - 当前 p99: {{ $value | humanizeDuration }}
+            - 服务: {{ $labels.service }}
+            - SLO: p95 < 200ms
+            - 建议: 检查慢查询、优化数据库索引、分析性能瓶颈
+            - 阈值说明: 初始值 1s（SLO 的 5倍），需根据实际 p99 基线调优
+
+      # 2.1 P95 延迟接近 SLO
+      - alert: LatencyApproachingSLO
+        expr: |
+          histogram_quantile(0.95,
+            sum by (service, le) (
+              rate(tsu_http_request_duration_seconds_bucket[5m])
+            )
+          ) > 0.18
+        for: 10m
+        labels:
+          severity: warning
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "延迟接近 SLO (p95: {{ $value | humanizeDuration }})"
+          description: |
+            p95 延迟接近 SLO 阈值 (200ms)
+            - 当前 p95: {{ $value | humanizeDuration }}
+            - SLO: p95 < 200ms
+            - 建议: 提前优化，避免突破 SLO
+
+      # 3. 内存使用告警
+      - alert: HighMemoryUsage
+        expr: |
+          go_memstats_alloc_bytes / go_memstats_sys_bytes > 0.8
+        for: 10m
+        labels:
+          severity: warning
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "高内存使用率告警 ({{ $value | humanizePercentage }})"
+          description: |
+            内存使用率超过 80%
+            - 当前使用率: {{ $value | humanizePercentage }}
+            - 服务: {{ $labels.service }}
+            - 建议: 检查内存泄漏、优化内存使用、考虑扩容
+
+      # 4. Goroutine 数量告警
+      - alert: HighGoroutines
+        expr: go_goroutines > 1000
+        for: 5m
+        labels:
+          severity: warning
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "Goroutine 数量过高 ({{ $value }})"
+          description: |
+            Goroutine 数量超过 1000
+            - 当前数量: {{ $value }}
+            - 服务: {{ $labels.service }}
+            - 建议: 检查 goroutine 泄漏、优化并发控制
+            - 阈值说明: 初始值 1000，需根据实际基线调优
+
+      # 5. 服务不可用告警
+      - alert: ServiceDown
+        expr: up{job=~"tsu-game|tsu-admin"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: "{{ $labels.job }}"
+        annotations:
+          summary: "服务不可用: {{ $labels.job }}"
+          description: |
+            Prometheus 无法抓取服务指标
+            - 服务: {{ $labels.job }}
+            - 实例: {{ $labels.instance }}
+            - 建议: 检查服务是否运行、网络连接是否正常
+
+      # 6. 慢请求比例告警
+      - alert: HighSlowRequestRate
+        expr: |
+          sum by (service) (rate(tsu_http_request_duration_seconds_bucket{le="1"}[5m]))
+          / sum by (service) (rate(tsu_http_request_duration_seconds_count[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: "{{ $labels.service }}"
+        annotations:
+          summary: "慢请求比例过高 ({{ $value | humanizePercentage }})"
+          description: |
+            >1秒的慢请求占比超过 10%
+            - 当前比例: {{ $value | humanizePercentage }}
+            - 服务: {{ $labels.service }}
+            - 建议: 检查慢接口、优化查询、添加缓存
+
+  - name: tsu_business_alerts
+    interval: 1m
+    rules:
+      # 7. 玩家数量异常下降
+      - alert: PlayerCountDropped
+        expr: |
+          (tsu_game_players_total{service="game"} - tsu_game_players_total{service="game"} offset 10m)
+          / tsu_game_players_total{service="game"} offset 10m < -0.3
+        for: 5m
+        labels:
+          severity: warning
+          service: game
+        annotations:
+          summary: "玩家数量异常下降 (下降 {{ $value | humanizePercentage }})"
+          description: |
+            10分钟内玩家数量下降超过 30%
+            - 当前玩家数: {{ query "tsu_game_players_total" | first | value }}
+            - 建议: 检查服务是否异常、网络是否正常、是否有大量玩家掉线
+
+      # 8. 战斗失败率过高
+      - alert: HighBattleDefeatRate
+        expr: |
+          sum by (service) (rate(tsu_game_battles_total{result="defeat"}[10m]))
+          / sum by (service) (rate(tsu_game_battles_total[10m])) > 0.7
+        for: 10m
+        labels:
+          severity: info
+          service: game
+        annotations:
+          summary: "战斗失败率过高 ({{ $value | humanizePercentage }})"
+          description: |
+            战斗失败率超过 70%
+            - 当前失败率: {{ $value | humanizePercentage }}
+            - 建议: 检查游戏平衡性、难度设置是否合理

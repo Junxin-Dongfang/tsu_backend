@@ -1,0 +1,71 @@
+# Prometheus 生产环境配置
+# 使用 Consul 服务发现自动抓取 TSU 服务
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+  external_labels:
+    cluster: 'tsu-prod'
+    environment: 'production'
+
+# Alertmanager 配置
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - 'alertmanager:9093'
+
+# 告警规则
+rule_files:
+  - '/etc/prometheus/alerts/*.yml'
+
+# 抓取配置
+scrape_configs:
+  # Prometheus 自身
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # TSU 服务(通过 Consul 服务发现)
+  - job_name: 'tsu-services'
+    consul_sd_configs:
+      - server: 'consul:8500'
+        datacenter: 'dc1'
+        tags: ['tsu']
+
+    relabel_configs:
+      # 使用服务名作为 job 标签
+      - source_labels: [__meta_consul_service]
+        target_label: job
+      # 使用节点名作为 instance 标签
+      - source_labels: [__meta_consul_node]
+        target_label: instance
+      # 添加服务标签
+      - source_labels: [__meta_consul_tags]
+        regex: '.*,service:([^,]+),.*'
+        target_label: service
+      # 添加环境标签
+      - source_labels: [__meta_consul_tags]
+        regex: '.*,env:([^,]+),.*'
+        target_label: env
+
+  # PostgreSQL 监控(如果使用 postgres_exporter)
+  - job_name: 'postgresql'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+        labels:
+          service: 'postgresql'
+
+  # Redis 监控(如果使用 redis_exporter)
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+        labels:
+          service: 'redis'
+
+  # Node Exporter(系统指标)
+  - job_name: 'node'
+    consul_sd_configs:
+      - server: 'consul:8500'
+        services: ['node-exporter']
