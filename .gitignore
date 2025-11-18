@@ -29,11 +29,20 @@ build/
 
 .postgres-data/
 infra/.ory-postgres-data/
-.*/
 !.specify/
 !.claude/
 !.augment/
 .env.*
+.docker/
+.gocache/
+.venv/
+.VSCodeCounter/
+.modcache/
+.claude/
+.consul-data/
+.*data*/
+
+.42c/
 
 # Monitoring data directories
 /deployments/*/data/*
