@@ -3,6 +3,7 @@ package handler
 import (
 	"database/sql"
 	"strconv"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 
@@ -11,6 +12,12 @@ import (
 	"tsu-self/internal/pkg/response"
 	"tsu-self/internal/repository/interfaces"
 )
+
+var allowedMonsterOrderFields = map[string]struct{}{
+	"monster_level": {},
+	"created_at":    {},
+	"updated_at":    {},
+}
 
 // MonsterHandler 怪物 HTTP 处理器
 type MonsterHandler struct {
@@ -80,50 +87,50 @@ type CreateMonsterRequest struct {
 // UpdateMonsterRequest 更新怪物请求（所有字段可选，只传需要更新的字段）
 type UpdateMonsterRequest struct {
 	// 基础信息
-	MonsterCode  string `json:"monster_code" example:"MAD_DOG"`  // 怪物代码，唯一标识
-	MonsterName  string `json:"monster_name" example:"疯狗"`       // 怪物名称
-	MonsterLevel int16  `json:"monster_level" example:"2"`       // 怪物等级，范围 1-100
-	Description  string `json:"description" example:"一只失去理智的野狗"` // 怪物描述
+	MonsterCode  *string `json:"monster_code" example:"MAD_DOG"`  // 怪物代码，唯一标识
+	MonsterName  *string `json:"monster_name" example:"疯狗"`       // 怪物名称
+	MonsterLevel *int16  `json:"monster_level" example:"2"`       // 怪物等级，范围 1-100
+	Description  *string `json:"description" example:"一只失去理智的野狗"` // 怪物描述
 
 	// 生命与法力
-	MaxHP      int `json:"max_hp" example:"20"`     // 最大生命值，必须大于0
-	HPRecovery int `json:"hp_recovery" example:"2"` // 生命恢复，每回合恢复的生命值
-	MaxMP      int `json:"max_mp" example:"0"`      // 最大法力值
-	MPRecovery int `json:"mp_recovery" example:"0"` // 法力恢复，每回合恢复的法力值
+	MaxHP      *int `json:"max_hp" example:"20"`     // 最大生命值，必须大于0
+	HPRecovery *int `json:"hp_recovery" example:"2"` // 生命恢复，每回合恢复的生命值
+	MaxMP      *int `json:"max_mp" example:"0"`      // 最大法力值
+	MPRecovery *int `json:"mp_recovery" example:"0"` // 法力恢复，每回合恢复的法力值
 
 	// 基础属性（0-99）
-	BaseSTR int16 `json:"base_str" example:"1"` // 力量，影响物理攻击和负重
-	BaseAgi int16 `json:"base_agi" example:"3"` // 敏捷，影响闪避和先攻
-	BaseVit int16 `json:"base_vit" example:"1"` // 体质，影响生命值和体质豁免
-	BaseWLP int16 `json:"base_wlp" example:"0"` // 意志，影响魔法抗性和精神豁免
-	BaseInt int16 `json:"base_int" example:"1"` // 智力，影响魔法攻击和学习能力
-	BaseWis int16 `json:"base_wis" example:"0"` // 感知，影响洞察和精神豁免
-	BaseCha int16 `json:"base_cha" example:"0"` // 魅力，影响社交和领导力
+	BaseSTR *int16 `json:"base_str" example:"1"` // 力量，影响物理攻击和负重
+	BaseAgi *int16 `json:"base_agi" example:"3"` // 敏捷，影响闪避和先攻
+	BaseVit *int16 `json:"base_vit" example:"1"` // 体质，影响生命值和体质豁免
+	BaseWLP *int16 `json:"base_wlp" example:"0"` // 意志，影响魔法抗性和精神豁免
+	BaseInt *int16 `json:"base_int" example:"1"` // 智力，影响魔法攻击和学习能力
+	BaseWis *int16 `json:"base_wis" example:"0"` // 感知，影响洞察和精神豁免
+	BaseCha *int16 `json:"base_cha" example:"0"` // 魅力，影响社交和领导力
 	// 战斗属性类型代码（引用 hero_attribute_type 表）
-	AccuracyAttributeCode   string `json:"accuracy_attribute_code" example:"ACCURACY"`     // 精准属性类型代码，决定命中率计算公式
-	DodgeAttributeCode      string `json:"dodge_attribute_code" example:"DODGE"`           // 闪避属性类型代码，决定闪避率计算公式
-	InitiativeAttributeCode string `json:"initiative_attribute_code" example:"INITIATIVE"` // 先攻属性类型代码，决定行动顺序计算公式
+	AccuracyAttributeCode   *string `json:"accuracy_attribute_code" example:"ACCURACY"`     // 精准属性类型代码，决定命中率计算公式
+	DodgeAttributeCode      *string `json:"dodge_attribute_code" example:"DODGE"`           // 闪避属性类型代码，决定闪避率计算公式
+	InitiativeAttributeCode *string `json:"initiative_attribute_code" example:"INITIATIVE"` // 先攻属性类型代码，决定行动顺序计算公式
 
 	// 豁免属性类型代码（引用 hero_attribute_type 表）
-	BodyResistAttributeCode        string `json:"body_resist_attribute_code" example:"BODY_RESIST"`               // 体质豁免属性类型代码，抵抗毒素、疾病等
-	MagicResistAttributeCode       string `json:"magic_resist_attribute_code" example:"MAGIC_RESIST"`             // 魔法豁免属性类型代码，抵抗魔法效果
-	MentalResistAttributeCode      string `json:"mental_resist_attribute_code" example:"MENTAL_RESIST"`           // 精神豁免属性类型代码，抵抗精神控制、幻觉等
-	EnvironmentResistAttributeCode string `json:"environment_resist_attribute_code" example:"ENVIRONMENT_RESIST"` // 环境豁免属性类型代码，抵抗极端环境
+	BodyResistAttributeCode        *string `json:"body_resist_attribute_code" example:"BODY_RESIST"`               // 体质豁免属性类型代码，抵抗毒素、疾病等
+	MagicResistAttributeCode       *string `json:"magic_resist_attribute_code" example:"MAGIC_RESIST"`             // 魔法豁免属性类型代码，抵抗魔法效果
+	MentalResistAttributeCode      *string `json:"mental_resist_attribute_code" example:"MENTAL_RESIST"`           // 精神豁免属性类型代码，抵抗精神控制、幻觉等
+	EnvironmentResistAttributeCode *string `json:"environment_resist_attribute_code" example:"ENVIRONMENT_RESIST"` // 环境豁免属性类型代码，抵抗极端环境
 
 	// JSON 配置
 	DamageResistances map[string]interface{} `json:"damage_resistances" swaggertype:"object,string"` // 伤害抗性，JSON 对象
 	PassiveBuffs      []interface{}          `json:"passive_buffs" swaggertype:"array,string"`       // 被动 Buff 列表，JSON 数组
 
 	// 掉落配置
-	DropGoldMin int `json:"drop_gold_min" example:"10"` // 最小掉落金币数
-	DropGoldMax int `json:"drop_gold_max" example:"30"` // 最大掉落金币数
-	DropExp     int `json:"drop_exp" example:"20"`      // 掉落经验值，击败怪物获得的经验
+	DropGoldMin *int `json:"drop_gold_min" example:"10"` // 最小掉落金币数
+	DropGoldMax *int `json:"drop_gold_max" example:"30"` // 最大掉落金币数
+	DropExp     *int `json:"drop_exp" example:"20"`      // 掉落经验值，击败怪物获得的经验
 
 	// 显示配置
-	IconURL      string `json:"icon_url" example:"/assets/monsters/mad_dog.png"` // 图标 URL，怪物头像图片路径
-	ModelURL     string `json:"model_url" example:"/assets/models/mad_dog.fbx"`  // 模型 URL，3D 模型文件路径
-	IsActive     bool   `json:"is_active" example:"true"`                        // 是否启用，false 表示禁用该怪物
-	DisplayOrder int    `json:"display_order" example:"0"`                       // 显示顺序，用于排序，数字越小越靠前
+	IconURL      *string `json:"icon_url" example:"/assets/monsters/mad_dog.png"` // 图标 URL，怪物头像图片路径
+	ModelURL     *string `json:"model_url" example:"/assets/models/mad_dog.fbx"`  // 模型 URL，3D 模型文件路径
+	IsActive     *bool   `json:"is_active" example:"true"`                        // 是否启用，false 表示禁用该怪物
+	DisplayOrder *int    `json:"display_order" example:"0"`                       // 显示顺序，用于排序，数字越小越靠前
 }
 
 // MonsterInfo 怪物信息响应
@@ -178,6 +185,11 @@ type MonsterInfo struct {
 	// 时间戳
 	CreatedAt int64 `json:"created_at" example:"1633024800"` // 创建时间，Unix 时间戳（秒）
 	UpdatedAt int64 `json:"updated_at" example:"1633024800"` // 更新时间，Unix 时间戳（秒）
+
+	// 聚合信息
+	Skills []MonsterSkillDetailInfo `json:"skills"` // 技能列表
+	Drops  []MonsterDropDetailInfo  `json:"drops"`  // 掉落配置列表
+	Tags   []MonsterTagInfo         `json:"tags"`   // 标签列表
 }
 
 // AddMonsterSkillRequest 添加怪物技能请求
@@ -234,6 +246,33 @@ type MonsterDropInfo struct {
 	UpdatedAt   int64   `json:"updated_at" example:"1633024800"`
 }
 
+// MonsterSkillDetailInfo 怪物技能详情（含技能元数据）
+type MonsterSkillDetailInfo struct {
+	MonsterSkillInfo
+	SkillCode    string `json:"skill_code" example:"FIREBALL"`
+	SkillName    string `json:"skill_name" example:"火球术"`
+	DisplayOrder int    `json:"display_order" example:"1"`
+}
+
+// MonsterDropDetailInfo 怪物掉落详情（含掉落池元数据）
+type MonsterDropDetailInfo struct {
+	MonsterDropInfo
+	DropPoolCode string `json:"drop_pool_code" example:"POOL_MAIN"`
+	DropPoolName string `json:"drop_pool_name" example:"主掉落池"`
+}
+
+// MonsterTagInfo 怪物标签信息
+type MonsterTagInfo struct {
+	ID           string `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	TagCode      string `json:"tag_code" example:"BEAST"`
+	TagName      string `json:"tag_name" example:"野兽"`
+	Category     string `json:"category" example:"creature"`
+	Description  string `json:"description" example:"以野兽为主题的怪物"`
+	Icon         string `json:"icon" example:"/icons/beast.png"`
+	Color        string `json:"color" example:"#FFAA00"`
+	DisplayOrder int    `json:"display_order" example:"1"`
+}
+
 // ==================== HTTP Handlers ====================
 
 // GetMonsters 获取怪物列表
@@ -285,6 +324,7 @@ type MonsterDropInfo struct {
 // @Param min_level query int false "最小等级(筛选等级≥此值)" minimum(1) maximum(100) example(1)
 // @Param max_level query int false "最大等级(筛选等级≤此值)" minimum(1) maximum(100) example(50)
 // @Param is_active query bool false "是否启用(true=仅启用, false=仅禁用)" example(true)
+// @Param tag_ids query string false "标签ID列表(用逗号分隔, AND 逻辑)" example("tag-id-1,tag-id-2")
 // @Param limit query int false "每页数量(建议10-50)" default(10) minimum(1) maximum(100)
 // @Param offset query int false "偏移量(翻页用)" default(0) minimum(0)
 // @Param order_by query string false "排序字段" Enums(monster_level, created_at, updated_at) default(monster_level)
@@ -336,12 +376,25 @@ func (h *MonsterHandler) GetMonsters(c echo.Context) error {
 			params.Offset = o
 		}
 	}
-	if orderBy := c.QueryParam("order_by"); orderBy != "" {
-		params.OrderBy = orderBy
+	orderBy := c.QueryParam("order_by")
+	if orderBy == "" {
+		orderBy = "monster_level"
 	}
+	if _, ok := allowedMonsterOrderFields[orderBy]; !ok {
+		return response.EchoBadRequest(c, h.respWriter, "order_by 不受支持")
+	}
+	params.OrderBy = orderBy
 	if orderDesc := c.QueryParam("order_desc"); orderDesc != "" {
 		if desc, err := strconv.ParseBool(orderDesc); err == nil {
 			params.OrderDesc = desc
+		}
+	}
+	if tagIDs := c.QueryParam("tag_ids"); tagIDs != "" {
+		for _, id := range strings.Split(tagIDs, ",") {
+			id = strings.TrimSpace(id)
+			if id != "" {
+				params.TagIDs = append(params.TagIDs, id)
+			}
 		}
 	}
 
@@ -354,7 +407,11 @@ func (h *MonsterHandler) GetMonsters(c echo.Context) error {
 	// 转换为响应格式
 	monsterInfos := make([]MonsterInfo, 0, len(monsters))
 	for _, monster := range monsters {
-		monsterInfos = append(monsterInfos, h.toMonsterInfo(monster))
+		detail, err := h.service.BuildMonsterDetail(ctx, monster)
+		if err != nil {
+			return response.EchoError(c, h.respWriter, err)
+		}
+		monsterInfos = append(monsterInfos, h.toMonsterInfo(detail.Monster, detail.Skills, detail.Drops, detail.Tags))
 	}
 
 	return response.EchoOK(c, h.respWriter, map[string]interface{}{
@@ -376,6 +433,9 @@ func (h *MonsterHandler) GetMonsters(c echo.Context) error {
 // @Description - 被动效果: JSON数组格式的被动buff
 // @Description - 掉落配置: 金币范围和经验值
 // @Description - 显示配置: 图标、模型、启用状态、排序
+// @Description - 技能聚合: 包含技能代码、名称、等级、获得动作
+// @Description - 掉落聚合: 包含掉落池代码、名称、概率和数量
+// @Description - 标签列表: 包含标签代码、名称、颜色、图标
 // @Description - 时间戳: 创建时间和更新时间
 // @Tags 怪物配置管理
 // @Accept json
@@ -391,12 +451,12 @@ func (h *MonsterHandler) GetMonster(c echo.Context) error {
 	ctx := c.Request().Context()
 	monsterID := c.Param("id")
 
-	monster, err := h.service.GetMonsterByID(ctx, monsterID)
+	detail, err := h.service.GetMonsterDetail(ctx, monsterID)
 	if err != nil {
 		return response.EchoError(c, h.respWriter, err)
 	}
 
-	return response.EchoOK(c, h.respWriter, h.toMonsterInfo(monster))
+	return response.EchoOK(c, h.respWriter, h.toMonsterInfo(detail.Monster, detail.Skills, detail.Drops, detail.Tags))
 }
 
 // CreateMonster 创建怪物
@@ -489,14 +549,17 @@ func (h *MonsterHandler) CreateMonster(c echo.Context) error {
 	}
 
 	// 转换为实体
-	monster := h.toMonsterEntity(&req)
+	monster, err := h.toMonsterEntity(&req)
+	if err != nil {
+		return response.EchoBadRequest(c, h.respWriter, "JSON 字段格式错误")
+	}
 
 	// 创建怪物
 	if err := h.service.CreateMonster(ctx, monster); err != nil {
 		return response.EchoError(c, h.respWriter, err)
 	}
 
-	return response.EchoOK(c, h.respWriter, h.toMonsterInfo(monster))
+	return response.EchoOK(c, h.respWriter, h.toMonsterInfo(monster, nil, nil, nil))
 }
 
 // UpdateMonster 更新怪物
@@ -581,91 +644,99 @@ func (h *MonsterHandler) UpdateMonster(c echo.Context) error {
 
 	// 构建更新字段
 	updates := make(map[string]interface{})
-	if req.MonsterCode != "" {
-		updates["monster_code"] = req.MonsterCode
+	if req.MonsterCode != nil {
+		updates["monster_code"] = *req.MonsterCode
 	}
-	if req.MonsterName != "" {
-		updates["monster_name"] = req.MonsterName
+	if req.MonsterName != nil {
+		updates["monster_name"] = *req.MonsterName
 	}
-	if req.MonsterLevel > 0 {
-		updates["monster_level"] = req.MonsterLevel
+	if req.MonsterLevel != nil {
+		updates["monster_level"] = *req.MonsterLevel
 	}
-	if req.Description != "" {
-		updates["description"] = req.Description
+	if req.Description != nil {
+		updates["description"] = *req.Description
 	}
-	if req.MaxHP > 0 {
-		updates["max_hp"] = req.MaxHP
+	if req.MaxHP != nil {
+		updates["max_hp"] = *req.MaxHP
 	}
-	if req.HPRecovery >= 0 {
-		updates["hp_recovery"] = req.HPRecovery
+	if req.HPRecovery != nil {
+		updates["hp_recovery"] = *req.HPRecovery
 	}
-	if req.MaxMP >= 0 {
-		updates["max_mp"] = req.MaxMP
+	if req.MaxMP != nil {
+		updates["max_mp"] = *req.MaxMP
 	}
-	if req.MPRecovery >= 0 {
-		updates["mp_recovery"] = req.MPRecovery
+	if req.MPRecovery != nil {
+		updates["mp_recovery"] = *req.MPRecovery
 	}
-	if req.BaseSTR >= 0 {
-		updates["base_str"] = req.BaseSTR
+	if req.BaseSTR != nil {
+		updates["base_str"] = *req.BaseSTR
 	}
-	if req.BaseAgi >= 0 {
-		updates["base_agi"] = req.BaseAgi
+	if req.BaseAgi != nil {
+		updates["base_agi"] = *req.BaseAgi
 	}
-	if req.BaseVit >= 0 {
-		updates["base_vit"] = req.BaseVit
+	if req.BaseVit != nil {
+		updates["base_vit"] = *req.BaseVit
 	}
-	if req.BaseWLP >= 0 {
-		updates["base_wlp"] = req.BaseWLP
+	if req.BaseWLP != nil {
+		updates["base_wlp"] = *req.BaseWLP
 	}
-	if req.BaseInt >= 0 {
-		updates["base_int"] = req.BaseInt
+	if req.BaseInt != nil {
+		updates["base_int"] = *req.BaseInt
 	}
-	if req.BaseWis >= 0 {
-		updates["base_wis"] = req.BaseWis
+	if req.BaseWis != nil {
+		updates["base_wis"] = *req.BaseWis
 	}
-	if req.BaseCha >= 0 {
-		updates["base_cha"] = req.BaseCha
+	if req.BaseCha != nil {
+		updates["base_cha"] = *req.BaseCha
 	}
 	// 属性类型代码
-	if req.AccuracyAttributeCode != "" {
-		updates["accuracy_attribute_code"] = req.AccuracyAttributeCode
+	if req.AccuracyAttributeCode != nil {
+		updates["accuracy_attribute_code"] = *req.AccuracyAttributeCode
 	}
-	if req.DodgeAttributeCode != "" {
-		updates["dodge_attribute_code"] = req.DodgeAttributeCode
+	if req.DodgeAttributeCode != nil {
+		updates["dodge_attribute_code"] = *req.DodgeAttributeCode
 	}
-	if req.InitiativeAttributeCode != "" {
-		updates["initiative_attribute_code"] = req.InitiativeAttributeCode
+	if req.InitiativeAttributeCode != nil {
+		updates["initiative_attribute_code"] = *req.InitiativeAttributeCode
 	}
-	if req.BodyResistAttributeCode != "" {
-		updates["body_resist_attribute_code"] = req.BodyResistAttributeCode
+	if req.BodyResistAttributeCode != nil {
+		updates["body_resist_attribute_code"] = *req.BodyResistAttributeCode
 	}
-	if req.MagicResistAttributeCode != "" {
-		updates["magic_resist_attribute_code"] = req.MagicResistAttributeCode
+	if req.MagicResistAttributeCode != nil {
+		updates["magic_resist_attribute_code"] = *req.MagicResistAttributeCode
 	}
-	if req.MentalResistAttributeCode != "" {
-		updates["mental_resist_attribute_code"] = req.MentalResistAttributeCode
+	if req.MentalResistAttributeCode != nil {
+		updates["mental_resist_attribute_code"] = *req.MentalResistAttributeCode
 	}
-	if req.EnvironmentResistAttributeCode != "" {
-		updates["environment_resist_attribute_code"] = req.EnvironmentResistAttributeCode
+	if req.EnvironmentResistAttributeCode != nil {
+		updates["environment_resist_attribute_code"] = *req.EnvironmentResistAttributeCode
 	}
-	if req.DropGoldMin >= 0 {
-		updates["drop_gold_min"] = req.DropGoldMin
+	if req.DamageResistances != nil {
+		updates["damage_resistances"] = req.DamageResistances
 	}
-	if req.DropGoldMax >= 0 {
-		updates["drop_gold_max"] = req.DropGoldMax
+	if req.PassiveBuffs != nil {
+		updates["passive_buffs"] = req.PassiveBuffs
 	}
-	if req.DropExp >= 0 {
-		updates["drop_exp"] = req.DropExp
+	if req.DropGoldMin != nil {
+		updates["drop_gold_min"] = *req.DropGoldMin
 	}
-	if req.IconURL != "" {
-		updates["icon_url"] = req.IconURL
+	if req.DropGoldMax != nil {
+		updates["drop_gold_max"] = *req.DropGoldMax
 	}
-	if req.ModelURL != "" {
-		updates["model_url"] = req.ModelURL
+	if req.DropExp != nil {
+		updates["drop_exp"] = *req.DropExp
 	}
-	updates["is_active"] = req.IsActive
-	if req.DisplayOrder >= 0 {
-		updates["display_order"] = req.DisplayOrder
+	if req.IconURL != nil {
+		updates["icon_url"] = *req.IconURL
+	}
+	if req.ModelURL != nil {
+		updates["model_url"] = *req.ModelURL
+	}
+	if req.IsActive != nil {
+		updates["is_active"] = *req.IsActive
+	}
+	if req.DisplayOrder != nil {
+		updates["display_order"] = *req.DisplayOrder
 	}
 
 	// 更新怪物
@@ -679,7 +750,7 @@ func (h *MonsterHandler) UpdateMonster(c echo.Context) error {
 		return response.EchoError(c, h.respWriter, err)
 	}
 
-	return response.EchoOK(c, h.respWriter, h.toMonsterInfo(monster))
+	return response.EchoOK(c, h.respWriter, h.toMonsterInfo(monster, nil, nil, nil))
 }
 
 // DeleteMonster 删除怪物
@@ -818,6 +889,14 @@ func (h *MonsterHandler) AddMonsterSkill(c echo.Context) error {
 // @Description **可更新字段**:
 // @Description - skill_level: 技能等级(必填，≥1)
 // @Description - gain_actions: 获得该技能的动作列表(可选，字符串数组)
+// @Description
+// @Description **请求示例**:
+// @Description ```json
+// @Description {
+// @Description   "skill_level": 6,
+// @Description   "gain_actions": ["CAST_SPELL", "RAGE_PHASE"]
+// @Description }
+// @Description ```
 // @Tags 怪物技能管理
 // @Accept json
 // @Produce json
@@ -1004,6 +1083,16 @@ func (h *MonsterHandler) AddMonsterDrop(c echo.Context) error {
 // @Description - drop_chance: 掉落概率(必填，0.0-1.0)
 // @Description - min_quantity: 最小掉落数量(必填，≥1)
 // @Description - max_quantity: 最大掉落数量(必填，≥min_quantity)
+// @Description
+// @Description **请求示例**:
+// @Description ```json
+// @Description {
+// @Description   "drop_type": "team",
+// @Description   "drop_chance": 0.8,
+// @Description   "min_quantity": 1,
+// @Description   "max_quantity": 2
+// @Description }
+// @Description ```
 // @Tags 怪物掉落管理
 // @Accept json
 // @Produce json
@@ -1066,7 +1155,7 @@ func (h *MonsterHandler) RemoveMonsterDrop(c echo.Context) error {
 // ==================== 辅助方法 ====================
 
 // toMonsterEntity 将请求转换为实体
-func (h *MonsterHandler) toMonsterEntity(req *CreateMonsterRequest) *game_config.Monster {
+func (h *MonsterHandler) toMonsterEntity(req *CreateMonsterRequest) (*game_config.Monster, error) {
 	monster := &game_config.Monster{
 		MonsterCode:  req.MonsterCode,
 		MonsterName:  req.MonsterName,
@@ -1129,6 +1218,16 @@ func (h *MonsterHandler) toMonsterEntity(req *CreateMonsterRequest) *game_config
 	if req.EnvironmentResistAttributeCode != "" {
 		monster.EnvironmentResistAttributeCode.SetValid(req.EnvironmentResistAttributeCode)
 	}
+	if req.DamageResistances != nil {
+		if err := monster.DamageResistances.Marshal(req.DamageResistances); err != nil {
+			return nil, err
+		}
+	}
+	if req.PassiveBuffs != nil {
+		if err := monster.PassiveBuffs.Marshal(req.PassiveBuffs); err != nil {
+			return nil, err
+		}
+	}
 	if req.DropGoldMin > 0 {
 		monster.DropGoldMin.SetValid(req.DropGoldMin)
 	}
@@ -1149,11 +1248,11 @@ func (h *MonsterHandler) toMonsterEntity(req *CreateMonsterRequest) *game_config
 		monster.DisplayOrder.SetValid(req.DisplayOrder)
 	}
 
-	return monster
+	return monster, nil
 }
 
 // toMonsterInfo 将实体转换为响应
-func (h *MonsterHandler) toMonsterInfo(monster *game_config.Monster) MonsterInfo {
+func (h *MonsterHandler) toMonsterInfo(monster *game_config.Monster, skillDetails []service.MonsterSkillDetail, dropDetails []service.MonsterDropDetail, tagDetails []*game_config.Tag) MonsterInfo {
 	info := MonsterInfo{
 		ID:           monster.ID,
 		MonsterCode:  monster.MonsterCode,
@@ -1219,15 +1318,17 @@ func (h *MonsterHandler) toMonsterInfo(monster *game_config.Monster) MonsterInfo
 	if monster.EnvironmentResistAttributeCode.Valid {
 		info.EnvironmentResistAttributeCode = monster.EnvironmentResistAttributeCode.String
 	}
+	info.DamageResistances = map[string]interface{}{}
 	if monster.DamageResistances.Valid {
 		var resistances map[string]interface{}
-		if err := monster.DamageResistances.Unmarshal(&resistances); err == nil {
+		if err := monster.DamageResistances.Unmarshal(&resistances); err == nil && resistances != nil {
 			info.DamageResistances = resistances
 		}
 	}
+	info.PassiveBuffs = []interface{}{}
 	if monster.PassiveBuffs.Valid {
 		var buffs []interface{}
-		if err := monster.PassiveBuffs.Unmarshal(&buffs); err == nil {
+		if err := monster.PassiveBuffs.Unmarshal(&buffs); err == nil && buffs != nil {
 			info.PassiveBuffs = buffs
 		}
 	}
@@ -1251,6 +1352,66 @@ func (h *MonsterHandler) toMonsterInfo(monster *game_config.Monster) MonsterInfo
 	}
 	if monster.DisplayOrder.Valid {
 		info.DisplayOrder = monster.DisplayOrder.Int
+	}
+
+	if len(skillDetails) > 0 {
+		info.Skills = make([]MonsterSkillDetailInfo, 0, len(skillDetails))
+		for _, detail := range skillDetails {
+			skillInfo := h.toMonsterSkillInfo(detail.Config)
+			item := MonsterSkillDetailInfo{
+				MonsterSkillInfo: skillInfo,
+				SkillCode:        detail.Skill.SkillCode,
+				SkillName:        detail.Skill.SkillName,
+			}
+			if detail.Config.DisplayOrder.Valid {
+				item.DisplayOrder = detail.Config.DisplayOrder.Int
+			}
+			info.Skills = append(info.Skills, item)
+		}
+	} else {
+		info.Skills = []MonsterSkillDetailInfo{}
+	}
+
+	if len(dropDetails) > 0 {
+		info.Drops = make([]MonsterDropDetailInfo, 0, len(dropDetails))
+		for _, detail := range dropDetails {
+			dropInfo := h.toMonsterDropInfo(detail.Config)
+			item := MonsterDropDetailInfo{
+				MonsterDropInfo: dropInfo,
+			}
+			if detail.DropPool != nil {
+				item.DropPoolCode = detail.DropPool.PoolCode
+				item.DropPoolName = detail.DropPool.PoolName
+			}
+			info.Drops = append(info.Drops, item)
+		}
+	} else {
+		info.Drops = []MonsterDropDetailInfo{}
+	}
+
+	if len(tagDetails) > 0 {
+		info.Tags = make([]MonsterTagInfo, 0, len(tagDetails))
+		for _, tag := range tagDetails {
+			item := MonsterTagInfo{
+				ID:           tag.ID,
+				TagCode:      tag.TagCode,
+				TagName:      tag.TagName,
+				Category:     tag.Category,
+				DisplayOrder: tag.DisplayOrder,
+			}
+			if tag.Description.Valid {
+				item.Description = tag.Description.String
+			}
+			if tag.Icon.Valid {
+				item.Icon = tag.Icon.String
+			}
+			if tag.Color.Valid {
+				item.Color = tag.Color.String
+			}
+			info.Tags = append(info.Tags, item)
+		}
+	} else {
+		info.Tags = []MonsterTagInfo{}
 	}
 
 	return info

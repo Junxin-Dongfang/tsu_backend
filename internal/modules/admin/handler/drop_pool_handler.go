@@ -5,11 +5,13 @@ import (
 	"database/sql"
 	"strconv"
 
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 
 	"tsu-self/internal/modules/admin/dto"
 	"tsu-self/internal/modules/admin/service"
 	"tsu-self/internal/pkg/response"
+	"tsu-self/internal/pkg/xerrors"
 	"tsu-self/internal/repository/interfaces"
 )
 
@@ -330,6 +332,9 @@ func (h *DropPoolHandler) DeleteDropPool(c echo.Context) error {
 func (h *DropPoolHandler) AddDropPoolItem(c echo.Context) error {
 	// 1. 获取掉落池ID
 	poolID := c.Param("pool_id")
+	if _, err := uuid.Parse(poolID); err != nil {
+		return response.EchoError(c, h.respWriter, xerrors.New(xerrors.CodeResourceNotFound, "掉落池不存在"))
+	}
 
 	// 2. 解析请求
 	var req dto.AddDropPoolItemRequest
@@ -368,6 +373,9 @@ func (h *DropPoolHandler) AddDropPoolItem(c echo.Context) error {
 func (h *DropPoolHandler) GetDropPoolItems(c echo.Context) error {
 	// 1. 获取掉落池ID
 	poolID := c.Param("pool_id")
+	if _, err := uuid.Parse(poolID); err != nil {
+		return response.EchoError(c, h.respWriter, xerrors.New(xerrors.CodeResourceNotFound, "掉落池不存在"))
+	}
 
 	// 2. 解析查询参数
 	params := interfaces.ListDropPoolItemParams{

@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"time"
 
 	"github.com/aarondl/sqlboiler/v4/boil"
 	"github.com/aarondl/sqlboiler/v4/queries/qm"
@@ -144,9 +143,4 @@ func (r *heroSkillRepositoryImpl) DeleteAllByHeroID(ctx context.Context, execer 
 	return nil
 }
 
-// nullTimeNow 辅助函数：返回当前时间指针
-func nullTimeNow() *time.Time {
-	now := time.Now()
-	return &now
-}
 

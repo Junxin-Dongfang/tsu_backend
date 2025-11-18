@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/aarondl/null/v8"
 	"github.com/aarondl/sqlboiler/v4/types"
@@ -27,18 +28,84 @@ type MonsterService struct {
 	db                *sql.DB
 }
 
+// MonsterSkillDetail 怪物技能聚合信息
+type MonsterSkillDetail struct {
+	Config *game_config.MonsterSkill
+	Skill  *game_config.Skill
+}
+
+// MonsterDropDetail 怪物掉落聚合信息
+type MonsterDropDetail struct {
+	Config   *game_config.MonsterDrop
+	DropPool *game_config.DropPool
+}
+
+// MonsterDetail 聚合详情
+type MonsterDetail struct {
+	Monster *game_config.Monster
+	Skills  []MonsterSkillDetail
+	Drops   []MonsterDropDetail
+	Tags    []*game_config.Tag
+}
+
+// MonsterServiceDeps allows custom dependency injection (used for tests).
+type MonsterServiceDeps struct {
+	DB                *sql.DB
+	MonsterRepo       interfaces.MonsterRepository
+	MonsterSkillRepo  interfaces.MonsterSkillRepository
+	MonsterDropRepo   interfaces.MonsterDropRepository
+	SkillRepo         interfaces.SkillRepository
+	DropPoolRepo      interfaces.DropPoolRepository
+	TagRelationRepo   interfaces.TagRelationRepository
+	AttributeTypeRepo interfaces.HeroAttributeTypeRepository
+}
+
 // NewMonsterService 创建怪物服务
 func NewMonsterService(db *sql.DB) *MonsterService {
-	return &MonsterService{
-		monsterRepo:       impl.NewMonsterRepository(db),
-		monsterSkillRepo:  impl.NewMonsterSkillRepository(db),
-		monsterDropRepo:   impl.NewMonsterDropRepository(db),
-		skillRepo:         impl.NewSkillRepository(db),
-		dropPoolRepo:      impl.NewDropPoolRepository(db),
-		tagRelationRepo:   impl.NewTagRelationRepository(db),
-		attributeTypeRepo: impl.NewHeroAttributeTypeRepository(db),
-		db:                db,
+	return NewMonsterServiceWithDeps(MonsterServiceDeps{
+		DB: db,
+	})
+}
+
+// NewMonsterServiceWithDeps allows tests to provide custom repositories.
+func NewMonsterServiceWithDeps(deps MonsterServiceDeps) *MonsterService {
+	svc := &MonsterService{
+		monsterRepo:       deps.MonsterRepo,
+		monsterSkillRepo:  deps.MonsterSkillRepo,
+		monsterDropRepo:   deps.MonsterDropRepo,
+		skillRepo:         deps.SkillRepo,
+		dropPoolRepo:      deps.DropPoolRepo,
+		tagRelationRepo:   deps.TagRelationRepo,
+		attributeTypeRepo: deps.AttributeTypeRepo,
+		db:                deps.DB,
 	}
+
+	if svc.db == nil {
+		svc.db = deps.DB
+	}
+	if svc.monsterRepo == nil {
+		svc.monsterRepo = impl.NewMonsterRepository(svc.db)
+	}
+	if svc.monsterSkillRepo == nil {
+		svc.monsterSkillRepo = impl.NewMonsterSkillRepository(svc.db)
+	}
+	if svc.monsterDropRepo == nil {
+		svc.monsterDropRepo = impl.NewMonsterDropRepository(svc.db)
+	}
+	if svc.skillRepo == nil {
+		svc.skillRepo = impl.NewSkillRepository(svc.db)
+	}
+	if svc.dropPoolRepo == nil {
+		svc.dropPoolRepo = impl.NewDropPoolRepository(svc.db)
+	}
+	if svc.tagRelationRepo == nil {
+		svc.tagRelationRepo = impl.NewTagRelationRepository(svc.db)
+	}
+	if svc.attributeTypeRepo == nil {
+		svc.attributeTypeRepo = impl.NewHeroAttributeTypeRepository(svc.db)
+	}
+
+	return svc
 }
 
 // GetMonsters 获取怪物列表
@@ -54,6 +121,45 @@ func (s *MonsterService) GetMonsterByID(ctx context.Context, monsterID string) (
 // GetMonsterByCode 根据代码获取怪物
 func (s *MonsterService) GetMonsterByCode(ctx context.Context, code string) (*game_config.Monster, error) {
 	return s.monsterRepo.GetByCode(ctx, code)
+}
+
+// GetMonsterDetail 获取怪物聚合详情
+func (s *MonsterService) GetMonsterDetail(ctx context.Context, monsterID string) (*MonsterDetail, error) {
+	monster, err := s.monsterRepo.GetByID(ctx, monsterID)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.BuildMonsterDetail(ctx, monster)
+}
+
+// BuildMonsterDetail 根据已加载的怪物实体聚合技能/掉落/标签信息
+func (s *MonsterService) BuildMonsterDetail(ctx context.Context, monster *game_config.Monster) (*MonsterDetail, error) {
+	if monster == nil {
+		return nil, xerrors.New(xerrors.CodeInvalidParams, "monster 实体不能为空")
+	}
+
+	skills, err := s.loadMonsterSkillDetails(ctx, monster.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	drops, err := s.loadMonsterDropDetails(ctx, monster.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	tags, err := s.tagRelationRepo.GetEntityTags(ctx, "monster", monster.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &MonsterDetail{
+		Monster: monster,
+		Skills:  skills,
+		Drops:   drops,
+		Tags:    tags,
+	}, nil
 }
 
 // CreateMonster 创建怪物
@@ -88,6 +194,10 @@ func (s *MonsterService) CreateMonster(ctx context.Context, monster *game_config
 
 	// 验证属性类型代码
 	if err := s.validateAttributeCodes(ctx, monster); err != nil {
+		return err
+	}
+
+	if err := s.validateJSONFields(monster); err != nil {
 		return err
 	}
 
@@ -237,6 +347,22 @@ func (s *MonsterService) UpdateMonster(ctx context.Context, monsterID string, up
 		monster.DisplayOrder.SetValid(displayOrder)
 	}
 
+	if damageResistances, ok := updates["damage_resistances"].(map[string]interface{}); ok {
+		if err := marshalMapToJSON(&monster.DamageResistances, damageResistances); err != nil {
+			return xerrors.New(xerrors.CodeInvalidParams, "伤害抗性配置不是合法的 JSON 对象")
+		}
+	}
+
+	if passiveBuffs, ok := updates["passive_buffs"].([]interface{}); ok {
+		if err := marshalSliceToJSON(&monster.PassiveBuffs, passiveBuffs); err != nil {
+			return xerrors.New(xerrors.CodeInvalidParams, "被动效果配置不是合法的 JSON 数组")
+		}
+	}
+
+	if err := s.validateJSONFields(monster); err != nil {
+		return err
+	}
+
 	return s.monsterRepo.Update(ctx, monster)
 }
 
@@ -249,23 +375,28 @@ func (s *MonsterService) DeleteMonster(ctx context.Context, monsterID string) er
 	}
 	defer tx.Rollback()
 
+	txMonsterRepo := impl.NewMonsterRepositoryWithExecutor(tx)
+	txMonsterSkillRepo := impl.NewMonsterSkillRepositoryWithExecutor(tx)
+	txMonsterDropRepo := impl.NewMonsterDropRepositoryWithExecutor(tx)
+	txTagRepo := impl.NewTagRelationRepositoryWithExecutor(tx)
+
 	// 删除怪物（软删除）
-	if err := s.monsterRepo.Delete(ctx, monsterID); err != nil {
+	if err := txMonsterRepo.Delete(ctx, monsterID); err != nil {
 		return err
 	}
 
 	// 级联删除怪物技能
-	if err := s.monsterSkillRepo.DeleteByMonsterID(ctx, monsterID); err != nil {
+	if err := txMonsterSkillRepo.DeleteByMonsterID(ctx, monsterID); err != nil {
 		return err
 	}
 
 	// 级联删除怪物掉落配置
-	if err := s.monsterDropRepo.DeleteByMonsterID(ctx, monsterID); err != nil {
+	if err := txMonsterDropRepo.DeleteByMonsterID(ctx, monsterID); err != nil {
 		return err
 	}
 
 	// 级联删除怪物标签关联
-	if err := s.tagRelationRepo.DeleteByEntity(ctx, "monster", monsterID); err != nil {
+	if err := txTagRepo.DeleteByEntity(ctx, "monster", monsterID); err != nil {
 		return err
 	}
 
@@ -373,8 +504,10 @@ func (s *MonsterService) BatchSetMonsterSkills(ctx context.Context, monsterID st
 	}
 	defer tx.Rollback()
 
+	txSkillRepo := impl.NewMonsterSkillRepositoryWithExecutor(tx)
+
 	// 删除旧的技能配置
-	if err := s.monsterSkillRepo.DeleteByMonsterID(ctx, monsterID); err != nil {
+	if err := txSkillRepo.DeleteByMonsterID(ctx, monsterID); err != nil {
 		return err
 	}
 
@@ -400,7 +533,7 @@ func (s *MonsterService) BatchSetMonsterSkills(ctx context.Context, monsterID st
 			})
 		}
 
-		if err := s.monsterSkillRepo.BatchCreate(ctx, monsterSkills); err != nil {
+		if err := txSkillRepo.BatchCreate(ctx, monsterSkills); err != nil {
 			return err
 		}
 	}
@@ -523,8 +656,10 @@ func (s *MonsterService) BatchSetMonsterDrops(ctx context.Context, monsterID str
 	}
 	defer tx.Rollback()
 
+	txDropRepo := impl.NewMonsterDropRepositoryWithExecutor(tx)
+
 	// 删除旧的掉落配置
-	if err := s.monsterDropRepo.DeleteByMonsterID(ctx, monsterID); err != nil {
+	if err := txDropRepo.DeleteByMonsterID(ctx, monsterID); err != nil {
 		return err
 	}
 
@@ -566,7 +701,7 @@ func (s *MonsterService) BatchSetMonsterDrops(ctx context.Context, monsterID str
 			})
 		}
 
-		if err := s.monsterDropRepo.BatchCreate(ctx, monsterDrops); err != nil {
+		if err := txDropRepo.BatchCreate(ctx, monsterDrops); err != nil {
 			return err
 		}
 	}
@@ -646,8 +781,10 @@ func (s *MonsterService) SetMonsterTags(ctx context.Context, monsterID string, t
 	}
 	defer tx.Rollback()
 
+	txTagRepo := impl.NewTagRelationRepositoryWithExecutor(tx)
+
 	// 删除旧的标签关联
-	if err := s.tagRelationRepo.DeleteByEntity(ctx, "monster", monsterID); err != nil {
+	if err := txTagRepo.DeleteByEntity(ctx, "monster", monsterID); err != nil {
 		return err
 	}
 
@@ -662,7 +799,7 @@ func (s *MonsterService) SetMonsterTags(ctx context.Context, monsterID string, t
 			})
 		}
 
-		if err := s.tagRelationRepo.BatchCreate(ctx, relations); err != nil {
+		if err := txTagRepo.BatchCreate(ctx, relations); err != nil {
 			return err
 		}
 	}
@@ -771,4 +908,108 @@ func (s *MonsterService) validateAttributeCode(ctx context.Context, attributeCod
 	}
 
 	return nil
+}
+
+func (s *MonsterService) loadMonsterSkillDetails(ctx context.Context, monsterID string) ([]MonsterSkillDetail, error) {
+	monsterSkills, err := s.monsterSkillRepo.GetByMonsterID(ctx, monsterID)
+	if err != nil {
+		return nil, err
+	}
+
+	skillCache := make(map[string]*game_config.Skill)
+	result := make([]MonsterSkillDetail, 0, len(monsterSkills))
+
+	for _, ms := range monsterSkills {
+		skill, ok := skillCache[ms.SkillID]
+		if !ok {
+			skill, err = s.skillRepo.GetByID(ctx, ms.SkillID)
+			if err != nil {
+				return nil, err
+			}
+			skillCache[ms.SkillID] = skill
+		}
+		result = append(result, MonsterSkillDetail{
+			Config: ms,
+			Skill:  skill,
+		})
+	}
+
+	return result, nil
+}
+
+func (s *MonsterService) loadMonsterDropDetails(ctx context.Context, monsterID string) ([]MonsterDropDetail, error) {
+	monsterDrops, err := s.monsterDropRepo.GetByMonsterID(ctx, monsterID)
+	if err != nil {
+		return nil, err
+	}
+
+	dropCache := make(map[string]*game_config.DropPool)
+	result := make([]MonsterDropDetail, 0, len(monsterDrops))
+	for _, drop := range monsterDrops {
+		pool, ok := dropCache[drop.DropPoolID]
+		if !ok {
+			pool, err = s.dropPoolRepo.GetByID(ctx, drop.DropPoolID)
+			if err != nil {
+				return nil, err
+			}
+			dropCache[drop.DropPoolID] = pool
+		}
+		result = append(result, MonsterDropDetail{
+			Config:   drop,
+			DropPool: pool,
+		})
+	}
+
+	return result, nil
+}
+
+func (s *MonsterService) validateJSONFields(monster *game_config.Monster) error {
+	if monster.DamageResistances.Valid {
+		var resistances map[string]float64
+		if err := monster.DamageResistances.Unmarshal(&resistances); err != nil {
+			return monsterValidationError("damage_resistances", "伤害抗性配置必须是键为字符串、值为数值的对象")
+		}
+		for key, value := range resistances {
+			upperKey := strings.ToUpper(key)
+			if strings.HasSuffix(upperKey, "_RESIST") && (value < 0 || value > 1) {
+				return monsterValidationError("damage_resistances", fmt.Sprintf("%s 抗性需要在0-1之间", key))
+			}
+			if strings.HasSuffix(upperKey, "_DR") && value < 0 {
+				return monsterValidationError("damage_resistances", fmt.Sprintf("%s 减免不能为负数", key))
+			}
+		}
+	}
+
+	if monster.PassiveBuffs.Valid {
+		var passive []interface{}
+		if err := monster.PassiveBuffs.Unmarshal(&passive); err != nil {
+			return monsterValidationError("passive_buffs", "被动效果配置必须是数组")
+		}
+	}
+
+	return nil
+}
+
+func marshalMapToJSON(target *null.JSON, value map[string]interface{}) error {
+	if value == nil {
+		target.JSON = nil
+		target.Valid = false
+		return nil
+	}
+	return target.Marshal(value)
+}
+
+func marshalSliceToJSON(target *null.JSON, value []interface{}) error {
+	if value == nil {
+		target.JSON = nil
+		target.Valid = false
+		return nil
+	}
+	return target.Marshal(value)
+}
+
+func monsterValidationError(field, message string) error {
+	return xerrors.FromCode(xerrors.CodeInvalidParams).
+		WithMetadata("field", field).
+		WithMetadata("user_message", message)
 }

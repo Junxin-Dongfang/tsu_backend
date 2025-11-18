@@ -187,26 +187,56 @@ var HeroWhere = struct {
 
 // HeroRels is where relationship names are stored.
 var HeroRels = struct {
-	HeroAllocatedAttributes string
-	HeroAttributeOperations string
-	HeroClassHistories      string
-	HeroEquipmentSlots      string
-	HeroSkills              string
+	HeroAllocatedAttributes                      string
+	HeroAttributeOperations                      string
+	HeroClassHistories                           string
+	HeroEquipmentSlots                           string
+	HeroSkills                                   string
+	ApprovedByHeroTeamInvitations                string
+	InviteeHeroTeamInvitations                   string
+	InviterHeroTeamInvitations                   string
+	TeamJoinRequests                             string
+	ReviewedByHeroTeamJoinRequests               string
+	TeamKickedRecords                            string
+	KickedByHeroTeamKickedRecords                string
+	DistributorHeroTeamLootDistributionHistories string
+	RecipientHeroTeamLootDistributionHistories   string
+	TeamMembers                                  string
 }{
-	HeroAllocatedAttributes: "HeroAllocatedAttributes",
-	HeroAttributeOperations: "HeroAttributeOperations",
-	HeroClassHistories:      "HeroClassHistories",
-	HeroEquipmentSlots:      "HeroEquipmentSlots",
-	HeroSkills:              "HeroSkills",
+	HeroAllocatedAttributes:                      "HeroAllocatedAttributes",
+	HeroAttributeOperations:                      "HeroAttributeOperations",
+	HeroClassHistories:                           "HeroClassHistories",
+	HeroEquipmentSlots:                           "HeroEquipmentSlots",
+	HeroSkills:                                   "HeroSkills",
+	ApprovedByHeroTeamInvitations:                "ApprovedByHeroTeamInvitations",
+	InviteeHeroTeamInvitations:                   "InviteeHeroTeamInvitations",
+	InviterHeroTeamInvitations:                   "InviterHeroTeamInvitations",
+	TeamJoinRequests:                             "TeamJoinRequests",
+	ReviewedByHeroTeamJoinRequests:               "ReviewedByHeroTeamJoinRequests",
+	TeamKickedRecords:                            "TeamKickedRecords",
+	KickedByHeroTeamKickedRecords:                "KickedByHeroTeamKickedRecords",
+	DistributorHeroTeamLootDistributionHistories: "DistributorHeroTeamLootDistributionHistories",
+	RecipientHeroTeamLootDistributionHistories:   "RecipientHeroTeamLootDistributionHistories",
+	TeamMembers:                                  "TeamMembers",
 }
 
 // heroR is where relationships are stored.
 type heroR struct {
-	HeroAllocatedAttributes HeroAllocatedAttributeSlice `boil:"HeroAllocatedAttributes" json:"HeroAllocatedAttributes" toml:"HeroAllocatedAttributes" yaml:"HeroAllocatedAttributes"`
-	HeroAttributeOperations HeroAttributeOperationSlice `boil:"HeroAttributeOperations" json:"HeroAttributeOperations" toml:"HeroAttributeOperations" yaml:"HeroAttributeOperations"`
-	HeroClassHistories      HeroClassHistorySlice       `boil:"HeroClassHistories" json:"HeroClassHistories" toml:"HeroClassHistories" yaml:"HeroClassHistories"`
-	HeroEquipmentSlots      HeroEquipmentSlotSlice      `boil:"HeroEquipmentSlots" json:"HeroEquipmentSlots" toml:"HeroEquipmentSlots" yaml:"HeroEquipmentSlots"`
-	HeroSkills              HeroSkillSlice              `boil:"HeroSkills" json:"HeroSkills" toml:"HeroSkills" yaml:"HeroSkills"`
+	HeroAllocatedAttributes                      HeroAllocatedAttributeSlice      `boil:"HeroAllocatedAttributes" json:"HeroAllocatedAttributes" toml:"HeroAllocatedAttributes" yaml:"HeroAllocatedAttributes"`
+	HeroAttributeOperations                      HeroAttributeOperationSlice      `boil:"HeroAttributeOperations" json:"HeroAttributeOperations" toml:"HeroAttributeOperations" yaml:"HeroAttributeOperations"`
+	HeroClassHistories                           HeroClassHistorySlice            `boil:"HeroClassHistories" json:"HeroClassHistories" toml:"HeroClassHistories" yaml:"HeroClassHistories"`
+	HeroEquipmentSlots                           HeroEquipmentSlotSlice           `boil:"HeroEquipmentSlots" json:"HeroEquipmentSlots" toml:"HeroEquipmentSlots" yaml:"HeroEquipmentSlots"`
+	HeroSkills                                   HeroSkillSlice                   `boil:"HeroSkills" json:"HeroSkills" toml:"HeroSkills" yaml:"HeroSkills"`
+	ApprovedByHeroTeamInvitations                TeamInvitationSlice              `boil:"ApprovedByHeroTeamInvitations" json:"ApprovedByHeroTeamInvitations" toml:"ApprovedByHeroTeamInvitations" yaml:"ApprovedByHeroTeamInvitations"`
+	InviteeHeroTeamInvitations                   TeamInvitationSlice              `boil:"InviteeHeroTeamInvitations" json:"InviteeHeroTeamInvitations" toml:"InviteeHeroTeamInvitations" yaml:"InviteeHeroTeamInvitations"`
+	InviterHeroTeamInvitations                   TeamInvitationSlice              `boil:"InviterHeroTeamInvitations" json:"InviterHeroTeamInvitations" toml:"InviterHeroTeamInvitations" yaml:"InviterHeroTeamInvitations"`
+	TeamJoinRequests                             TeamJoinRequestSlice             `boil:"TeamJoinRequests" json:"TeamJoinRequests" toml:"TeamJoinRequests" yaml:"TeamJoinRequests"`
+	ReviewedByHeroTeamJoinRequests               TeamJoinRequestSlice             `boil:"ReviewedByHeroTeamJoinRequests" json:"ReviewedByHeroTeamJoinRequests" toml:"ReviewedByHeroTeamJoinRequests" yaml:"ReviewedByHeroTeamJoinRequests"`
+	TeamKickedRecords                            TeamKickedRecordSlice            `boil:"TeamKickedRecords" json:"TeamKickedRecords" toml:"TeamKickedRecords" yaml:"TeamKickedRecords"`
+	KickedByHeroTeamKickedRecords                TeamKickedRecordSlice            `boil:"KickedByHeroTeamKickedRecords" json:"KickedByHeroTeamKickedRecords" toml:"KickedByHeroTeamKickedRecords" yaml:"KickedByHeroTeamKickedRecords"`
+	DistributorHeroTeamLootDistributionHistories TeamLootDistributionHistorySlice `boil:"DistributorHeroTeamLootDistributionHistories" json:"DistributorHeroTeamLootDistributionHistories" toml:"DistributorHeroTeamLootDistributionHistories" yaml:"DistributorHeroTeamLootDistributionHistories"`
+	RecipientHeroTeamLootDistributionHistories   TeamLootDistributionHistorySlice `boil:"RecipientHeroTeamLootDistributionHistories" json:"RecipientHeroTeamLootDistributionHistories" toml:"RecipientHeroTeamLootDistributionHistories" yaml:"RecipientHeroTeamLootDistributionHistories"`
+	TeamMembers                                  TeamMemberSlice                  `boil:"TeamMembers" json:"TeamMembers" toml:"TeamMembers" yaml:"TeamMembers"`
 }
 
 // NewStruct creates a new relationship struct
@@ -292,6 +322,166 @@ func (r *heroR) GetHeroSkills() HeroSkillSlice {
 	}
 
 	return r.HeroSkills
+}
+
+func (o *Hero) GetApprovedByHeroTeamInvitations() TeamInvitationSlice {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetApprovedByHeroTeamInvitations()
+}
+
+func (r *heroR) GetApprovedByHeroTeamInvitations() TeamInvitationSlice {
+	if r == nil {
+		return nil
+	}
+
+	return r.ApprovedByHeroTeamInvitations
+}
+
+func (o *Hero) GetInviteeHeroTeamInvitations() TeamInvitationSlice {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetInviteeHeroTeamInvitations()
+}
+
+func (r *heroR) GetInviteeHeroTeamInvitations() TeamInvitationSlice {
+	if r == nil {
+		return nil
+	}
+
+	return r.InviteeHeroTeamInvitations
+}
+
+func (o *Hero) GetInviterHeroTeamInvitations() TeamInvitationSlice {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetInviterHeroTeamInvitations()
+}
+
+func (r *heroR) GetInviterHeroTeamInvitations() TeamInvitationSlice {
+	if r == nil {
+		return nil
+	}
+
+	return r.InviterHeroTeamInvitations
+}
+
+func (o *Hero) GetTeamJoinRequests() TeamJoinRequestSlice {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetTeamJoinRequests()
+}
+
+func (r *heroR) GetTeamJoinRequests() TeamJoinRequestSlice {
+	if r == nil {
+		return nil
+	}
+
+	return r.TeamJoinRequests
+}
+
+func (o *Hero) GetReviewedByHeroTeamJoinRequests() TeamJoinRequestSlice {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetReviewedByHeroTeamJoinRequests()
+}
+
+func (r *heroR) GetReviewedByHeroTeamJoinRequests() TeamJoinRequestSlice {
+	if r == nil {
+		return nil
+	}
+
+	return r.ReviewedByHeroTeamJoinRequests
+}
+
+func (o *Hero) GetTeamKickedRecords() TeamKickedRecordSlice {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetTeamKickedRecords()
+}
+
+func (r *heroR) GetTeamKickedRecords() TeamKickedRecordSlice {
+	if r == nil {
+		return nil
+	}
+
+	return r.TeamKickedRecords
+}
+
+func (o *Hero) GetKickedByHeroTeamKickedRecords() TeamKickedRecordSlice {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetKickedByHeroTeamKickedRecords()
+}
+
+func (r *heroR) GetKickedByHeroTeamKickedRecords() TeamKickedRecordSlice {
+	if r == nil {
+		return nil
+	}
+
+	return r.KickedByHeroTeamKickedRecords
+}
+
+func (o *Hero) GetDistributorHeroTeamLootDistributionHistories() TeamLootDistributionHistorySlice {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetDistributorHeroTeamLootDistributionHistories()
+}
+
+func (r *heroR) GetDistributorHeroTeamLootDistributionHistories() TeamLootDistributionHistorySlice {
+	if r == nil {
+		return nil
+	}
+
+	return r.DistributorHeroTeamLootDistributionHistories
+}
+
+func (o *Hero) GetRecipientHeroTeamLootDistributionHistories() TeamLootDistributionHistorySlice {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetRecipientHeroTeamLootDistributionHistories()
+}
+
+func (r *heroR) GetRecipientHeroTeamLootDistributionHistories() TeamLootDistributionHistorySlice {
+	if r == nil {
+		return nil
+	}
+
+	return r.RecipientHeroTeamLootDistributionHistories
+}
+
+func (o *Hero) GetTeamMembers() TeamMemberSlice {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetTeamMembers()
+}
+
+func (r *heroR) GetTeamMembers() TeamMemberSlice {
+	if r == nil {
+		return nil
+	}
+
+	return r.TeamMembers
 }
 
 // heroL is where Load methods for each relationship are stored.
@@ -778,6 +968,146 @@ func (o *Hero) HeroSkills(mods ...qm.QueryMod) heroSkillQuery {
 	)
 
 	return HeroSkills(queryMods...)
+}
+
+// ApprovedByHeroTeamInvitations retrieves all the team_invitation's TeamInvitations with an executor via approved_by_hero_id column.
+func (o *Hero) ApprovedByHeroTeamInvitations(mods ...qm.QueryMod) teamInvitationQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"game_runtime\".\"team_invitations\".\"approved_by_hero_id\"=?", o.ID),
+	)
+
+	return TeamInvitations(queryMods...)
+}
+
+// InviteeHeroTeamInvitations retrieves all the team_invitation's TeamInvitations with an executor via invitee_hero_id column.
+func (o *Hero) InviteeHeroTeamInvitations(mods ...qm.QueryMod) teamInvitationQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"game_runtime\".\"team_invitations\".\"invitee_hero_id\"=?", o.ID),
+	)
+
+	return TeamInvitations(queryMods...)
+}
+
+// InviterHeroTeamInvitations retrieves all the team_invitation's TeamInvitations with an executor via inviter_hero_id column.
+func (o *Hero) InviterHeroTeamInvitations(mods ...qm.QueryMod) teamInvitationQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"game_runtime\".\"team_invitations\".\"inviter_hero_id\"=?", o.ID),
+	)
+
+	return TeamInvitations(queryMods...)
+}
+
+// TeamJoinRequests retrieves all the team_join_request's TeamJoinRequests with an executor.
+func (o *Hero) TeamJoinRequests(mods ...qm.QueryMod) teamJoinRequestQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"game_runtime\".\"team_join_requests\".\"hero_id\"=?", o.ID),
+	)
+
+	return TeamJoinRequests(queryMods...)
+}
+
+// ReviewedByHeroTeamJoinRequests retrieves all the team_join_request's TeamJoinRequests with an executor via reviewed_by_hero_id column.
+func (o *Hero) ReviewedByHeroTeamJoinRequests(mods ...qm.QueryMod) teamJoinRequestQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"game_runtime\".\"team_join_requests\".\"reviewed_by_hero_id\"=?", o.ID),
+	)
+
+	return TeamJoinRequests(queryMods...)
+}
+
+// TeamKickedRecords retrieves all the team_kicked_record's TeamKickedRecords with an executor.
+func (o *Hero) TeamKickedRecords(mods ...qm.QueryMod) teamKickedRecordQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"game_runtime\".\"team_kicked_records\".\"hero_id\"=?", o.ID),
+	)
+
+	return TeamKickedRecords(queryMods...)
+}
+
+// KickedByHeroTeamKickedRecords retrieves all the team_kicked_record's TeamKickedRecords with an executor via kicked_by_hero_id column.
+func (o *Hero) KickedByHeroTeamKickedRecords(mods ...qm.QueryMod) teamKickedRecordQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"game_runtime\".\"team_kicked_records\".\"kicked_by_hero_id\"=?", o.ID),
+	)
+
+	return TeamKickedRecords(queryMods...)
+}
+
+// DistributorHeroTeamLootDistributionHistories retrieves all the team_loot_distribution_history's TeamLootDistributionHistories with an executor via distributor_hero_id column.
+func (o *Hero) DistributorHeroTeamLootDistributionHistories(mods ...qm.QueryMod) teamLootDistributionHistoryQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"game_runtime\".\"team_loot_distribution_history\".\"distributor_hero_id\"=?", o.ID),
+	)
+
+	return TeamLootDistributionHistories(queryMods...)
+}
+
+// RecipientHeroTeamLootDistributionHistories retrieves all the team_loot_distribution_history's TeamLootDistributionHistories with an executor via recipient_hero_id column.
+func (o *Hero) RecipientHeroTeamLootDistributionHistories(mods ...qm.QueryMod) teamLootDistributionHistoryQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"game_runtime\".\"team_loot_distribution_history\".\"recipient_hero_id\"=?", o.ID),
+	)
+
+	return TeamLootDistributionHistories(queryMods...)
+}
+
+// TeamMembers retrieves all the team_member's TeamMembers with an executor.
+func (o *Hero) TeamMembers(mods ...qm.QueryMod) teamMemberQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"game_runtime\".\"team_members\".\"hero_id\"=?", o.ID),
+	)
+
+	return TeamMembers(queryMods...)
 }
 
 // LoadHeroAllocatedAttributes allows an eager lookup of values, cached into the
@@ -1347,6 +1677,1136 @@ func (heroL) LoadHeroSkills(ctx context.Context, e boil.ContextExecutor, singula
 	return nil
 }
 
+// LoadApprovedByHeroTeamInvitations allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (heroL) LoadApprovedByHeroTeamInvitations(ctx context.Context, e boil.ContextExecutor, singular bool, maybeHero interface{}, mods queries.Applicator) error {
+	var slice []*Hero
+	var object *Hero
+
+	if singular {
+		var ok bool
+		object, ok = maybeHero.(*Hero)
+		if !ok {
+			object = new(Hero)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeHero)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeHero))
+			}
+		}
+	} else {
+		s, ok := maybeHero.(*[]*Hero)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeHero)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeHero))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &heroR{}
+		}
+		args[object.ID] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &heroR{}
+			}
+			args[obj.ID] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`game_runtime.team_invitations`),
+		qm.WhereIn(`game_runtime.team_invitations.approved_by_hero_id in ?`, argsSlice...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load team_invitations")
+	}
+
+	var resultSlice []*TeamInvitation
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice team_invitations")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on team_invitations")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for team_invitations")
+	}
+
+	if len(teamInvitationAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.ApprovedByHeroTeamInvitations = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &teamInvitationR{}
+			}
+			foreign.R.ApprovedByHero = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if queries.Equal(local.ID, foreign.ApprovedByHeroID) {
+				local.R.ApprovedByHeroTeamInvitations = append(local.R.ApprovedByHeroTeamInvitations, foreign)
+				if foreign.R == nil {
+					foreign.R = &teamInvitationR{}
+				}
+				foreign.R.ApprovedByHero = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadInviteeHeroTeamInvitations allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (heroL) LoadInviteeHeroTeamInvitations(ctx context.Context, e boil.ContextExecutor, singular bool, maybeHero interface{}, mods queries.Applicator) error {
+	var slice []*Hero
+	var object *Hero
+
+	if singular {
+		var ok bool
+		object, ok = maybeHero.(*Hero)
+		if !ok {
+			object = new(Hero)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeHero)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeHero))
+			}
+		}
+	} else {
+		s, ok := maybeHero.(*[]*Hero)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeHero)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeHero))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &heroR{}
+		}
+		args[object.ID] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &heroR{}
+			}
+			args[obj.ID] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`game_runtime.team_invitations`),
+		qm.WhereIn(`game_runtime.team_invitations.invitee_hero_id in ?`, argsSlice...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load team_invitations")
+	}
+
+	var resultSlice []*TeamInvitation
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice team_invitations")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on team_invitations")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for team_invitations")
+	}
+
+	if len(teamInvitationAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.InviteeHeroTeamInvitations = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &teamInvitationR{}
+			}
+			foreign.R.InviteeHero = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.InviteeHeroID {
+				local.R.InviteeHeroTeamInvitations = append(local.R.InviteeHeroTeamInvitations, foreign)
+				if foreign.R == nil {
+					foreign.R = &teamInvitationR{}
+				}
+				foreign.R.InviteeHero = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadInviterHeroTeamInvitations allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (heroL) LoadInviterHeroTeamInvitations(ctx context.Context, e boil.ContextExecutor, singular bool, maybeHero interface{}, mods queries.Applicator) error {
+	var slice []*Hero
+	var object *Hero
+
+	if singular {
+		var ok bool
+		object, ok = maybeHero.(*Hero)
+		if !ok {
+			object = new(Hero)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeHero)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeHero))
+			}
+		}
+	} else {
+		s, ok := maybeHero.(*[]*Hero)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeHero)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeHero))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &heroR{}
+		}
+		args[object.ID] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &heroR{}
+			}
+			args[obj.ID] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`game_runtime.team_invitations`),
+		qm.WhereIn(`game_runtime.team_invitations.inviter_hero_id in ?`, argsSlice...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load team_invitations")
+	}
+
+	var resultSlice []*TeamInvitation
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice team_invitations")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on team_invitations")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for team_invitations")
+	}
+
+	if len(teamInvitationAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.InviterHeroTeamInvitations = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &teamInvitationR{}
+			}
+			foreign.R.InviterHero = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.InviterHeroID {
+				local.R.InviterHeroTeamInvitations = append(local.R.InviterHeroTeamInvitations, foreign)
+				if foreign.R == nil {
+					foreign.R = &teamInvitationR{}
+				}
+				foreign.R.InviterHero = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadTeamJoinRequests allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (heroL) LoadTeamJoinRequests(ctx context.Context, e boil.ContextExecutor, singular bool, maybeHero interface{}, mods queries.Applicator) error {
+	var slice []*Hero
+	var object *Hero
+
+	if singular {
+		var ok bool
+		object, ok = maybeHero.(*Hero)
+		if !ok {
+			object = new(Hero)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeHero)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeHero))
+			}
+		}
+	} else {
+		s, ok := maybeHero.(*[]*Hero)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeHero)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeHero))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &heroR{}
+		}
+		args[object.ID] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &heroR{}
+			}
+			args[obj.ID] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`game_runtime.team_join_requests`),
+		qm.WhereIn(`game_runtime.team_join_requests.hero_id in ?`, argsSlice...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load team_join_requests")
+	}
+
+	var resultSlice []*TeamJoinRequest
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice team_join_requests")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on team_join_requests")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for team_join_requests")
+	}
+
+	if len(teamJoinRequestAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.TeamJoinRequests = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &teamJoinRequestR{}
+			}
+			foreign.R.Hero = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.HeroID {
+				local.R.TeamJoinRequests = append(local.R.TeamJoinRequests, foreign)
+				if foreign.R == nil {
+					foreign.R = &teamJoinRequestR{}
+				}
+				foreign.R.Hero = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadReviewedByHeroTeamJoinRequests allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (heroL) LoadReviewedByHeroTeamJoinRequests(ctx context.Context, e boil.ContextExecutor, singular bool, maybeHero interface{}, mods queries.Applicator) error {
+	var slice []*Hero
+	var object *Hero
+
+	if singular {
+		var ok bool
+		object, ok = maybeHero.(*Hero)
+		if !ok {
+			object = new(Hero)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeHero)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeHero))
+			}
+		}
+	} else {
+		s, ok := maybeHero.(*[]*Hero)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeHero)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeHero))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &heroR{}
+		}
+		args[object.ID] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &heroR{}
+			}
+			args[obj.ID] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`game_runtime.team_join_requests`),
+		qm.WhereIn(`game_runtime.team_join_requests.reviewed_by_hero_id in ?`, argsSlice...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load team_join_requests")
+	}
+
+	var resultSlice []*TeamJoinRequest
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice team_join_requests")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on team_join_requests")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for team_join_requests")
+	}
+
+	if len(teamJoinRequestAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.ReviewedByHeroTeamJoinRequests = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &teamJoinRequestR{}
+			}
+			foreign.R.ReviewedByHero = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if queries.Equal(local.ID, foreign.ReviewedByHeroID) {
+				local.R.ReviewedByHeroTeamJoinRequests = append(local.R.ReviewedByHeroTeamJoinRequests, foreign)
+				if foreign.R == nil {
+					foreign.R = &teamJoinRequestR{}
+				}
+				foreign.R.ReviewedByHero = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadTeamKickedRecords allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (heroL) LoadTeamKickedRecords(ctx context.Context, e boil.ContextExecutor, singular bool, maybeHero interface{}, mods queries.Applicator) error {
+	var slice []*Hero
+	var object *Hero
+
+	if singular {
+		var ok bool
+		object, ok = maybeHero.(*Hero)
+		if !ok {
+			object = new(Hero)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeHero)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeHero))
+			}
+		}
+	} else {
+		s, ok := maybeHero.(*[]*Hero)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeHero)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeHero))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &heroR{}
+		}
+		args[object.ID] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &heroR{}
+			}
+			args[obj.ID] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`game_runtime.team_kicked_records`),
+		qm.WhereIn(`game_runtime.team_kicked_records.hero_id in ?`, argsSlice...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load team_kicked_records")
+	}
+
+	var resultSlice []*TeamKickedRecord
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice team_kicked_records")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on team_kicked_records")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for team_kicked_records")
+	}
+
+	if len(teamKickedRecordAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.TeamKickedRecords = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &teamKickedRecordR{}
+			}
+			foreign.R.Hero = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.HeroID {
+				local.R.TeamKickedRecords = append(local.R.TeamKickedRecords, foreign)
+				if foreign.R == nil {
+					foreign.R = &teamKickedRecordR{}
+				}
+				foreign.R.Hero = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadKickedByHeroTeamKickedRecords allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (heroL) LoadKickedByHeroTeamKickedRecords(ctx context.Context, e boil.ContextExecutor, singular bool, maybeHero interface{}, mods queries.Applicator) error {
+	var slice []*Hero
+	var object *Hero
+
+	if singular {
+		var ok bool
+		object, ok = maybeHero.(*Hero)
+		if !ok {
+			object = new(Hero)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeHero)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeHero))
+			}
+		}
+	} else {
+		s, ok := maybeHero.(*[]*Hero)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeHero)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeHero))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &heroR{}
+		}
+		args[object.ID] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &heroR{}
+			}
+			args[obj.ID] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`game_runtime.team_kicked_records`),
+		qm.WhereIn(`game_runtime.team_kicked_records.kicked_by_hero_id in ?`, argsSlice...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load team_kicked_records")
+	}
+
+	var resultSlice []*TeamKickedRecord
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice team_kicked_records")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on team_kicked_records")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for team_kicked_records")
+	}
+
+	if len(teamKickedRecordAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.KickedByHeroTeamKickedRecords = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &teamKickedRecordR{}
+			}
+			foreign.R.KickedByHero = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.KickedByHeroID {
+				local.R.KickedByHeroTeamKickedRecords = append(local.R.KickedByHeroTeamKickedRecords, foreign)
+				if foreign.R == nil {
+					foreign.R = &teamKickedRecordR{}
+				}
+				foreign.R.KickedByHero = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadDistributorHeroTeamLootDistributionHistories allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (heroL) LoadDistributorHeroTeamLootDistributionHistories(ctx context.Context, e boil.ContextExecutor, singular bool, maybeHero interface{}, mods queries.Applicator) error {
+	var slice []*Hero
+	var object *Hero
+
+	if singular {
+		var ok bool
+		object, ok = maybeHero.(*Hero)
+		if !ok {
+			object = new(Hero)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeHero)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeHero))
+			}
+		}
+	} else {
+		s, ok := maybeHero.(*[]*Hero)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeHero)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeHero))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &heroR{}
+		}
+		args[object.ID] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &heroR{}
+			}
+			args[obj.ID] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`game_runtime.team_loot_distribution_history`),
+		qm.WhereIn(`game_runtime.team_loot_distribution_history.distributor_hero_id in ?`, argsSlice...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load team_loot_distribution_history")
+	}
+
+	var resultSlice []*TeamLootDistributionHistory
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice team_loot_distribution_history")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on team_loot_distribution_history")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for team_loot_distribution_history")
+	}
+
+	if len(teamLootDistributionHistoryAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.DistributorHeroTeamLootDistributionHistories = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &teamLootDistributionHistoryR{}
+			}
+			foreign.R.DistributorHero = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.DistributorHeroID {
+				local.R.DistributorHeroTeamLootDistributionHistories = append(local.R.DistributorHeroTeamLootDistributionHistories, foreign)
+				if foreign.R == nil {
+					foreign.R = &teamLootDistributionHistoryR{}
+				}
+				foreign.R.DistributorHero = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadRecipientHeroTeamLootDistributionHistories allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (heroL) LoadRecipientHeroTeamLootDistributionHistories(ctx context.Context, e boil.ContextExecutor, singular bool, maybeHero interface{}, mods queries.Applicator) error {
+	var slice []*Hero
+	var object *Hero
+
+	if singular {
+		var ok bool
+		object, ok = maybeHero.(*Hero)
+		if !ok {
+			object = new(Hero)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeHero)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeHero))
+			}
+		}
+	} else {
+		s, ok := maybeHero.(*[]*Hero)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeHero)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeHero))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &heroR{}
+		}
+		args[object.ID] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &heroR{}
+			}
+			args[obj.ID] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`game_runtime.team_loot_distribution_history`),
+		qm.WhereIn(`game_runtime.team_loot_distribution_history.recipient_hero_id in ?`, argsSlice...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load team_loot_distribution_history")
+	}
+
+	var resultSlice []*TeamLootDistributionHistory
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice team_loot_distribution_history")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on team_loot_distribution_history")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for team_loot_distribution_history")
+	}
+
+	if len(teamLootDistributionHistoryAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.RecipientHeroTeamLootDistributionHistories = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &teamLootDistributionHistoryR{}
+			}
+			foreign.R.RecipientHero = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.RecipientHeroID {
+				local.R.RecipientHeroTeamLootDistributionHistories = append(local.R.RecipientHeroTeamLootDistributionHistories, foreign)
+				if foreign.R == nil {
+					foreign.R = &teamLootDistributionHistoryR{}
+				}
+				foreign.R.RecipientHero = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadTeamMembers allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (heroL) LoadTeamMembers(ctx context.Context, e boil.ContextExecutor, singular bool, maybeHero interface{}, mods queries.Applicator) error {
+	var slice []*Hero
+	var object *Hero
+
+	if singular {
+		var ok bool
+		object, ok = maybeHero.(*Hero)
+		if !ok {
+			object = new(Hero)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeHero)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeHero))
+			}
+		}
+	} else {
+		s, ok := maybeHero.(*[]*Hero)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeHero)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeHero))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &heroR{}
+		}
+		args[object.ID] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &heroR{}
+			}
+			args[obj.ID] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`game_runtime.team_members`),
+		qm.WhereIn(`game_runtime.team_members.hero_id in ?`, argsSlice...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load team_members")
+	}
+
+	var resultSlice []*TeamMember
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice team_members")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on team_members")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for team_members")
+	}
+
+	if len(teamMemberAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.TeamMembers = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &teamMemberR{}
+			}
+			foreign.R.Hero = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.HeroID {
+				local.R.TeamMembers = append(local.R.TeamMembers, foreign)
+				if foreign.R == nil {
+					foreign.R = &teamMemberR{}
+				}
+				foreign.R.Hero = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
 // AddHeroAllocatedAttributesG adds the given related objects to the existing relationships
 // of the hero, optionally inserting them as new records.
 // Appends related to o.R.HeroAllocatedAttributes.
@@ -1758,6 +3218,1124 @@ func (o *Hero) AddHeroSkills(ctx context.Context, exec boil.ContextExecutor, ins
 	for _, rel := range related {
 		if rel.R == nil {
 			rel.R = &heroSkillR{
+				Hero: o,
+			}
+		} else {
+			rel.R.Hero = o
+		}
+	}
+	return nil
+}
+
+// AddApprovedByHeroTeamInvitationsG adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.ApprovedByHeroTeamInvitations.
+// Sets related.R.ApprovedByHero appropriately.
+// Uses the global database handle.
+func (o *Hero) AddApprovedByHeroTeamInvitationsG(ctx context.Context, insert bool, related ...*TeamInvitation) error {
+	return o.AddApprovedByHeroTeamInvitations(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// AddApprovedByHeroTeamInvitationsP adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.ApprovedByHeroTeamInvitations.
+// Sets related.R.ApprovedByHero appropriately.
+// Panics on error.
+func (o *Hero) AddApprovedByHeroTeamInvitationsP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*TeamInvitation) {
+	if err := o.AddApprovedByHeroTeamInvitations(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddApprovedByHeroTeamInvitationsGP adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.ApprovedByHeroTeamInvitations.
+// Sets related.R.ApprovedByHero appropriately.
+// Uses the global database handle and panics on error.
+func (o *Hero) AddApprovedByHeroTeamInvitationsGP(ctx context.Context, insert bool, related ...*TeamInvitation) {
+	if err := o.AddApprovedByHeroTeamInvitations(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddApprovedByHeroTeamInvitations adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.ApprovedByHeroTeamInvitations.
+// Sets related.R.ApprovedByHero appropriately.
+func (o *Hero) AddApprovedByHeroTeamInvitations(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*TeamInvitation) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			queries.Assign(&rel.ApprovedByHeroID, o.ID)
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"game_runtime\".\"team_invitations\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"approved_by_hero_id"}),
+				strmangle.WhereClause("\"", "\"", 2, teamInvitationPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			queries.Assign(&rel.ApprovedByHeroID, o.ID)
+		}
+	}
+
+	if o.R == nil {
+		o.R = &heroR{
+			ApprovedByHeroTeamInvitations: related,
+		}
+	} else {
+		o.R.ApprovedByHeroTeamInvitations = append(o.R.ApprovedByHeroTeamInvitations, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &teamInvitationR{
+				ApprovedByHero: o,
+			}
+		} else {
+			rel.R.ApprovedByHero = o
+		}
+	}
+	return nil
+}
+
+// SetApprovedByHeroTeamInvitationsG removes all previously related items of the
+// hero replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.ApprovedByHero's ApprovedByHeroTeamInvitations accordingly.
+// Replaces o.R.ApprovedByHeroTeamInvitations with related.
+// Sets related.R.ApprovedByHero's ApprovedByHeroTeamInvitations accordingly.
+// Uses the global database handle.
+func (o *Hero) SetApprovedByHeroTeamInvitationsG(ctx context.Context, insert bool, related ...*TeamInvitation) error {
+	return o.SetApprovedByHeroTeamInvitations(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// SetApprovedByHeroTeamInvitationsP removes all previously related items of the
+// hero replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.ApprovedByHero's ApprovedByHeroTeamInvitations accordingly.
+// Replaces o.R.ApprovedByHeroTeamInvitations with related.
+// Sets related.R.ApprovedByHero's ApprovedByHeroTeamInvitations accordingly.
+// Panics on error.
+func (o *Hero) SetApprovedByHeroTeamInvitationsP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*TeamInvitation) {
+	if err := o.SetApprovedByHeroTeamInvitations(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// SetApprovedByHeroTeamInvitationsGP removes all previously related items of the
+// hero replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.ApprovedByHero's ApprovedByHeroTeamInvitations accordingly.
+// Replaces o.R.ApprovedByHeroTeamInvitations with related.
+// Sets related.R.ApprovedByHero's ApprovedByHeroTeamInvitations accordingly.
+// Uses the global database handle and panics on error.
+func (o *Hero) SetApprovedByHeroTeamInvitationsGP(ctx context.Context, insert bool, related ...*TeamInvitation) {
+	if err := o.SetApprovedByHeroTeamInvitations(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// SetApprovedByHeroTeamInvitations removes all previously related items of the
+// hero replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.ApprovedByHero's ApprovedByHeroTeamInvitations accordingly.
+// Replaces o.R.ApprovedByHeroTeamInvitations with related.
+// Sets related.R.ApprovedByHero's ApprovedByHeroTeamInvitations accordingly.
+func (o *Hero) SetApprovedByHeroTeamInvitations(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*TeamInvitation) error {
+	query := "update \"game_runtime\".\"team_invitations\" set \"approved_by_hero_id\" = null where \"approved_by_hero_id\" = $1"
+	values := []interface{}{o.ID}
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, query)
+		fmt.Fprintln(writer, values)
+	}
+	_, err := exec.ExecContext(ctx, query, values...)
+	if err != nil {
+		return errors.Wrap(err, "failed to remove relationships before set")
+	}
+
+	if o.R != nil {
+		for _, rel := range o.R.ApprovedByHeroTeamInvitations {
+			queries.SetScanner(&rel.ApprovedByHeroID, nil)
+			if rel.R == nil {
+				continue
+			}
+
+			rel.R.ApprovedByHero = nil
+		}
+		o.R.ApprovedByHeroTeamInvitations = nil
+	}
+
+	return o.AddApprovedByHeroTeamInvitations(ctx, exec, insert, related...)
+}
+
+// RemoveApprovedByHeroTeamInvitationsG relationships from objects passed in.
+// Removes related items from R.ApprovedByHeroTeamInvitations (uses pointer comparison, removal does not keep order)
+// Sets related.R.ApprovedByHero.
+// Uses the global database handle.
+func (o *Hero) RemoveApprovedByHeroTeamInvitationsG(ctx context.Context, related ...*TeamInvitation) error {
+	return o.RemoveApprovedByHeroTeamInvitations(ctx, boil.GetContextDB(), related...)
+}
+
+// RemoveApprovedByHeroTeamInvitationsP relationships from objects passed in.
+// Removes related items from R.ApprovedByHeroTeamInvitations (uses pointer comparison, removal does not keep order)
+// Sets related.R.ApprovedByHero.
+// Panics on error.
+func (o *Hero) RemoveApprovedByHeroTeamInvitationsP(ctx context.Context, exec boil.ContextExecutor, related ...*TeamInvitation) {
+	if err := o.RemoveApprovedByHeroTeamInvitations(ctx, exec, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// RemoveApprovedByHeroTeamInvitationsGP relationships from objects passed in.
+// Removes related items from R.ApprovedByHeroTeamInvitations (uses pointer comparison, removal does not keep order)
+// Sets related.R.ApprovedByHero.
+// Uses the global database handle and panics on error.
+func (o *Hero) RemoveApprovedByHeroTeamInvitationsGP(ctx context.Context, related ...*TeamInvitation) {
+	if err := o.RemoveApprovedByHeroTeamInvitations(ctx, boil.GetContextDB(), related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// RemoveApprovedByHeroTeamInvitations relationships from objects passed in.
+// Removes related items from R.ApprovedByHeroTeamInvitations (uses pointer comparison, removal does not keep order)
+// Sets related.R.ApprovedByHero.
+func (o *Hero) RemoveApprovedByHeroTeamInvitations(ctx context.Context, exec boil.ContextExecutor, related ...*TeamInvitation) error {
+	if len(related) == 0 {
+		return nil
+	}
+
+	var err error
+	for _, rel := range related {
+		queries.SetScanner(&rel.ApprovedByHeroID, nil)
+		if rel.R != nil {
+			rel.R.ApprovedByHero = nil
+		}
+		if _, err = rel.Update(ctx, exec, boil.Whitelist("approved_by_hero_id")); err != nil {
+			return err
+		}
+	}
+	if o.R == nil {
+		return nil
+	}
+
+	for _, rel := range related {
+		for i, ri := range o.R.ApprovedByHeroTeamInvitations {
+			if rel != ri {
+				continue
+			}
+
+			ln := len(o.R.ApprovedByHeroTeamInvitations)
+			if ln > 1 && i < ln-1 {
+				o.R.ApprovedByHeroTeamInvitations[i] = o.R.ApprovedByHeroTeamInvitations[ln-1]
+			}
+			o.R.ApprovedByHeroTeamInvitations = o.R.ApprovedByHeroTeamInvitations[:ln-1]
+			break
+		}
+	}
+
+	return nil
+}
+
+// AddInviteeHeroTeamInvitationsG adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.InviteeHeroTeamInvitations.
+// Sets related.R.InviteeHero appropriately.
+// Uses the global database handle.
+func (o *Hero) AddInviteeHeroTeamInvitationsG(ctx context.Context, insert bool, related ...*TeamInvitation) error {
+	return o.AddInviteeHeroTeamInvitations(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// AddInviteeHeroTeamInvitationsP adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.InviteeHeroTeamInvitations.
+// Sets related.R.InviteeHero appropriately.
+// Panics on error.
+func (o *Hero) AddInviteeHeroTeamInvitationsP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*TeamInvitation) {
+	if err := o.AddInviteeHeroTeamInvitations(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddInviteeHeroTeamInvitationsGP adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.InviteeHeroTeamInvitations.
+// Sets related.R.InviteeHero appropriately.
+// Uses the global database handle and panics on error.
+func (o *Hero) AddInviteeHeroTeamInvitationsGP(ctx context.Context, insert bool, related ...*TeamInvitation) {
+	if err := o.AddInviteeHeroTeamInvitations(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddInviteeHeroTeamInvitations adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.InviteeHeroTeamInvitations.
+// Sets related.R.InviteeHero appropriately.
+func (o *Hero) AddInviteeHeroTeamInvitations(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*TeamInvitation) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.InviteeHeroID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"game_runtime\".\"team_invitations\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"invitee_hero_id"}),
+				strmangle.WhereClause("\"", "\"", 2, teamInvitationPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.InviteeHeroID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &heroR{
+			InviteeHeroTeamInvitations: related,
+		}
+	} else {
+		o.R.InviteeHeroTeamInvitations = append(o.R.InviteeHeroTeamInvitations, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &teamInvitationR{
+				InviteeHero: o,
+			}
+		} else {
+			rel.R.InviteeHero = o
+		}
+	}
+	return nil
+}
+
+// AddInviterHeroTeamInvitationsG adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.InviterHeroTeamInvitations.
+// Sets related.R.InviterHero appropriately.
+// Uses the global database handle.
+func (o *Hero) AddInviterHeroTeamInvitationsG(ctx context.Context, insert bool, related ...*TeamInvitation) error {
+	return o.AddInviterHeroTeamInvitations(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// AddInviterHeroTeamInvitationsP adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.InviterHeroTeamInvitations.
+// Sets related.R.InviterHero appropriately.
+// Panics on error.
+func (o *Hero) AddInviterHeroTeamInvitationsP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*TeamInvitation) {
+	if err := o.AddInviterHeroTeamInvitations(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddInviterHeroTeamInvitationsGP adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.InviterHeroTeamInvitations.
+// Sets related.R.InviterHero appropriately.
+// Uses the global database handle and panics on error.
+func (o *Hero) AddInviterHeroTeamInvitationsGP(ctx context.Context, insert bool, related ...*TeamInvitation) {
+	if err := o.AddInviterHeroTeamInvitations(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddInviterHeroTeamInvitations adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.InviterHeroTeamInvitations.
+// Sets related.R.InviterHero appropriately.
+func (o *Hero) AddInviterHeroTeamInvitations(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*TeamInvitation) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.InviterHeroID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"game_runtime\".\"team_invitations\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"inviter_hero_id"}),
+				strmangle.WhereClause("\"", "\"", 2, teamInvitationPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.InviterHeroID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &heroR{
+			InviterHeroTeamInvitations: related,
+		}
+	} else {
+		o.R.InviterHeroTeamInvitations = append(o.R.InviterHeroTeamInvitations, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &teamInvitationR{
+				InviterHero: o,
+			}
+		} else {
+			rel.R.InviterHero = o
+		}
+	}
+	return nil
+}
+
+// AddTeamJoinRequestsG adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.TeamJoinRequests.
+// Sets related.R.Hero appropriately.
+// Uses the global database handle.
+func (o *Hero) AddTeamJoinRequestsG(ctx context.Context, insert bool, related ...*TeamJoinRequest) error {
+	return o.AddTeamJoinRequests(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// AddTeamJoinRequestsP adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.TeamJoinRequests.
+// Sets related.R.Hero appropriately.
+// Panics on error.
+func (o *Hero) AddTeamJoinRequestsP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*TeamJoinRequest) {
+	if err := o.AddTeamJoinRequests(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddTeamJoinRequestsGP adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.TeamJoinRequests.
+// Sets related.R.Hero appropriately.
+// Uses the global database handle and panics on error.
+func (o *Hero) AddTeamJoinRequestsGP(ctx context.Context, insert bool, related ...*TeamJoinRequest) {
+	if err := o.AddTeamJoinRequests(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddTeamJoinRequests adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.TeamJoinRequests.
+// Sets related.R.Hero appropriately.
+func (o *Hero) AddTeamJoinRequests(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*TeamJoinRequest) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.HeroID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"game_runtime\".\"team_join_requests\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"hero_id"}),
+				strmangle.WhereClause("\"", "\"", 2, teamJoinRequestPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.HeroID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &heroR{
+			TeamJoinRequests: related,
+		}
+	} else {
+		o.R.TeamJoinRequests = append(o.R.TeamJoinRequests, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &teamJoinRequestR{
+				Hero: o,
+			}
+		} else {
+			rel.R.Hero = o
+		}
+	}
+	return nil
+}
+
+// AddReviewedByHeroTeamJoinRequestsG adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.ReviewedByHeroTeamJoinRequests.
+// Sets related.R.ReviewedByHero appropriately.
+// Uses the global database handle.
+func (o *Hero) AddReviewedByHeroTeamJoinRequestsG(ctx context.Context, insert bool, related ...*TeamJoinRequest) error {
+	return o.AddReviewedByHeroTeamJoinRequests(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// AddReviewedByHeroTeamJoinRequestsP adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.ReviewedByHeroTeamJoinRequests.
+// Sets related.R.ReviewedByHero appropriately.
+// Panics on error.
+func (o *Hero) AddReviewedByHeroTeamJoinRequestsP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*TeamJoinRequest) {
+	if err := o.AddReviewedByHeroTeamJoinRequests(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddReviewedByHeroTeamJoinRequestsGP adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.ReviewedByHeroTeamJoinRequests.
+// Sets related.R.ReviewedByHero appropriately.
+// Uses the global database handle and panics on error.
+func (o *Hero) AddReviewedByHeroTeamJoinRequestsGP(ctx context.Context, insert bool, related ...*TeamJoinRequest) {
+	if err := o.AddReviewedByHeroTeamJoinRequests(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddReviewedByHeroTeamJoinRequests adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.ReviewedByHeroTeamJoinRequests.
+// Sets related.R.ReviewedByHero appropriately.
+func (o *Hero) AddReviewedByHeroTeamJoinRequests(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*TeamJoinRequest) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			queries.Assign(&rel.ReviewedByHeroID, o.ID)
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"game_runtime\".\"team_join_requests\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"reviewed_by_hero_id"}),
+				strmangle.WhereClause("\"", "\"", 2, teamJoinRequestPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			queries.Assign(&rel.ReviewedByHeroID, o.ID)
+		}
+	}
+
+	if o.R == nil {
+		o.R = &heroR{
+			ReviewedByHeroTeamJoinRequests: related,
+		}
+	} else {
+		o.R.ReviewedByHeroTeamJoinRequests = append(o.R.ReviewedByHeroTeamJoinRequests, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &teamJoinRequestR{
+				ReviewedByHero: o,
+			}
+		} else {
+			rel.R.ReviewedByHero = o
+		}
+	}
+	return nil
+}
+
+// SetReviewedByHeroTeamJoinRequestsG removes all previously related items of the
+// hero replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.ReviewedByHero's ReviewedByHeroTeamJoinRequests accordingly.
+// Replaces o.R.ReviewedByHeroTeamJoinRequests with related.
+// Sets related.R.ReviewedByHero's ReviewedByHeroTeamJoinRequests accordingly.
+// Uses the global database handle.
+func (o *Hero) SetReviewedByHeroTeamJoinRequestsG(ctx context.Context, insert bool, related ...*TeamJoinRequest) error {
+	return o.SetReviewedByHeroTeamJoinRequests(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// SetReviewedByHeroTeamJoinRequestsP removes all previously related items of the
+// hero replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.ReviewedByHero's ReviewedByHeroTeamJoinRequests accordingly.
+// Replaces o.R.ReviewedByHeroTeamJoinRequests with related.
+// Sets related.R.ReviewedByHero's ReviewedByHeroTeamJoinRequests accordingly.
+// Panics on error.
+func (o *Hero) SetReviewedByHeroTeamJoinRequestsP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*TeamJoinRequest) {
+	if err := o.SetReviewedByHeroTeamJoinRequests(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// SetReviewedByHeroTeamJoinRequestsGP removes all previously related items of the
+// hero replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.ReviewedByHero's ReviewedByHeroTeamJoinRequests accordingly.
+// Replaces o.R.ReviewedByHeroTeamJoinRequests with related.
+// Sets related.R.ReviewedByHero's ReviewedByHeroTeamJoinRequests accordingly.
+// Uses the global database handle and panics on error.
+func (o *Hero) SetReviewedByHeroTeamJoinRequestsGP(ctx context.Context, insert bool, related ...*TeamJoinRequest) {
+	if err := o.SetReviewedByHeroTeamJoinRequests(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// SetReviewedByHeroTeamJoinRequests removes all previously related items of the
+// hero replacing them completely with the passed
+// in related items, optionally inserting them as new records.
+// Sets o.R.ReviewedByHero's ReviewedByHeroTeamJoinRequests accordingly.
+// Replaces o.R.ReviewedByHeroTeamJoinRequests with related.
+// Sets related.R.ReviewedByHero's ReviewedByHeroTeamJoinRequests accordingly.
+func (o *Hero) SetReviewedByHeroTeamJoinRequests(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*TeamJoinRequest) error {
+	query := "update \"game_runtime\".\"team_join_requests\" set \"reviewed_by_hero_id\" = null where \"reviewed_by_hero_id\" = $1"
+	values := []interface{}{o.ID}
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, query)
+		fmt.Fprintln(writer, values)
+	}
+	_, err := exec.ExecContext(ctx, query, values...)
+	if err != nil {
+		return errors.Wrap(err, "failed to remove relationships before set")
+	}
+
+	if o.R != nil {
+		for _, rel := range o.R.ReviewedByHeroTeamJoinRequests {
+			queries.SetScanner(&rel.ReviewedByHeroID, nil)
+			if rel.R == nil {
+				continue
+			}
+
+			rel.R.ReviewedByHero = nil
+		}
+		o.R.ReviewedByHeroTeamJoinRequests = nil
+	}
+
+	return o.AddReviewedByHeroTeamJoinRequests(ctx, exec, insert, related...)
+}
+
+// RemoveReviewedByHeroTeamJoinRequestsG relationships from objects passed in.
+// Removes related items from R.ReviewedByHeroTeamJoinRequests (uses pointer comparison, removal does not keep order)
+// Sets related.R.ReviewedByHero.
+// Uses the global database handle.
+func (o *Hero) RemoveReviewedByHeroTeamJoinRequestsG(ctx context.Context, related ...*TeamJoinRequest) error {
+	return o.RemoveReviewedByHeroTeamJoinRequests(ctx, boil.GetContextDB(), related...)
+}
+
+// RemoveReviewedByHeroTeamJoinRequestsP relationships from objects passed in.
+// Removes related items from R.ReviewedByHeroTeamJoinRequests (uses pointer comparison, removal does not keep order)
+// Sets related.R.ReviewedByHero.
+// Panics on error.
+func (o *Hero) RemoveReviewedByHeroTeamJoinRequestsP(ctx context.Context, exec boil.ContextExecutor, related ...*TeamJoinRequest) {
+	if err := o.RemoveReviewedByHeroTeamJoinRequests(ctx, exec, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// RemoveReviewedByHeroTeamJoinRequestsGP relationships from objects passed in.
+// Removes related items from R.ReviewedByHeroTeamJoinRequests (uses pointer comparison, removal does not keep order)
+// Sets related.R.ReviewedByHero.
+// Uses the global database handle and panics on error.
+func (o *Hero) RemoveReviewedByHeroTeamJoinRequestsGP(ctx context.Context, related ...*TeamJoinRequest) {
+	if err := o.RemoveReviewedByHeroTeamJoinRequests(ctx, boil.GetContextDB(), related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// RemoveReviewedByHeroTeamJoinRequests relationships from objects passed in.
+// Removes related items from R.ReviewedByHeroTeamJoinRequests (uses pointer comparison, removal does not keep order)
+// Sets related.R.ReviewedByHero.
+func (o *Hero) RemoveReviewedByHeroTeamJoinRequests(ctx context.Context, exec boil.ContextExecutor, related ...*TeamJoinRequest) error {
+	if len(related) == 0 {
+		return nil
+	}
+
+	var err error
+	for _, rel := range related {
+		queries.SetScanner(&rel.ReviewedByHeroID, nil)
+		if rel.R != nil {
+			rel.R.ReviewedByHero = nil
+		}
+		if _, err = rel.Update(ctx, exec, boil.Whitelist("reviewed_by_hero_id")); err != nil {
+			return err
+		}
+	}
+	if o.R == nil {
+		return nil
+	}
+
+	for _, rel := range related {
+		for i, ri := range o.R.ReviewedByHeroTeamJoinRequests {
+			if rel != ri {
+				continue
+			}
+
+			ln := len(o.R.ReviewedByHeroTeamJoinRequests)
+			if ln > 1 && i < ln-1 {
+				o.R.ReviewedByHeroTeamJoinRequests[i] = o.R.ReviewedByHeroTeamJoinRequests[ln-1]
+			}
+			o.R.ReviewedByHeroTeamJoinRequests = o.R.ReviewedByHeroTeamJoinRequests[:ln-1]
+			break
+		}
+	}
+
+	return nil
+}
+
+// AddTeamKickedRecordsG adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.TeamKickedRecords.
+// Sets related.R.Hero appropriately.
+// Uses the global database handle.
+func (o *Hero) AddTeamKickedRecordsG(ctx context.Context, insert bool, related ...*TeamKickedRecord) error {
+	return o.AddTeamKickedRecords(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// AddTeamKickedRecordsP adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.TeamKickedRecords.
+// Sets related.R.Hero appropriately.
+// Panics on error.
+func (o *Hero) AddTeamKickedRecordsP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*TeamKickedRecord) {
+	if err := o.AddTeamKickedRecords(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddTeamKickedRecordsGP adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.TeamKickedRecords.
+// Sets related.R.Hero appropriately.
+// Uses the global database handle and panics on error.
+func (o *Hero) AddTeamKickedRecordsGP(ctx context.Context, insert bool, related ...*TeamKickedRecord) {
+	if err := o.AddTeamKickedRecords(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddTeamKickedRecords adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.TeamKickedRecords.
+// Sets related.R.Hero appropriately.
+func (o *Hero) AddTeamKickedRecords(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*TeamKickedRecord) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.HeroID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"game_runtime\".\"team_kicked_records\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"hero_id"}),
+				strmangle.WhereClause("\"", "\"", 2, teamKickedRecordPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.HeroID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &heroR{
+			TeamKickedRecords: related,
+		}
+	} else {
+		o.R.TeamKickedRecords = append(o.R.TeamKickedRecords, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &teamKickedRecordR{
+				Hero: o,
+			}
+		} else {
+			rel.R.Hero = o
+		}
+	}
+	return nil
+}
+
+// AddKickedByHeroTeamKickedRecordsG adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.KickedByHeroTeamKickedRecords.
+// Sets related.R.KickedByHero appropriately.
+// Uses the global database handle.
+func (o *Hero) AddKickedByHeroTeamKickedRecordsG(ctx context.Context, insert bool, related ...*TeamKickedRecord) error {
+	return o.AddKickedByHeroTeamKickedRecords(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// AddKickedByHeroTeamKickedRecordsP adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.KickedByHeroTeamKickedRecords.
+// Sets related.R.KickedByHero appropriately.
+// Panics on error.
+func (o *Hero) AddKickedByHeroTeamKickedRecordsP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*TeamKickedRecord) {
+	if err := o.AddKickedByHeroTeamKickedRecords(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddKickedByHeroTeamKickedRecordsGP adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.KickedByHeroTeamKickedRecords.
+// Sets related.R.KickedByHero appropriately.
+// Uses the global database handle and panics on error.
+func (o *Hero) AddKickedByHeroTeamKickedRecordsGP(ctx context.Context, insert bool, related ...*TeamKickedRecord) {
+	if err := o.AddKickedByHeroTeamKickedRecords(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddKickedByHeroTeamKickedRecords adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.KickedByHeroTeamKickedRecords.
+// Sets related.R.KickedByHero appropriately.
+func (o *Hero) AddKickedByHeroTeamKickedRecords(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*TeamKickedRecord) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.KickedByHeroID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"game_runtime\".\"team_kicked_records\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"kicked_by_hero_id"}),
+				strmangle.WhereClause("\"", "\"", 2, teamKickedRecordPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.KickedByHeroID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &heroR{
+			KickedByHeroTeamKickedRecords: related,
+		}
+	} else {
+		o.R.KickedByHeroTeamKickedRecords = append(o.R.KickedByHeroTeamKickedRecords, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &teamKickedRecordR{
+				KickedByHero: o,
+			}
+		} else {
+			rel.R.KickedByHero = o
+		}
+	}
+	return nil
+}
+
+// AddDistributorHeroTeamLootDistributionHistoriesG adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.DistributorHeroTeamLootDistributionHistories.
+// Sets related.R.DistributorHero appropriately.
+// Uses the global database handle.
+func (o *Hero) AddDistributorHeroTeamLootDistributionHistoriesG(ctx context.Context, insert bool, related ...*TeamLootDistributionHistory) error {
+	return o.AddDistributorHeroTeamLootDistributionHistories(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// AddDistributorHeroTeamLootDistributionHistoriesP adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.DistributorHeroTeamLootDistributionHistories.
+// Sets related.R.DistributorHero appropriately.
+// Panics on error.
+func (o *Hero) AddDistributorHeroTeamLootDistributionHistoriesP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*TeamLootDistributionHistory) {
+	if err := o.AddDistributorHeroTeamLootDistributionHistories(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddDistributorHeroTeamLootDistributionHistoriesGP adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.DistributorHeroTeamLootDistributionHistories.
+// Sets related.R.DistributorHero appropriately.
+// Uses the global database handle and panics on error.
+func (o *Hero) AddDistributorHeroTeamLootDistributionHistoriesGP(ctx context.Context, insert bool, related ...*TeamLootDistributionHistory) {
+	if err := o.AddDistributorHeroTeamLootDistributionHistories(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddDistributorHeroTeamLootDistributionHistories adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.DistributorHeroTeamLootDistributionHistories.
+// Sets related.R.DistributorHero appropriately.
+func (o *Hero) AddDistributorHeroTeamLootDistributionHistories(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*TeamLootDistributionHistory) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.DistributorHeroID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"game_runtime\".\"team_loot_distribution_history\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"distributor_hero_id"}),
+				strmangle.WhereClause("\"", "\"", 2, teamLootDistributionHistoryPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.DistributorHeroID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &heroR{
+			DistributorHeroTeamLootDistributionHistories: related,
+		}
+	} else {
+		o.R.DistributorHeroTeamLootDistributionHistories = append(o.R.DistributorHeroTeamLootDistributionHistories, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &teamLootDistributionHistoryR{
+				DistributorHero: o,
+			}
+		} else {
+			rel.R.DistributorHero = o
+		}
+	}
+	return nil
+}
+
+// AddRecipientHeroTeamLootDistributionHistoriesG adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.RecipientHeroTeamLootDistributionHistories.
+// Sets related.R.RecipientHero appropriately.
+// Uses the global database handle.
+func (o *Hero) AddRecipientHeroTeamLootDistributionHistoriesG(ctx context.Context, insert bool, related ...*TeamLootDistributionHistory) error {
+	return o.AddRecipientHeroTeamLootDistributionHistories(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// AddRecipientHeroTeamLootDistributionHistoriesP adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.RecipientHeroTeamLootDistributionHistories.
+// Sets related.R.RecipientHero appropriately.
+// Panics on error.
+func (o *Hero) AddRecipientHeroTeamLootDistributionHistoriesP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*TeamLootDistributionHistory) {
+	if err := o.AddRecipientHeroTeamLootDistributionHistories(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddRecipientHeroTeamLootDistributionHistoriesGP adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.RecipientHeroTeamLootDistributionHistories.
+// Sets related.R.RecipientHero appropriately.
+// Uses the global database handle and panics on error.
+func (o *Hero) AddRecipientHeroTeamLootDistributionHistoriesGP(ctx context.Context, insert bool, related ...*TeamLootDistributionHistory) {
+	if err := o.AddRecipientHeroTeamLootDistributionHistories(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddRecipientHeroTeamLootDistributionHistories adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.RecipientHeroTeamLootDistributionHistories.
+// Sets related.R.RecipientHero appropriately.
+func (o *Hero) AddRecipientHeroTeamLootDistributionHistories(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*TeamLootDistributionHistory) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.RecipientHeroID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"game_runtime\".\"team_loot_distribution_history\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"recipient_hero_id"}),
+				strmangle.WhereClause("\"", "\"", 2, teamLootDistributionHistoryPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.RecipientHeroID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &heroR{
+			RecipientHeroTeamLootDistributionHistories: related,
+		}
+	} else {
+		o.R.RecipientHeroTeamLootDistributionHistories = append(o.R.RecipientHeroTeamLootDistributionHistories, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &teamLootDistributionHistoryR{
+				RecipientHero: o,
+			}
+		} else {
+			rel.R.RecipientHero = o
+		}
+	}
+	return nil
+}
+
+// AddTeamMembersG adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.TeamMembers.
+// Sets related.R.Hero appropriately.
+// Uses the global database handle.
+func (o *Hero) AddTeamMembersG(ctx context.Context, insert bool, related ...*TeamMember) error {
+	return o.AddTeamMembers(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// AddTeamMembersP adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.TeamMembers.
+// Sets related.R.Hero appropriately.
+// Panics on error.
+func (o *Hero) AddTeamMembersP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*TeamMember) {
+	if err := o.AddTeamMembers(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddTeamMembersGP adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.TeamMembers.
+// Sets related.R.Hero appropriately.
+// Uses the global database handle and panics on error.
+func (o *Hero) AddTeamMembersGP(ctx context.Context, insert bool, related ...*TeamMember) {
+	if err := o.AddTeamMembers(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddTeamMembers adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.TeamMembers.
+// Sets related.R.Hero appropriately.
+func (o *Hero) AddTeamMembers(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*TeamMember) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.HeroID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"game_runtime\".\"team_members\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"hero_id"}),
+				strmangle.WhereClause("\"", "\"", 2, teamMemberPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.HeroID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &heroR{
+			TeamMembers: related,
+		}
+	} else {
+		o.R.TeamMembers = append(o.R.TeamMembers, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &teamMemberR{
 				Hero: o,
 			}
 		} else {

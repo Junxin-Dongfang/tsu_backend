@@ -16,12 +16,28 @@ import (
 )
 
 type monsterDropRepositoryImpl struct {
-	db *sql.DB
+	exec     boil.ContextExecutor
+	beginner boil.ContextBeginner
 }
 
 // NewMonsterDropRepository 创建怪物掉落仓储实例
 func NewMonsterDropRepository(db *sql.DB) interfaces.MonsterDropRepository {
-	return &monsterDropRepositoryImpl{db: db}
+	return &monsterDropRepositoryImpl{
+		exec:     db,
+		beginner: db,
+	}
+}
+
+// NewMonsterDropRepositoryWithExecutor 使用自定义执行器创建仓储实例
+func NewMonsterDropRepositoryWithExecutor(exec boil.ContextExecutor) interfaces.MonsterDropRepository {
+	var beginner boil.ContextBeginner
+	if b, ok := exec.(boil.ContextBeginner); ok {
+		beginner = b
+	}
+	return &monsterDropRepositoryImpl{
+		exec:     exec,
+		beginner: beginner,
+	}
 }
 
 // Create 创建怪物掉落配置
@@ -37,7 +53,7 @@ func (r *monsterDropRepositoryImpl) Create(ctx context.Context, monsterDrop *gam
 	monsterDrop.UpdatedAt = now
 
 	// 插入数据库
-	if err := monsterDrop.Insert(ctx, r.db, boil.Infer()); err != nil {
+	if err := monsterDrop.Insert(ctx, r.exec, boil.Infer()); err != nil {
 		return fmt.Errorf("创建怪物掉落配置失败: %w", err)
 	}
 
@@ -50,14 +66,30 @@ func (r *monsterDropRepositoryImpl) BatchCreate(ctx context.Context, monsterDrop
 		return nil
 	}
 
-	// 开启事务
-	tx, err := r.db.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("开启事务失败: %w", err)
+	if tx, ok := r.exec.(*sql.Tx); ok {
+		return r.batchCreateWithExecutor(ctx, tx, monsterDrops)
 	}
-	defer tx.Rollback()
 
-	// 批量插入
+	if r.beginner != nil {
+		tx, err := r.beginner.BeginTx(ctx, nil)
+		if err != nil {
+			return fmt.Errorf("开启事务失败: %w", err)
+		}
+		defer tx.Rollback()
+
+		if err := r.batchCreateWithExecutor(ctx, tx, monsterDrops); err != nil {
+			return err
+		}
+		if err := tx.Commit(); err != nil {
+			return fmt.Errorf("提交事务失败: %w", err)
+		}
+		return nil
+	}
+
+	return r.batchCreateWithExecutor(ctx, r.exec, monsterDrops)
+}
+
+func (r *monsterDropRepositoryImpl) batchCreateWithExecutor(ctx context.Context, exec boil.ContextExecutor, monsterDrops []*game_config.MonsterDrop) error {
 	now := time.Now()
 	for _, md := range monsterDrops {
 		if md.ID == "" {
@@ -66,16 +98,10 @@ func (r *monsterDropRepositoryImpl) BatchCreate(ctx context.Context, monsterDrop
 		md.CreatedAt = now
 		md.UpdatedAt = now
 
-		if err := md.Insert(ctx, tx, boil.Infer()); err != nil {
+		if err := md.Insert(ctx, exec, boil.Infer()); err != nil {
 			return fmt.Errorf("批量创建怪物掉落配置失败: %w", err)
 		}
 	}
-
-	// 提交事务
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("提交事务失败: %w", err)
-	}
-
 	return nil
 }
 
@@ -84,7 +110,7 @@ func (r *monsterDropRepositoryImpl) GetByMonsterID(ctx context.Context, monsterI
 	monsterDrops, err := game_config.MonsterDrops(
 		qm.Where("monster_id = ? AND deleted_at IS NULL", monsterID),
 		qm.OrderBy("display_order ASC, created_at ASC"),
-	).All(ctx, r.db)
+	).All(ctx, r.exec)
 
 	if err != nil {
 		return nil, fmt.Errorf("查询怪物掉落配置列表失败: %w", err)
@@ -97,7 +123,7 @@ func (r *monsterDropRepositoryImpl) GetByMonsterID(ctx context.Context, monsterI
 func (r *monsterDropRepositoryImpl) GetByMonsterAndPool(ctx context.Context, monsterID, dropPoolID string) (*game_config.MonsterDrop, error) {
 	monsterDrop, err := game_config.MonsterDrops(
 		qm.Where("monster_id = ? AND drop_pool_id = ? AND deleted_at IS NULL", monsterID, dropPoolID),
-	).One(ctx, r.db)
+	).One(ctx, r.exec)
 
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("怪物掉落配置不存在")
@@ -115,7 +141,7 @@ func (r *monsterDropRepositoryImpl) Update(ctx context.Context, monsterDrop *gam
 	monsterDrop.UpdatedAt = time.Now()
 
 	// 更新数据库
-	if _, err := monsterDrop.Update(ctx, r.db, boil.Infer()); err != nil {
+	if _, err := monsterDrop.Update(ctx, r.exec, boil.Infer()); err != nil {
 		return fmt.Errorf("更新怪物掉落配置失败: %w", err)
 	}
 
@@ -136,7 +162,7 @@ func (r *monsterDropRepositoryImpl) Delete(ctx context.Context, monsterID, dropP
 	monsterDrop.UpdatedAt = now
 
 	// 更新数据库
-	if _, err := monsterDrop.Update(ctx, r.db, boil.Whitelist("deleted_at", "updated_at")); err != nil {
+	if _, err := monsterDrop.Update(ctx, r.exec, boil.Whitelist("deleted_at", "updated_at")); err != nil {
 		return fmt.Errorf("删除怪物掉落配置失败: %w", err)
 	}
 
@@ -155,29 +181,39 @@ func (r *monsterDropRepositoryImpl) DeleteByMonsterID(ctx context.Context, monst
 		return nil
 	}
 
-	// 开启事务
-	tx, err := r.db.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("开启事务失败: %w", err)
+	if tx, ok := r.exec.(*sql.Tx); ok {
+		return r.softDeleteDrops(ctx, tx, monsterDrops)
 	}
-	defer tx.Rollback()
 
-	// 批量软删除
+	if r.beginner != nil {
+		tx, err := r.beginner.BeginTx(ctx, nil)
+		if err != nil {
+			return fmt.Errorf("开启事务失败: %w", err)
+		}
+		defer tx.Rollback()
+
+		if err := r.softDeleteDrops(ctx, tx, monsterDrops); err != nil {
+			return err
+		}
+		if err := tx.Commit(); err != nil {
+			return fmt.Errorf("提交事务失败: %w", err)
+		}
+		return nil
+	}
+
+	return r.softDeleteDrops(ctx, r.exec, monsterDrops)
+}
+
+func (r *monsterDropRepositoryImpl) softDeleteDrops(ctx context.Context, exec boil.ContextExecutor, monsterDrops []*game_config.MonsterDrop) error {
 	now := time.Now()
 	for _, md := range monsterDrops {
 		md.DeletedAt = null.TimeFrom(now)
 		md.UpdatedAt = now
 
-		if _, err := md.Update(ctx, tx, boil.Whitelist("deleted_at", "updated_at")); err != nil {
+		if _, err := md.Update(ctx, exec, boil.Whitelist("deleted_at", "updated_at")); err != nil {
 			return fmt.Errorf("删除怪物掉落配置失败: %w", err)
 		}
 	}
-
-	// 提交事务
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("提交事务失败: %w", err)
-	}
-
 	return nil
 }
 
@@ -185,7 +221,7 @@ func (r *monsterDropRepositoryImpl) DeleteByMonsterID(ctx context.Context, monst
 func (r *monsterDropRepositoryImpl) Exists(ctx context.Context, monsterID, dropPoolID string) (bool, error) {
 	count, err := game_config.MonsterDrops(
 		qm.Where("monster_id = ? AND drop_pool_id = ? AND deleted_at IS NULL", monsterID, dropPoolID),
-	).Count(ctx, r.db)
+	).Count(ctx, r.exec)
 
 	if err != nil {
 		return false, fmt.Errorf("检查怪物掉落配置是否存在失败: %w", err)
@@ -193,4 +229,3 @@ func (r *monsterDropRepositoryImpl) Exists(ctx context.Context, monsterID, dropP
 
 	return count > 0, nil
 }
-

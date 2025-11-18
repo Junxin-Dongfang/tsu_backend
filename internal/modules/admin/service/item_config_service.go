@@ -857,10 +857,13 @@ func (s *ItemConfigService) validateEquipSlot(itemType string, equipSlot *string
 		"coat":         true,
 		"pocket":       true,
 		"summon_mount": true,
+		"main_hand":    true,
+		"off_hand":     true,
+		"two_hand":     true,
+		"special":      true,
 		"mainhand":     true,
 		"offhand":      true,
 		"twohand":      true,
-		"special":      true,
 	}
 
 	if !validSlots[*equipSlot] {

@@ -28,7 +28,16 @@ func NewDungeonEventHandler(db *sql.DB, respWriter response.Writer) *DungeonEven
 
 // CreateEvent 创建事件配置
 // @Summary 创建事件配置
-// @Description 创建新的事件配置
+// @Description 创建新的事件配置,用于剧情/互动节点,可设置奖励效果、掉落与描述文案。
+// @Description
+// @Description **字段说明**:
+// @Description - `event_code`: 唯一代码
+// @Description - `event_description`: 前置描述,支持富文本
+// @Description - `apply_effects`: 效果列表,每项包含 `buff_code`, `caster_level`, `target`, `buff_params`(JSON)
+// @Description - `drop_config`: 事件掉落,可关联掉落池 + 配置保底奖励
+// @Description - `reward_exp`: 固定经验奖励
+// @Description - `event_end_desc`: 结束描述
+// @Description - `is_active`: 是否在房间中可用
 // @Tags 地城事件管理
 // @Accept json
 // @Produce json
@@ -59,7 +68,7 @@ func (h *DungeonEventHandler) CreateEvent(c echo.Context) error {
 
 // GetEvent 获取事件配置详情
 // @Summary 获取事件配置详情
-// @Description 根据ID获取事件配置详细信息
+// @Description 根据ID获取事件配置详细信息,包含效果列表、掉落、经验值和描述文案。
 // @Tags 地城事件管理
 // @Accept json
 // @Produce json
@@ -82,7 +91,7 @@ func (h *DungeonEventHandler) GetEvent(c echo.Context) error {
 
 // UpdateEvent 更新事件配置
 // @Summary 更新事件配置
-// @Description 更新事件配置信息
+// @Description 更新事件配置信息,支持部分字段更新（例如替换掉落、增删效果、调整描述或启用状态）。
 // @Tags 地城事件管理
 // @Accept json
 // @Produce json
@@ -116,7 +125,7 @@ func (h *DungeonEventHandler) UpdateEvent(c echo.Context) error {
 
 // DeleteEvent 删除事件配置
 // @Summary 删除事件配置
-// @Description 软删除事件配置
+// @Description 软删除事件配置,删除后无法再被房间引用,但历史记录保留。
 // @Tags 地城事件管理
 // @Accept json
 // @Produce json
@@ -170,4 +179,3 @@ func (h *DungeonEventHandler) toEventResponse(event *game_config.DungeonEvent) d
 
 	return resp
 }
-

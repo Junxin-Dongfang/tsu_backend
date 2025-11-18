@@ -21,3 +21,7 @@ namespaces:
     name: roles
   - id: 1
     name: permissions
+  - id: 10
+    name: teams
+  - id: 11
+    name: team_permissions

@@ -489,3 +489,164 @@ func (k *KetoClient) fromProtoTuple(protoTuple *rts.RelationTuple) *RelationTupl
 
 	return tuple
 }
+
+// ==================== 团队权限管理 ====================
+
+// AddTeamMember 添加团队成员
+// teamID: 团队ID
+// heroID: 英雄ID
+// role: 角色 (leader, admin, member)
+func (k *KetoClient) AddTeamMember(ctx context.Context, teamID, heroID, role string) error {
+	return k.CreateRelation(ctx, &RelationTuple{
+		Namespace: "teams",
+		Object:    teamID,
+		Relation:  role, // "leader", "admin", "member"
+		SubjectID: fmt.Sprintf("hero:%s", heroID),
+	})
+}
+
+// RemoveTeamMember 移除团队成员
+func (k *KetoClient) RemoveTeamMember(ctx context.Context, teamID, heroID, role string) error {
+	return k.DeleteRelation(ctx, &RelationTuple{
+		Namespace: "teams",
+		Object:    teamID,
+		Relation:  role,
+		SubjectID: fmt.Sprintf("hero:%s", heroID),
+	})
+}
+
+// UpdateTeamMemberRole 更新成员角色
+// 实现方式: 先删除旧角色关系,再创建新角色关系
+func (k *KetoClient) UpdateTeamMemberRole(ctx context.Context, teamID, heroID, oldRole, newRole string) error {
+	// 批量操作: 删除旧角色 + 添加新角色
+	tuples := []*RelationTuple{
+		{
+			Namespace: "teams",
+			Object:    teamID,
+			Relation:  newRole,
+			SubjectID: fmt.Sprintf("hero:%s", heroID),
+		},
+	}
+
+	// 先添加新关系
+	if err := k.BatchCreateRelations(ctx, tuples); err != nil {
+		return fmt.Errorf("failed to add new role: %w", err)
+	}
+
+	// 再删除旧关系
+	if oldRole != "" && oldRole != newRole {
+		deleteTuples := []*RelationTuple{
+			{
+				Namespace: "teams",
+				Object:    teamID,
+				Relation:  oldRole,
+				SubjectID: fmt.Sprintf("hero:%s", heroID),
+			},
+		}
+		if err := k.BatchDeleteRelations(ctx, deleteTuples); err != nil {
+			// 忽略删除错误,因为新关系已经创建
+			// TODO: 记录日志
+		}
+	}
+
+	return nil
+}
+
+// CheckTeamPermission 检查团队操作权限
+// permission: 权限名称 (如: "select_dungeon", "kick_member", "distribute_loot")
+// heroID: 执行操作的英雄ID
+func (k *KetoClient) CheckTeamPermission(ctx context.Context, teamID, permission, heroID string) (bool, error) {
+	// Keto 权限检查: team_permissions:permission#allowed@hero:heroID
+	// 通过 teams:teamID#role@hero:heroID 关系推导
+	return k.CheckPermission(ctx, "team_permissions", permission, "allowed", fmt.Sprintf("hero:%s", heroID))
+}
+
+// GetTeamMembers 获取团队所有成员 (按角色分组)
+// 返回: map[role][]heroID
+func (k *KetoClient) GetTeamMembers(ctx context.Context, teamID string) (map[string][]string, error) {
+	// 查询所有与该团队相关的关系
+	tuples, err := k.ListRelations(ctx, "teams", teamID, "", "")
+	if err != nil {
+		return nil, fmt.Errorf("failed to list team members: %w", err)
+	}
+
+	members := make(map[string][]string)
+	for _, tuple := range tuples {
+		if tuple.SubjectID != "" {
+			// 提取 heroID (格式: "hero:uuid")
+			heroID := tuple.SubjectID
+			if len(heroID) > 5 && heroID[:5] == "hero:" {
+				heroID = heroID[5:]
+			}
+			members[tuple.Relation] = append(members[tuple.Relation], heroID)
+		}
+	}
+
+	return members, nil
+}
+
+// GetHeroTeams 获取英雄加入的所有团队
+// 返回: map[teamID]role
+func (k *KetoClient) GetHeroTeams(ctx context.Context, heroID string) (map[string]string, error) {
+	subjectID := fmt.Sprintf("hero:%s", heroID)
+	tuples, err := k.ListRelations(ctx, "teams", "", "", subjectID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list hero teams: %w", err)
+	}
+
+	teams := make(map[string]string)
+	for _, tuple := range tuples {
+		teams[tuple.Object] = tuple.Relation // teamID -> role
+	}
+
+	return teams, nil
+}
+
+// CheckTeamMemberRole 检查英雄在团队中的角色
+// 返回角色名称和是否存在
+func (k *KetoClient) CheckTeamMemberRole(ctx context.Context, teamID, heroID string) (string, bool, error) {
+	teams, err := k.GetHeroTeams(ctx, heroID)
+	if err != nil {
+		return "", false, err
+	}
+
+	role, exists := teams[teamID]
+	return role, exists, nil
+}
+
+// InitializeTeamPermissions 初始化团队权限定义
+// 这个方法应该在系统启动时调用一次,用于设置权限规则
+func (k *KetoClient) InitializeTeamPermissions(ctx context.Context) error {
+	// 定义权限规则: 哪些角色可以执行哪些操作
+	permissions := []struct {
+		permission string
+		roles      []string
+	}{
+		{"select_dungeon", []string{"leader", "admin"}},
+		{"kick_member", []string{"leader", "admin"}},
+		{"kick_admin", []string{"leader"}}, // 只有队长能踢管理员
+		{"appoint_admin", []string{"leader"}},
+		{"distribute_loot", []string{"leader", "admin"}},
+		{"view_warehouse", []string{"leader", "admin"}},
+		{"disband_team", []string{"leader"}},
+	}
+
+	var tuples []*RelationTuple
+	for _, perm := range permissions {
+		for _, role := range perm.roles {
+			tuples = append(tuples, &RelationTuple{
+				Namespace: "team_permissions",
+				Object:    perm.permission,
+				Relation:  "allowed",
+				SubjectSet: &SubjectSet{
+					Namespace: "teams",
+					Object:    "*", // 通配符,表示任意团队
+					Relation:  role,
+				},
+			})
+		}
+	}
+
+	// 批量创建权限规则
+	return k.BatchCreateRelations(ctx, tuples)
+}

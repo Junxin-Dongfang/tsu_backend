@@ -1,0 +1,202 @@
+[
+  {
+    "namespace": "permissions",
+    "object": "class:manage",
+    "relation": "granted",
+    "subject_set": {
+      "namespace": "roles",
+      "object": "admin",
+      "relation": "member"
+    }
+  },
+  {
+    "namespace": "permissions",
+    "object": "hero:manage",
+    "relation": "granted",
+    "subject_set": {
+      "namespace": "roles",
+      "object": "admin",
+      "relation": "member"
+    }
+  },
+  {
+    "namespace": "permissions",
+    "object": "permission:assign",
+    "relation": "granted",
+    "subject_set": {
+      "namespace": "roles",
+      "object": "admin",
+      "relation": "member"
+    }
+  },
+  {
+    "namespace": "permissions",
+    "object": "permission:grant_user",
+    "relation": "granted",
+    "subject_set": {
+      "namespace": "roles",
+      "object": "admin",
+      "relation": "member"
+    }
+  },
+  {
+    "namespace": "permissions",
+    "object": "permission:read",
+    "relation": "granted",
+    "subject_set": {
+      "namespace": "roles",
+      "object": "admin",
+      "relation": "member"
+    }
+  },
+  {
+    "namespace": "permissions",
+    "object": "role:assign",
+    "relation": "granted",
+    "subject_set": {
+      "namespace": "roles",
+      "object": "admin",
+      "relation": "member"
+    }
+  },
+  {
+    "namespace": "permissions",
+    "object": "role:create",
+    "relation": "granted",
+    "subject_set": {
+      "namespace": "roles",
+      "object": "admin",
+      "relation": "member"
+    }
+  },
+  {
+    "namespace": "permissions",
+    "object": "role:delete",
+    "relation": "granted",
+    "subject_set": {
+      "namespace": "roles",
+      "object": "admin",
+      "relation": "member"
+    }
+  },
+  {
+    "namespace": "permissions",
+    "object": "role:read",
+    "relation": "granted",
+    "subject_set": {
+      "namespace": "roles",
+      "object": "admin",
+      "relation": "member"
+    }
+  },
+  {
+    "namespace": "permissions",
+    "object": "role:update",
+    "relation": "granted",
+    "subject_set": {
+      "namespace": "roles",
+      "object": "admin",
+      "relation": "member"
+    }
+  },
+  {
+    "namespace": "permissions",
+    "object": "skill:manage",
+    "relation": "granted",
+    "subject_set": {
+      "namespace": "roles",
+      "object": "admin",
+      "relation": "member"
+    }
+  },
+  {
+    "namespace": "permissions",
+    "object": "system:config",
+    "relation": "granted",
+    "subject_set": {
+      "namespace": "roles",
+      "object": "admin",
+      "relation": "member"
+    }
+  },
+  {
+    "namespace": "permissions",
+    "object": "system:monitor",
+    "relation": "granted",
+    "subject_set": {
+      "namespace": "roles",
+      "object": "admin",
+      "relation": "member"
+    }
+  },
+  {
+    "namespace": "permissions",
+    "object": "user:ban",
+    "relation": "granted",
+    "subject_set": {
+      "namespace": "roles",
+      "object": "admin",
+      "relation": "member"
+    }
+  },
+  {
+    "namespace": "permissions",
+    "object": "user:create",
+    "relation": "granted",
+    "subject_set": {
+      "namespace": "roles",
+      "object": "admin",
+      "relation": "member"
+    }
+  },
+  {
+    "namespace": "permissions",
+    "object": "user:delete",
+    "relation": "granted",
+    "subject_set": {
+      "namespace": "roles",
+      "object": "admin",
+      "relation": "member"
+    }
+  },
+  {
+    "namespace": "permissions",
+    "object": "user:read",
+    "relation": "granted",
+    "subject_set": {
+      "namespace": "roles",
+      "object": "admin",
+      "relation": "member"
+    }
+  },
+  {
+    "namespace": "permissions",
+    "object": "user:update",
+    "relation": "granted",
+    "subject_set": {
+      "namespace": "roles",
+      "object": "admin",
+      "relation": "member"
+    }
+  },
+  {
+    "namespace": "permissions",
+    "object": "user:read",
+    "relation": "granted",
+    "subject_set": {
+      "namespace": "roles",
+      "object": "normal_user",
+      "relation": "member"
+    }
+  },
+  {
+    "namespace": "permissions",
+    "object": "world-drop:manage-items",
+    "relation": "granted",
+    "subject_set": {
+      "namespace": "roles",
+      "object": "admin",
+      "relation": "member"
+    }
+  }
+]

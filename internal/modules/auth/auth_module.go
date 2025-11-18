@@ -275,6 +275,7 @@ func (m *AuthModule) setupRPCMethods() {
 
 	// ==================== 权限检查 RPC ====================
 	m.GetServer().RegisterGO("CheckUserPermission", m.permissionRPCHandler.CheckUserPermission)
+	m.GetServer().RegisterGO("InitializeTeamPermissions", m.permissionRPCHandler.InitializeTeamPermissions)
 
 	// ==================== 角色管理 RPC ====================
 	m.GetServer().RegisterGO("GetRoles", m.permissionRPCHandler.GetRoles)

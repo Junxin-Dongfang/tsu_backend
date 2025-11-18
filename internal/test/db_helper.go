@@ -29,12 +29,13 @@ func SetupTestDB(t *testing.T) *sql.DB {
 	// 连接数据库
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
-		t.Fatalf("无法连接测试数据库: %v", err)
+		t.Skipf("无法连接测试数据库: %v", err)
 	}
 
 	// 测试连接
 	if err := db.Ping(); err != nil {
-		t.Fatalf("无法ping测试数据库: %v", err)
+		db.Close()
+		t.Skipf("无法ping测试数据库: %v", err)
 	}
 
 	// 开启事务(用于测试隔离)
@@ -98,4 +99,3 @@ func RollbackTestTransaction(t *testing.T, tx *sql.Tx) {
 		}
 	}
 }
-

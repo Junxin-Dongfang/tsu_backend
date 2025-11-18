@@ -17,8 +17,9 @@ import (
 
 // UserHandler 用户管理处理器
 type UserHandler struct {
-	rpcCaller  module.RPCModule
-	respWriter response.Writer
+	rpcCaller       module.RPCModule
+	respWriter      response.Writer
+	rpcCallOverride func(ctx context.Context, method string, req proto.Message) ([]byte, error)
 }
 
 // NewUserHandler 创建用户管理处理器
@@ -155,41 +156,14 @@ func (h *UserHandler) GetUsers(c echo.Context) error {
 		rpcReq.IsBanned = req.IsBanned
 	}
 
-	// 3. 调用 Auth RPC
-	rpcReqBytes, err := proto.Marshal(rpcReq)
+	respBytes, err := h.callAuthRPC(c.Request().Context(), "GetUsers", rpcReq)
 	if err != nil {
-		appErr := xerrors.Wrap(err, xerrors.CodeInternalError, "序列化RPC请求失败")
-		return response.EchoError(c, h.respWriter, appErr)
-	}
-
-	ctx, cancel := context.WithTimeout(c.Request().Context(), 3*time.Second)
-	defer cancel()
-
-	result, errStr := h.rpcCaller.Call(
-		ctx,
-		"auth",
-		"GetUsers",
-		mqrpc.Param(rpcReqBytes),
-	)
-
-	if errStr != "" {
-		if ctx.Err() == context.DeadlineExceeded {
-			appErr := xerrors.New(xerrors.CodeExternalServiceError, "Auth服务超时")
-			return response.EchoError(c, h.respWriter, appErr)
-		}
-		appErr := xerrors.New(xerrors.CodeExternalServiceError, errStr)
-		return response.EchoError(c, h.respWriter, appErr)
+		return response.EchoError(c, h.respWriter, err)
 	}
 
 	// 4. 解析响应
 	rpcResp := &authpb.GetUsersResponse{}
-	resultBytes, ok := result.([]byte)
-	if !ok {
-		appErr := xerrors.New(xerrors.CodeInternalError, "RPC响应类型错误")
-		return response.EchoError(c, h.respWriter, appErr)
-	}
-
-	if err := proto.Unmarshal(resultBytes, rpcResp); err != nil {
+	if err := proto.Unmarshal(respBytes, rpcResp); err != nil {
 		appErr := xerrors.Wrap(err, xerrors.CodeInternalError, "解析RPC响应失败")
 		return response.EchoError(c, h.respWriter, appErr)
 	}
@@ -280,41 +254,17 @@ func (h *UserHandler) GetUser(c echo.Context) error {
 		UserId: userID,
 	}
 
-	rpcReqBytes, err := proto.Marshal(rpcReq)
+	respBytes, err := h.callAuthRPC(c.Request().Context(), "GetUser", rpcReq)
 	if err != nil {
-		appErr := xerrors.Wrap(err, xerrors.CodeInternalError, "序列化RPC请求失败")
-		return response.EchoError(c, h.respWriter, appErr)
-	}
-
-	// 调用 RPC
-	ctx, cancel := context.WithTimeout(c.Request().Context(), 2*time.Second)
-	defer cancel()
-
-	result, errStr := h.rpcCaller.Call(
-		ctx,
-		"auth",
-		"GetUser",
-		mqrpc.Param(rpcReqBytes),
-	)
-
-	if errStr != "" {
-		if ctx.Err() == context.DeadlineExceeded {
-			appErr := xerrors.New(xerrors.CodeExternalServiceError, "Auth服务超时")
-			return response.EchoError(c, h.respWriter, appErr)
+		if appErr, ok := err.(*xerrors.AppError); ok && appErr.Code == xerrors.CodeExternalServiceError {
+			return response.EchoError(c, h.respWriter, xerrors.NewUserNotFoundError(userID))
 		}
-		appErr := xerrors.NewUserNotFoundError(userID)
-		return response.EchoError(c, h.respWriter, appErr)
+		return response.EchoError(c, h.respWriter, err)
 	}
 
 	// 解析响应
 	rpcResp := &authpb.GetUserResponse{}
-	resultBytes, ok := result.([]byte)
-	if !ok {
-		appErr := xerrors.New(xerrors.CodeInternalError, "RPC响应类型错误")
-		return response.EchoError(c, h.respWriter, appErr)
-	}
-
-	if err := proto.Unmarshal(resultBytes, rpcResp); err != nil {
+	if err := proto.Unmarshal(respBytes, rpcResp); err != nil {
 		appErr := xerrors.Wrap(err, xerrors.CodeInternalError, "解析RPC响应失败")
 		return response.EchoError(c, h.respWriter, appErr)
 	}
@@ -436,41 +386,14 @@ func (h *UserHandler) UpdateUser(c echo.Context) error {
 		rpcReq.Language = req.Language
 	}
 
-	rpcReqBytes, err := proto.Marshal(rpcReq)
+	respBytes, err := h.callAuthRPC(c.Request().Context(), "UpdateUser", rpcReq)
 	if err != nil {
-		appErr := xerrors.Wrap(err, xerrors.CodeInternalError, "序列化RPC请求失败")
-		return response.EchoError(c, h.respWriter, appErr)
-	}
-
-	// 调用 RPC
-	ctx, cancel := context.WithTimeout(c.Request().Context(), 3*time.Second)
-	defer cancel()
-
-	result, errStr := h.rpcCaller.Call(
-		ctx,
-		"auth",
-		"UpdateUser",
-		mqrpc.Param(rpcReqBytes),
-	)
-
-	if errStr != "" {
-		if ctx.Err() == context.DeadlineExceeded {
-			appErr := xerrors.New(xerrors.CodeExternalServiceError, "Auth服务超时")
-			return response.EchoError(c, h.respWriter, appErr)
-		}
-		appErr := xerrors.New(xerrors.CodeExternalServiceError, errStr)
-		return response.EchoError(c, h.respWriter, appErr)
+		return response.EchoError(c, h.respWriter, err)
 	}
 
 	// 解析响应
 	rpcResp := &authpb.UpdateUserResponse{}
-	resultBytes, ok := result.([]byte)
-	if !ok {
-		appErr := xerrors.New(xerrors.CodeInternalError, "RPC响应类型错误")
-		return response.EchoError(c, h.respWriter, appErr)
-	}
-
-	if err := proto.Unmarshal(resultBytes, rpcResp); err != nil {
+	if err := proto.Unmarshal(respBytes, rpcResp); err != nil {
 		appErr := xerrors.Wrap(err, xerrors.CodeInternalError, "解析RPC响应失败")
 		return response.EchoError(c, h.respWriter, appErr)
 	}
@@ -521,41 +444,14 @@ func (h *UserHandler) BanUser(c echo.Context) error {
 		rpcReq.BanUntil = req.BanUntil
 	}
 
-	rpcReqBytes, err := proto.Marshal(rpcReq)
+	respBytes, err := h.callAuthRPC(c.Request().Context(), "BanUser", rpcReq)
 	if err != nil {
-		appErr := xerrors.Wrap(err, xerrors.CodeInternalError, "序列化RPC请求失败")
-		return response.EchoError(c, h.respWriter, appErr)
-	}
-
-	// 调用 RPC
-	ctx, cancel := context.WithTimeout(c.Request().Context(), 3*time.Second)
-	defer cancel()
-
-	result, errStr := h.rpcCaller.Call(
-		ctx,
-		"auth",
-		"BanUser",
-		mqrpc.Param(rpcReqBytes),
-	)
-
-	if errStr != "" {
-		if ctx.Err() == context.DeadlineExceeded {
-			appErr := xerrors.New(xerrors.CodeExternalServiceError, "Auth服务超时")
-			return response.EchoError(c, h.respWriter, appErr)
-		}
-		appErr := xerrors.New(xerrors.CodeExternalServiceError, errStr)
-		return response.EchoError(c, h.respWriter, appErr)
+		return response.EchoError(c, h.respWriter, err)
 	}
 
 	// 解析响应
 	rpcResp := &authpb.BanUserResponse{}
-	resultBytes, ok := result.([]byte)
-	if !ok {
-		appErr := xerrors.New(xerrors.CodeInternalError, "RPC响应类型错误")
-		return response.EchoError(c, h.respWriter, appErr)
-	}
-
-	if err := proto.Unmarshal(resultBytes, rpcResp); err != nil {
+	if err := proto.Unmarshal(respBytes, rpcResp); err != nil {
 		appErr := xerrors.Wrap(err, xerrors.CodeInternalError, "解析RPC响应失败")
 		return response.EchoError(c, h.respWriter, appErr)
 	}
@@ -590,41 +486,14 @@ func (h *UserHandler) UnbanUser(c echo.Context) error {
 		UserId: userID,
 	}
 
-	rpcReqBytes, err := proto.Marshal(rpcReq)
+	respBytes, err := h.callAuthRPC(c.Request().Context(), "UnbanUser", rpcReq)
 	if err != nil {
-		appErr := xerrors.Wrap(err, xerrors.CodeInternalError, "序列化RPC请求失败")
-		return response.EchoError(c, h.respWriter, appErr)
-	}
-
-	// 调用 RPC
-	ctx, cancel := context.WithTimeout(c.Request().Context(), 3*time.Second)
-	defer cancel()
-
-	result, errStr := h.rpcCaller.Call(
-		ctx,
-		"auth",
-		"UnbanUser",
-		mqrpc.Param(rpcReqBytes),
-	)
-
-	if errStr != "" {
-		if ctx.Err() == context.DeadlineExceeded {
-			appErr := xerrors.New(xerrors.CodeExternalServiceError, "Auth服务超时")
-			return response.EchoError(c, h.respWriter, appErr)
-		}
-		appErr := xerrors.New(xerrors.CodeExternalServiceError, errStr)
-		return response.EchoError(c, h.respWriter, appErr)
+		return response.EchoError(c, h.respWriter, err)
 	}
 
 	// 解析响应
 	rpcResp := &authpb.UnbanUserResponse{}
-	resultBytes, ok := result.([]byte)
-	if !ok {
-		appErr := xerrors.New(xerrors.CodeInternalError, "RPC响应类型错误")
-		return response.EchoError(c, h.respWriter, appErr)
-	}
-
-	if err := proto.Unmarshal(resultBytes, rpcResp); err != nil {
+	if err := proto.Unmarshal(respBytes, rpcResp); err != nil {
 		appErr := xerrors.Wrap(err, xerrors.CodeInternalError, "解析RPC响应失败")
 		return response.EchoError(c, h.respWriter, appErr)
 	}
@@ -667,41 +536,14 @@ func (h *UserHandler) GetCurrentUserProfile(c echo.Context) error {
 		UserId: userID,
 	}
 
-	rpcReqBytes, err := proto.Marshal(rpcReq)
+	respBytes, err := h.callAuthRPC(c.Request().Context(), "GetUser", rpcReq)
 	if err != nil {
-		appErr := xerrors.Wrap(err, xerrors.CodeInternalError, "序列化RPC请求失败")
-		return response.EchoError(c, h.respWriter, appErr)
-	}
-
-	// 调用 Auth RPC
-	ctx, cancel := context.WithTimeout(c.Request().Context(), 2*time.Second)
-	defer cancel()
-
-	result, errStr := h.rpcCaller.Call(
-		ctx,
-		"auth",
-		"GetUser",
-		mqrpc.Param(rpcReqBytes),
-	)
-
-	if errStr != "" {
-		if ctx.Err() == context.DeadlineExceeded {
-			appErr := xerrors.New(xerrors.CodeExternalServiceError, "Auth服务超时")
-			return response.EchoError(c, h.respWriter, appErr)
-		}
-		appErr := xerrors.New(xerrors.CodeExternalServiceError, errStr)
-		return response.EchoError(c, h.respWriter, appErr)
+		return response.EchoError(c, h.respWriter, err)
 	}
 
 	// 解析响应
 	rpcResp := &authpb.GetUserResponse{}
-	resultBytes, ok := result.([]byte)
-	if !ok {
-		appErr := xerrors.New(xerrors.CodeInternalError, "RPC响应类型错误")
-		return response.EchoError(c, h.respWriter, appErr)
-	}
-
-	if err := proto.Unmarshal(resultBytes, rpcResp); err != nil {
+	if err := proto.Unmarshal(respBytes, rpcResp); err != nil {
 		appErr := xerrors.Wrap(err, xerrors.CodeInternalError, "解析RPC响应失败")
 		return response.EchoError(c, h.respWriter, appErr)
 	}
@@ -739,4 +581,45 @@ func stringToPtr(s string) *string {
 		return nil
 	}
 	return &s
+}
+
+// callAuthRPC 调用 Auth 模块 RPC, 支持单元测试覆盖
+func (h *UserHandler) callAuthRPC(ctx context.Context, method string, req proto.Message) ([]byte, error) {
+	if h.rpcCallOverride != nil {
+		return h.rpcCallOverride(ctx, method, req)
+	}
+
+	reqBytes, err := proto.Marshal(req)
+	if err != nil {
+		return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "序列化RPC请求失败")
+	}
+
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+
+	result, errStr := h.rpcCaller.Call(
+		ctxWithTimeout,
+		"auth",
+		method,
+		mqrpc.Param(reqBytes),
+	)
+
+	if errStr != "" {
+		if ctxWithTimeout.Err() == context.DeadlineExceeded {
+			return nil, xerrors.New(xerrors.CodeExternalServiceError, "Auth服务超时")
+		}
+		return nil, xerrors.New(xerrors.CodeExternalServiceError, errStr)
+	}
+
+	respBytes, ok := result.([]byte)
+	if !ok {
+		return nil, xerrors.New(xerrors.CodeInternalError, "RPC响应类型错误")
+	}
+
+	return respBytes, nil
+}
+
+// SetRPCCallOverride 用于测试注入自定义 RPC 调用
+func (h *UserHandler) SetRPCCallOverride(fn func(ctx context.Context, method string, req proto.Message) ([]byte, error)) {
+	h.rpcCallOverride = fn
 }

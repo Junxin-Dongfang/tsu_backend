@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="3" failures="0" errors="0" time="2.443643">
+	<testsuite tests="3" failures="0" time="2.444000" name="tsu-self/test/integration/smoke" timestamp="2025-11-17T15:46:14+08:00">
+		<properties>
+			<property name="go.version" value="go1.25.1 darwin/arm64"></property>
+		</properties>
+		<testcase classname="tsu-self/test/integration/smoke" name="TestAdminLoginAndFetchUser" time="0.270000"></testcase>
+		<testcase classname="tsu-self/test/integration/smoke" name="TestGameRegisterLoginAndFetchUser/login-with-username" time="0.220000"></testcase>
+		<testcase classname="tsu-self/test/integration/smoke" name="TestGameRegisterLoginAndFetchUser" time="0.220000"></testcase>
+	</testsuite>
+</testsuites>

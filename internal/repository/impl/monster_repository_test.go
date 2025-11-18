@@ -2,6 +2,7 @@ package impl
 
 import (
 	"context"
+	"database/sql/driver"
 	"testing"
 	"time"
 
@@ -29,41 +30,27 @@ func TestMonsterRepository_Create(t *testing.T) {
 	}
 
 	t.Run("成功创建怪物", func(t *testing.T) {
-		mock.ExpectExec("INSERT INTO game_config.monsters").
+		returnCols := []string{
+			"description", "hp_recovery", "max_mp", "mp_recovery", "base_str", "base_agi", "base_vit", "base_wlp",
+			"base_int", "base_wis", "base_cha", "accuracy_attribute_code", "dodge_attribute_code", "initiative_attribute_code",
+			"body_resist_attribute_code", "magic_resist_attribute_code", "mental_resist_attribute_code", "environment_resist_attribute_code",
+			"damage_resistances", "passive_buffs", "drop_gold_min", "drop_gold_max", "drop_exp", "icon_url", "model_url",
+			"is_active", "display_order", "deleted_at",
+		}
+		returnValues := make([]driver.Value, len(returnCols))
+		rows := sqlmock.NewRows(returnCols).AddRow(returnValues...)
+
+		mock.ExpectQuery(`INSERT INTO "game_config"\."monsters"`).
 			WithArgs(
+				sqlmock.AnyArg(), // id
 				monster.MonsterCode,
 				monster.MonsterName,
 				monster.MonsterLevel,
-				sqlmock.AnyArg(), // description
 				monster.MaxHP,
-				sqlmock.AnyArg(), // hp_recovery
-				sqlmock.AnyArg(), // max_mp
-				sqlmock.AnyArg(), // mp_recovery
-				sqlmock.AnyArg(), // base_str
-				sqlmock.AnyArg(), // base_agi
-				sqlmock.AnyArg(), // base_vit
-				sqlmock.AnyArg(), // base_wlp
-				sqlmock.AnyArg(), // base_int
-				sqlmock.AnyArg(), // base_wis
-				sqlmock.AnyArg(), // base_cha
-				sqlmock.AnyArg(), // accuracy_formula
-				sqlmock.AnyArg(), // dodge_formula
-				sqlmock.AnyArg(), // initiative_formula
-				sqlmock.AnyArg(), // body_resist_formula
-				sqlmock.AnyArg(), // magic_resist_formula
-				sqlmock.AnyArg(), // mental_resist_formula
-				sqlmock.AnyArg(), // environment_resist_formula
-				sqlmock.AnyArg(), // damage_resistances
-				sqlmock.AnyArg(), // passive_buffs
-				sqlmock.AnyArg(), // drop_gold_min
-				sqlmock.AnyArg(), // drop_gold_max
-				sqlmock.AnyArg(), // drop_exp
-				sqlmock.AnyArg(), // icon_url
-				sqlmock.AnyArg(), // model_url
-				sqlmock.AnyArg(), // is_active
-				sqlmock.AnyArg(), // display_order
+				sqlmock.AnyArg(), // created_at
+				sqlmock.AnyArg(), // updated_at
 			).
-			WillReturnResult(sqlmock.NewResult(1, 1))
+			WillReturnRows(rows)
 
 		err := repo.Create(ctx, monster)
 		assert.NoError(t, err)
@@ -90,7 +77,7 @@ func TestMonsterRepository_GetByID(t *testing.T) {
 			time.Now(), time.Now(),
 		)
 
-		mock.ExpectQuery("SELECT .+ FROM game_config.monsters WHERE id = \\$1 AND deleted_at IS NULL").
+		mock.ExpectQuery(`SELECT .+ FROM "game_config"\."monsters" WHERE .*id = \$1.*deleted_at IS NULL`).
 			WithArgs(monsterID).
 			WillReturnRows(rows)
 
@@ -103,7 +90,7 @@ func TestMonsterRepository_GetByID(t *testing.T) {
 	})
 
 	t.Run("怪物不存在", func(t *testing.T) {
-		mock.ExpectQuery("SELECT .+ FROM game_config.monsters WHERE id = \\$1 AND deleted_at IS NULL").
+		mock.ExpectQuery(`SELECT .+ FROM "game_config"\."monsters" WHERE .*id = \$1.*deleted_at IS NULL`).
 			WithArgs(monsterID).
 			WillReturnRows(sqlmock.NewRows([]string{"id"}))
 
@@ -131,7 +118,7 @@ func TestMonsterRepository_GetByCode(t *testing.T) {
 			time.Now(), time.Now(),
 		)
 
-		mock.ExpectQuery("SELECT .+ FROM game_config.monsters WHERE monster_code = \\$1 AND deleted_at IS NULL").
+		mock.ExpectQuery(`SELECT .+ FROM "game_config"\."monsters" WHERE .*monster_code = \$1.*deleted_at IS NULL`).
 			WithArgs("TEST_MONSTER").
 			WillReturnRows(rows)
 
@@ -166,17 +153,16 @@ func TestMonsterRepository_List(t *testing.T) {
 			Offset: 0,
 		}
 
-		mock.ExpectQuery("SELECT COUNT\\(\\*\\) FROM game_config.monsters WHERE deleted_at IS NULL").
+		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM "game_config"\."monsters" WHERE`).
 			WillReturnRows(countRows)
 
-		mock.ExpectQuery("SELECT .+ FROM game_config.monsters WHERE deleted_at IS NULL ORDER BY monster_level ASC LIMIT \\$1 OFFSET \\$2").
-			WithArgs(params.Limit, params.Offset).
+		mock.ExpectQuery(`SELECT .*FROM "game_config"\."monsters" WHERE`).
 			WillReturnRows(rows)
 
 		monsters, total, err := repo.List(ctx, params)
 		assert.NoError(t, err)
 		assert.Equal(t, 2, len(monsters))
-		assert.Equal(t, 2, total)
+		assert.Equal(t, int64(2), total)
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 }
@@ -198,7 +184,7 @@ func TestMonsterRepository_Update(t *testing.T) {
 			MaxHP:        200,
 		}
 
-		mock.ExpectExec("UPDATE game_config.monsters SET").
+		mock.ExpectExec(`UPDATE "game_config"\."monsters" SET`).
 			WillReturnResult(sqlmock.NewResult(0, 1))
 
 		err := repo.Update(ctx, monster)
@@ -218,8 +204,13 @@ func TestMonsterRepository_Delete(t *testing.T) {
 	monsterID := "550e8400-e29b-41d4-a716-446655440000"
 
 	t.Run("成功删除怪物", func(t *testing.T) {
-		mock.ExpectExec("UPDATE game_config.monsters SET deleted_at = NOW\\(\\) WHERE id = \\$1").
+		selectRows := sqlmock.NewRows([]string{"id", "monster_code", "monster_name", "monster_level", "max_hp", "created_at", "updated_at"}).
+			AddRow(monsterID, "TEST_MONSTER", "测试怪物", 5, 100, time.Now(), time.Now())
+		mock.ExpectQuery(`SELECT .*FROM "game_config"\."monsters" WHERE`).
 			WithArgs(monsterID).
+			WillReturnRows(selectRows)
+
+		mock.ExpectExec(`UPDATE "game_config"\."monsters" SET "deleted_at"=`).
 			WillReturnResult(sqlmock.NewResult(0, 1))
 
 		err := repo.Delete(ctx, monsterID)
@@ -237,9 +228,9 @@ func TestMonsterRepository_Exists(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("怪物代码存在", func(t *testing.T) {
-		rows := sqlmock.NewRows([]string{"exists"}).AddRow(true)
+		rows := sqlmock.NewRows([]string{"count"}).AddRow(1)
 
-		mock.ExpectQuery("SELECT EXISTS\\(SELECT 1 FROM game_config.monsters WHERE monster_code = \\$1 AND deleted_at IS NULL\\)").
+		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM "game_config"\."monsters" WHERE`).
 			WithArgs("TEST_MONSTER").
 			WillReturnRows(rows)
 
@@ -250,9 +241,9 @@ func TestMonsterRepository_Exists(t *testing.T) {
 	})
 
 	t.Run("怪物代码不存在", func(t *testing.T) {
-		rows := sqlmock.NewRows([]string{"exists"}).AddRow(false)
+		rows := sqlmock.NewRows([]string{"count"}).AddRow(0)
 
-		mock.ExpectQuery("SELECT EXISTS\\(SELECT 1 FROM game_config.monsters WHERE monster_code = \\$1 AND deleted_at IS NULL\\)").
+		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM "game_config"\."monsters" WHERE`).
 			WithArgs("NONEXISTENT").
 			WillReturnRows(rows)
 

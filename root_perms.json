@@ -1,0 +1,116 @@
+[
+  {
+    "namespace": "permissions",
+    "object": "class:manage",
+    "relation": "granted",
+    "subject_id": "users:5bada884-a935-4a13-b4cf-79e712c8b129"
+  },
+  {
+    "namespace": "permissions",
+    "object": "hero:manage",
+    "relation": "granted",
+    "subject_id": "users:5bada884-a935-4a13-b4cf-79e712c8b129"
+  },
+  {
+    "namespace": "permissions",
+    "object": "permission:assign",
+    "relation": "granted",
+    "subject_id": "users:5bada884-a935-4a13-b4cf-79e712c8b129"
+  },
+  {
+    "namespace": "permissions",
+    "object": "permission:grant_user",
+    "relation": "granted",
+    "subject_id": "users:5bada884-a935-4a13-b4cf-79e712c8b129"
+  },
+  {
+    "namespace": "permissions",
+    "object": "permission:read",
+    "relation": "granted",
+    "subject_id": "users:5bada884-a935-4a13-b4cf-79e712c8b129"
+  },
+  {
+    "namespace": "permissions",
+    "object": "role:assign",
+    "relation": "granted",
+    "subject_id": "users:5bada884-a935-4a13-b4cf-79e712c8b129"
+  },
+  {
+    "namespace": "permissions",
+    "object": "role:create",
+    "relation": "granted",
+    "subject_id": "users:5bada884-a935-4a13-b4cf-79e712c8b129"
+  },
+  {
+    "namespace": "permissions",
+    "object": "role:delete",
+    "relation": "granted",
+    "subject_id": "users:5bada884-a935-4a13-b4cf-79e712c8b129"
+  },
+  {
+    "namespace": "permissions",
+    "object": "role:read",
+    "relation": "granted",
+    "subject_id": "users:5bada884-a935-4a13-b4cf-79e712c8b129"
+  },
+  {
+    "namespace": "permissions",
+    "object": "role:update",
+    "relation": "granted",
+    "subject_id": "users:5bada884-a935-4a13-b4cf-79e712c8b129"
+  },
+  {
+    "namespace": "permissions",
+    "object": "skill:manage",
+    "relation": "granted",
+    "subject_id": "users:5bada884-a935-4a13-b4cf-79e712c8b129"
+  },
+  {
+    "namespace": "permissions",
+    "object": "system:config",
+    "relation": "granted",
+    "subject_id": "users:5bada884-a935-4a13-b4cf-79e712c8b129"
+  },
+  {
+    "namespace": "permissions",
+    "object": "system:monitor",
+    "relation": "granted",
+    "subject_id": "users:5bada884-a935-4a13-b4cf-79e712c8b129"
+  },
+  {
+    "namespace": "permissions",
+    "object": "user:ban",
+    "relation": "granted",
+    "subject_id": "users:5bada884-a935-4a13-b4cf-79e712c8b129"
+  },
+  {
+    "namespace": "permissions",
+    "object": "user:create",
+    "relation": "granted",
+    "subject_id": "users:5bada884-a935-4a13-b4cf-79e712c8b129"
+  },
+  {
+    "namespace": "permissions",
+    "object": "user:delete",
+    "relation": "granted",
+    "subject_id": "users:5bada884-a935-4a13-b4cf-79e712c8b129"
+  },
+  {
+    "namespace": "permissions",
+    "object": "user:read",
+    "relation": "granted",
+    "subject_id": "users:5bada884-a935-4a13-b4cf-79e712c8b129"
+  },
+  {
+    "namespace": "permissions",
+    "object": "user:update",
+    "relation": "granted",
+    "subject_id": "users:5bada884-a935-4a13-b4cf-79e712c8b129"
+  },
+  {
+    "namespace": "permissions",
+    "object": "world-drop:manage-items",
+    "relation": "granted",
+    "subject_id": "users:5bada884-a935-4a13-b4cf-79e712c8b129"
+  }
+]

@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.10
 // 	protoc        v5.29.3
-// source: proto/common/user.proto
+// source: common/user.proto
 
 package common
 
@@ -50,7 +50,7 @@ type UserInfo struct {
 
 func (x *UserInfo) Reset() {
 	*x = UserInfo{}
-	mi := &file_proto_common_user_proto_msgTypes[0]
+	mi := &file_common_user_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -62,7 +62,7 @@ func (x *UserInfo) String() string {
 func (*UserInfo) ProtoMessage() {}
 
 func (x *UserInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_common_user_proto_msgTypes[0]
+	mi := &file_common_user_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -75,7 +75,7 @@ func (x *UserInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserInfo.ProtoReflect.Descriptor instead.
 func (*UserInfo) Descriptor() ([]byte, []int) {
-	return file_proto_common_user_proto_rawDescGZIP(), []int{0}
+	return file_common_user_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *UserInfo) GetUserId() string {
@@ -232,7 +232,7 @@ type UserSummary struct {
 
 func (x *UserSummary) Reset() {
 	*x = UserSummary{}
-	mi := &file_proto_common_user_proto_msgTypes[1]
+	mi := &file_common_user_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -244,7 +244,7 @@ func (x *UserSummary) String() string {
 func (*UserSummary) ProtoMessage() {}
 
 func (x *UserSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_common_user_proto_msgTypes[1]
+	mi := &file_common_user_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -257,7 +257,7 @@ func (x *UserSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserSummary.ProtoReflect.Descriptor instead.
 func (*UserSummary) Descriptor() ([]byte, []int) {
-	return file_proto_common_user_proto_rawDescGZIP(), []int{1}
+	return file_common_user_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *UserSummary) GetUserId() string {
@@ -295,11 +295,11 @@ func (x *UserSummary) GetIsBanned() bool {
 	return false
 }
 
-var File_proto_common_user_proto protoreflect.FileDescriptor
+var File_common_user_proto protoreflect.FileDescriptor
 
-const file_proto_common_user_proto_rawDesc = "" +
+const file_common_user_proto_rawDesc = "" +
 	"\n" +
-	"\x17proto/common/user.proto\x12\x06common\"\xd1\x04\n" +
+	"\x11common/user.proto\x12\x06common\"\xd1\x04\n" +
 	"\bUserInfo\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1b\n" +
 	"\tkratos_id\x18\x02 \x01(\tR\bkratosId\x12\x14\n" +
@@ -336,23 +336,23 @@ const file_proto_common_user_proto_rawDesc = "" +
 	"\tis_banned\x18\x05 \x01(\bR\bisBannedB\x1dZ\x1btsu-self/internal/pb/commonb\x06proto3"
 
 var (
-	file_proto_common_user_proto_rawDescOnce sync.Once
-	file_proto_common_user_proto_rawDescData []byte
+	file_common_user_proto_rawDescOnce sync.Once
+	file_common_user_proto_rawDescData []byte
 )
 
-func file_proto_common_user_proto_rawDescGZIP() []byte {
-	file_proto_common_user_proto_rawDescOnce.Do(func() {
-		file_proto_common_user_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_common_user_proto_rawDesc), len(file_proto_common_user_proto_rawDesc)))
+func file_common_user_proto_rawDescGZIP() []byte {
+	file_common_user_proto_rawDescOnce.Do(func() {
+		file_common_user_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_common_user_proto_rawDesc), len(file_common_user_proto_rawDesc)))
 	})
-	return file_proto_common_user_proto_rawDescData
+	return file_common_user_proto_rawDescData
 }
 
-var file_proto_common_user_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_proto_common_user_proto_goTypes = []any{
+var file_common_user_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_common_user_proto_goTypes = []any{
 	(*UserInfo)(nil),    // 0: common.UserInfo
 	(*UserSummary)(nil), // 1: common.UserSummary
 }
-var file_proto_common_user_proto_depIdxs = []int32{
+var file_common_user_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
 	0, // [0:0] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
@@ -360,26 +360,26 @@ var file_proto_common_user_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for field type_name
 }
 
-func init() { file_proto_common_user_proto_init() }
-func file_proto_common_user_proto_init() {
-	if File_proto_common_user_proto != nil {
+func init() { file_common_user_proto_init() }
+func file_common_user_proto_init() {
+	if File_common_user_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_common_user_proto_rawDesc), len(file_proto_common_user_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_common_user_proto_rawDesc), len(file_common_user_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_proto_common_user_proto_goTypes,
-		DependencyIndexes: file_proto_common_user_proto_depIdxs,
-		MessageInfos:      file_proto_common_user_proto_msgTypes,
+		GoTypes:           file_common_user_proto_goTypes,
+		DependencyIndexes: file_common_user_proto_depIdxs,
+		MessageInfos:      file_common_user_proto_msgTypes,
 	}.Build()
-	File_proto_common_user_proto = out.File
-	file_proto_common_user_proto_goTypes = nil
-	file_proto_common_user_proto_depIdxs = nil
+	File_common_user_proto = out.File
+	file_common_user_proto_goTypes = nil
+	file_common_user_proto_depIdxs = nil
 }

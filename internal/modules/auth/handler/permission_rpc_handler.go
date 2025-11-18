@@ -4,10 +4,10 @@ import (
 	"context"
 	"database/sql"
 
+	authModels "tsu-self/internal/entity/auth"
+	"tsu-self/internal/modules/auth/service"
 	pb "tsu-self/internal/pb/auth"
 	commonpb "tsu-self/internal/pb/common"
-	"tsu-self/internal/modules/auth/service"
-	authModels "tsu-self/internal/entity/auth"
 	"tsu-self/internal/pkg/xerrors"
 
 	"google.golang.org/protobuf/proto"
@@ -43,6 +43,19 @@ func (h *PermissionRPCHandler) CheckUserPermission(data []byte) ([]byte, error) 
 
 	resp := &pb.CheckUserPermissionResponse{
 		Allowed: allowed,
+	}
+
+	return proto.Marshal(resp)
+}
+
+// InitializeTeamPermissions 初始化团队权限图谱（供 Game/Admin 在启动阶段调用）
+func (h *PermissionRPCHandler) InitializeTeamPermissions(data []byte) ([]byte, error) {
+	if err := h.service.InitializeTeamPermissions(context.Background()); err != nil {
+		return nil, err
+	}
+
+	resp := &pb.InitializeTeamPermissionsResponse{
+		Initialized: true,
 	}
 
 	return proto.Marshal(resp)

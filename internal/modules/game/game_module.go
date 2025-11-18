@@ -1,18 +1,23 @@
 package game
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	custommiddleware "tsu-self/internal/middleware"
+	authclient "tsu-self/internal/modules/auth/client"
 	"tsu-self/internal/modules/game/handler"
 	"tsu-self/internal/modules/game/service"
 	"tsu-self/internal/modules/game/tasks"
+	authpb "tsu-self/internal/pb/auth"
 	"tsu-self/internal/pkg/i18n"
 	"tsu-self/internal/pkg/log"
 	"tsu-self/internal/pkg/metrics"
+	redisClient "tsu-self/internal/pkg/redis"
 	"tsu-self/internal/pkg/response"
 	"tsu-self/internal/pkg/trace"
 	"tsu-self/internal/pkg/validator"
@@ -27,26 +32,38 @@ import (
 	"github.com/liangdas/mqant/server"
 	_ "github.com/lib/pq"
 	echoSwagger "github.com/swaggo/echo-swagger"
+	"google.golang.org/protobuf/proto"
 )
 
 type GameModule struct {
 	basemodule.BaseModule
-	db                      *sql.DB
-	httpServer              *echo.Echo
-	serviceContainer        *service.ServiceContainer
-	authHandler             *handler.AuthHandler
-	passwordRecoveryHandler *handler.PasswordRecoveryHandler
-	heroHandler             *handler.HeroHandler
-	heroAttributeHandler    *handler.HeroAttributeHandler
-	heroSkillHandler        *handler.HeroSkillHandler
-	classHandler            *handler.ClassHandler
-	skillDetailHandler      *handler.SkillDetailHandler
-	upgradeCostHandler      *handler.UpgradeCostHandler
-	equipmentHandler        *handler.EquipmentHandler
-	equipmentSetHandler     *handler.EquipmentSetHandler
-	inventoryHandler        *handler.InventoryHandler
-	cleanupTask             *tasks.CleanupTask
-	respWriter              response.Writer
+	db                            *sql.DB
+	redis                         *redisClient.Client
+	ketoClient                    *authclient.KetoClient
+	httpServer                    *echo.Echo
+	serviceContainer              *service.ServiceContainer
+	authHandler                   *handler.AuthHandler
+	passwordRecoveryHandler       *handler.PasswordRecoveryHandler
+	heroHandler                   *handler.HeroHandler
+	heroAttributeHandler          *handler.HeroAttributeHandler
+	heroSkillHandler              *handler.HeroSkillHandler
+	classHandler                  *handler.ClassHandler
+	skillDetailHandler            *handler.SkillDetailHandler
+	upgradeCostHandler            *handler.UpgradeCostHandler
+	equipmentHandler              *handler.EquipmentHandler
+	equipmentSetHandler           *handler.EquipmentSetHandler
+	inventoryHandler              *handler.InventoryHandler
+	teamHandler                   *handler.TeamHandler
+	teamMemberHandler             *handler.TeamMemberHandler
+	teamWarehouseHandler          *handler.TeamWarehouseHandler
+	teamDungeonHandler            *handler.TeamDungeonHandler
+	teamRPCHandler                *handler.TeamRPCHandler
+	teamPermissionMW              *custommiddleware.TeamPermissionMiddleware
+	cleanupTask                   *tasks.CleanupTask
+	teamLeaderTransferTask        *tasks.TeamLeaderTransferTask
+	teamInvitationExpireTask      *tasks.TeamInvitationExpireTask
+	teamPermissionConsistencyTask *tasks.TeamPermissionConsistencyTask
+	respWriter                    response.Writer
 }
 
 // GetType returns module type
@@ -79,22 +96,33 @@ func (m *GameModule) OnInit(app module.App, settings *conf.ModuleSettings) {
 		panic(fmt.Sprintf("Failed to initialize database: %v", err))
 	}
 
-	// 2. Initialize response writer
+	// 2. Initialize Redis (for permission/cache workloads)
+	if err := m.initRedis(settings); err != nil {
+		panic(fmt.Sprintf("Failed to initialize Redis: %v", err))
+	}
+
+	// 3. Initialize Keto client (optional, for team permissions)
+	m.initKetoClient()
+
+	// 4. Initialize response writer
 	m.initResponseWriter()
 
-	// 3. Initialize HTTP server
+	// 5. Initialize HTTP server
 	m.initHTTPServer()
 
-	// 4. Initialize Services and Handlers
+	// 6. Initialize Services and Handlers
 	m.initServicesAndHandlers()
 
-	// 5. Setup routes
+	// 7. Setup routes
 	m.setupRoutes()
 
-	// 6. Start cron tasks
+	// 8. Setup RPC methods
+	m.setupRPCMethods()
+
+	// 9. Start cron tasks
 	m.startCronTasks()
 
-	// 7. Start HTTP server in background
+	// 10. Start HTTP server in background
 	go m.startHTTPServer(settings)
 
 	m.GetServer().Options()
@@ -138,6 +166,116 @@ func (m *GameModule) initDatabase(settings *conf.ModuleSettings) error {
 
 	// 启动数据库连接池监控
 	go m.startDBPoolMonitoring(db)
+
+	return nil
+}
+
+// initRedis initializes Redis client for caching/perms
+func (m *GameModule) initRedis(settings *conf.ModuleSettings) error {
+	host := os.Getenv("REDIS_HOST")
+	if host == "" {
+		host = "localhost"
+	}
+
+	port := 6379
+	if portStr := os.Getenv("REDIS_PORT"); portStr != "" {
+		if p, err := strconv.Atoi(portStr); err == nil {
+			port = p
+		}
+	}
+
+	password := os.Getenv("REDIS_PASSWORD")
+
+	dbIndex := 0
+	if dbStr := os.Getenv("REDIS_DB"); dbStr != "" {
+		if d, err := strconv.Atoi(dbStr); err == nil {
+			dbIndex = d
+		}
+	}
+
+	client, err := redisClient.NewClient(redisClient.Config{
+		Host:     host,
+		Port:     port,
+		Password: password,
+		DB:       dbIndex,
+	}, metrics.GetServiceName())
+	if err != nil {
+		return fmt.Errorf("failed to connect to Redis: %w", err)
+	}
+
+	m.redis = client
+	fmt.Printf("[Game Module] Redis connected successfully (Host: %s:%d, DB: %d)\n", host, port, dbIndex)
+	return nil
+}
+
+// initKetoClient initializes Keto client for team permissions
+func (m *GameModule) initKetoClient() {
+	readURL := os.Getenv("KETO_READ_URL")
+	writeURL := os.Getenv("KETO_WRITE_URL")
+
+	// Keto 是可选的，如果没有配置则跳过
+	if readURL == "" || writeURL == "" {
+		fmt.Println("[Game Module] Keto URLs not configured, team permissions will use database fallback")
+		return
+	}
+
+	// 创建 Keto 客户端
+	ketoClient, err := authclient.NewKetoClient(readURL, writeURL)
+	if err != nil {
+		fmt.Printf("[Game Module] Failed to initialize Keto client: %v, will use database fallback\n", err)
+		return
+	}
+
+	m.ketoClient = ketoClient
+	fmt.Printf("[Game Module] Keto client initialized (read: %s, write: %s)\n", readURL, writeURL)
+
+	if err := m.ensureTeamPermissionsInitializedViaAuth(); err != nil {
+		fmt.Printf("[Game Module] Warning: Auth 初始化团队权限失败 (%v)，尝试直接写入 Keto\n", err)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := custommiddleware.InitializeTeamPermissions(ctx, ketoClient); err != nil {
+			fmt.Printf("[Game Module] Failed to initialize team permissions via Keto fallback: %v\n", err)
+		} else {
+			fmt.Println("[Game Module] Team permissions initialized via Keto fallback")
+		}
+	}
+}
+
+func (m *GameModule) ensureTeamPermissionsInitializedViaAuth() error {
+	if m.App == nil {
+		return fmt.Errorf("app not initialized")
+	}
+
+	req := &authpb.InitializeTeamPermissionsRequest{}
+	payload, err := proto.Marshal(req)
+	if err != nil {
+		return fmt.Errorf("marshal request failed: %w", err)
+	}
+
+	result, errStr := m.App.Invoke(m, "auth", "InitializeTeamPermissions", payload)
+	if errStr != "" {
+		return fmt.Errorf("%s", errStr)
+	}
+
+	respBytes, ok := result.([]byte)
+	if !ok {
+		return fmt.Errorf("unexpected RPC response type")
+	}
+
+	resp := &authpb.InitializeTeamPermissionsResponse{}
+	if err := proto.Unmarshal(respBytes, resp); err != nil {
+		return fmt.Errorf("unmarshal response failed: %w", err)
+	}
+
+	if resp.Initialized {
+		fmt.Println("[Game Module] Team permissions verified via Auth service")
+	} else {
+		fmt.Println("[Game Module] Auth service reported missing team permissions entries")
+	}
+
+	if len(resp.MissingPermissions) > 0 {
+		fmt.Printf("[Game Module] Missing Keto tuples: %v\n", resp.MissingPermissions)
+	}
 
 	return nil
 }
@@ -217,7 +355,8 @@ func (m *GameModule) initHTTPServer() {
 // initServicesAndHandlers initializes services and HTTP handlers
 func (m *GameModule) initServicesAndHandlers() {
 	// 创建服务容器（统一管理所有 Repository 和 Service）
-	m.serviceContainer = service.NewServiceContainer(m.db)
+	// 传入 ketoClient（可能为 nil，会优雅降级）
+	m.serviceContainer = service.NewServiceContainer(m.db, m.ketoClient, m.redis)
 
 	// 初始化 HTTP Handlers（从容器中获取需要的服务）
 	m.authHandler = handler.NewAuthHandler(m, m.respWriter)
@@ -236,6 +375,20 @@ func (m *GameModule) initServicesAndHandlers() {
 	m.equipmentHandler = handler.NewEquipmentHandler(m.db, m.respWriter)
 	m.equipmentSetHandler = handler.NewEquipmentSetHandler(m.serviceContainer.GetEquipmentSetService(), m.respWriter)
 	m.inventoryHandler = handler.NewInventoryHandler(m.db, m.respWriter)
+	m.teamHandler = handler.NewTeamHandler(m.serviceContainer, m.respWriter)
+	m.teamMemberHandler = handler.NewTeamMemberHandler(m.serviceContainer, m.respWriter)
+	m.teamWarehouseHandler = handler.NewTeamWarehouseHandler(m.serviceContainer, m.respWriter)
+	m.teamDungeonHandler = handler.NewTeamDungeonHandler(m.serviceContainer, m.respWriter)
+	m.teamRPCHandler = handler.NewTeamRPCHandler(m.serviceContainer, m.db)
+
+	// 初始化团队权限中间件（基于权限服务，可回退到数据库）
+	permissionService := m.serviceContainer.GetTeamPermissionService()
+	if permissionService != nil {
+		m.teamPermissionMW = custommiddleware.NewTeamPermissionMiddleware(permissionService, m.respWriter)
+		fmt.Println("[Game Module] Team permission middleware initialized (cache-enabled)")
+	} else {
+		fmt.Println("[Game Module] Team permission middleware skipped (service unavailable)")
+	}
 
 	fmt.Println("[Game Module] Handlers initialized successfully")
 }
@@ -244,11 +397,37 @@ func (m *GameModule) initServicesAndHandlers() {
 func (m *GameModule) startCronTasks() {
 	logger := log.GetLogger()
 
-	// 创建并启动定时清理任务
+	// 1. 创建并启动定时清理任务
 	m.cleanupTask = tasks.NewCleanupTask(m.db, logger)
 	m.cleanupTask.Start()
 
-	fmt.Println("[Game Module] Cron tasks started successfully")
+	// 2. 创建并启动团队相关定时任务
+	// 队长自动转移任务
+	teamService := m.serviceContainer.GetTeamService()
+	m.teamLeaderTransferTask = tasks.NewTeamLeaderTransferTask(m.db, teamService, logger)
+	m.teamLeaderTransferTask.Start()
+
+	// 邀请过期任务
+	m.teamInvitationExpireTask = tasks.NewTeamInvitationExpireTask(m.db, logger)
+	m.teamInvitationExpireTask.Start()
+
+	// 权限一致性检查任务（仅在 Keto 可用时启动）
+	if m.serviceContainer.GetTeamPermissionService() != nil {
+		m.teamPermissionConsistencyTask = tasks.NewTeamPermissionConsistencyTask(
+			m.db,
+			m.serviceContainer.GetTeamPermissionService(),
+			logger,
+		)
+		m.teamPermissionConsistencyTask.Start()
+		fmt.Println("[Game Module] Team permission consistency task started")
+	} else {
+		fmt.Println("[Game Module] Team permission consistency task skipped (Keto not available)")
+	}
+
+	fmt.Println("[Game Module] Cron tasks started successfully:")
+	fmt.Println("  ✓ Cleanup Task (每天凌晨2点)")
+	fmt.Println("  ✓ Team Leader Transfer Task (每小时)")
+	fmt.Println("  ✓ Team Invitation Expire Task (每小时)")
 }
 
 // setupRoutes sets up HTTP routes
@@ -363,6 +542,134 @@ func (m *GameModule) setupRoutes() {
 		// 	inventory.POST("/discard", m.inventoryHandler.DiscardItem) // 丢弃物品
 		// 	inventory.POST("/sort", m.inventoryHandler.SortInventory)  // 整理背包
 		// }
+
+		//Team routes (需要认证)
+		teams := game.Group("/teams")
+		teams.Use(custommiddleware.AuthMiddleware(m.respWriter, logger))
+		{
+			// 团队管理
+			teams.POST("", m.teamHandler.CreateTeam) // 创建团队（任何认证用户都可以）
+
+			// 获取团队详情（需要是团队成员）
+			if m.teamPermissionMW != nil {
+				teams.GET("/:team_id", m.teamHandler.GetTeam, m.teamPermissionMW.RequireTeamMember)
+			} else {
+				teams.GET("/:team_id", m.teamHandler.GetTeam)
+			}
+
+			// 更新团队信息（只有队长可以）
+			if m.teamPermissionMW != nil {
+				teams.PUT("/:team_id", m.teamHandler.UpdateTeamInfo, m.teamPermissionMW.RequireTeamLeader)
+			} else {
+				teams.PUT("/:team_id", m.teamHandler.UpdateTeamInfo)
+			}
+
+			// 解散团队（只有队长可以）
+			if m.teamPermissionMW != nil {
+				teams.POST("/:team_id/disband", m.teamHandler.DisbandTeam, m.teamPermissionMW.RequireTeamLeader)
+			} else {
+				teams.POST("/:team_id/disband", m.teamHandler.DisbandTeam)
+			}
+
+			// 离开团队（需要是团队成员）
+			if m.teamPermissionMW != nil {
+				teams.POST("/:team_id/leave", m.teamHandler.LeaveTeam, m.teamPermissionMW.RequireTeamMember)
+			} else {
+				teams.POST("/:team_id/leave", m.teamHandler.LeaveTeam)
+			}
+
+			// 成员管理
+			teams.POST("/join/apply", m.teamMemberHandler.ApplyToJoin) // 申请加入团队（任何认证用户都可以）
+
+			// 审批加入申请（管理员或队长）
+			if m.teamPermissionMW != nil {
+				teams.POST("/join/approve", m.teamMemberHandler.ApproveJoinRequest, m.teamPermissionMW.RequireTeamAdmin)
+			} else {
+				teams.POST("/join/approve", m.teamMemberHandler.ApproveJoinRequest)
+			}
+
+			// 邀请成员（任何团队成员都可以）
+			if m.teamPermissionMW != nil {
+				teams.POST("/invite", m.teamMemberHandler.InviteMember, m.teamPermissionMW.RequireTeamMember)
+			} else {
+				teams.POST("/invite", m.teamMemberHandler.InviteMember)
+			}
+
+			// 审批邀请（管理员或队长）
+			if m.teamPermissionMW != nil {
+				teams.POST("/invite/approve", m.teamMemberHandler.ApproveInvitation, m.teamPermissionMW.RequireTeamAdmin)
+			} else {
+				teams.POST("/invite/approve", m.teamMemberHandler.ApproveInvitation)
+			}
+
+			teams.POST("/invite/accept", m.teamMemberHandler.AcceptInvitation) // 接受邀请（被邀请人）
+			teams.POST("/invite/reject", m.teamMemberHandler.RejectInvitation) // 拒绝邀请（被邀请人）
+
+			// 踢出成员（管理员或队长）
+			if m.teamPermissionMW != nil {
+				teams.POST("/members/kick", m.teamMemberHandler.KickMember, m.teamPermissionMW.RequireTeamAdmin)
+			} else {
+				teams.POST("/members/kick", m.teamMemberHandler.KickMember)
+			}
+
+			// 任命管理员（只有队长可以）
+			if m.teamPermissionMW != nil {
+				teams.POST("/members/promote", m.teamMemberHandler.PromoteToAdmin, m.teamPermissionMW.RequireTeamLeader)
+			} else {
+				teams.POST("/members/promote", m.teamMemberHandler.PromoteToAdmin)
+			}
+
+			// 撤销管理员（只有队长可以）
+			if m.teamPermissionMW != nil {
+				teams.POST("/members/demote", m.teamMemberHandler.DemoteAdmin, m.teamPermissionMW.RequireTeamLeader)
+			} else {
+				teams.POST("/members/demote", m.teamMemberHandler.DemoteAdmin)
+			}
+
+			// 仓库管理
+
+			// 查看仓库（需要是团队成员）
+			if m.teamPermissionMW != nil {
+				teams.GET("/:team_id/warehouse", m.teamWarehouseHandler.GetWarehouse, m.teamPermissionMW.RequireTeamMember)
+			} else {
+				teams.GET("/:team_id/warehouse", m.teamWarehouseHandler.GetWarehouse)
+			}
+
+			// 分配金币（管理员或队长）
+			if m.teamPermissionMW != nil {
+				teams.POST("/:team_id/warehouse/distribute-gold", m.teamWarehouseHandler.DistributeGold, m.teamPermissionMW.RequireTeamAdmin)
+			} else {
+				teams.POST("/:team_id/warehouse/distribute-gold", m.teamWarehouseHandler.DistributeGold)
+			}
+
+			// 查看仓库物品（需要是团队成员）
+			if m.teamPermissionMW != nil {
+				teams.GET("/:team_id/warehouse/items", m.teamWarehouseHandler.GetWarehouseItems, m.teamPermissionMW.RequireTeamMember)
+			} else {
+				teams.GET("/:team_id/warehouse/items", m.teamWarehouseHandler.GetWarehouseItems)
+			}
+
+			// 地城路由
+			if m.teamDungeonHandler != nil {
+				if m.teamPermissionMW != nil {
+					teams.POST("/:team_id/dungeons/select", m.teamDungeonHandler.SelectDungeon, m.teamPermissionMW.RequireTeamAdmin)
+					teams.POST("/:team_id/dungeons/enter", m.teamDungeonHandler.EnterDungeon, m.teamPermissionMW.RequireTeamAdmin)
+					teams.GET("/:team_id/dungeons/progress", m.teamDungeonHandler.GetDungeonProgress, m.teamPermissionMW.RequireTeamMember)
+					teams.POST("/:team_id/dungeons/complete", m.teamDungeonHandler.CompleteDungeon, m.teamPermissionMW.RequireTeamAdmin)
+					teams.POST("/:team_id/dungeons/fail", m.teamDungeonHandler.FailDungeon, m.teamPermissionMW.RequireTeamAdmin)
+					teams.POST("/:team_id/dungeons/abandon", m.teamDungeonHandler.AbandonDungeon, m.teamPermissionMW.RequireTeamAdmin)
+					teams.GET("/:team_id/dungeons/history", m.teamDungeonHandler.GetDungeonHistory, m.teamPermissionMW.RequireTeamMember)
+				} else {
+					teams.POST("/:team_id/dungeons/select", m.teamDungeonHandler.SelectDungeon)
+					teams.POST("/:team_id/dungeons/enter", m.teamDungeonHandler.EnterDungeon)
+					teams.GET("/:team_id/dungeons/progress", m.teamDungeonHandler.GetDungeonProgress)
+					teams.POST("/:team_id/dungeons/complete", m.teamDungeonHandler.CompleteDungeon)
+					teams.POST("/:team_id/dungeons/fail", m.teamDungeonHandler.FailDungeon)
+					teams.POST("/:team_id/dungeons/abandon", m.teamDungeonHandler.AbandonDungeon)
+					teams.GET("/:team_id/dungeons/history", m.teamDungeonHandler.GetDungeonHistory)
+				}
+			}
+		}
 	}
 
 	// Swagger UI
@@ -472,4 +779,20 @@ func (m *GameModule) startDBPoolMonitoring(db *sql.DB) {
 			stats.WaitDuration,    // 等待连接的总时长
 		)
 	}
+}
+
+// setupRPCMethods 注册 RPC 方法
+// 供其他模块（如 Admin Server）调用
+func (m *GameModule) setupRPCMethods() {
+	// ==================== 团队管理 RPC ====================
+	m.GetServer().RegisterGO("GetTeamList", m.teamRPCHandler.GetTeamList)
+	m.GetServer().RegisterGO("GetTeamDetail", m.teamRPCHandler.GetTeamDetail)
+	m.GetServer().RegisterGO("ForceDisbandTeam", m.teamRPCHandler.ForceDisbandTeam)
+	m.GetServer().RegisterGO("GetTeamMembers", m.teamRPCHandler.GetTeamMembers)
+
+	fmt.Println("[Game Module] RPC methods registered:")
+	fmt.Println("  ✓ GetTeamList - 获取团队列表")
+	fmt.Println("  ✓ GetTeamDetail - 获取团队详情")
+	fmt.Println("  ✓ ForceDisbandTeam - 强制解散团队")
+	fmt.Println("  ✓ GetTeamMembers - 获取团队成员列表")
 }

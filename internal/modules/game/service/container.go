@@ -3,6 +3,7 @@ package service
 import (
 	"database/sql"
 
+	"tsu-self/internal/modules/auth/client"
 	"tsu-self/internal/repository/impl"
 	"tsu-self/internal/repository/interfaces"
 )
@@ -33,18 +34,34 @@ type ServiceContainer struct {
 	equipmentSetRepo           interfaces.EquipmentSetRepository
 	equipmentRepo              interfaces.EquipmentRepository
 	itemRepo                   interfaces.ItemRepository
+	teamRepo                   interfaces.TeamRepository
+	teamMemberRepo             interfaces.TeamMemberRepository
+	teamJoinRequestRepo        interfaces.TeamJoinRequestRepository
+	teamInvitationRepo         interfaces.TeamInvitationRepository
+	teamKickedRecordRepo       interfaces.TeamKickedRecordRepository
+	teamWarehouseRepo          interfaces.TeamWarehouseRepository
+	teamWarehouseItemRepo      interfaces.TeamWarehouseItemRepository
+	dungeonRepo                interfaces.DungeonRepository
+	teamDungeonProgressRepo    interfaces.TeamDungeonProgressRepository
+	teamDungeonRecordRepo      interfaces.TeamDungeonRecordRepository
 
 	// 所有 Service（共享实例）
-	HeroService          *HeroService
-	HeroAttributeService *HeroAttributeService
-	HeroSkillService     *HeroSkillService
-	ClassService         *ClassService
-	SkillDetailService   *SkillDetailService
-	EquipmentSetService  *EquipmentSetService
+	HeroService           *HeroService
+	HeroAttributeService  *HeroAttributeService
+	HeroSkillService      *HeroSkillService
+	ClassService          *ClassService
+	SkillDetailService    *SkillDetailService
+	EquipmentSetService   *EquipmentSetService
+	TeamService           *TeamService
+	TeamMemberService     *TeamMemberService
+	TeamWarehouseService  *TeamWarehouseService
+	TeamDungeonService    *TeamDungeonService
+	TeamPermissionService *TeamPermissionService
 }
 
 // NewServiceContainer 创建服务容器
-func NewServiceContainer(db *sql.DB) *ServiceContainer {
+// ketoClient 与 permissionCache 都是可选依赖
+func NewServiceContainer(db *sql.DB, ketoClient *client.KetoClient, permissionCache permissionCacheClient) *ServiceContainer {
 	c := &ServiceContainer{}
 
 	// 初始化所有 Repository
@@ -70,6 +87,16 @@ func NewServiceContainer(db *sql.DB) *ServiceContainer {
 	c.equipmentSetRepo = impl.NewEquipmentSetRepository(db)
 	c.equipmentRepo = impl.NewEquipmentRepository(db)
 	c.itemRepo = impl.NewItemRepository(db)
+	c.teamRepo = impl.NewTeamRepository(db)
+	c.teamMemberRepo = impl.NewTeamMemberRepository(db)
+	c.teamJoinRequestRepo = impl.NewTeamJoinRequestRepository(db)
+	c.teamInvitationRepo = impl.NewTeamInvitationRepository(db)
+	c.teamKickedRecordRepo = impl.NewTeamKickedRecordRepository(db)
+	c.teamWarehouseRepo = impl.NewTeamWarehouseRepository(db)
+	c.teamWarehouseItemRepo = impl.NewTeamWarehouseItemRepository(db)
+	c.dungeonRepo = impl.NewDungeonRepository(db)
+	c.teamDungeonProgressRepo = impl.NewTeamDungeonProgressRepository(db)
+	c.teamDungeonRecordRepo = impl.NewTeamDungeonRecordRepository(db)
 
 	// 初始化 HeroService（依赖 repository）
 	c.HeroService = &HeroService{
@@ -129,6 +156,33 @@ func NewServiceContainer(db *sql.DB) *ServiceContainer {
 		c.itemRepo,
 	)
 
+	// 初始化 TeamPermissionService（依赖 repository、ketoClient、permissionCache）
+	c.TeamPermissionService = NewTeamPermissionService(db, ketoClient, permissionCache)
+
+	// 初始化 TeamService（依赖 repository 和 TeamPermissionService）
+	c.TeamService = NewTeamService(db, c.TeamPermissionService)
+
+	// 初始化 TeamMemberService（依赖 repository 和 TeamPermissionService）
+	c.TeamMemberService = NewTeamMemberService(db, c.TeamPermissionService)
+
+	// 初始化 TeamWarehouseService（依赖 repository）
+	c.TeamWarehouseService = &TeamWarehouseService{
+		db:                    db,
+		teamMemberRepo:        c.teamMemberRepo,
+		teamWarehouseRepo:     c.teamWarehouseRepo,
+		teamWarehouseItemRepo: c.teamWarehouseItemRepo,
+	}
+
+	// 初始化 TeamDungeonService（依赖 repository）
+	c.TeamDungeonService = NewTeamDungeonService(db, &TeamDungeonDependencies{
+		WarehouseService: c.TeamWarehouseService,
+		TeamMemberRepo:   c.teamMemberRepo,
+		DungeonRepo:      c.dungeonRepo,
+		ProgressRepo:     c.teamDungeonProgressRepo,
+		RecordRepo:       c.teamDungeonRecordRepo,
+		HeroRepo:         c.heroRepo,
+	})
+
 	return c
 }
 
@@ -175,4 +229,29 @@ func (c *ServiceContainer) GetAttributeUpgradeCostRepo() interfaces.AttributeUpg
 // GetEquipmentSetService 获取装备套装服务
 func (c *ServiceContainer) GetEquipmentSetService() *EquipmentSetService {
 	return c.EquipmentSetService
+}
+
+// GetTeamDungeonService 获取团队地城服务
+func (c *ServiceContainer) GetTeamDungeonService() *TeamDungeonService {
+	return c.TeamDungeonService
+}
+
+// GetTeamService 获取团队服务
+func (c *ServiceContainer) GetTeamService() *TeamService {
+	return c.TeamService
+}
+
+// GetTeamMemberService 获取团队成员服务
+func (c *ServiceContainer) GetTeamMemberService() *TeamMemberService {
+	return c.TeamMemberService
+}
+
+// GetTeamWarehouseService 获取团队仓库服务
+func (c *ServiceContainer) GetTeamWarehouseService() *TeamWarehouseService {
+	return c.TeamWarehouseService
+}
+
+// GetTeamPermissionService 获取团队权限服务
+func (c *ServiceContainer) GetTeamPermissionService() *TeamPermissionService {
+	return c.TeamPermissionService
 }

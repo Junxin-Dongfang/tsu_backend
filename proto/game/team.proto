@@ -1,0 +1,86 @@
+syntax = "proto3";
+
+package game;
+
+option go_package = "tsu-self/internal/pb/game";
+
+import "common/common.proto";
+
+// ==================== Team Messages ====================
+
+// TeamInfo 团队信息
+message TeamInfo {
+    string id = 1;                  // 团队ID
+    string name = 2;                // 团队名称
+    string leader_hero_id = 3;      // 队长英雄ID
+    int32 max_members = 4;          // 最大成员数
+    string description = 5;         // 团队描述
+    string created_at = 6;          // 创建时间
+    string updated_at = 7;          // 更新时间
+}
+
+// TeamMemberInfo 团队成员信息
+message TeamMemberInfo {
+    string id = 1;                  // 成员ID
+    string team_id = 2;             // 团队ID
+    string hero_id = 3;             // 英雄ID
+    string role = 4;                // 角色: leader, admin, member
+    string joined_at = 5;           // 加入时间
+    string last_active_at = 6;      // 最后活跃时间
+}
+
+// TeamStatistics 团队统计信息
+message TeamStatistics {
+    int32 member_count = 1;         // 成员数量
+    int32 total_dungeon_completed = 2;  // 完成的地城数量
+    int32 warehouse_gold = 3;       // 仓库金币
+    int32 warehouse_items = 4;      // 仓库物品数量
+}
+
+// ==================== RPC Request/Response ====================
+
+// GetTeamListRequest 获取团队列表请求
+message GetTeamListRequest {
+    string name = 1;                        // 团队名称（模糊查询，可选）
+    common.PaginationRequest pagination = 2; // 分页参数
+}
+
+// GetTeamListResponse 获取团队列表响应
+message GetTeamListResponse {
+    repeated TeamInfo teams = 1;            // 团队列表
+    common.PaginationMetadata pagination = 2; // 分页元数据
+}
+
+// GetTeamDetailRequest 获取团队详情请求
+message GetTeamDetailRequest {
+    string team_id = 1;                     // 团队ID
+}
+
+// GetTeamDetailResponse 获取团队详情响应
+message GetTeamDetailResponse {
+    TeamInfo team = 1;                      // 团队信息
+    repeated TeamMemberInfo members = 2;    // 成员列表
+    TeamStatistics statistics = 3;          // 统计信息
+}
+
+// ForceDisbandTeamRequest 强制解散团队请求
+message ForceDisbandTeamRequest {
+    string team_id = 1;                     // 团队ID
+    string admin_user_id = 2;               // 管理员用户ID
+}
+
+// ForceDisbandTeamResponse 强制解散团队响应
+message ForceDisbandTeamResponse {
+    bool success = 1;                       // 是否成功
+    string message = 2;                     // 消息
+}
+
+// GetTeamMembersRequest 获取团队成员列表请求
+message GetTeamMembersRequest {
+    string team_id = 1;                     // 团队ID
+}
+
+// GetTeamMembersResponse 获取团队成员列表响应
+message GetTeamMembersResponse {
+    repeated TeamMemberInfo members = 1;    // 成员列表
+}

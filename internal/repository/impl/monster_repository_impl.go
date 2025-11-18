@@ -16,19 +16,24 @@ import (
 )
 
 type monsterRepositoryImpl struct {
-	db *sql.DB
+	exec boil.ContextExecutor
 }
 
 // NewMonsterRepository 创建怪物仓储实例
 func NewMonsterRepository(db *sql.DB) interfaces.MonsterRepository {
-	return &monsterRepositoryImpl{db: db}
+	return &monsterRepositoryImpl{exec: db}
+}
+
+// NewMonsterRepositoryWithExecutor 使用自定义执行器创建仓储实例
+func NewMonsterRepositoryWithExecutor(exec boil.ContextExecutor) interfaces.MonsterRepository {
+	return &monsterRepositoryImpl{exec: exec}
 }
 
 // GetByID 根据ID获取怪物
 func (r *monsterRepositoryImpl) GetByID(ctx context.Context, monsterID string) (*game_config.Monster, error) {
 	monster, err := game_config.Monsters(
 		qm.Where("id = ? AND deleted_at IS NULL", monsterID),
-	).One(ctx, r.db)
+	).One(ctx, r.exec)
 
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("怪物不存在: %s", monsterID)
@@ -44,7 +49,7 @@ func (r *monsterRepositoryImpl) GetByID(ctx context.Context, monsterID string) (
 func (r *monsterRepositoryImpl) GetByCode(ctx context.Context, code string) (*game_config.Monster, error) {
 	monster, err := game_config.Monsters(
 		qm.Where("monster_code = ? AND deleted_at IS NULL", code),
-	).One(ctx, r.db)
+	).One(ctx, r.exec)
 
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("怪物不存在: %s", code)
@@ -78,23 +83,40 @@ func (r *monsterRepositoryImpl) List(ctx context.Context, params interfaces.Mons
 	if params.IsActive != nil {
 		baseQueryMods = append(baseQueryMods, qm.Where("is_active = ?", *params.IsActive))
 	}
+	if len(params.TagIDs) > 0 {
+		for _, tagID := range params.TagIDs {
+			baseQueryMods = append(baseQueryMods, qm.Where(`
+				EXISTS (
+					SELECT 1 FROM game_config.tags_relations tr
+					WHERE tr.entity_type = 'monster'
+					  AND tr.deleted_at IS NULL
+					  AND tr.tag_id = ?
+					  AND tr.entity_id = "game_config"."monsters"."id"
+				)`, tagID))
+		}
+	}
 
 	// 获取总数
-	count, err := game_config.Monsters(baseQueryMods...).Count(ctx, r.db)
+	count, err := game_config.Monsters(baseQueryMods...).Count(ctx, r.exec)
 	if err != nil {
 		return nil, 0, fmt.Errorf("查询怪物总数失败: %w", err)
 	}
 
 	// 排序
-	orderBy := "monster_level"
-	if params.OrderBy != "" {
-		orderBy = params.OrderBy
+	allowedOrders := map[string]string{
+		"monster_level": "\"game_config\".\"monsters\".\"monster_level\"",
+		"created_at":    "\"game_config\".\"monsters\".\"created_at\"",
+		"updated_at":    "\"game_config\".\"monsters\".\"updated_at\"",
 	}
+	orderColumn, ok := allowedOrders[params.OrderBy]
+	if !ok || orderColumn == "" {
+		orderColumn = allowedOrders["monster_level"]
+	}
+	orderDir := "ASC"
 	if params.OrderDesc {
-		baseQueryMods = append(baseQueryMods, qm.OrderBy(orderBy+" DESC"))
-	} else {
-		baseQueryMods = append(baseQueryMods, qm.OrderBy(orderBy+" ASC"))
+		orderDir = "DESC"
 	}
+	baseQueryMods = append(baseQueryMods, qm.OrderBy(fmt.Sprintf("%s %s", orderColumn, orderDir)))
 
 	// 分页
 	if params.Limit > 0 {
@@ -105,7 +127,7 @@ func (r *monsterRepositoryImpl) List(ctx context.Context, params interfaces.Mons
 	}
 
 	// 查询列表
-	monsters, err := game_config.Monsters(baseQueryMods...).All(ctx, r.db)
+	monsters, err := game_config.Monsters(baseQueryMods...).All(ctx, r.exec)
 	if err != nil {
 		return nil, 0, fmt.Errorf("查询怪物列表失败: %w", err)
 	}
@@ -126,7 +148,7 @@ func (r *monsterRepositoryImpl) Create(ctx context.Context, monster *game_config
 	monster.UpdatedAt = now
 
 	// 插入数据库
-	if err := monster.Insert(ctx, r.db, boil.Infer()); err != nil {
+	if err := monster.Insert(ctx, r.exec, boil.Infer()); err != nil {
 		return fmt.Errorf("创建怪物失败: %w", err)
 	}
 
@@ -139,7 +161,7 @@ func (r *monsterRepositoryImpl) Update(ctx context.Context, monster *game_config
 	monster.UpdatedAt = time.Now()
 
 	// 更新数据库
-	if _, err := monster.Update(ctx, r.db, boil.Infer()); err != nil {
+	if _, err := monster.Update(ctx, r.exec, boil.Infer()); err != nil {
 		return fmt.Errorf("更新怪物失败: %w", err)
 	}
 
@@ -160,7 +182,7 @@ func (r *monsterRepositoryImpl) Delete(ctx context.Context, monsterID string) er
 	monster.UpdatedAt = now
 
 	// 更新数据库
-	if _, err := monster.Update(ctx, r.db, boil.Whitelist("deleted_at", "updated_at")); err != nil {
+	if _, err := monster.Update(ctx, r.exec, boil.Whitelist("deleted_at", "updated_at")); err != nil {
 		return fmt.Errorf("删除怪物失败: %w", err)
 	}
 
@@ -171,7 +193,7 @@ func (r *monsterRepositoryImpl) Delete(ctx context.Context, monsterID string) er
 func (r *monsterRepositoryImpl) Exists(ctx context.Context, code string) (bool, error) {
 	count, err := game_config.Monsters(
 		qm.Where("monster_code = ? AND deleted_at IS NULL", code),
-	).Count(ctx, r.db)
+	).Count(ctx, r.exec)
 
 	if err != nil {
 		return false, fmt.Errorf("检查怪物代码是否存在失败: %w", err)
@@ -184,7 +206,7 @@ func (r *monsterRepositoryImpl) Exists(ctx context.Context, code string) (bool, 
 func (r *monsterRepositoryImpl) ExistsExcludingID(ctx context.Context, code string, excludeID string) (bool, error) {
 	count, err := game_config.Monsters(
 		qm.Where("monster_code = ? AND id != ? AND deleted_at IS NULL", code, excludeID),
-	).Count(ctx, r.db)
+	).Count(ctx, r.exec)
 
 	if err != nil {
 		return false, fmt.Errorf("检查怪物代码是否存在失败: %w", err)
@@ -192,4 +214,3 @@ func (r *monsterRepositoryImpl) ExistsExcludingID(ctx context.Context, code stri
 
 	return count > 0, nil
 }
-

@@ -10,9 +10,9 @@ import (
 	"tsu-self/internal/modules/auth/client"
 	"tsu-self/internal/pkg/xerrors"
 
+	"github.com/aarondl/null/v8"
 	"github.com/aarondl/sqlboiler/v4/boil"
 	"github.com/aarondl/sqlboiler/v4/queries/qm"
-	"github.com/aarondl/null/v8"
 )
 
 // PermissionService 权限管理服务
@@ -640,6 +640,17 @@ func (s *PermissionService) CheckUserPermission(ctx context.Context, userID, per
 		return false, xerrors.NewExternalServiceError("keto", err)
 	}
 	return allowed, nil
+}
+
+// InitializeTeamPermissions 初始化团队权限拓扑,供 Game/Admin 在启动阶段调用
+func (s *PermissionService) InitializeTeamPermissions(ctx context.Context) error {
+	if s.ketoClient == nil {
+		return xerrors.New(xerrors.CodeExternalServiceError, "Keto 客户端未配置")
+	}
+	if err := s.ketoClient.InitializeTeamPermissions(ctx); err != nil {
+		return xerrors.NewExternalServiceError("keto", err)
+	}
+	return nil
 }
 
 // ==================== 辅助函数 ====================

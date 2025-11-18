@@ -4,13 +4,15 @@ package auth;
 
 option go_package = "tsu-self/internal/pb/auth";
 
-import "proto/common/common.proto";
+import "common/common.proto";
 
 // Permission RPC 服务定义
 service PermissionService {
     // ==================== 权限检查 ====================
     // 检查用户是否拥有指定权限
     rpc CheckUserPermission(CheckUserPermissionRequest) returns (CheckUserPermissionResponse);
+    // 初始化团队权限命名空间
+    rpc InitializeTeamPermissions(InitializeTeamPermissionsRequest) returns (InitializeTeamPermissionsResponse);
 
     // ==================== 角色管理 ====================
     // 获取角色列表
@@ -241,4 +243,13 @@ message RevokePermissionsFromUserRequest {
 
 message RevokePermissionsFromUserResponse {
     common.Status status = 1;
+}
+
+// ==================== 团队权限初始化 ====================
+
+message InitializeTeamPermissionsRequest {}
+
+message InitializeTeamPermissionsResponse {
+    bool initialized = 1;
+    repeated string missing_permissions = 2; // 可选: 返回缺失的权限映射，便于日志记录
 }

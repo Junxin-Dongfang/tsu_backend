@@ -44,8 +44,8 @@ services:
       # Ory 服务配置（容器名称）
       - KRATOS_PUBLIC_URL=http://tsu_kratos:4433
       - KRATOS_ADMIN_URL=http://tsu_kratos:4434
-      - KETO_READ_URL=http://tsu_keto:4466
-      - KETO_WRITE_URL=http://tsu_keto:4467
+      - KETO_READ_URL=tsu_keto:4466
+      - KETO_WRITE_URL=tsu_keto:4467
 
       # 时区配置
       - TZ=Asia/Hong_Kong

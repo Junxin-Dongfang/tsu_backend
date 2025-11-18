@@ -8,7 +8,8 @@
 #   2. 保存并上传镜像到服务器
 #   3. 部署 Admin Server
 #   4. 执行数据库迁移
-#   5. 初始化 root 用户
+#   5. 同步权限到 Keto
+#   6. 初始化 root 用户
 
 set -e
 
@@ -21,7 +22,7 @@ print_step "步骤 3: 部署 Admin Server"
 # ==========================================
 # 1. 检查依赖服务
 # ==========================================
-print_step "[1/11] 检查依赖服务"
+print_step "[1/12] 检查依赖服务"
 
 print_info "检查基础设施服务..."
 if ! check_container_running "tsu_postgres_main"; then
@@ -45,7 +46,7 @@ print_success "依赖服务检查通过"
 # ==========================================
 # 2. 检查 Docker Hub 配置
 # ==========================================
-print_step "[2/11] 检查 Docker Hub 配置"
+print_step "[2/12] 检查 Docker Hub 配置"
 
 if [ ! -f "$PROJECT_DIR/.registry.conf" ]; then
     print_error "未找到 .registry.conf 文件"
@@ -79,7 +80,7 @@ ADMIN_IMAGE_TAG="${DOCKERHUB_USERNAME}/tsu-admin-server:${IMAGE_VERSION}"
 # ==========================================
 # 3. 构建 Admin Server Docker 镜像
 # ==========================================
-print_step "[3/11] 构建 Admin Server 镜像"
+print_step "[3/12] 构建 Admin Server 镜像"
 
 print_info "开始构建 Admin Server 镜像: $ADMIN_IMAGE_TAG"
 print_info "这可能需要几分钟时间..."
@@ -98,7 +99,7 @@ print_success "Admin Server 镜像构建完成"
 # ==========================================
 # 4. 保存镜像到文件
 # ==========================================
-print_step "[4/11] 保存镜像到文件"
+print_step "[4/12] 保存镜像到文件"
 
 print_info "保存 Admin Server 镜像为 tar.gz..."
 TEMP_ADMIN_IMAGE_FILE="/tmp/tsu-admin-server.tar.gz"
@@ -109,7 +110,7 @@ print_success "镜像已保存"
 # ==========================================
 # 5. 上传镜像到服务器
 # ==========================================
-print_step "[5/11] 上传镜像到服务器"
+print_step "[5/12] 上传镜像到服务器"
 
 print_info "上传 Admin Server 镜像（约 30MB，需要几分钟）..."
 sshpass -p "$SERVER_PASSWORD" scp -o StrictHostKeyChecking=no "$TEMP_ADMIN_IMAGE_FILE" "$SERVER_USER@$SERVER_HOST:/tmp/"
@@ -123,7 +124,7 @@ rm -f "$TEMP_ADMIN_IMAGE_FILE"
 # ==========================================
 # 6. 上传配置文件到服务器
 # ==========================================
-print_step "[6/11] 上传配置文件到服务器"
+print_step "[6/12] 上传配置文件到服务器"
 
 print_info "上传 docker-compose 配置..."
 ssh_copy "$PROJECT_DIR/deployments/docker-compose/docker-compose.prod.3-admin.yml" "$SERVER_DEPLOY_DIR/"
@@ -137,12 +138,15 @@ ssh_copy "$PROJECT_DIR/configs" "$SERVER_DEPLOY_DIR/"
 print_info "上传 root 用户初始化脚本..."
 ssh_copy "$PROJECT_DIR/scripts/development/init-root-user.sh" "$SERVER_DEPLOY_DIR/"
 
+print_info "上传 Keto 权限同步脚本..."
+ssh_copy "$PROJECT_DIR/scripts/development/init_keto_from_db.sh" "$SERVER_DEPLOY_DIR/"
+
 print_success "配置文件上传完成"
 
 # ==========================================
 # 7. 镜像已就绪
 # ==========================================
-print_step "[7/11] 镜像已就绪"
+print_step "[7/12] 镜像已就绪"
 
 print_info "镜像已在第5步加载，跳过拉取"
 print_success "✓ 镜像就绪"
@@ -150,7 +154,7 @@ print_success "✓ 镜像就绪"
 # ==========================================
 # 8. 启动 Admin Server
 # ==========================================
-print_step "[8/11] 启动 Admin Server"
+print_step "[8/12] 启动 Admin Server"
 
 print_info "停止旧的 Admin Server 容器（如果存在）..."
 ssh_exec "docker stop tsu_admin 2>/dev/null || true"
@@ -169,7 +173,7 @@ sleep 15
 # ==========================================
 # 9. 安装数据库扩展
 # ==========================================
-print_step "[9/11] 安装数据库扩展"
+print_step "[9/12] 安装数据库扩展"
 
 print_info "安装 pg_uuidv7 扩展..."
 
@@ -204,7 +208,7 @@ fi
 # ==========================================
 # 10. 执行数据库迁移
 # ==========================================
-print_step "[10/11] 执行数据库迁移"
+print_step "[10/12] 执行数据库迁移"
 
 print_info "检查 migrate 工具..."
 if ! ssh_exec "command -v migrate > /dev/null 2>&1"; then
@@ -227,9 +231,26 @@ else
 fi
 
 # ==========================================
-# 11. 初始化 root 用户
+# 11. 同步权限到 Keto
 # ==========================================
-print_step "[11/11] 初始化 root 用户"
+print_step "[11/12] 同步权限到 Keto"
+
+print_info "赋予权限同步脚本执行权限..."
+ssh_exec "cd $SERVER_DEPLOY_DIR && chmod +x init_keto_from_db.sh"
+
+print_info "执行权限同步脚本(同步角色-权限关系到 Keto)..."
+SYNC_KETO_CMD="cd $SERVER_DEPLOY_DIR && source .env.prod && POSTGRES_CONTAINER=tsu_postgres_main KETO_CONTAINER=tsu_keto TSU_KETO_AUTO_APPROVE=true TSU_KETO_RESET=false DB_USER=\${DB_USER} DB_PASSWORD=\${DB_PASSWORD} DB_NAME=\${DB_NAME} ./init_keto_from_db.sh"
+if ssh_exec "$SYNC_KETO_CMD"; then
+    print_success "Keto 权限同步完成"
+else
+    print_error "Keto 权限同步失败，请登录服务器执行 init_keto_from_db.sh 排查"
+    exit 1
+fi
+
+# ==========================================
+# 12. 初始化 root 用户
+# ==========================================
+print_step "[12/12] 初始化 root 用户"
 
 print_info "执行用户初始化脚本..."
 print_info "安装 jq 工具（如果未安装）..."

@@ -1,214 +1,94 @@
-# TSU 测试
+# Test Directory Overview
 
-本目录包含 TSU 游戏服务器项目的所有测试代码、测试框架和测试文档。
+This directory只保留当前维护的内容：
 
-## 📁 目录结构
+- `integration/`：Go 集成/回归测试（包含新的 `smoke` 冒烟包）。
+- `internal/apitest/`：配置加载、HTTP 客户端、DTO、数据隔离与夹具工厂。
+- `fixtures/`：静态测试资源（例如 `sample-upload.txt` 占位上传文件）。
+- `tools/export-swagger-matrix/`：将 `docs/admin` + `docs/game` Swagger 展平成 CSV。
+- `matrix/`：已生成的端点覆盖矩阵（`make test-matrix` 自动写入）。
 
-```
-test/
-├── api/                    # API 端到端测试
-├── comprehensive/          # 综合测试框架（Shell-based Admin API 测试套件）
-├── data/                   # 测试数据和配置
-├── e2e/                    # 端到端测试
-├── integration/            # 集成测试
-├── reports/                # 历史测试报告归档
-├── QUICK_START.md          # 快速开始指南
-├── api-test-plan.md        # API 测试计划
-└── prometheus-performance-test.md  # Prometheus 性能测试
-```
-
-## 🚀 快速开始
-
-### 运行测试
+## Running Tests
 
 ```bash
-# 运行所有 Go 单元测试
-go test ./...
+# Local developer smoke
+ BASE_URL=http://localhost:80 ADMIN_USERNAME=root ADMIN_PASSWORD=admin make test-smoke
 
-# 运行特定包的测试
-go test ./internal/modules/game/service/...
-
-# 运行单个测试
-go test -run TestHeroAttributeUpdate ./internal/modules/game/service/
-
-# 查看测试覆盖率
-go test -cover ./...
+ # Plain go test (no JUnit)
+ BASE_URL=http://localhost:80 go test ./test/integration/...
 ```
 
-### 综合测试框架
+`make test-smoke` 会自动安装 `gotestsum` 并输出 JUnit（默认 `test/results/junit/api-smoke.xml`）。
 
-综合测试框架是一个基于 Shell 的 Admin API 测试套件：
+## Environment Files
+
+Sample env files live in `configs/testing/`:
+
+- `api-tests.local.env`：本地开发默认值。
+- `api-tests.testprod.env.example`：测试/生产共享模板，由 CI 注入真实 HOST/Secret。
+
+关键变量：`BASE_URL`、`ADMIN_USERNAME/ADMIN_PASSWORD`、`PLAYER_USERNAME_PREFIX/PLAYER_EMAIL_SUFFIX`、`GAME_USERNAME/GAME_PASSWORD`（可选，提供已有玩家账号则跳过注册）、`SMOKE_JUNIT_FILE`。
+
+## E2E 测试套件
+
+- `integration/e2e/player_flows_test.go`：
+  1. 注册→登录→查职业→创建英雄→查看英雄。
+  2. 创建团队→更新团队信息。
+  3. 查看团队仓库→解散团队→验证访问受限。
+  4. 属性加点失败分支（经验不足）。
+- `integration/e2e/admin_flows_test.go`：管理员登录→用户列表→用户详情。
+
+运行全部 e2e：
 
 ```bash
-cd test/comprehensive
-
-# 运行所有测试套件
-./main_test.sh
-
-# 运行特定套件
-./tests/01_system_health.sh
+BASE_URL=http://localhost:80 ADMIN_USERNAME=root ADMIN_PASSWORD=admin go test ./test/integration/e2e -count=1
 ```
 
-详细说明请参考 `comprehensive/README.md` 和 `comprehensive/QUICKSTART.md`。
+## Coverage Matrix
 
-## 📖 测试文档
+```
+make test-matrix
+cat test/matrix/swagger_matrix.csv | head
+```
 
-### 快速指南
+The CSV contains `service,method,path,summary,tags,auth_required,notes` columns。运行 `make test-matrix` 会保留既有 notes 并按最新 Swagger（当前 291 个 operation）更新。
 
-- **快速开始**: `QUICK_START.md` - 5 分钟开始测试
-- **API 测试计划**: `api-test-plan.md` - API 测试策略和用例
-- **综合测试指南**: `comprehensive/README.md` - Shell 测试框架完整文档
+## 模块化回归
 
-### 性能测试
+目录 `test/integration/modules/` 用于针对具体模块的正/负例验证。例如：
+- `heroes_test.go`：未认证加点返回 401、非法属性代码触发 `CodeResourceNotFound`。
+- `team_members_test.go`：未登录创建团队、成员邀请权限、队长查看仓库。
+- `team_join_test.go`：未认证申请 401、审批不存在请求 404。
+- `team_invitation_test.go`：伪造 invitation 接受 404、普通成员审批 403。
+- `team_dungeon_test.go`：未认证/成员选择副本失败。
+- `team_leave_test.go`：校验队长无法离队。
+- `team_warehouse_test.go`：仓库分金币的未认证/成员权限限制。
+- `admin_permissions_test.go` / `admin_user_detail_test.go`：后台权限、用户详情的 auth/unauth 场景。
+- `equipment_test.go`：装备接口的未授权与参数校验。
 
-- **Prometheus 性能测试**: `prometheus-performance-test.md`
-  - 监控系统性能测试报告
-  - 包含 wrk 压测结果和性能分析
+运行：
 
-## 📊 历史测试报告
-
-所有历史测试报告已归档到 `reports/` 目录：
-
-- 装备系统测试报告
-- 技能系统测试报告
-- API 功能测试报告
-- 综合测试结果总结
-- Bug 修复总结
-
-报告文件列表：
 ```bash
-$ ls reports/
-API_TEST_REPORT.md
-COMPLETE_EQUIPMENT_SYSTEM_TEST_REPORT.md
-EQUIPMENT_SYSTEM_API_TEST_REPORT.md
-FINAL_REPORT.md
-FIXES_SUMMARY.md
-SKILL_SYSTEM_TEST_REPORT.md
-TEST_REPORT.md
-TEST_RESULTS_SUMMARY.md
+BASE_URL=http://localhost:80 ADMIN_USERNAME=root ADMIN_PASSWORD=password go test ./test/integration/modules -count=1
 ```
 
-## 🎯 测试覆盖范围
+若本地 Keto 数据丢失导致 admin API 出现 403（缺少 system:config 等权限），先执行：
 
-### 综合测试框架覆盖
+```bash
+KETO_CONTAINER=tsu_keto_service ADMIN_USER_ID=daf99445-61cc-4b24-9973-17eb79a53318 scripts/test/seed_root_permissions.sh
+```
+然后重新运行测试。
 
-- **130+ 测试用例**
-- **110+ API 接口**
-- **11 个测试套件**:
-  1. 系统健康检查
-  2. 认证流程
-  3. 用户管理
-  4. RBAC 权限系统
-  5. 基础游戏配置
-  6. 元数据定义
-  7. 技能系统
-  8. 效果系统
-  9. 动作系统
-  10. 关联关系
-  11. 边界条件
-
-详见 `comprehensive/IMPLEMENTATION_SUMMARY.md`。
-
-### 装备系统测试覆盖
-
-- **42 个测试用例**
-- **97.6% 通过率**
-- **7 个核心模块**:
-  - 物品管理
-  - Tag 管理
-  - 职业限制
-  - 装备套装
-  - 掉落池
-  - 世界掉落
-  - 装备槽位
-
-详见 `reports/COMPLETE_EQUIPMENT_SYSTEM_TEST_REPORT.md`。
-
-## 📝 测试编写规范
-
-### 单元测试
-
-遵循 Go 测试最佳实践：
+## Fixture 工厂与数据隔离
 
 ```go
-func TestFunctionName(t *testing.T) {
-    tests := []struct {
-        name    string
-        input   Type
-        want    Type
-        wantErr bool
-    }{
-        {
-            name: "valid case",
-            input: ...,
-            want: ...,
-            wantErr: false,
-        },
-        {
-            name: "error case",
-            input: ...,
-            want: nil,
-            wantErr: true,
-        },
-    }
-
-    for _, tt := range tests {
-        t.Run(tt.name, func(t *testing.T) {
-            got, err := FunctionName(tt.input)
-            if (err != nil) != tt.wantErr {
-                t.Errorf("wantErr = %v, error = %v", tt.wantErr, err)
-            }
-            // 断言逻辑...
-        })
-    }
-}
+cfg := apitest.LoadConfig()
+factory := apitest.NewFixtureFactory(cfg)
+heroReq := factory.BuildCreateHeroRequest("class-warrior-001", "")
+username, email, password := factory.UniquePlayerCredentials("case01")
+teamReq := factory.BuildCreateTeamRequest("hero-uuid")
 ```
 
-### API 测试
-
-使用综合测试框架编写 Shell 测试：
-
-```bash
-# test/comprehensive/tests/your_test.sh
-
-test_your_feature() {
-    local test_name="测试功能名称"
-
-    # 准备测试数据
-    local data=$(cat <<EOF
-{
-    "field": "value"
-}
-EOF
-)
-
-    # 执行 API 调用
-    http_post "/admin/your-endpoint" "$data"
-
-    # 断言结果
-    assert_status 200 "$test_name"
-    assert_field "data.field" "expected_value" "$test_name"
-}
-```
-
-详细说明请参考 `comprehensive/README.md`。
-
-## 🔄 持续集成
-
-测试在以下场景自动运行：
-
-- 每次 PR 提交
-- 合并到 main 分支前
-- 定期夜间构建
-
-## 📞 支持
-
-测试相关问题：
-- 查看测试文档: `test/comprehensive/README.md`
-- 查看质量指南: `docs/development/TECH_DEBT_GUIDE.md`
-- 查看项目规范: `openspec/specs/code-quality/spec.md`
-
----
-
-**最后更新**: 2025-11-11
-**测试框架版本**: v1.0.0
+- `RunID`（时间戳）保证相同 CI 任务中的资源唯一。
+- `PLAYER_USERNAME_PREFIX` 与 `PLAYER_EMAIL_SUFFIX` 允许区分环境。
+- `SampleUploadPath()` 返回 `test/fixtures/sample-upload.txt`，用于所有需要文件上传的接口。

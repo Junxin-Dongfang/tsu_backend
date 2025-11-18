@@ -4,8 +4,8 @@ package auth;
 
 option go_package = "tsu-self/internal/pb/auth";
 
-import "proto/common/user.proto";
-import "proto/common/common.proto";
+import "common/user.proto";
+import "common/common.proto";
 
 // Auth RPC 服务定义
 service AuthService {

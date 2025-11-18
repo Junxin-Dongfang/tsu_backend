@@ -8,15 +8,16 @@ import (
 
 // MonsterQueryParams 怪物查询参数
 type MonsterQueryParams struct {
-	MonsterCode  *string // 怪物代码（模糊搜索）
-	MonsterName  *string // 怪物名称（模糊搜索）
-	MinLevel     *int16  // 最小等级
-	MaxLevel     *int16  // 最大等级
-	IsActive     *bool   // 是否启用
-	Limit        int     // 每页数量
-	Offset       int     // 偏移量
-	OrderBy      string  // 排序字段（monster_level, created_at, updated_at）
-	OrderDesc    bool    // 是否降序
+	MonsterCode *string  // 怪物代码（模糊搜索）
+	MonsterName *string  // 怪物名称（模糊搜索）
+	MinLevel    *int16   // 最小等级
+	MaxLevel    *int16   // 最大等级
+	IsActive    *bool    // 是否启用
+	TagIDs      []string // 标签筛选（与条件）
+	Limit       int      // 每页数量
+	Offset      int      // 偏移量
+	OrderBy     string   // 排序字段（monster_level, created_at, updated_at）
+	OrderDesc   bool     // 是否降序
 }
 
 // MonsterRepository 怪物仓储接口
@@ -45,4 +46,3 @@ type MonsterRepository interface {
 	// ExistsExcludingID 检查代码是否存在（排除指定ID）
 	ExistsExcludingID(ctx context.Context, code string, excludeID string) (bool, error)
 }
-

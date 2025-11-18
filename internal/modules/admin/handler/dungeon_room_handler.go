@@ -30,7 +30,16 @@ func NewDungeonRoomHandler(db *sql.DB, respWriter response.Writer) *DungeonRoomH
 
 // CreateRoom 创建房间
 // @Summary 创建房间
-// @Description 创建新的房间配置
+// @Description 创建新的房间配置,用于地城流程中的单个节点(战斗/事件/宝物/休息)。
+// @Description
+// @Description **字段说明**:
+// @Description - `room_code/room_name`: 房间唯一标识 + 展示名称
+// @Description - `room_type`: `battle`(战斗) / `event`(剧情或互动) / `treasure`(奖励) / `rest`(休息/补给)
+// @Description - `trigger_id`: 可选,关联策划脚本或触发器
+// @Description - `open_conditions`: JSON对象,定义进入条件,例如 `{"type":"require_item","item_code":"key_ancient"}` 或 `{"type":"check_flag","flag":"cleared_room_1"}`
+// @Description - `is_active`: 控制房间是否可被引用
+// @Description
+// @Description **提示**: open_conditions 将原样写入配置,前端/策划可通过注释字段了解到需要填哪些键。
 // @Tags 地城房间管理
 // @Accept json
 // @Produce json
@@ -61,17 +70,22 @@ func (h *DungeonRoomHandler) CreateRoom(c echo.Context) error {
 
 // GetRooms 获取房间列表
 // @Summary 获取房间列表
-// @Description 分页查询房间列表,支持筛选
+// @Description 分页查询房间列表,支持按照代码、名称、类型、启用状态筛选,适用房间管理界面或地城房间选择器。
+// @Description
+// @Description **筛选提示**:
+// @Description - `room_code`/`room_name`: 模糊匹配,大小写不敏感
+// @Description - `room_type`: 指定房间类型(battle/event/treasure/rest)
+// @Description - `is_active`: true=仅启用, false=仅停用
 // @Tags 地城房间管理
 // @Accept json
 // @Produce json
-// @Param page query int false "页码" default(1)
-// @Param page_size query int false "每页数量" default(20)
+// @Param page query int false "页码" default(1) minimum(1)
+// @Param page_size query int false "每页数量" default(20) minimum(1) maximum(100)
 // @Param room_code query string false "房间代码（模糊搜索）"
 // @Param room_name query string false "房间名称（模糊搜索）"
-// @Param room_type query string false "房间类型(battle/event/treasure/rest)"
-// @Param is_active query bool false "是否启用"
-// @Success 200 {object} response.Response{data=dto.RoomListResponse} "查询成功"
+// @Param room_type query string false "房间类型" Enums(battle,event,treasure,rest)
+// @Param is_active query bool false "是否启用 true=启用 false=停用"
+// @Success 200 {object} response.Response{data=dto.RoomListResponse} "查询成功,返回列表/分页信息"
 // @Failure 400 {object} response.Response "参数错误"
 // @Failure 500 {object} response.Response "服务器错误"
 // @Router /admin/dungeon-rooms [get]
@@ -130,7 +144,7 @@ func (h *DungeonRoomHandler) GetRooms(c echo.Context) error {
 
 // GetRoom 获取房间详情
 // @Summary 获取房间详情
-// @Description 根据ID获取房间详细信息
+// @Description 根据ID获取房间详细信息,包含类型、触发器、开放条件及启用状态,用于编辑表单回显。
 // @Tags 地城房间管理
 // @Accept json
 // @Produce json
@@ -153,7 +167,7 @@ func (h *DungeonRoomHandler) GetRoom(c echo.Context) error {
 
 // UpdateRoom 更新房间
 // @Summary 更新房间
-// @Description 更新房间配置信息
+// @Description 更新房间配置信息,支持部分字段更新(例如切换房间类型、调整触发器或修改开放条件)。
 // @Tags 地城房间管理
 // @Accept json
 // @Produce json
@@ -187,7 +201,7 @@ func (h *DungeonRoomHandler) UpdateRoom(c echo.Context) error {
 
 // DeleteRoom 删除房间
 // @Summary 删除房间
-// @Description 软删除房间配置
+// @Description 软删除房间配置,删除后无法再在地城流程中引用,但历史数据仍保留。
 // @Tags 地城房间管理
 // @Accept json
 // @Produce json
@@ -209,10 +223,10 @@ func (h *DungeonRoomHandler) DeleteRoom(c echo.Context) error {
 // toRoomResponse 转换为响应格式
 func (h *DungeonRoomHandler) toRoomResponse(room *game_config.DungeonRoom) dto.RoomResponse {
 	resp := dto.RoomResponse{
-		ID:       room.ID,
-		RoomCode: room.RoomCode,
-		RoomType: room.RoomType,
-		IsActive: room.IsActive,
+		ID:        room.ID,
+		RoomCode:  room.RoomCode,
+		RoomType:  room.RoomType,
+		IsActive:  room.IsActive,
 		CreatedAt: room.CreatedAt.Format("2006-01-02 15:04:05"),
 		UpdatedAt: room.UpdatedAt.Format("2006-01-02 15:04:05"),
 	}
@@ -235,4 +249,3 @@ func (h *DungeonRoomHandler) toRoomResponse(room *game_config.DungeonRoom) dto.R
 
 	return resp
 }
-

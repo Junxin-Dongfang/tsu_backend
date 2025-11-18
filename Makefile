@@ -1,4 +1,8 @@
 MAIN_DB_URL="postgres://postgres:postgres@localhost:5432/tsu_db?sslmode=disable"
+BASE_URL ?= http://localhost:80
+ADMIN_USERNAME ?= root
+ADMIN_PASSWORD ?= admin
+SMOKE_JUNIT_FILE ?= test/results/junit/api-smoke.xml
 
 .PHONY: migrate-create migrate-up migrate-down
 
@@ -15,7 +19,11 @@ migrate-up:
 migrate-down:
 	migrate -database $(MAIN_DB_URL) -path ./migrations down 1
 
-.PHONY: help swagger-gen swagger-admin dev-up dev-down dev-logs generate-models install-sqlboiler dev-rebuild clean sqlboiler install-swag proto generate install-protoc deploy prod-up prod-down prod-logs prod-build
+.PHONY: help swagger-gen swagger-admin dev-up dev-down dev-logs generate-models install-sqlboiler dev-rebuild clean sqlboiler install-swag proto generate install-protoc deploy prod-up prod-down prod-logs prod-build admin-smoke-test test-smoke test-matrix gate-local gate-test gate-prod
+
+PROTO_SRC_DIR := proto
+PROTO_OUT_DIR := internal/pb
+PROTO_PACKAGES := common auth admin game
 
 help:
 	@echo "Available commands:"
@@ -89,19 +97,18 @@ install-protoc:
 # 生成 Protobuf 代码
 proto: install-protoc
 	@echo "🔄 生成 Protobuf 代码..."
-	@mkdir -p internal/pb/common internal/pb/auth internal/pb/admin internal/pb/game
-	@echo "  - 生成 common 包..."
-	@protoc --go_out=. --go_opt=paths=source_relative proto/common/*.proto 2>/dev/null && \
-		mv proto/common/*.pb.go internal/pb/common/ || echo "⚠️  proto/common/ 目录不存在,跳过"
-	@echo "  - 生成 auth 包..."
-	@protoc --go_out=. --go_opt=paths=source_relative proto/auth/*.proto 2>/dev/null && \
-		mv proto/auth/*.pb.go internal/pb/auth/ || echo "⚠️  proto/auth/ 目录不存在,跳过"
-	@echo "  - 生成 admin 包..."
-	@protoc --go_out=. --go_opt=paths=source_relative proto/admin/*.proto 2>/dev/null && \
-		mv proto/admin/*.pb.go internal/pb/admin/ || echo "⚠️  proto/admin/ 目录不存在,跳过"
-	@echo "  - 生成 game 包..."
-	@protoc --go_out=. --go_opt=paths=source_relative proto/game/*.proto 2>/dev/null && \
-		mv proto/game/*.pb.go internal/pb/game/ || echo "⚠️  proto/game/ 目录不存在,跳过"
+	@rm -rf common
+	@mkdir -p $(PROTO_OUT_DIR)
+	@for pkg in $(PROTO_PACKAGES); do \
+		src="$(PROTO_SRC_DIR)/$$pkg"; \
+		if [ -d "$$src" ] && ls $$src/*.proto >/dev/null 2>&1; then \
+			mkdir -p "$(PROTO_OUT_DIR)/$$pkg"; \
+			protoc --proto_path=$(PROTO_SRC_DIR) --go_out=$(PROTO_OUT_DIR) --go_opt=paths=source_relative $$src/*.proto && \
+			echo "✅ $$pkg 包生成成功"; \
+		else \
+			echo "⚠️ $$src 目录为空或不存在,跳过"; \
+		fi; \
+	done
 	@echo "✅ Protobuf 代码生成完成"
 
 # 生成前端错误码枚举
@@ -116,7 +123,7 @@ generate: proto generate-entity
 
 # 安装 swag 工具
 install-swag:
-	go install github.com/swaggo/swag/cmd/swag@latest
+	go install github.com/swaggo/swag/cmd/swag@v1.16.6
 
 # 安装 SQLBoiler 工具
 install-sqlboiler:
@@ -152,6 +159,9 @@ swagger-game: install-swag
 # 生成所有 swagger 文档
 swagger-gen: swagger-admin swagger-game
 	@echo "✅ 所有 Swagger 文档生成完成"
+
+# 怪物/地城接口冒烟测试
+admin-smoke-test: test-smoke
 
 # 启动开发环境
 dev-up:
@@ -351,3 +361,36 @@ install-hooks:
 	@echo "🔧 安装 Git hooks..."
 	@chmod +x scripts/git-hooks/install-git-hooks.sh
 	@./scripts/git-hooks/install-git-hooks.sh
+# API smoke tests with JUnit output
+test-smoke:
+	@command -v gotestsum >/dev/null 2>&1 || (echo "📦 Installing gotestsum..." && go install gotest.tools/gotestsum@latest)
+	@mkdir -p $(dir $(SMOKE_JUNIT_FILE))
+	@echo "🧪 Running API smoke suite against $(BASE_URL)..."
+	@BASE_URL=$(BASE_URL) ADMIN_USERNAME=$(ADMIN_USERNAME) ADMIN_PASSWORD=$(ADMIN_PASSWORD) \
+		gotestsum --format short-verbose --junitfile $(SMOKE_JUNIT_FILE) -- -count=1 ./test/integration/smoke
+	@echo "✅ Smoke tests finished. Report: $(SMOKE_JUNIT_FILE)"
+
+# Export Swagger endpoints coverage matrix
+test-matrix:
+	@echo "📊 Exporting Swagger coverage matrix..."
+	@mkdir -p test/matrix
+	@GOCACHE=$(PWD)/.cache/go-build go run ./test/tools/export-swagger-matrix --output test/matrix/swagger_matrix.csv
+	@rm -rf .cache
+	@echo "✅ Matrix written to test/matrix/swagger_matrix.csv"
+
+# CI Gate for本地开发：冒烟 + 基础鉴权
+gate-local: test-smoke
+
+# CI Gate for测试环境：矩阵 + modules 全量回归
+gate-test:
+	@echo "🚦 执行测试环境 gate（矩阵 + modules 回归）"
+	$(MAKE) test-matrix
+	@BASE_URL=$(BASE_URL) ADMIN_USERNAME=$(ADMIN_USERNAME) ADMIN_PASSWORD=$(ADMIN_PASSWORD) \
+		GOCACHE=$(PWD)/.cache/go-build go test ./test/integration/modules -count=1
+
+# CI Gate for生产环境：复用 test/prod 同配置，部署前重跑冒烟
+gate-prod:
+	@echo "🚦 执行生产前 gate（复用 test-prod 配置模板）"
+	$(MAKE) test-matrix
+	@BASE_URL=$(BASE_URL) ADMIN_USERNAME=$(ADMIN_USERNAME) ADMIN_PASSWORD=$(ADMIN_PASSWORD) \
+		GOCACHE=$(PWD)/.cache/go-build go test ./test/integration/smoke -count=1

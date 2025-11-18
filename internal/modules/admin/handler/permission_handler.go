@@ -19,8 +19,9 @@ import (
 
 // PermissionHandler 权限管理 HTTP 处理器
 type PermissionHandler struct {
-	rpcCaller  module.RPCModule
-	respWriter response.Writer
+	rpcCaller       module.RPCModule
+	respWriter      response.Writer
+	rpcCallOverride func(ctx context.Context, method string, req proto.Message) ([]byte, error)
 }
 
 // NewPermissionHandler 创建权限处理器
@@ -851,6 +852,9 @@ func (h *PermissionHandler) RevokePermissionsFromUser(c echo.Context) error {
 
 // callAuthRPC 调用 Auth 模块 RPC
 func (h *PermissionHandler) callAuthRPC(ctx context.Context, method string, req proto.Message) ([]byte, error) {
+	if h.rpcCallOverride != nil {
+		return h.rpcCallOverride(ctx, method, req)
+	}
 	// 1. 序列化请求
 	reqBytes, err := proto.Marshal(req)
 	if err != nil {
@@ -884,6 +888,11 @@ func (h *PermissionHandler) callAuthRPC(ctx context.Context, method string, req 
 	}
 
 	return respBytes, nil
+}
+
+// SetRPCCallOverride allows tests to stub auth RPC invocations.
+func (h *PermissionHandler) SetRPCCallOverride(fn func(ctx context.Context, method string, req proto.Message) ([]byte, error)) {
+	h.rpcCallOverride = fn
 }
 
 // parseIntParam 解析整数参数

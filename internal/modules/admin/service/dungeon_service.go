@@ -24,13 +24,34 @@ type DungeonService struct {
 	db              *sql.DB
 }
 
+// DungeonServiceDeps allows custom dependency injection (for tests).
+type DungeonServiceDeps struct {
+	DB              *sql.DB
+	DungeonRepo     interfaces.DungeonRepository
+	DungeonRoomRepo interfaces.DungeonRoomRepository
+}
+
 // NewDungeonService 创建地城服务
 func NewDungeonService(db *sql.DB) *DungeonService {
-	return &DungeonService{
-		dungeonRepo:     impl.NewDungeonRepository(db),
-		dungeonRoomRepo: impl.NewDungeonRoomRepository(db),
-		db:              db,
+	return NewDungeonServiceWithDeps(DungeonServiceDeps{
+		DB: db,
+	})
+}
+
+// NewDungeonServiceWithDeps allows tests to supply custom repositories.
+func NewDungeonServiceWithDeps(deps DungeonServiceDeps) *DungeonService {
+	svc := &DungeonService{
+		dungeonRepo:     deps.DungeonRepo,
+		dungeonRoomRepo: deps.DungeonRoomRepo,
+		db:              deps.DB,
 	}
+	if svc.dungeonRepo == nil {
+		svc.dungeonRepo = impl.NewDungeonRepository(svc.db)
+	}
+	if svc.dungeonRoomRepo == nil {
+		svc.dungeonRoomRepo = impl.NewDungeonRoomRepository(svc.db)
+	}
+	return svc
 }
 
 // GetDungeons 获取地城列表
@@ -96,13 +117,13 @@ func (s *DungeonService) CreateDungeon(ctx context.Context, req *dto.CreateDunge
 
 	// 构建地城实体
 	dungeon := &game_config.Dungeon{
-		DungeonCode:   req.DungeonCode,
-		DungeonName:   req.DungeonName,
-		MinLevel:      req.MinLevel,
-		MaxLevel:      req.MaxLevel,
-		IsTimeLimited: req.IsTimeLimited,
+		DungeonCode:      req.DungeonCode,
+		DungeonName:      req.DungeonName,
+		MinLevel:         req.MinLevel,
+		MaxLevel:         req.MaxLevel,
+		IsTimeLimited:    req.IsTimeLimited,
 		RequiresAttempts: req.RequiresAttempts,
-		IsActive:      req.IsActive,
+		IsActive:         req.IsActive,
 	}
 
 	// 设置可选字段
@@ -245,28 +266,42 @@ func (s *DungeonService) DeleteDungeon(ctx context.Context, dungeonID string) er
 // validateRoomSequence 验证房间序列
 func (s *DungeonService) validateRoomSequence(ctx context.Context, sequence []dto.RoomSequenceItem) error {
 	if len(sequence) == 0 {
-		return xerrors.New(xerrors.CodeInvalidParams, "房间序列不能为空")
+		return newRoomSequenceError("房间序列不能为空")
 	}
 
 	// 提取所有房间ID
 	roomIDs := make([]string, 0, len(sequence))
 	sortMap := make(map[int]bool)
 	roomIDMap := make(map[string]bool)
+	makeSeqErr := func(format string, args ...interface{}) error {
+		return newRoomSequenceError(fmt.Sprintf(format, args...))
+	}
 
 	for _, item := range sequence {
 		// 检查sort值唯一性
 		if sortMap[item.Sort] {
-			return xerrors.New(xerrors.CodeInvalidParams, fmt.Sprintf("房间序列中存在重复的sort值: %d", item.Sort))
+			return makeSeqErr("房间序列中存在重复的sort值: %d", item.Sort)
 		}
 		sortMap[item.Sort] = true
 
 		// 检查房间ID唯一性
 		if roomIDMap[item.RoomID] {
-			return xerrors.New(xerrors.CodeInvalidParams, fmt.Sprintf("房间序列中存在重复的房间ID: %s", item.RoomID))
+			return makeSeqErr("房间序列中存在重复的房间ID: %s", item.RoomID)
 		}
 		roomIDMap[item.RoomID] = true
 
 		roomIDs = append(roomIDs, item.RoomID)
+	}
+
+	if len(sequence) > 0 {
+		if !sortMap[1] {
+			return makeSeqErr("房间序列的 sort 必须从 1 开始")
+		}
+		for expected := 1; expected <= len(sequence); expected++ {
+			if !sortMap[expected] {
+				return makeSeqErr("房间序列缺少排序值: %d", expected)
+			}
+		}
 	}
 
 	// 批量查询房间是否存在(通过ID查询)
@@ -283,7 +318,7 @@ func (s *DungeonService) validateRoomSequence(ctx context.Context, sequence []dt
 
 	for _, roomID := range roomIDs {
 		if !foundRoomIDs[roomID] {
-			return xerrors.New(xerrors.CodeInvalidParams, fmt.Sprintf("房间不存在: %s", roomID))
+			return makeSeqErr("房间不存在: %s", roomID)
 		}
 	}
 
@@ -292,16 +327,14 @@ func (s *DungeonService) validateRoomSequence(ctx context.Context, sequence []dt
 		if item.ConditionalSkip != nil {
 			if targetRoom, ok := item.ConditionalSkip["target_room"].(string); ok && targetRoom != "" {
 				if !roomIDMap[targetRoom] {
-					return xerrors.New(xerrors.CodeInvalidParams,
-						fmt.Sprintf("条件跳过的目标房间不在序列中: %s", targetRoom))
+					return makeSeqErr("条件跳过的目标房间不在序列中: %s", targetRoom)
 				}
 			}
 		}
 		if item.ConditionalReturn != nil {
 			if targetRoom, ok := item.ConditionalReturn["target_room"].(string); ok && targetRoom != "" {
 				if !roomIDMap[targetRoom] {
-					return xerrors.New(xerrors.CodeInvalidParams,
-						fmt.Sprintf("条件返回的目标房间不在序列中: %s", targetRoom))
+					return makeSeqErr("条件返回的目标房间不在序列中: %s", targetRoom)
 				}
 			}
 		}
@@ -364,8 +397,7 @@ func (s *DungeonService) detectCycles(sequence []dto.RoomSequenceItem) error {
 	for _, item := range sequence {
 		if !visited[item.RoomID] {
 			if dfs(item.RoomID) {
-				return xerrors.New(xerrors.CodeInvalidParams,
-					fmt.Sprintf("房间序列存在循环引用,涉及房间: %s", item.RoomID))
+				return newRoomSequenceError(fmt.Sprintf("房间序列存在循环引用,涉及房间: %s", item.RoomID))
 			}
 		}
 	}
@@ -373,3 +405,8 @@ func (s *DungeonService) detectCycles(sequence []dto.RoomSequenceItem) error {
 	return nil
 }
 
+func newRoomSequenceError(message string) error {
+	return xerrors.FromCode(xerrors.CodeInvalidParams).
+		WithMetadata("field", "room_sequence").
+		WithMetadata("user_message", message)
+}

@@ -71,6 +71,7 @@ func NewWorldDropHandler(db *sql.DB, respWriter response.Writer) *WorldDropHandl
 // @Success 200 {object} response.Response{data=dto.WorldDropResponse} "创建成功,返回世界掉落详情"
 // @Failure 400 {object} response.Response "参数错误(100400): item_id不存在、掉落率无效等"
 // @Failure 500 {object} response.Response "服务器错误(100500)"
+// @Security BearerAuth
 // @Router /admin/world-drops [post]
 func (h *WorldDropHandler) CreateWorldDrop(c echo.Context) error {
 	// 1. 解析请求
@@ -117,6 +118,7 @@ func (h *WorldDropHandler) CreateWorldDrop(c echo.Context) error {
 // @Success 200 {object} response.Response{data=dto.WorldDropListResponse} "查询成功"
 // @Failure 400 {object} response.Response "参数错误(100400)"
 // @Failure 500 {object} response.Response "服务器错误(100500)"
+// @Security BearerAuth
 // @Router /admin/world-drops [get]
 func (h *WorldDropHandler) GetWorldDropList(c echo.Context) error {
 	// 1. 解析查询参数
@@ -167,6 +169,7 @@ func (h *WorldDropHandler) GetWorldDropList(c echo.Context) error {
 // @Produce json
 // @Param id path string true "世界掉落配置ID"
 // @Success 200 {object} response.Response{data=dto.WorldDropResponse}
+// @Security BearerAuth
 // @Router /admin/world-drops/{id} [get]
 func (h *WorldDropHandler) GetWorldDrop(c echo.Context) error {
 	// 1. 获取配置ID
@@ -190,6 +193,7 @@ func (h *WorldDropHandler) GetWorldDrop(c echo.Context) error {
 // @Param id path string true "世界掉落配置ID"
 // @Param request body dto.UpdateWorldDropRequest true "更新请求"
 // @Success 200 {object} response.Response{data=dto.WorldDropResponse}
+// @Security BearerAuth
 // @Router /admin/world-drops/{id} [put]
 func (h *WorldDropHandler) UpdateWorldDrop(c echo.Context) error {
 	// 1. 获取配置ID
@@ -223,6 +227,7 @@ func (h *WorldDropHandler) UpdateWorldDrop(c echo.Context) error {
 // @Produce json
 // @Param id path string true "世界掉落配置ID"
 // @Success 200 {object} response.Response
+// @Security BearerAuth
 // @Router /admin/world-drops/{id} [delete]
 func (h *WorldDropHandler) DeleteWorldDrop(c echo.Context) error {
 	// 1. 获取配置ID
@@ -234,4 +239,109 @@ func (h *WorldDropHandler) DeleteWorldDrop(c echo.Context) error {
 	}
 
 	return response.EchoOK(c, h.respWriter, map[string]string{"message": "删除成功"})
+}
+
+// ListWorldDropItems 查询世界掉落物品
+// @Summary 查询世界掉落物品
+// @Tags 世界掉落配置
+// @Accept json
+// @Produce json
+// @Param id path string true "世界掉落配置ID"
+// @Param page query int false "页码" default(1)
+// @Param page_size query int false "每页数量" default(20)
+// @Success 200 {object} response.Response{data=dto.WorldDropItemListResponse}
+// @Security BearerAuth
+// @Router /admin/world-drops/{id}/items [get]
+func (h *WorldDropHandler) ListWorldDropItems(c echo.Context) error {
+	configID := c.Param("id")
+	page := parseIntWithDefault(c.QueryParam("page"), 1)
+	pageSize := parseIntWithDefault(c.QueryParam("page_size"), 20)
+	resp, err := h.service.ListWorldDropItems(c.Request().Context(), configID, page, pageSize)
+	if err != nil {
+		return response.EchoError(c, h.respWriter, err)
+	}
+	return response.EchoOK(c, h.respWriter, resp)
+}
+
+// CreateWorldDropItem 创建世界掉落物品
+// @Summary 创建世界掉落物品
+// @Tags 世界掉落配置
+// @Accept json
+// @Produce json
+// @Param id path string true "世界掉落配置ID"
+// @Param request body dto.CreateWorldDropItemRequest true "世界掉落物品请求"
+// @Success 200 {object} response.Response{data=dto.WorldDropItemResponse}
+// @Security BearerAuth
+// @Router /admin/world-drops/{id}/items [post]
+func (h *WorldDropHandler) CreateWorldDropItem(c echo.Context) error {
+	configID := c.Param("id")
+	var req dto.CreateWorldDropItemRequest
+	if err := c.Bind(&req); err != nil {
+		return response.EchoError(c, h.respWriter, err)
+	}
+	if err := c.Validate(&req); err != nil {
+		return response.EchoValidationError(c, h.respWriter, err)
+	}
+	resp, err := h.service.CreateWorldDropItem(c.Request().Context(), configID, &req)
+	if err != nil {
+		return response.EchoError(c, h.respWriter, err)
+	}
+	return response.EchoOK(c, h.respWriter, resp)
+}
+
+// UpdateWorldDropItem 更新世界掉落物品
+// @Summary 更新世界掉落物品
+// @Tags 世界掉落配置
+// @Accept json
+// @Produce json
+// @Param id path string true "世界掉落配置ID"
+// @Param item_id path string true "物品条目ID"
+// @Param request body dto.UpdateWorldDropItemRequest true "更新请求"
+// @Success 200 {object} response.Response{data=dto.WorldDropItemResponse}
+// @Security BearerAuth
+// @Router /admin/world-drops/{id}/items/{item_id} [put]
+func (h *WorldDropHandler) UpdateWorldDropItem(c echo.Context) error {
+	configID := c.Param("id")
+	itemEntryID := c.Param("item_id")
+	var req dto.UpdateWorldDropItemRequest
+	if err := c.Bind(&req); err != nil {
+		return response.EchoError(c, h.respWriter, err)
+	}
+	if err := c.Validate(&req); err != nil {
+		return response.EchoValidationError(c, h.respWriter, err)
+	}
+	resp, err := h.service.UpdateWorldDropItem(c.Request().Context(), configID, itemEntryID, &req)
+	if err != nil {
+		return response.EchoError(c, h.respWriter, err)
+	}
+	return response.EchoOK(c, h.respWriter, resp)
+}
+
+// DeleteWorldDropItem 删除世界掉落物品
+// @Summary 删除世界掉落物品
+// @Tags 世界掉落配置
+// @Accept json
+// @Produce json
+// @Param id path string true "世界掉落配置ID"
+// @Param item_id path string true "物品条目ID"
+// @Success 200 {object} response.Response
+// @Security BearerAuth
+// @Router /admin/world-drops/{id}/items/{item_id} [delete]
+func (h *WorldDropHandler) DeleteWorldDropItem(c echo.Context) error {
+	configID := c.Param("id")
+	itemEntryID := c.Param("item_id")
+	if err := h.service.DeleteWorldDropItem(c.Request().Context(), configID, itemEntryID); err != nil {
+		return response.EchoError(c, h.respWriter, err)
+	}
+	return response.EchoOK(c, h.respWriter, response.EmptyData{})
+}
+
+func parseIntWithDefault(val string, def int) int {
+	if val == "" {
+		return def
+	}
+	if parsed, err := strconv.Atoi(val); err == nil && parsed > 0 {
+		return parsed
+	}
+	return def
 }

@@ -13,9 +13,9 @@ type CreateDropPoolRequest struct {
 	PoolName        string  `json:"pool_name" validate:"required,min=1,max=100" example:"精英哥布林掉落池"`                                                                                    // 掉落池名称，1-100字符
 	PoolType        string  `json:"pool_type" validate:"required,oneof=monster dungeon quest activity boss other" example:"monster" enums:"monster,dungeon,quest,activity,boss,other"` // 掉落池类型：monster(怪物)、dungeon(副本)、quest(任务)、activity(活动)、boss(Boss)、other(其他)
 	Description     *string `json:"description,omitempty" example:"精英哥布林的掉落池配置"`                                                                                                       // 掉落池描述（可选）
-	MinDrops        int16   `json:"min_drops" validate:"required,min=0" example:"1"`                                                                                                   // 最小掉落数量，必须 >= 0
-	MaxDrops        int16   `json:"max_drops" validate:"required,min=0" example:"3"`                                                                                                   // 最大掉落数量，必须 >= min_drops
-	GuaranteedDrops int16   `json:"guaranteed_drops" validate:"required,min=0" example:"1"`                                                                                            // 保底掉落数量，必须 <= min_drops
+	MinDrops        int16   `json:"min_drops" validate:"min=0" example:"1"`                                                                                                            // 最小掉落数量，必须 >= 0
+	MaxDrops        int16   `json:"max_drops" validate:"min=0" example:"3"`                                                                                                            // 最大掉落数量，必须 >= min_drops
+	GuaranteedDrops int16   `json:"guaranteed_drops" validate:"min=0" example:"1"`                                                                                                     // 保底掉落数量，必须 <= min_drops
 }
 
 // UpdateDropPoolRequest 更新掉落池请求

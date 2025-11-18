@@ -1,6 +1,3 @@
-# Language
-Conversation in Chinese
-
 <!-- OPENSPEC:START -->
 # OpenSpec Instructions
 
