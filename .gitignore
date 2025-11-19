@@ -35,6 +35,7 @@ infra/.ory-postgres-data/
 .env.*
 .docker/
 .gocache/
+.cache/
 .venv/
 .VSCodeCounter/
 .modcache/
@@ -48,3 +49,6 @@ infra/.ory-postgres-data/
 /deployments/*/data/*
 ./data/
 /data/
+
+# Test artifacts
+test/results/

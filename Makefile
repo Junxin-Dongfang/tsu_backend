@@ -3,6 +3,8 @@ BASE_URL ?= http://localhost:80
 ADMIN_USERNAME ?= root
 ADMIN_PASSWORD ?= admin
 SMOKE_JUNIT_FILE ?= test/results/junit/api-smoke.xml
+ADMIN_USER_ID ?= daf99445-61cc-4b24-9973-17eb79a53318
+KETO_CONTAINER ?= tsu_keto_service
 
 .PHONY: migrate-create migrate-up migrate-down
 
@@ -19,7 +21,7 @@ migrate-up:
 migrate-down:
 	migrate -database $(MAIN_DB_URL) -path ./migrations down 1
 
-.PHONY: help swagger-gen swagger-admin dev-up dev-down dev-logs generate-models install-sqlboiler dev-rebuild clean sqlboiler install-swag proto generate install-protoc deploy prod-up prod-down prod-logs prod-build admin-smoke-test test-smoke test-matrix gate-local gate-test gate-prod
+.PHONY: help swagger-gen swagger-admin dev-up dev-down dev-logs generate-models install-sqlboiler dev-rebuild clean sqlboiler install-swag proto generate install-protoc deploy prod-up prod-down prod-logs prod-build admin-smoke-test test-prepare test-smoke test-matrix gate-local gate-test gate-prod
 
 PROTO_SRC_DIR := proto
 PROTO_OUT_DIR := internal/pb
@@ -361,6 +363,18 @@ install-hooks:
 	@echo "🔧 安装 Git hooks..."
 	@chmod +x scripts/git-hooks/install-git-hooks.sh
 	@./scripts/git-hooks/install-git-hooks.sh
+
+# 在运行测试前确保 root 账号拥有最新权限（世界掉落物品等敏感模块依赖）。
+test-prepare:
+	@echo "🔐 确认 root 拥有最新 Keto 权限..."
+	@if ! command -v docker >/dev/null 2>&1; then \
+		echo "⚠️  未检测到 docker，跳过权限补种"; \
+	elif docker ps --format '{{.Names}}' | grep -qx "$(KETO_CONTAINER)"; then \
+		KETO_CONTAINER=$(KETO_CONTAINER) ADMIN_USER_ID=$(ADMIN_USER_ID) bash scripts/test/seed_root_permissions.sh; \
+	else \
+		echo "⚠️  容器 $(KETO_CONTAINER) 未运行，跳过权限补种"; \
+	fi
+
 # API smoke tests with JUnit output
 test-smoke:
 	@command -v gotestsum >/dev/null 2>&1 || (echo "📦 Installing gotestsum..." && go install gotest.tools/gotestsum@latest)
@@ -379,17 +393,17 @@ test-matrix:
 	@echo "✅ Matrix written to test/matrix/swagger_matrix.csv"
 
 # CI Gate for本地开发：冒烟 + 基础鉴权
-gate-local: test-smoke
+gate-local: test-prepare test-smoke
 
 # CI Gate for测试环境：矩阵 + modules 全量回归
-gate-test:
+gate-test: test-prepare
 	@echo "🚦 执行测试环境 gate（矩阵 + modules 回归）"
 	$(MAKE) test-matrix
 	@BASE_URL=$(BASE_URL) ADMIN_USERNAME=$(ADMIN_USERNAME) ADMIN_PASSWORD=$(ADMIN_PASSWORD) \
 		GOCACHE=$(PWD)/.cache/go-build go test ./test/integration/modules -count=1
 
 # CI Gate for生产环境：复用 test/prod 同配置，部署前重跑冒烟
-gate-prod:
+gate-prod: test-prepare
 	@echo "🚦 执行生产前 gate（复用 test-prod 配置模板）"
 	$(MAKE) test-matrix
 	@BASE_URL=$(BASE_URL) ADMIN_USERNAME=$(ADMIN_USERNAME) ADMIN_PASSWORD=$(ADMIN_PASSWORD) \

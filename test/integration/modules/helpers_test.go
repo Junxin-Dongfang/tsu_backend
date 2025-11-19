@@ -184,6 +184,32 @@ func fetchLatestInvitationID(t *testing.T, teamID, inviteeHeroID string) string 
 	return id
 }
 
+func requireBattleReportStored(t *testing.T, battleID, teamID, dungeonID, lootItemID string, gold int64) {
+	t.Helper()
+	db := openTestDB(t)
+	defer db.Close()
+
+	var (
+		team      sql.NullString
+		dungeon   sql.NullString
+		status    string
+		lootGold  int64
+		lootItems []byte
+	)
+	query := `
+		SELECT team_id, dungeon_id, result_status, loot_gold, loot_items
+		FROM game_runtime.battle_reports
+		WHERE battle_id = $1
+	`
+	err := db.QueryRowContext(context.Background(), query, battleID).Scan(&team, &dungeon, &status, &lootGold, &lootItems)
+	require.NoErrorf(t, err, "未找到 battle report: %s", battleID)
+	require.Equal(t, teamID, team.String)
+	require.Equal(t, dungeonID, dungeon.String)
+	require.Equal(t, "victory", status)
+	require.EqualValues(t, gold, lootGold)
+	require.Contains(t, string(lootItems), lootItemID)
+}
+
 func openTestDB(t *testing.T) *sql.DB {
 	t.Helper()
 	connStr := fmt.Sprintf(

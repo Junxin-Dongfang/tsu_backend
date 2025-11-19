@@ -44,6 +44,7 @@ type ServiceContainer struct {
 	dungeonRepo                interfaces.DungeonRepository
 	teamDungeonProgressRepo    interfaces.TeamDungeonProgressRepository
 	teamDungeonRecordRepo      interfaces.TeamDungeonRecordRepository
+	battleReportRepo           interfaces.BattleReportRepository
 
 	// 所有 Service（共享实例）
 	HeroService           *HeroService
@@ -57,6 +58,7 @@ type ServiceContainer struct {
 	TeamWarehouseService  *TeamWarehouseService
 	TeamDungeonService    *TeamDungeonService
 	TeamPermissionService *TeamPermissionService
+	BattleResultService   *BattleResultService
 }
 
 // NewServiceContainer 创建服务容器
@@ -97,6 +99,7 @@ func NewServiceContainer(db *sql.DB, ketoClient *client.KetoClient, permissionCa
 	c.dungeonRepo = impl.NewDungeonRepository(db)
 	c.teamDungeonProgressRepo = impl.NewTeamDungeonProgressRepository(db)
 	c.teamDungeonRecordRepo = impl.NewTeamDungeonRecordRepository(db)
+	c.battleReportRepo = impl.NewBattleReportRepository(db)
 
 	// 初始化 HeroService（依赖 repository）
 	c.HeroService = &HeroService{
@@ -183,6 +186,8 @@ func NewServiceContainer(db *sql.DB, ketoClient *client.KetoClient, permissionCa
 		HeroRepo:         c.heroRepo,
 	})
 
+	c.BattleResultService = NewBattleResultService(c.battleReportRepo, c.TeamDungeonService)
+
 	return c
 }
 
@@ -254,4 +259,9 @@ func (c *ServiceContainer) GetTeamWarehouseService() *TeamWarehouseService {
 // GetTeamPermissionService 获取团队权限服务
 func (c *ServiceContainer) GetTeamPermissionService() *TeamPermissionService {
 	return c.TeamPermissionService
+}
+
+// GetBattleResultService 获取战斗结果服务
+func (c *ServiceContainer) GetBattleResultService() *BattleResultService {
+	return c.BattleResultService
 }

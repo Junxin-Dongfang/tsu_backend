@@ -217,11 +217,11 @@ admin,DELETE,/admin/world-drops/{id}/items/{item_id},删除世界掉落物品,�
 admin,PUT,/admin/world-drops/{id}/items/{item_id},更新世界掉落物品,世界掉落配置,true,modules: admin_world_drop_items CRUD
 admin,GET,/admin/world-drops/{id}/items,查询世界掉落物品,世界掉落配置,true,modules: admin_world_drop_items list正/未授权覆盖
 admin,POST,/admin/world-drops/{id}/items,创建世界掉落物品,世界掉落配置,true,modules: admin_world_drop_items CRUD 正向+未授权
-admin,DELETE,/admin/world-drops/{id},删除世界掉落配置,世界掉落配置,true,
-admin,GET,/admin/world-drops/{id},获取世界掉落详情,世界掉落配置,true,
-admin,PUT,/admin/world-drops/{id},更新世界掉落配置,世界掉落配置,true,
-admin,GET,/admin/world-drops,查询世界掉落列表,世界掉落配置,true,
-admin,POST,/admin/world-drops,创建世界掉落配置,世界掉落配置,true,
+admin,DELETE,/admin/world-drops/{id},删除世界掉落配置,世界掉落配置,true,modules: admin_world_drop_crud_test 删除成功+未授权 401
+admin,GET,/admin/world-drops/{id},获取世界掉落详情,世界掉落配置,true,modules: admin_world_drop_crud_test 查询成功+404
+admin,PUT,/admin/world-drops/{id},更新世界掉落配置,世界掉落配置,true,modules: admin_world_drop_crud_test 更新字段校验
+admin,GET,/admin/world-drops,查询世界掉落列表,世界掉落配置,true,modules: admin_world_drop_test 列表可分页+401
+admin,POST,/admin/world-drops,创建世界掉落配置,世界掉落配置,true,modules: admin_world_drop_crud_test 创建快乐路径/字段校验
 game,GET,/api/inventory,查询背包/仓库,Inventory,false,
 game,GET,/game/attribute-upgrade-costs/{point_number},获取指定点数属性升级消耗,升级消耗查询,false,
 game,GET,/game/attribute-upgrade-costs,获取属性升级消耗列表,升级消耗查询,false,

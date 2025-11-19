@@ -58,6 +58,7 @@ type GameModule struct {
 	teamWarehouseHandler          *handler.TeamWarehouseHandler
 	teamDungeonHandler            *handler.TeamDungeonHandler
 	teamRPCHandler                *handler.TeamRPCHandler
+	battleResultHandler           *handler.BattleResultHandler
 	teamPermissionMW              *custommiddleware.TeamPermissionMiddleware
 	cleanupTask                   *tasks.CleanupTask
 	teamLeaderTransferTask        *tasks.TeamLeaderTransferTask
@@ -380,6 +381,7 @@ func (m *GameModule) initServicesAndHandlers() {
 	m.teamWarehouseHandler = handler.NewTeamWarehouseHandler(m.serviceContainer, m.respWriter)
 	m.teamDungeonHandler = handler.NewTeamDungeonHandler(m.serviceContainer, m.respWriter)
 	m.teamRPCHandler = handler.NewTeamRPCHandler(m.serviceContainer, m.db)
+	m.battleResultHandler = handler.NewBattleResultHandler(m.serviceContainer, m.respWriter)
 
 	// 初始化团队权限中间件（基于权限服务，可回退到数据库）
 	permissionService := m.serviceContainer.GetTeamPermissionService()
@@ -670,6 +672,12 @@ func (m *GameModule) setupRoutes() {
 				}
 			}
 		}
+	}
+
+	internalGroup := v1.Group("/internal")
+	{
+		battles := internalGroup.Group("/battles")
+		battles.POST("/result", m.battleResultHandler.ReportResult)
 	}
 
 	// Swagger UI

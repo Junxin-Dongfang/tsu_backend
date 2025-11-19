@@ -15,9 +15,39 @@
     }
   },
   {
+    "id": "tsu-admin-metrics",
+    "match": {
+      "url": "http://<.*>/admin/metrics",
+      "methods": ["GET"]
+    },
+    "authenticators": [{ "handler": "noop" }],
+    "authorizer": { "handler": "allow" },
+    "mutators": [{ "handler": "noop" }],
+    "upstream": {
+      "url": "http://tsu_admin:8071",
+      "strip_path": "/admin",
+      "preserve_host": false
+    }
+  },
+  {
     "id": "tsu-game-health-check",
     "match": {
       "url": "http://<.*>/game/health",
+      "methods": ["GET"]
+    },
+    "authenticators": [{ "handler": "noop" }],
+    "authorizer": { "handler": "allow" },
+    "mutators": [{ "handler": "noop" }],
+    "upstream": {
+      "url": "http://tsu_game:8072",
+      "strip_path": "/game",
+      "preserve_host": false
+    }
+  },
+  {
+    "id": "tsu-game-metrics",
+    "match": {
+      "url": "http://<.*>/game/metrics",
       "methods": ["GET"]
     },
     "authenticators": [{ "handler": "noop" }],

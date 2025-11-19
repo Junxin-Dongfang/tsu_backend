@@ -14,7 +14,7 @@ alerting:
   alertmanagers:
     - static_configs:
         - targets:
-          - 'alertmanager:9093'
+          - 'tsu_alertmanager_prod:9093'
 
 # 告警规则
 rule_files:
@@ -30,7 +30,7 @@ scrape_configs:
   # TSU 服务(通过 Consul 服务发现)
   - job_name: 'tsu-services'
     consul_sd_configs:
-      - server: 'consul:8500'
+      - server: 'tsu_consul:8500'
         datacenter: 'dc1'
         tags: ['tsu']
 
@@ -50,22 +50,18 @@ scrape_configs:
         regex: '.*,env:([^,]+),.*'
         target_label: env
 
-  # PostgreSQL 监控(如果使用 postgres_exporter)
-  - job_name: 'postgresql'
+  # Admin Server
+  - job_name: 'tsu-admin'
+    metrics_path: /metrics
     static_configs:
-      - targets: ['postgres-exporter:9187']
+      - targets: ['tsu_admin:8071']
         labels:
-          service: 'postgresql'
+          service: 'admin'
 
-  # Redis 监控(如果使用 redis_exporter)
-  - job_name: 'redis'
+  # Game Server
+  - job_name: 'tsu-game'
+    metrics_path: /metrics
     static_configs:
-      - targets: ['redis-exporter:9121']
+      - targets: ['tsu_game:8061']
         labels:
-          service: 'redis'
-
-  # Node Exporter(系统指标)
-  - job_name: 'node'
-    consul_sd_configs:
-      - server: 'consul:8500'
-        services: ['node-exporter']
+          service: 'game'

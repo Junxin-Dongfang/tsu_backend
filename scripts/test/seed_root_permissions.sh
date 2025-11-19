@@ -15,7 +15,7 @@ if ! docker ps --format '{{.Names}}' | grep -qx "$KETO_CONTAINER"; then
 fi
 
 TMP_FILE="/tmp/root_perms.json"
-docker exec "$KETO_CONTAINER" sh -c "cat > $TMP_FILE" <<EOF
+docker exec -i "$KETO_CONTAINER" sh -c "cat > $TMP_FILE" <<EOF
 [
   {"namespace":"roles","object":"admin","relation":"member","subject_id":"users:${ADMIN_USER_ID}"},
   {"namespace":"permissions","object":"user:read","relation":"granted","subject_id":"users:${ADMIN_USER_ID}"},

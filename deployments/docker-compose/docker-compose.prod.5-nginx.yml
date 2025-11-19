@@ -36,6 +36,7 @@ services:
       start_period: 10s
     networks:
       - tsu_network
+      - monitoring_network
     logging:
       driver: "json-file"
       options:
@@ -49,3 +50,6 @@ networks:
   tsu_network:
     external: true
     name: tsu_prod_infra_tsu_network
+  monitoring_network:
+    external: true
+    name: tsu-network
