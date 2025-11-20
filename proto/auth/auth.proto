@@ -159,6 +159,8 @@ message UnbanUserResponse {
 message LoginRequest {
     string identifier = 1;  // 可以是 email, username, 或 phone_number
     string password = 2;
+    string session_token = 3; // 可选: 复用现有 session
+    string client_service = 4; // 调用方服务(admin/game)
 }
 
 message LoginResponse {
@@ -172,6 +174,7 @@ message LoginResponse {
 
 message LogoutRequest {
     string session_token = 1;
+    string client_service = 2;
 }
 
 message LogoutResponse {

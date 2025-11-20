@@ -13,10 +13,10 @@ import (
 
 // HTTPMetrics HTTP 性能指标收集器
 type HTTPMetrics struct {
-	// HTTP 请求总数（按路径模板、方法、状态码分组）
+	// HTTP 请求总数（按路由模板、方法、状态码分组）
 	RequestsTotal *prometheus.CounterVec
 
-	// HTTP 请求延迟直方图（按路径模板分组）
+	// HTTP 请求延迟直方图（按路由模板分组）
 	RequestDuration *prometheus.HistogramVec
 
 	// 当前进行中的请求数（Gauge 类型）
@@ -62,19 +62,19 @@ func NewHTTPMetricsWithRegistry(namespace string, registerer prometheus.Register
 			prometheus.CounterOpts{
 				Namespace: namespace,
 				Name:      "http_requests_total",
-				Help:      "Total number of HTTP requests by service, path template, method, and status code",
+				Help:      "Total number of HTTP requests by service, route template, method, and status code",
 			},
-			[]string{"service", "path", "method", "status_code"},
+			[]string{"service", "route", "method", "status_code"},
 		),
 
 		RequestDuration: factory.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Namespace: namespace,
 				Name:      "http_request_duration_seconds",
-				Help:      "HTTP request latency histogram by service and path template",
+				Help:      "HTTP request latency histogram by service and route template",
 				Buckets:   HTTPBuckets,
 			},
-			[]string{"service", "path"},
+			[]string{"service", "route"},
 		),
 
 		RequestsInProgress: factory.NewGaugeVec(
@@ -91,19 +91,19 @@ func NewHTTPMetricsWithRegistry(namespace string, registerer prometheus.Register
 // RecordRequest 记录 HTTP 请求指标
 //
 // 参数:
-//   - path: 路由模板（如 "/api/heroes/:id"，而非 "/api/heroes/123"）
+//   - route: 路由模板（如 "/api/heroes/:id"，而非 "/api/heroes/123"）
 //   - method: HTTP 方法（GET/POST/PUT/DELETE 等）
 //   - statusCode: HTTP 状态码（200/404/500 等）
 //   - duration: 请求耗时
 //   - service: 服务名称 (game/admin)
-func (m *HTTPMetrics) RecordRequest(service, path, method string, statusCode int, duration time.Duration) {
+func (m *HTTPMetrics) RecordRequest(service, route, method string, statusCode int, duration time.Duration) {
 	service = normalizeServiceName(service)
 	// 记录请求总数
 	statusCodeLabel := strconv.Itoa(statusCode)
-	m.RequestsTotal.WithLabelValues(service, path, method, statusCodeLabel).Inc()
+	m.RequestsTotal.WithLabelValues(service, route, method, statusCodeLabel).Inc()
 
 	// 记录请求延迟
-	m.RequestDuration.WithLabelValues(service, path).Observe(duration.Seconds())
+	m.RequestDuration.WithLabelValues(service, route).Observe(duration.Seconds())
 }
 
 // IncInProgress 增加当前进行中的请求数
@@ -137,17 +137,12 @@ func IsHealthCheckEndpoint(path string) bool {
 	return false
 }
 
-// NormalizePath 规范化路径，防止标签基数爆炸
-//
-// 规则:
-//   - 路径应该已经是路由模板（由 Echo 的 c.Path() 提供）
-//   - 如果路径为空，返回 "unknown"
-//   - 未来可扩展：限制路径数量，超出时返回 "other"
-func NormalizePath(path string) string {
-	if path == "" {
+// NormalizeRoute 规范化路由，防止标签基数爆炸。
+func NormalizeRoute(route string) string {
+	if route == "" {
 		return "unknown"
 	}
-	return path
+	return route
 }
 
 // PathLimitTracker 路径标签基数限制追踪器

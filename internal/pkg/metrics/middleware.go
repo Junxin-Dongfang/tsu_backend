@@ -19,15 +19,18 @@ func Middleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			// 获取路由模板（使用 c.Path() 而非 c.Request().URL.Path）
-			path := c.Path()
+			route := c.Path()
 
 			// 跳过健康检查端点
-			if IsHealthCheckEndpoint(path) {
+			if IsHealthCheckEndpoint(route) {
 				return next(c)
 			}
 
 			// 标签基数控制
-			path = pathLimitTracker.TrackPath(path)
+			route = pathLimitTracker.TrackPath(route)
+			if route != "" {
+				c.Response().Header().Set("X-Route-Pattern", route)
+			}
 
 			service := GetServiceName()
 
@@ -51,7 +54,7 @@ func Middleware() echo.MiddlewareFunc {
 			method := c.Request().Method
 			statusCode := c.Response().Status
 
-			DefaultHTTPMetrics.RecordRequest(service, path, method, statusCode, duration)
+			DefaultHTTPMetrics.RecordRequest(service, route, method, statusCode, duration)
 
 			// 如果接近路径限制，记录警告
 			if warning := pathLimitTracker.LogWarning(); warning != "" {

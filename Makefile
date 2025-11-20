@@ -2,9 +2,12 @@ MAIN_DB_URL="postgres://postgres:postgres@localhost:5432/tsu_db?sslmode=disable"
 BASE_URL ?= http://localhost:80
 ADMIN_USERNAME ?= root
 ADMIN_PASSWORD ?= admin
+GAME_USERNAME ?=
+GAME_PASSWORD ?=
 SMOKE_JUNIT_FILE ?= test/results/junit/api-smoke.xml
 ADMIN_USER_ID ?= daf99445-61cc-4b24-9973-17eb79a53318
 KETO_CONTAINER ?= tsu_keto_service
+LOGIN_SERVICE ?= admin
 
 .PHONY: migrate-create migrate-up migrate-down
 
@@ -21,7 +24,7 @@ migrate-up:
 migrate-down:
 	migrate -database $(MAIN_DB_URL) -path ./migrations down 1
 
-.PHONY: help swagger-gen swagger-admin dev-up dev-down dev-logs generate-models install-sqlboiler dev-rebuild clean sqlboiler install-swag proto generate install-protoc deploy prod-up prod-down prod-logs prod-build admin-smoke-test test-prepare test-smoke test-matrix gate-local gate-test gate-prod
+.PHONY: help swagger-gen swagger-admin dev-up dev-down dev-logs generate-models install-sqlboiler dev-rebuild clean sqlboiler install-swag proto generate install-protoc deploy prod-up prod-down prod-logs prod-build admin-smoke-test test-prepare test-smoke test-matrix perf-login gate-local gate-test gate-prod
 
 PROTO_SRC_DIR := proto
 PROTO_OUT_DIR := internal/pb
@@ -78,6 +81,7 @@ help:
 	@echo "  Testing & Quality:"
 	@echo "    test             - Run all tests"
 	@echo "    test-coverage    - Run tests with coverage report"
+	@echo "    perf-login       - Benchmark /auth/login and emit Prometheus textfile"
 	@echo "    test-coverage-html - Generate HTML coverage report"
 	@echo "    lint             - Run golangci-lint"
 	@echo "    lint-fix         - Run golangci-lint with auto-fix"
@@ -392,8 +396,17 @@ test-matrix:
 	@rm -rf .cache
 	@echo "✅ Matrix written to test/matrix/swagger_matrix.csv"
 
+.PHONY: perf-login
+perf-login:
+	@echo "⚡ Running login benchmark ($(LOGIN_SERVICE))"
+	@SERVICE=$(LOGIN_SERVICE) \
+		BASE_URL=$(BASE_URL) \
+		ADMIN_USERNAME=$(ADMIN_USERNAME) ADMIN_PASSWORD=$(ADMIN_PASSWORD) \
+		GAME_USERNAME=$(GAME_USERNAME) GAME_PASSWORD=$(GAME_PASSWORD) \
+		bash scripts/perf/login_benchmark.sh
+
 # CI Gate for本地开发：冒烟 + 基础鉴权
-gate-local: test-prepare test-smoke
+gate-local: test-prepare test-smoke perf-login
 
 # CI Gate for测试环境：矩阵 + modules 全量回归
 gate-test: test-prepare
@@ -401,6 +414,7 @@ gate-test: test-prepare
 	$(MAKE) test-matrix
 	@BASE_URL=$(BASE_URL) ADMIN_USERNAME=$(ADMIN_USERNAME) ADMIN_PASSWORD=$(ADMIN_PASSWORD) \
 		GOCACHE=$(PWD)/.cache/go-build go test ./test/integration/modules -count=1
+	@$(MAKE) perf-login
 
 # CI Gate for生产环境：复用 test/prod 同配置，部署前重跑冒烟
 gate-prod: test-prepare
@@ -408,3 +422,4 @@ gate-prod: test-prepare
 	$(MAKE) test-matrix
 	@BASE_URL=$(BASE_URL) ADMIN_USERNAME=$(ADMIN_USERNAME) ADMIN_PASSWORD=$(ADMIN_PASSWORD) \
 		GOCACHE=$(PWD)/.cache/go-build go test ./test/integration/smoke -count=1
+	@$(MAKE) perf-login

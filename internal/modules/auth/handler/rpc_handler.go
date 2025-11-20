@@ -202,8 +202,10 @@ func (h *RPCHandler) Login(reqBytes []byte) ([]byte, error) {
 
 	// 调用 Service 层
 	result, err := h.authService.Login(ctx, service.LoginInput{
-		Identifier: req.Identifier,
-		Password:   req.Password,
+		Identifier:    req.Identifier,
+		Password:      req.Password,
+		SessionToken:  req.SessionToken,
+		ClientService: req.ClientService,
 	})
 	if err != nil {
 		return nil, err
@@ -233,7 +235,8 @@ func (h *RPCHandler) Logout(reqBytes []byte) ([]byte, error) {
 
 	// 调用 Service 层
 	err := h.authService.Logout(ctx, service.LogoutInput{
-		SessionToken: req.SessionToken,
+		SessionToken:  req.SessionToken,
+		ClientService: req.ClientService,
 	})
 
 	// 构造 Protobuf 响应

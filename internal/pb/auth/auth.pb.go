@@ -970,6 +970,8 @@ type LoginRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Identifier    string                 `protobuf:"bytes,1,opt,name=identifier,proto3" json:"identifier,omitempty"` // 可以是 email, username, 或 phone_number
 	Password      string                 `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
+	SessionToken  string                 `protobuf:"bytes,3,opt,name=session_token,json=sessionToken,proto3" json:"session_token,omitempty"`    // 可选: 复用现有 session
+	ClientService string                 `protobuf:"bytes,4,opt,name=client_service,json=clientService,proto3" json:"client_service,omitempty"` // 调用方服务(admin/game)
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1014,6 +1016,20 @@ func (x *LoginRequest) GetIdentifier() string {
 func (x *LoginRequest) GetPassword() string {
 	if x != nil {
 		return x.Password
+	}
+	return ""
+}
+
+func (x *LoginRequest) GetSessionToken() string {
+	if x != nil {
+		return x.SessionToken
+	}
+	return ""
+}
+
+func (x *LoginRequest) GetClientService() string {
+	if x != nil {
+		return x.ClientService
 	}
 	return ""
 }
@@ -1089,6 +1105,7 @@ func (x *LoginResponse) GetUsername() string {
 type LogoutRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SessionToken  string                 `protobuf:"bytes,1,opt,name=session_token,json=sessionToken,proto3" json:"session_token,omitempty"`
+	ClientService string                 `protobuf:"bytes,2,opt,name=client_service,json=clientService,proto3" json:"client_service,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1126,6 +1143,13 @@ func (*LogoutRequest) Descriptor() ([]byte, []int) {
 func (x *LogoutRequest) GetSessionToken() string {
 	if x != nil {
 		return x.SessionToken
+	}
+	return ""
+}
+
+func (x *LogoutRequest) GetClientService() string {
+	if x != nil {
+		return x.ClientService
 	}
 	return ""
 }
@@ -1792,19 +1816,22 @@ const file_auth_auth_proto_rawDesc = "" +
 	"\x10UnbanUserRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\";\n" +
 	"\x11UnbanUserResponse\x12&\n" +
-	"\x06status\x18\x01 \x01(\v2\x0e.common.StatusR\x06status\"J\n" +
+	"\x06status\x18\x01 \x01(\v2\x0e.common.StatusR\x06status\"\x96\x01\n" +
 	"\fLoginRequest\x12\x1e\n" +
 	"\n" +
 	"identifier\x18\x01 \x01(\tR\n" +
 	"identifier\x12\x1a\n" +
-	"\bpassword\x18\x02 \x01(\tR\bpassword\"\x7f\n" +
+	"\bpassword\x18\x02 \x01(\tR\bpassword\x12#\n" +
+	"\rsession_token\x18\x03 \x01(\tR\fsessionToken\x12%\n" +
+	"\x0eclient_service\x18\x04 \x01(\tR\rclientService\"\x7f\n" +
 	"\rLoginResponse\x12#\n" +
 	"\rsession_token\x18\x01 \x01(\tR\fsessionToken\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x14\n" +
 	"\x05email\x18\x03 \x01(\tR\x05email\x12\x1a\n" +
-	"\busername\x18\x04 \x01(\tR\busername\"4\n" +
+	"\busername\x18\x04 \x01(\tR\busername\"[\n" +
 	"\rLogoutRequest\x12#\n" +
-	"\rsession_token\x18\x01 \x01(\tR\fsessionToken\"8\n" +
+	"\rsession_token\x18\x01 \x01(\tR\fsessionToken\x12%\n" +
+	"\x0eclient_service\x18\x02 \x01(\tR\rclientService\"8\n" +
 	"\x0eLogoutResponse\x12&\n" +
 	"\x06status\x18\x01 \x01(\v2\x0e.common.StatusR\x06status\"/\n" +
 	"\x17InitiateRecoveryRequest\x12\x14\n" +

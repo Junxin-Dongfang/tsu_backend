@@ -95,6 +95,7 @@ func TestMiddleware_RouteTemplate(t *testing.T) {
 
 			// 验证路由模板被正确捕获
 			assert.Equal(t, tt.expectedPath, capturedPath, "应该使用路由模板而非具体路径")
+			assert.Equal(t, tt.expectedPath, rec.Header().Get("X-Route-Pattern"))
 
 			// 验证指标被正确记录
 			// 等待一小段时间以确保指标被记录
@@ -169,25 +170,25 @@ func TestMiddleware_HealthCheckSkip(t *testing.T) {
 func TestMiddleware_MetricRecording(t *testing.T) {
 	tests := []struct {
 		name       string
-		path       string
+		route      string
 		method     string
 		statusCode int
 	}{
 		{
 			name:       "记录 200 成功响应",
-			path:       "/api/test",
+			route:      "/api/test",
 			method:     http.MethodGet,
 			statusCode: http.StatusOK,
 		},
 		{
 			name:       "记录 404 客户端错误",
-			path:       "/api/notfound",
+			route:      "/api/notfound",
 			method:     http.MethodGet,
 			statusCode: http.StatusNotFound,
 		},
 		{
 			name:       "记录 500 服务器错误",
-			path:       "/api/error",
+			route:      "/api/error",
 			method:     http.MethodPost,
 			statusCode: http.StatusInternalServerError,
 		},
@@ -216,13 +217,13 @@ func TestMiddleware_MetricRecording(t *testing.T) {
 
 			switch tt.method {
 			case http.MethodGet:
-				e.GET(tt.path, handler)
+				e.GET(tt.route, handler)
 			case http.MethodPost:
-				e.POST(tt.path, handler)
+				e.POST(tt.route, handler)
 			}
 
 			// 创建请求
-			req := httptest.NewRequest(tt.method, tt.path, nil)
+			req := httptest.NewRequest(tt.method, tt.route, nil)
 			rec := httptest.NewRecorder()
 
 			// 执行请求
@@ -236,7 +237,7 @@ func TestMiddleware_MetricRecording(t *testing.T) {
 
 			// 验证指标被记录
 			statusCode := strconv.Itoa(tt.statusCode)
-			count := testutil.ToFloat64(metrics.RequestsTotal.WithLabelValues("test-service", tt.path, tt.method, statusCode))
+			count := testutil.ToFloat64(metrics.RequestsTotal.WithLabelValues("test-service", tt.route, tt.method, statusCode))
 			assert.Equal(t, float64(1), count, "应该记录一个 requests_total 指标")
 		})
 	}

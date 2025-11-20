@@ -24,13 +24,9 @@ type player struct {
 }
 
 func adminToken(t *testing.T, ctx context.Context, client *apitest.Client, cfg apitest.Config) string {
-	loginReq := apitest.LoginRequest{Identifier: cfg.AdminUsername, Password: cfg.AdminPassword}
-	resp, httpResp, raw, err := apitest.PostJSON[apitest.LoginRequest, apitest.LoginResponse](ctx, client, "/api/v1/admin/auth/login", loginReq, "")
-	require.NoError(t, err, string(raw))
-	require.Equal(t, http.StatusOK, httpResp.StatusCode, string(raw))
-	require.Equal(t, int(xerrors.CodeSuccess), resp.Code, string(raw))
-	require.NotNil(t, resp.Data)
-	return resp.Data.SessionToken
+	sess, err := apitest.EnsureAdminSession(ctx, client, cfg)
+	require.NoError(t, err)
+	return sess.Token
 }
 
 func setup(t *testing.T) (context.Context, apitest.Config, *apitest.Client, apitest.FixtureFactory) {

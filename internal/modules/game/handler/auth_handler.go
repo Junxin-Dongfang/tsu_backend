@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -11,6 +12,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	authpb "tsu-self/internal/pb/auth"
+	"tsu-self/internal/pkg/metrics"
 	"tsu-self/internal/pkg/response"
 	"tsu-self/internal/pkg/validator"
 	"tsu-self/internal/pkg/xerrors"
@@ -273,27 +275,39 @@ type LoginResponse struct {
 // @Failure 500 {object} response.Response "服务器内部错误"
 // @Router /game/auth/login [post]
 func (h *AuthHandler) Login(c echo.Context) error {
+	start := time.Now()
+	outcome := "success"
+	defer func() {
+		metrics.DefaultLoginMetrics.ObserveDuration("game", outcome, time.Since(start))
+	}()
+
 	var req LoginRequest
 	if err := c.Bind(&req); err != nil {
+		outcome = "error"
 		return response.EchoBadRequest(c, h.respWriter, "请求格式错误")
 	}
 
 	if err := c.Validate(&req); err != nil {
 		// 翻译验证错误为用户友好的中文消息
 		friendlyMsg := validator.TranslateValidationError(err)
+		outcome = "error"
 		return response.EchoBadRequest(c, h.respWriter, friendlyMsg)
 	}
 
 	// 构造 Protobuf RPC 请求
+	sessionToken := readSessionToken(c)
 	rpcReq := &authpb.LoginRequest{
-		Identifier: req.Identifier,
-		Password:   req.Password,
+		Identifier:    req.Identifier,
+		Password:      req.Password,
+		SessionToken:  sessionToken,
+		ClientService: "game",
 	}
 
 	// 序列化 Protobuf 请求
 	rpcReqBytes, err := proto.Marshal(rpcReq)
 	if err != nil {
 		appErr := xerrors.Wrap(err, xerrors.CodeInternalError, "序列化RPC请求失败")
+		outcome = "error"
 		return response.EchoError(c, h.respWriter, appErr)
 	}
 
@@ -311,10 +325,12 @@ func (h *AuthHandler) Login(c echo.Context) error {
 	if errStr != "" {
 		if ctx.Err() == context.DeadlineExceeded {
 			appErr := xerrors.New(xerrors.CodeExternalServiceError, "Auth服务超时")
+			outcome = "error"
 			return response.EchoError(c, h.respWriter, appErr)
 		}
 		// 登录失败
 		appErr := xerrors.NewAuthError("用户名或密码错误")
+		outcome = "error"
 		return response.EchoError(c, h.respWriter, appErr)
 	}
 
@@ -322,12 +338,14 @@ func (h *AuthHandler) Login(c echo.Context) error {
 	resultBytes, ok := result.([]byte)
 	if !ok {
 		appErr := xerrors.New(xerrors.CodeInternalError, "RPC响应类型错误")
+		outcome = "error"
 		return response.EchoError(c, h.respWriter, appErr)
 	}
 
 	rpcResp := &authpb.LoginResponse{}
 	if err := proto.Unmarshal(resultBytes, rpcResp); err != nil {
 		appErr := xerrors.Wrap(err, xerrors.CodeInternalError, "解析RPC响应失败")
+		outcome = "error"
 		return response.EchoError(c, h.respWriter, appErr)
 	}
 
@@ -384,7 +402,8 @@ func (h *AuthHandler) Logout(c echo.Context) error {
 
 	// 构造 Protobuf RPC 请求
 	rpcReq := &authpb.LogoutRequest{
-		SessionToken: sessionToken,
+		SessionToken:  sessionToken,
+		ClientService: "game",
 	}
 
 	// 序列化 Protobuf 请求
@@ -426,4 +445,20 @@ func (h *AuthHandler) Logout(c echo.Context) error {
 	return response.EchoOK(c, h.respWriter, map[string]interface{}{
 		"message": "登出成功",
 	})
+}
+
+func readSessionToken(c echo.Context) string {
+	if token := c.Request().Header.Get("X-Session-Token"); token != "" {
+		return token
+	}
+	if authHeader := c.Request().Header.Get(echo.HeaderAuthorization); authHeader != "" {
+		parts := strings.SplitN(authHeader, " ", 2)
+		if len(parts) == 2 && strings.EqualFold(parts[0], "bearer") {
+			return strings.TrimSpace(parts[1])
+		}
+	}
+	if cookie, err := c.Cookie("ory_kratos_session"); err == nil && cookie != nil {
+		return cookie.Value
+	}
+	return ""
 }

@@ -33,15 +33,10 @@ func TestAdminAssignRolesInvalidUser(t *testing.T) {
 
 func TestAdminAssignAndRemoveRolesSuccess(t *testing.T) {
 	ctx, cfg, client, _ := setup(t)
-	token := adminToken(t, ctx, client, cfg)
-
-	// 使用现有 root 账户做角色赋权验证
-	loginReq := apitest.LoginRequest{Identifier: cfg.AdminUsername, Password: cfg.AdminPassword}
-	loginResp, httpRespLogin, rawLogin, err := apitest.PostJSON[apitest.LoginRequest, apitest.LoginResponse](ctx, client, "/api/v1/admin/auth/login", loginReq, "")
-	require.NoError(t, err, string(rawLogin))
-	require.Equal(t, http.StatusOK, httpRespLogin.StatusCode, string(rawLogin))
-	require.Equal(t, int(xerrors.CodeSuccess), loginResp.Code, string(rawLogin))
-	userID := loginResp.Data.UserID
+	sess, err := apitest.EnsureAdminSession(ctx, client, cfg)
+	require.NoError(t, err)
+	token := sess.Token
+	userID := sess.UserID
 
 	roleResp, httpRespRoles, rawRoles, err := apitest.GetJSON[apitest.AdminRoleListResponse](ctx, client, "/api/v1/admin/roles?page=1&page_size=1", token)
 	require.NoError(t, err, string(rawRoles))

@@ -69,7 +69,11 @@
       "id": 1,
       "options": {
         "legend": {
-          "calcs": ["mean", "lastNotNull", "max"],
+          "calcs": [
+            "mean",
+            "lastNotNull",
+            "max"
+          ],
           "displayMode": "table",
           "placement": "bottom"
         },
@@ -128,7 +132,9 @@
         "orientation": "auto",
         "reduceOptions": {
           "values": false,
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": ""
         },
         "showThresholdLabels": false,
@@ -205,7 +211,11 @@
       "id": 3,
       "options": {
         "legend": {
-          "calcs": ["mean", "lastNotNull", "max"],
+          "calcs": [
+            "mean",
+            "lastNotNull",
+            "max"
+          ],
           "displayMode": "table",
           "placement": "bottom"
         },
@@ -233,6 +243,260 @@
       ],
       "title": "HTTP 请求延迟(分位数)",
       "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "自动筛选近 5 分钟内最慢的 HTTP 路由，单位毫秒。",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 200
+              }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "qps"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "reqps"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "id": 7,
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "p95 (ms)"
+          }
+        ]
+      },
+      "targets": [
+        {
+          "expr": "((histogram_quantile(0.95, sum by (le, route)(rate(tsu_http_request_duration_seconds_bucket{service=~\"$service\"}[5m]))) * 1000)) and on(route) (sum by(route)(rate(tsu_http_requests_total{service=~\"$service\"}[5m])) > 0)",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "P95"
+        },
+        {
+          "expr": "((histogram_quantile(0.99, sum by (le, route)(rate(tsu_http_request_duration_seconds_bucket{service=~\"$service\"}[5m]))) * 1000)) and on(route) (sum by(route)(rate(tsu_http_requests_total{service=~\"$service\"}[5m])) > 0)",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "P99"
+        },
+        {
+          "expr": "sum by (route)(rate(tsu_http_requests_total{service=~\"$service\"}[5m]))",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "QPS"
+        }
+      ],
+      "title": "慢路由 (>200ms)",
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "route"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "Value": "p95 (ms)",
+              "Value #P95": "p95 (ms)",
+              "Value #P99": "p99 (ms)",
+              "Value #QPS": "qps"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "登录链路耗时 (秒级) - 默认仅统计 outcome=success。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "延迟(秒)",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.2
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 18
+      },
+      "id": 8,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "expr": "((histogram_quantile(0.5, sum by (le)(rate(tsu_login_duration_seconds_bucket{service=~\"$service\", outcome=\"success\"}[5m])))*1000)) or vector(0)",
+          "legendFormat": "p50",
+          "refId": "A"
+        },
+        {
+          "expr": "((histogram_quantile(0.95, sum by (le)(rate(tsu_login_duration_seconds_bucket{service=~\"$service\", outcome=\"success\"}[5m])))*1000)) or vector(0)",
+          "legendFormat": "p95",
+          "refId": "B"
+        },
+        {
+          "expr": "((histogram_quantile(0.99, sum by (le)(rate(tsu_login_duration_seconds_bucket{service=~\"$service\", outcome=\"success\"}[5m])))*1000)) or vector(0)",
+          "legendFormat": "p99",
+          "refId": "C"
+        }
+      ],
+      "title": "登录耗时 (ms)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "5 分钟命中率 = hits / (hits + miss)",
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "percentage",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 60
+              },
+              {
+                "color": "green",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 18
+      },
+      "id": 9,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {},
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(tsu_login_cache_hits_total{service=~\"$service\"}[5m])) / clamp_min(sum(increase(tsu_login_cache_hits_total{service=~\"$service\"}[5m])) + sum(increase(tsu_login_cache_miss_total{service=~\"$service\"}[5m])), 1)",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "title": "登录缓存命中率",
+      "type": "stat"
     },
     {
       "datasource": "Prometheus",
@@ -266,8 +530,8 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 12,
-        "y": 8
+        "x": 0,
+        "y": 26
       },
       "id": 4,
       "options": {
@@ -277,7 +541,9 @@
         "orientation": "auto",
         "reduceOptions": {
           "values": false,
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": ""
         },
         "text": {},
@@ -293,91 +559,6 @@
       ],
       "title": "当前在线玩家",
       "type": "stat"
-    },
-    {
-      "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisLabel": "连接数",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 10,
-            "gradientMode": "none",
-            "hideFrom": {
-              "tooltip": false,
-              "viz": false,
-              "legend": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": true
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 16
-      },
-      "id": 5,
-      "options": {
-        "legend": {
-          "calcs": ["mean", "lastNotNull"],
-          "displayMode": "table",
-          "placement": "bottom"
-        },
-        "tooltip": {
-          "mode": "multi"
-        }
-      },
-      "pluginVersion": "9.0.0",
-      "targets": [
-        {
-          "expr": "sum(tsu_db_connections{state=\"open\", database=\"postgres\"})",
-          "legendFormat": "打开的连接",
-          "refId": "A"
-        },
-        {
-          "expr": "sum(tsu_db_connections{state=\"in_use\", database=\"postgres\"})",
-          "legendFormat": "使用中",
-          "refId": "B"
-        },
-        {
-          "expr": "sum(tsu_db_connections{state=\"idle\", database=\"postgres\"})",
-          "legendFormat": "空闲",
-          "refId": "C"
-        },
-        {
-          "expr": "sum(tsu_db_max_connections{database=\"postgres\"})",
-          "legendFormat": "最大连接数",
-          "refId": "D"
-        }
-      ],
-      "title": "数据库连接池",
-      "type": "timeseries"
     },
     {
       "datasource": "Prometheus",
@@ -425,12 +606,15 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 16
+        "y": 26
       },
       "id": 6,
       "options": {
         "legend": {
-          "calcs": ["mean", "lastNotNull"],
+          "calcs": [
+            "mean",
+            "lastNotNull"
+          ],
           "displayMode": "table",
           "placement": "bottom"
         },
@@ -463,12 +647,103 @@
       ],
       "title": "Redis 操作速率",
       "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "连接数",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 34
+      },
+      "id": 5,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "lastNotNull"
+          ],
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "pluginVersion": "9.0.0",
+      "targets": [
+        {
+          "expr": "sum(tsu_db_connections{state=\"open\", database=\"postgres\"})",
+          "legendFormat": "打开的连接",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(tsu_db_connections{state=\"in_use\", database=\"postgres\"})",
+          "legendFormat": "使用中",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(tsu_db_connections{state=\"idle\", database=\"postgres\"})",
+          "legendFormat": "空闲",
+          "refId": "C"
+        },
+        {
+          "expr": "sum(tsu_db_max_connections{database=\"postgres\"})",
+          "legendFormat": "最大连接数",
+          "refId": "D"
+        }
+      ],
+      "title": "数据库连接池",
+      "type": "timeseries"
     }
   ],
   "refresh": "10s",
   "schemaVersion": 36,
   "style": "dark",
-  "tags": ["tsu", "监控"],
+  "tags": [
+    "tsu",
+    "监控"
+  ],
   "templating": {
     "list": [
       {

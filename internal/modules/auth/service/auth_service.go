@@ -3,13 +3,18 @@ package service
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
 	"tsu-self/internal/entity/auth"
 	"tsu-self/internal/modules/auth/client"
+	"tsu-self/internal/pkg/log"
 	"tsu-self/internal/pkg/metrics"
+	"tsu-self/internal/pkg/sessioncache"
+	"tsu-self/internal/pkg/xerrors"
 
 	"github.com/aarondl/null/v8"
 	"github.com/aarondl/sqlboiler/v4/boil"
@@ -20,6 +25,20 @@ type AuthService struct {
 	db           *sql.DB
 	kratosClient *client.KratosClient
 	redis        RedisClient
+	sessionCache *sessioncache.Cache
+}
+
+const defaultLoginCacheTTL = 10 * time.Minute
+
+func getLoginCacheTTL() time.Duration {
+	if raw := os.Getenv("LOGIN_CACHE_TTL"); raw != "" {
+		if d, err := time.ParseDuration(raw); err == nil {
+			if d > 0 {
+				return d
+			}
+		}
+	}
+	return defaultLoginCacheTTL
 }
 
 // RedisClient Redis 客户端接口（用于测试时 mock）
@@ -32,10 +51,13 @@ type RedisClient interface {
 
 // NewAuthService 创建认证服务实例
 func NewAuthService(db *sql.DB, kratosClient *client.KratosClient, redis RedisClient) *AuthService {
+	logger := log.GetLogger().With("module", "auth_service")
+	cache := sessioncache.New(getLoginCacheTTL(), metrics.DefaultLoginMetrics, logger)
 	return &AuthService{
 		db:           db,
 		kratosClient: kratosClient,
 		redis:        redis,
+		sessionCache: cache,
 	}
 }
 
@@ -381,8 +403,10 @@ func (s *AuthService) UnbanUser(ctx context.Context, userID string) error {
 
 // LoginInput 登录输入
 type LoginInput struct {
-	Identifier string // email, username, 或 phone_number
-	Password   string
+	Identifier    string // email, username, 或 phone_number
+	Password      string
+	SessionToken  string // 已存在的 Kratos session token,允许复用
+	ClientService string // 调用方服务(admin/game),用于指标标签
 }
 
 // LoginOutput 登录输出
@@ -396,61 +420,162 @@ type LoginOutput struct {
 // Login 用户登录
 // 支持使用 email, username, 或 phone_number 登录
 func (s *AuthService) Login(ctx context.Context, input LoginInput) (*LoginOutput, error) {
-	// 1. 调用 Kratos Public API 进行认证
+	serviceLabel := sessioncache.NormalizeService(input.ClientService)
+	isGame := serviceLabel == "game"
+
+	if reused, err := s.tryReuseSession(ctx, serviceLabel, input.SessionToken); err != nil {
+		return nil, err
+	} else if reused != nil {
+		return reused, nil
+	}
+
 	sessionToken, identityID, err := s.kratosClient.LoginWithPassword(ctx, input.Identifier, input.Password)
 	if err != nil {
 		return nil, fmt.Errorf("登录失败: %w", err)
 	}
 
-	// 2. 根据 Kratos ID 查询用户信息
-	user, err := s.GetUserByID(ctx, identityID)
+	user, err := s.ensureUser(ctx, identityID)
 	if err != nil {
-		// 如果用户不存在,可能需要从 Kratos 同步用户数据
-		if err := s.SyncUserFromKratos(ctx, identityID); err != nil {
-			return nil, fmt.Errorf("同步用户数据失败: %w", err)
-		}
-		// 重新查询
-		user, err = s.GetUserByID(ctx, identityID)
-		if err != nil {
-			return nil, fmt.Errorf("获取用户信息失败: %w", err)
-		}
+		return nil, err
 	}
 
-	// 3. 检查用户是否被封禁
 	if user.IsBanned {
 		return nil, fmt.Errorf("用户已被封禁: %s", user.BanReason.String)
 	}
 
-	// 4. 更新登录信息 (最后登录时间、登录次数)
-	// 注意: 这里暂时不获取 IP,由调用方传入
-	// 如果需要在这里更新,可以添加 loginIP 参数
+	if isGame {
+		metrics.DefaultBusinessMetrics.IncPlayers(metrics.GetServiceName())
+	}
 
-	// 5. 记录玩家上线指标
-	metrics.DefaultBusinessMetrics.IncPlayers(metrics.GetServiceName())
-
-	// 6. 返回登录结果
-	return &LoginOutput{
+	output := &LoginOutput{
 		SessionToken: sessionToken,
+		UserID:       user.ID,
+		Email:        user.Email,
+		Username:     user.Username,
+	}
+
+	if s.sessionCache != nil {
+		s.sessionCache.Set(ctx, serviceLabel, sessioncache.Session{
+			SessionToken: sessionToken,
+			UserID:       user.ID,
+			Username:     user.Username,
+			Email:        user.Email,
+		})
+	}
+
+	return output, nil
+}
+
+func (s *AuthService) ensureUser(ctx context.Context, identityID string) (*auth.User, error) {
+	user, err := s.GetUserByID(ctx, identityID)
+	if err == nil {
+		return user, nil
+	}
+	if err := s.SyncUserFromKratos(ctx, identityID); err != nil {
+		return nil, fmt.Errorf("同步用户数据失败: %w", err)
+	}
+	user, err = s.GetUserByID(ctx, identityID)
+	if err != nil {
+		return nil, fmt.Errorf("获取用户信息失败: %w", err)
+	}
+	return user, nil
+}
+
+func (s *AuthService) tryReuseSession(ctx context.Context, serviceLabel, token string) (*LoginOutput, error) {
+	if token == "" || s.sessionCache == nil {
+		return nil, nil
+	}
+
+	if cached, ok := s.sessionCache.Get(ctx, serviceLabel, token); ok {
+		user, err := s.ensureUser(ctx, cached.UserID)
+		if err != nil {
+			return nil, err
+		}
+		if user.IsBanned {
+			return nil, fmt.Errorf("用户已被封禁: %s", user.BanReason.String)
+		}
+		s.sessionCache.Set(ctx, serviceLabel, sessioncache.Session{
+			SessionToken: token,
+			UserID:       user.ID,
+			Username:     user.Username,
+			Email:        user.Email,
+		})
+		return &LoginOutput{
+			SessionToken: token,
+			UserID:       user.ID,
+			Email:        user.Email,
+			Username:     user.Username,
+		}, nil
+	}
+
+	session, err := s.kratosClient.ValidateSession(ctx, token)
+	if err != nil {
+		if isSessionExpiredErr(err) {
+			s.sessionCache.Delete(ctx, serviceLabel, token, "expired")
+			return nil, nil
+		}
+		// 其他错误时,记录日志但允许继续走密码登录路径
+		log.GetLogger().WarnContext(ctx, "validate session failed", log.Any("error", err), log.String("service", serviceLabel))
+		return nil, nil
+	}
+
+	if session == nil || session.Identity == nil {
+		return nil, xerrors.NewKratosDataIntegrityError("session.identity", "validate session 未返回 identity")
+	}
+
+	user, err := s.ensureUser(ctx, session.Identity.Id)
+	if err != nil {
+		return nil, err
+	}
+	if user.IsBanned {
+		return nil, fmt.Errorf("用户已被封禁: %s", user.BanReason.String)
+	}
+
+	s.sessionCache.Set(ctx, serviceLabel, sessioncache.Session{
+		SessionToken: token,
+		UserID:       user.ID,
+		Username:     user.Username,
+		Email:        user.Email,
+	})
+
+	return &LoginOutput{
+		SessionToken: token,
 		UserID:       user.ID,
 		Email:        user.Email,
 		Username:     user.Username,
 	}, nil
 }
 
+func isSessionExpiredErr(err error) bool {
+	var appErr *xerrors.AppError
+	if errors.As(err, &appErr) {
+		return appErr.Code == xerrors.CodeSessionExpired
+	}
+	return false
+}
+
 // LogoutInput 登出输入
 type LogoutInput struct {
-	SessionToken string
+	SessionToken  string
+	ClientService string
 }
 
 // Logout 用户登出
 func (s *AuthService) Logout(ctx context.Context, input LogoutInput) error {
+	serviceLabel := sessioncache.NormalizeService(input.ClientService)
 	// 调用 Kratos API 撤销 Session
 	if err := s.kratosClient.RevokeSession(ctx, input.SessionToken); err != nil {
 		return fmt.Errorf("登出失败: %w", err)
 	}
 
+	if s.sessionCache != nil {
+		s.sessionCache.Delete(ctx, serviceLabel, input.SessionToken, "logout")
+	}
+
 	// 记录玩家下线指标
-	metrics.DefaultBusinessMetrics.DecPlayers(metrics.GetServiceName())
+	if serviceLabel == "game" {
+		metrics.DefaultBusinessMetrics.DecPlayers(metrics.GetServiceName())
+	}
 
 	return nil
 }

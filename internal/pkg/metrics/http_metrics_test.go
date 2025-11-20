@@ -51,7 +51,7 @@ func TestHTTPMetrics_RecordRequest(t *testing.T) {
 	tests := []struct {
 		name       string
 		service    string
-		path       string
+		route      string
 		method     string
 		statusCode int
 		duration   time.Duration
@@ -59,7 +59,7 @@ func TestHTTPMetrics_RecordRequest(t *testing.T) {
 		{
 			name:       "记录 GET 请求 - 200",
 			service:    "game",
-			path:       "/api/heroes/:id",
+			route:      "/api/heroes/:id",
 			method:     "GET",
 			statusCode: 200,
 			duration:   100 * time.Millisecond,
@@ -67,7 +67,7 @@ func TestHTTPMetrics_RecordRequest(t *testing.T) {
 		{
 			name:       "记录 POST 请求 - 201",
 			service:    "admin",
-			path:       "/api/heroes",
+			route:      "/api/heroes",
 			method:     "POST",
 			statusCode: 201,
 			duration:   200 * time.Millisecond,
@@ -75,7 +75,7 @@ func TestHTTPMetrics_RecordRequest(t *testing.T) {
 		{
 			name:       "记录 PUT 请求 - 404",
 			service:    "game",
-			path:       "/api/heroes/:id",
+			route:      "/api/heroes/:id",
 			method:     "PUT",
 			statusCode: 404,
 			duration:   50 * time.Millisecond,
@@ -88,11 +88,11 @@ func TestHTTPMetrics_RecordRequest(t *testing.T) {
 			metrics := NewHTTPMetricsWithRegistry("test", reg)
 
 			// 记录请求
-			metrics.RecordRequest(tt.service, tt.path, tt.method, tt.statusCode, tt.duration)
+			metrics.RecordRequest(tt.service, tt.route, tt.method, tt.statusCode, tt.duration)
 
 			// 验证 counter 增加
 			statusCode := strconv.Itoa(tt.statusCode)
-			count := testutil.ToFloat64(metrics.RequestsTotal.WithLabelValues(tt.service, tt.path, tt.method, statusCode))
+			count := testutil.ToFloat64(metrics.RequestsTotal.WithLabelValues(tt.service, tt.route, tt.method, statusCode))
 			assert.Equal(t, float64(1), count)
 
 			// 验证 histogram 记录了观测值（通过检查 _count 指标）
@@ -137,7 +137,7 @@ func TestHTTPMetrics_HistogramBuckets(t *testing.T) {
 		// 记录不同延迟的请求
 		testCases := []struct {
 			duration time.Duration
-			path     string
+			route    string
 		}{
 			{50 * time.Millisecond, "/api/test1"},  // 0.05s
 			{100 * time.Millisecond, "/api/test2"}, // 0.1s
@@ -148,7 +148,7 @@ func TestHTTPMetrics_HistogramBuckets(t *testing.T) {
 		}
 
 		for _, tc := range testCases {
-			metrics.RecordRequest(service, tc.path, "GET", 200, tc.duration)
+			metrics.RecordRequest(service, tc.route, "GET", 200, tc.duration)
 		}
 
 		// 验证 histogram 不为空（说明记录成功）
