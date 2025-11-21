@@ -62,20 +62,16 @@ func (s *WorldDropService) CreateWorldDrop(ctx context.Context, req *dto.CreateW
 		return nil, xerrors.New(xerrors.CodeDuplicateResource, fmt.Sprintf("物品已绑定到其他世界掉落: %s", req.ItemID))
 	}
 
-	// 4. 验证触发条件JSON格式
-	if len(req.TriggerConditions) > 0 {
-		var conditions map[string]interface{}
-		if err := json.Unmarshal(req.TriggerConditions, &conditions); err != nil {
-			return nil, xerrors.New(xerrors.CodeInvalidParams, "触发条件JSON格式错误")
-		}
+	// 4. 验证并标准化触发条件JSON（支持对象或被字符串包裹的JSON）
+	triggerJSON, err := normalizeJSON(json.RawMessage(req.TriggerConditions), "触发条件")
+	if err != nil {
+		return nil, err
 	}
 
-	// 5. 验证概率修正因子JSON格式
-	if len(req.DropRateModifiers) > 0 {
-		var modifiers map[string]interface{}
-		if err := json.Unmarshal(req.DropRateModifiers, &modifiers); err != nil {
-			return nil, xerrors.New(xerrors.CodeInvalidParams, "概率修正因子JSON格式错误")
-		}
+	// 5. 验证并标准化概率修正因子JSON（支持对象或被字符串包裹的JSON）
+	modifierJSON, err := normalizeJSON(json.RawMessage(req.DropRateModifiers), "概率修正因子")
+	if err != nil {
+		return nil, err
 	}
 
 	// 6. 验证掉落间隔范围
@@ -114,11 +110,11 @@ func (s *WorldDropService) CreateWorldDrop(ctx context.Context, req *dto.CreateW
 	}
 
 	// 设置JSON字段
-	if len(req.TriggerConditions) > 0 {
-		config.TriggerConditions.SetValid(req.TriggerConditions)
+	if len(triggerJSON) > 0 {
+		config.TriggerConditions.SetValid(triggerJSON)
 	}
-	if len(req.DropRateModifiers) > 0 {
-		config.DropRateModifiers.SetValid(req.DropRateModifiers)
+	if len(modifierJSON) > 0 {
+		config.DropRateModifiers.SetValid(modifierJSON)
 	}
 
 	// 7. 保存到数据库
@@ -240,20 +236,20 @@ func (s *WorldDropService) UpdateWorldDrop(ctx context.Context, configID string,
 		config.IsActive = *req.IsActive
 	}
 
-	// 3. 验证并更新JSON字段
+	// 3. 验证并更新JSON字段（支持对象或字符串包裹的JSON）
 	if len(req.TriggerConditions) > 0 {
-		var conditions map[string]interface{}
-		if unmarshalErr := json.Unmarshal(req.TriggerConditions, &conditions); unmarshalErr != nil {
-			return nil, xerrors.New(xerrors.CodeInvalidParams, "触发条件JSON格式错误")
+		triggerJSON, err := normalizeJSON(json.RawMessage(req.TriggerConditions), "触发条件")
+		if err != nil {
+			return nil, err
 		}
-		config.TriggerConditions.SetValid(req.TriggerConditions)
+		config.TriggerConditions.SetValid(triggerJSON)
 	}
 	if len(req.DropRateModifiers) > 0 {
-		var modifiers map[string]interface{}
-		if unmarshalErr := json.Unmarshal(req.DropRateModifiers, &modifiers); unmarshalErr != nil {
-			return nil, xerrors.New(xerrors.CodeInvalidParams, "概率修正因子JSON格式错误")
+		modifierJSON, err := normalizeJSON(json.RawMessage(req.DropRateModifiers), "概率修正因子")
+		if err != nil {
+			return nil, err
 		}
-		config.DropRateModifiers.SetValid(req.DropRateModifiers)
+		config.DropRateModifiers.SetValid(modifierJSON)
 	}
 
 	// 4. 验证掉落间隔范围
@@ -415,6 +411,11 @@ func (s *WorldDropService) CreateWorldDropItem(ctx context.Context, configID str
 		}
 	}
 
+	metadataJSON, err := normalizeJSON(json.RawMessage(req.Metadata), "metadata")
+	if err != nil {
+		return nil, err
+	}
+
 	entry := interfaces.WorldDropItem{
 		WorldDropConfigID: config.ID,
 		ItemID:            req.ItemID,
@@ -425,7 +426,7 @@ func (s *WorldDropService) CreateWorldDropItem(ctx context.Context, configID str
 		MinLevel:          req.MinLevel,
 		MaxLevel:          req.MaxLevel,
 		GuaranteedDrop:    req.GuaranteedDrop,
-		Metadata:          req.Metadata,
+		Metadata:          metadataJSON,
 	}
 
 	if err := s.worldDropItemRepo.Create(ctx, &entry); err != nil {
@@ -526,7 +527,11 @@ func (s *WorldDropService) UpdateWorldDropItem(ctx context.Context, configID, it
 
 	metadata := entry.Metadata
 	if len(req.Metadata) > 0 {
-		metadata = req.Metadata
+		var err error
+		metadata, err = normalizeJSON(json.RawMessage(req.Metadata), "metadata")
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	update := interfaces.WorldDropItem{
@@ -615,7 +620,7 @@ func (s *WorldDropService) toWorldDropItemResponse(entry interfaces.WorldDropIte
 		MinQuantity:       entry.MinQuantity,
 		MaxQuantity:       entry.MaxQuantity,
 		GuaranteedDrop:    entry.GuaranteedDrop,
-		Metadata:          entry.Metadata,
+		Metadata:          dto.RawOrStringJSON(entry.Metadata),
 		CreatedAt:         entry.CreatedAt,
 		UpdatedAt:         entry.UpdatedAt,
 	}

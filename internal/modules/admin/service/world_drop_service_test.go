@@ -69,8 +69,8 @@ func TestWorldDropService_CreateWorldDrop(t *testing.T) {
 				MinDropInterval:   intPtr(300),
 				MaxDropInterval:   intPtr(600),
 				BaseDropRate:      0.1,
-				TriggerConditions: json.RawMessage(`{"type": "level_range", "min_level": 10, "max_level": 50}`),
-				DropRateModifiers: json.RawMessage(`{"vip_bonus": 0.05, "event_bonus": 0.1}`),
+				TriggerConditions: dto.RawOrStringJSON(`{"type": "level_range", "min_level": 10, "max_level": 50}`),
+				DropRateModifiers: dto.RawOrStringJSON(`{"vip_bonus": 0.05, "event_bonus": 0.1}`),
 			},
 			setup: func() {
 				// 清理之前的配置
@@ -102,6 +102,30 @@ func TestWorldDropService_CreateWorldDrop(t *testing.T) {
 				err = json.Unmarshal(resp.DropRateModifiers, &modifiers)
 				require.NoError(t, err)
 				assert.Equal(t, 0.05, modifiers["vip_bonus"])
+			},
+		},
+		{
+			name: "字符串包裹的JSON字段可被接受",
+			request: &dto.CreateWorldDropRequest{
+				ItemID:            item.ID,
+				BaseDropRate:      0.05,
+				TriggerConditions: dto.RawOrStringJSON(`"{\"min_player_level\":30,\"max_player_level\":60,\"zone\":\"dark_forest\"}"`),
+				DropRateModifiers: dto.RawOrStringJSON(`"{\"time_of_day\":{\"morning\":1.2,\"night\":0.8},\"player_luck_bonus\":0.1}"`),
+			},
+			setup: func() {
+				cleanupWorldDrops(t, db, []string{item.ID})
+			},
+			expectError: false,
+			validate: func(t *testing.T, resp *dto.WorldDropResponse) {
+				var conditions map[string]interface{}
+				require.NoError(t, json.Unmarshal(resp.TriggerConditions, &conditions))
+				assert.Equal(t, float64(30), conditions["min_player_level"])
+				assert.Equal(t, "dark_forest", conditions["zone"])
+
+				var modifiers map[string]interface{}
+				require.NoError(t, json.Unmarshal(resp.DropRateModifiers, &modifiers))
+				td := modifiers["time_of_day"].(map[string]interface{})
+				assert.InDelta(t, 1.2, td["morning"], 1e-6)
 			},
 		},
 		{
@@ -156,7 +180,7 @@ func TestWorldDropService_CreateWorldDrop(t *testing.T) {
 			request: &dto.CreateWorldDropRequest{
 				ItemID:            item.ID,
 				BaseDropRate:      0.05,
-				TriggerConditions: json.RawMessage(`{invalid json`),
+				TriggerConditions: dto.RawOrStringJSON(`{invalid json`),
 			},
 			setup: func() {
 				cleanupWorldDrops(t, db, []string{item.ID})
@@ -169,7 +193,7 @@ func TestWorldDropService_CreateWorldDrop(t *testing.T) {
 			request: &dto.CreateWorldDropRequest{
 				ItemID:            item.ID,
 				BaseDropRate:      0.05,
-				DropRateModifiers: json.RawMessage(`{invalid json`),
+				DropRateModifiers: dto.RawOrStringJSON(`{invalid json`),
 			},
 			setup: func() {
 				cleanupWorldDrops(t, db, []string{item.ID})

@@ -90,7 +90,7 @@ func TestDropPoolService_AddDropPoolItem(t *testing.T) {
 				MinQuantity:    1,
 				MaxQuantity:    5,
 				DropWeight:     int64Ptr(50),
-				QualityWeights: json.RawMessage(`{"common": 50, "rare": 30, "epic": 15, "legendary": 5}`),
+				QualityWeights: dto.RawOrStringJSON(`{"common": 50, "rare": 30, "epic": 15, "legendary": 5}`),
 			},
 			setup: func() {
 				_, _ = db.Exec("DELETE FROM game_config.drop_pool_items WHERE drop_pool_id = $1 AND item_id = $2", pool.ID, item.ID)
@@ -170,7 +170,7 @@ func TestDropPoolService_AddDropPoolItem(t *testing.T) {
 				ItemID:         item.ID,
 				MinQuantity:    1,
 				MaxQuantity:    1,
-				QualityWeights: json.RawMessage(`{invalid json`),
+				QualityWeights: dto.RawOrStringJSON(`{invalid json`),
 			},
 			setup: func() {
 				_, _ = db.Exec("DELETE FROM game_config.drop_pool_items WHERE drop_pool_id = $1 AND item_id = $2", pool.ID, item.ID)

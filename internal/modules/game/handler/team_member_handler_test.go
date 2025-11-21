@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -12,25 +13,26 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tsu-self/internal/modules/auth/client"
 	"tsu-self/internal/modules/game/service"
+	"tsu-self/internal/modules/game/testseed"
 	"tsu-self/internal/pkg/response"
+	"tsu-self/internal/pkg/validator"
 )
 
 // setupTestMemberHandler 设置测试 MemberHandler
-func setupTestMemberHandler(t *testing.T) (*TeamMemberHandler, *TeamHandler, *echo.Echo) {
+func setupTestMemberHandler(t *testing.T) (*TeamMemberHandler, *TeamHandler, *echo.Echo, *sql.DB) {
 	t.Helper()
 
 	db := setupTestDB(t)
-	ketoClient := &client.KetoClient{}
-	serviceContainer := service.NewServiceContainer(db, ketoClient, nil)
+	serviceContainer := service.NewServiceContainer(db, nil, nil)
 	respWriter := response.DefaultResponseHandler()
 
 	memberHandler := NewTeamMemberHandler(serviceContainer, respWriter)
 	teamHandler := NewTeamHandler(serviceContainer, respWriter)
 
 	e := echo.New()
-	return memberHandler, teamHandler, e
+	e.Validator = validator.New()
+	return memberHandler, teamHandler, e, db
 }
 
 // TestTeamMemberHandler_ApplyToJoin 测试申请加入团队
@@ -39,14 +41,17 @@ func TestTeamMemberHandler_ApplyToJoin(t *testing.T) {
 		t.Skip("跳过集成测试")
 	}
 
-	memberHandler, teamHandler, e := setupTestMemberHandler(t)
-	db := setupTestDB(t)
+	memberHandler, teamHandler, e, db := setupTestMemberHandler(t)
 	defer db.Close()
+
+	leaderUserID := testseed.EnsureUser(t, db, "team-member-handler-leader")
+	leaderHeroID := testseed.EnsureHero(t, db, leaderUserID, "team-member-handler-leader-hero")
+	testseed.CleanupTeamsByHero(t, db, leaderHeroID)
 
 	// 创建测试团队
 	description := "测试团队"
 	createReq := CreateTeamRequest{
-		HeroID:      "test-hero-leader",
+		HeroID:      leaderHeroID.String(),
 		TeamName:    "测试团队-" + time.Now().Format("20060102150405"),
 		Description: &description,
 	}
@@ -55,18 +60,21 @@ func TestTeamMemberHandler_ApplyToJoin(t *testing.T) {
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
-	c.Set("user_id", "test-user-leader")
+	c.Set("user_id", leaderUserID.String())
 
 	err := teamHandler.CreateTeam(c)
 	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, rec.Code)
 
 	// 获取创建的团队ID
 	var createResp response.Response
 	err = json.Unmarshal(rec.Body.Bytes(), &createResp)
 	require.NoError(t, err)
 
-	teamData := createResp.Data.(map[string]interface{})
-	teamID := teamData["id"].(string)
+	teamData, ok := createResp.Data.(map[string]interface{})
+	require.True(t, ok)
+	teamID, ok := teamData["id"].(string)
+	require.True(t, ok)
 
 	defer func() {
 		_, _ = db.Exec("DELETE FROM game_runtime.team_members WHERE team_id = $1", teamID)
@@ -84,10 +92,10 @@ func TestTeamMemberHandler_ApplyToJoin(t *testing.T) {
 			name: "成功申请加入",
 			requestBody: ApplyToJoinRequest{
 				TeamID: teamID,
-				HeroID: "test-hero-applicant",
+				HeroID: testseed.EnsureHero(t, db, testseed.EnsureUser(t, db, "team-member-handler-applicant"), "team-member-handler-applicant-hero").String(),
 			},
 			setupContext: func(c echo.Context) {
-				c.Set("user_id", "test-user-applicant")
+				c.Set("user_id", testseed.EnsureUser(t, db, "team-member-handler-applicant").String())
 			},
 			expectedStatus: http.StatusOK,
 		},
@@ -95,7 +103,7 @@ func TestTeamMemberHandler_ApplyToJoin(t *testing.T) {
 			name: "未登录",
 			requestBody: ApplyToJoinRequest{
 				TeamID: teamID,
-				HeroID: "test-hero-applicant",
+				HeroID: testseed.EnsureHero(t, db, testseed.EnsureUser(t, db, "team-member-handler-applicant"), "team-member-handler-applicant-hero").String(),
 			},
 			setupContext: func(c echo.Context) {
 				// 不设置 user_id
@@ -136,14 +144,17 @@ func TestTeamMemberHandler_ApproveJoinRequest(t *testing.T) {
 		t.Skip("跳过集成测试")
 	}
 
-	memberHandler, teamHandler, e := setupTestMemberHandler(t)
-	db := setupTestDB(t)
+	memberHandler, teamHandler, e, db := setupTestMemberHandler(t)
 	defer db.Close()
+
+	leaderUserID := testseed.EnsureUser(t, db, "team-member-handler-leader")
+	leaderHeroID := testseed.EnsureHero(t, db, leaderUserID, "team-member-handler-leader-hero")
+	testseed.CleanupTeamsByHero(t, db, leaderHeroID)
 
 	// 创建测试团队
 	description := "测试团队"
 	createReq := CreateTeamRequest{
-		HeroID:      "test-hero-leader",
+		HeroID:      leaderHeroID.String(),
 		TeamName:    "测试团队-" + time.Now().Format("20060102150405"),
 		Description: &description,
 	}
@@ -152,17 +163,20 @@ func TestTeamMemberHandler_ApproveJoinRequest(t *testing.T) {
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
-	c.Set("user_id", "test-user-leader")
+	c.Set("user_id", leaderUserID.String())
 
 	err := teamHandler.CreateTeam(c)
 	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, rec.Code)
 
 	var createResp response.Response
 	err = json.Unmarshal(rec.Body.Bytes(), &createResp)
 	require.NoError(t, err)
 
-	teamData := createResp.Data.(map[string]interface{})
-	teamID := teamData["id"].(string)
+	teamData, ok := createResp.Data.(map[string]interface{})
+	require.True(t, ok)
+	teamID, ok := teamData["id"].(string)
+	require.True(t, ok)
 
 	defer func() {
 		_, _ = db.Exec("DELETE FROM game_runtime.team_members WHERE team_id = $1", teamID)
@@ -171,14 +185,18 @@ func TestTeamMemberHandler_ApproveJoinRequest(t *testing.T) {
 	}()
 
 	// 创建申请
+	applicantUserID := testseed.EnsureUser(t, db, "team-member-handler-applicant")
+	applicantHeroID := testseed.EnsureHero(t, db, applicantUserID, "team-member-handler-applicant-hero")
+	reqID := testseed.StableUUID("team-member-handler-request-1").String()
+
 	_, err = db.Exec(`
-		INSERT INTO game_runtime.team_join_requests (id, team_id, hero_id, user_id, status, message, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, 'pending', '测试申请', NOW(), NOW())
-	`, "test-request-001", teamID, "test-hero-applicant", "test-user-applicant")
+		INSERT INTO game_runtime.team_join_requests (id, team_id, hero_id, user_id, status, message, created_at)
+		VALUES ($1, $2, $3, $4, 'pending', '测试申请', NOW())
+	`, reqID, teamID, applicantHeroID.String(), applicantUserID.String())
 	require.NoError(t, err)
 
 	defer func() {
-		_, _ = db.Exec("DELETE FROM game_runtime.team_join_requests WHERE id = $1", "test-request-001")
+		_, _ = db.Exec("DELETE FROM game_runtime.team_join_requests WHERE id = $1", reqID)
 	}()
 
 	tests := []struct {
@@ -189,8 +207,8 @@ func TestTeamMemberHandler_ApproveJoinRequest(t *testing.T) {
 		{
 			name: "队长批准申请",
 			requestBody: ApproveJoinRequestRequest{
-				RequestID: "test-request-001",
-				HeroID:    "test-hero-leader",
+				RequestID: reqID,
+				HeroID:    leaderHeroID.String(),
 				Approved:  true,
 			},
 			expectedStatus: http.StatusOK,
@@ -219,8 +237,7 @@ func TestTeamMemberHandler_KickMember(t *testing.T) {
 		t.Skip("跳过集成测试")
 	}
 
-	memberHandler, _, e := setupTestMemberHandler(t)
-	db := setupTestDB(t)
+	memberHandler, _, e, db := setupTestMemberHandler(t)
 	defer db.Close()
 
 	// 这里需要先创建团队和成员，然后测试踢出功能

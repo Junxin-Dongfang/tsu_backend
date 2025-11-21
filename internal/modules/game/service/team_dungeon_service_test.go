@@ -7,6 +7,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"tsu-self/internal/modules/game/testseed"
 )
 
 // TestTeamDungeonService_SelectDungeon 测试选择地城
@@ -118,7 +120,7 @@ func TestTeamDungeonService_SelectDungeon(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-		_, err := dungeonService.SelectDungeon(ctx, tt.req)
+			_, err := dungeonService.SelectDungeon(ctx, tt.req)
 
 			if tt.wantError {
 				assert.Error(t, err)
@@ -239,7 +241,7 @@ func TestTeamDungeonService_EnterDungeon(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-		_, err := dungeonService.EnterDungeon(ctx, tt.req)
+			_, err := dungeonService.EnterDungeon(ctx, tt.req)
 
 			if tt.wantError {
 				assert.Error(t, err)
@@ -268,11 +270,11 @@ func TestTeamDungeonService_GetDungeonProgress(t *testing.T) {
 	ctx := context.Background()
 
 	// 创建测试团队
-	leaderUserID := "test-user-leader"
-	leaderHeroID := "test-hero-leader"
+	leaderUserID := testseed.EnsureUser(t, db, "team-dungeon-leader")
+	leaderHeroID := testseed.EnsureHero(t, db, leaderUserID, "team-dungeon-leader-hero")
 	createReq := &CreateTeamRequest{
-		UserID:      leaderUserID,
-		HeroID:      leaderHeroID,
+		UserID:      leaderUserID.String(),
+		HeroID:      leaderHeroID.String(),
 		TeamName:    "测试团队-" + time.Now().Format("20060102150405"),
 		Description: "测试团队",
 	}
@@ -291,7 +293,7 @@ func TestTeamDungeonService_GetDungeonProgress(t *testing.T) {
 		{
 			name:      "团队成员查看进度",
 			teamID:    team.ID,
-			heroID:    leaderHeroID,
+			heroID:    leaderHeroID.String(),
 			wantError: false,
 		},
 		{
@@ -304,7 +306,7 @@ func TestTeamDungeonService_GetDungeonProgress(t *testing.T) {
 		{
 			name:      "非团队成员",
 			teamID:    team.ID,
-			heroID:    "non-member-hero",
+			heroID:    testseed.StableUUID("team-dungeon-non-member").String(),
 			wantError: true,
 			errorMsg:  "您不是该团队成员",
 		},

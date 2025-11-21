@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -13,25 +14,27 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tsu-self/internal/modules/auth/client"
 	"tsu-self/internal/modules/game/service"
+	"tsu-self/internal/modules/game/testseed"
 	"tsu-self/internal/pkg/response"
+	"tsu-self/internal/pkg/validator"
+	"tsu-self/internal/pkg/xerrors"
 )
 
 // setupTestWarehouseHandler 设置测试 WarehouseHandler
-func setupTestWarehouseHandler(t *testing.T) (*TeamWarehouseHandler, *TeamHandler, *echo.Echo) {
+func setupTestWarehouseHandler(t *testing.T) (*TeamWarehouseHandler, *TeamHandler, *echo.Echo, *sql.DB) {
 	t.Helper()
 
 	db := setupTestDB(t)
-	ketoClient := &client.KetoClient{}
-	serviceContainer := service.NewServiceContainer(db, ketoClient, nil)
+	serviceContainer := service.NewServiceContainer(db, nil, nil)
 	respWriter := response.DefaultResponseHandler()
 
 	warehouseHandler := NewTeamWarehouseHandler(serviceContainer, respWriter)
 	teamHandler := NewTeamHandler(serviceContainer, respWriter)
 
 	e := echo.New()
-	return warehouseHandler, teamHandler, e
+	e.Validator = validator.New()
+	return warehouseHandler, teamHandler, e, db
 }
 
 // TestTeamWarehouseHandler_GetWarehouse 测试获取团队仓库
@@ -40,14 +43,17 @@ func TestTeamWarehouseHandler_GetWarehouse(t *testing.T) {
 		t.Skip("跳过集成测试")
 	}
 
-	warehouseHandler, teamHandler, e := setupTestWarehouseHandler(t)
-	db := setupTestDB(t)
+	warehouseHandler, teamHandler, e, db := setupTestWarehouseHandler(t)
 	defer db.Close()
+
+	leaderUserID := testseed.EnsureUser(t, db, "team-warehouse-handler-leader")
+	leaderHeroID := testseed.EnsureHero(t, db, leaderUserID, "team-warehouse-handler-leader-hero")
+	testseed.CleanupTeamsByHero(t, db, leaderHeroID)
 
 	// 创建测试团队
 	description := "测试团队"
 	createReq := CreateTeamRequest{
-		HeroID:      "test-hero-leader",
+		HeroID:      leaderHeroID.String(),
 		TeamName:    "测试团队-" + time.Now().Format("20060102150405"),
 		Description: &description,
 	}
@@ -56,18 +62,21 @@ func TestTeamWarehouseHandler_GetWarehouse(t *testing.T) {
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
-	c.Set("user_id", "test-user-leader")
+	c.Set("user_id", leaderUserID.String())
 
 	err := teamHandler.CreateTeam(c)
 	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, rec.Code)
 
 	// 获取创建的团队ID
 	var createResp response.Response
 	err = json.Unmarshal(rec.Body.Bytes(), &createResp)
 	require.NoError(t, err)
 
-	teamData := createResp.Data.(map[string]interface{})
-	teamID := teamData["id"].(string)
+	teamData, ok := createResp.Data.(map[string]interface{})
+	require.True(t, ok)
+	teamID, ok := teamData["id"].(string)
+	require.True(t, ok)
 
 	defer func() {
 		_, _ = db.Exec("DELETE FROM game_runtime.team_members WHERE team_id = $1", teamID)
@@ -84,13 +93,13 @@ func TestTeamWarehouseHandler_GetWarehouse(t *testing.T) {
 		{
 			name:           "队长成功获取仓库",
 			teamID:         teamID,
-			heroID:         "test-hero-leader",
+			heroID:         leaderHeroID.String(),
 			expectedStatus: http.StatusOK,
 		},
 		{
 			name:           "TeamID为空",
 			teamID:         "",
-			heroID:         "test-hero-leader",
+			heroID:         leaderHeroID.String(),
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
@@ -121,7 +130,7 @@ func TestTeamWarehouseHandler_GetWarehouse(t *testing.T) {
 				var resp response.Response
 				err = json.Unmarshal(rec.Body.Bytes(), &resp)
 				assert.NoError(t, err)
-				assert.Equal(t, 0, resp.Code)
+				assert.Equal(t, xerrors.CodeSuccess, resp.Code)
 			}
 		})
 	}
@@ -133,14 +142,17 @@ func TestTeamWarehouseHandler_DistributeGold(t *testing.T) {
 		t.Skip("跳过集成测试")
 	}
 
-	warehouseHandler, teamHandler, e := setupTestWarehouseHandler(t)
-	db := setupTestDB(t)
+	warehouseHandler, teamHandler, e, db := setupTestWarehouseHandler(t)
 	defer db.Close()
+
+	leaderUserID := testseed.EnsureUser(t, db, "team-warehouse-handler-leader")
+	leaderHeroID := testseed.EnsureHero(t, db, leaderUserID, "team-warehouse-handler-leader-hero")
+	testseed.CleanupTeamsByHero(t, db, leaderHeroID)
 
 	// 创建测试团队
 	description := "测试团队"
 	createReq := CreateTeamRequest{
-		HeroID:      "test-hero-leader",
+		HeroID:      leaderHeroID.String(),
 		TeamName:    "测试团队-" + time.Now().Format("20060102150405"),
 		Description: &description,
 	}
@@ -149,17 +161,20 @@ func TestTeamWarehouseHandler_DistributeGold(t *testing.T) {
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
-	c.Set("user_id", "test-user-leader")
+	c.Set("user_id", leaderUserID.String())
 
 	err := teamHandler.CreateTeam(c)
 	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, rec.Code)
 
 	var createResp response.Response
 	err = json.Unmarshal(rec.Body.Bytes(), &createResp)
 	require.NoError(t, err)
 
-	teamData := createResp.Data.(map[string]interface{})
-	teamID := teamData["id"].(string)
+	teamData, ok := createResp.Data.(map[string]interface{})
+	require.True(t, ok)
+	teamID, ok := teamData["id"].(string)
+	require.True(t, ok)
 
 	defer func() {
 		_, _ = db.Exec("DELETE FROM game_runtime.team_members WHERE team_id = $1", teamID)
@@ -169,6 +184,16 @@ func TestTeamWarehouseHandler_DistributeGold(t *testing.T) {
 
 	// 添加一些金币到仓库
 	_, err = db.Exec("UPDATE game_runtime.team_warehouses SET gold_amount = 10000 WHERE team_id = $1", teamID)
+	require.NoError(t, err)
+
+	// 添加一个团队成员
+	memberUserID := testseed.EnsureUser(t, db, "team-warehouse-handler-member")
+	memberHeroID := testseed.EnsureHero(t, db, memberUserID, "team-warehouse-handler-member-hero")
+	_, err = db.Exec(`
+		INSERT INTO game_runtime.team_members (id, team_id, hero_id, user_id, role, joined_at)
+		VALUES (gen_random_uuid(), $1, $2, $3, 'member', NOW())
+		ON CONFLICT (team_id, hero_id) DO NOTHING
+	`, teamID, memberHeroID.String(), memberUserID.String())
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -181,9 +206,9 @@ func TestTeamWarehouseHandler_DistributeGold(t *testing.T) {
 			name:   "队长成功分配金币",
 			teamID: teamID,
 			requestBody: DistributeGoldRequest{
-				DistributorID: "test-hero-leader",
+				DistributorID: leaderHeroID.String(),
 				Distributions: map[string]int64{
-					"test-hero-member": 1000,
+					memberHeroID.String(): 1000,
 				},
 			},
 			expectedStatus: http.StatusOK,
@@ -194,7 +219,7 @@ func TestTeamWarehouseHandler_DistributeGold(t *testing.T) {
 			requestBody: DistributeGoldRequest{
 				DistributorID: "",
 				Distributions: map[string]int64{
-					"test-hero-member": 1000,
+					memberHeroID.String(): 1000,
 				},
 			},
 			expectedStatus: http.StatusBadRequest,
@@ -225,14 +250,17 @@ func TestTeamWarehouseHandler_GetWarehouseItems(t *testing.T) {
 		t.Skip("跳过集成测试")
 	}
 
-	warehouseHandler, teamHandler, e := setupTestWarehouseHandler(t)
-	db := setupTestDB(t)
+	warehouseHandler, teamHandler, e, db := setupTestWarehouseHandler(t)
 	defer db.Close()
+
+	leaderUserID := testseed.EnsureUser(t, db, "team-warehouse-handler-leader")
+	leaderHeroID := testseed.EnsureHero(t, db, leaderUserID, "team-warehouse-handler-leader-hero")
+	testseed.CleanupTeamsByHero(t, db, leaderHeroID)
 
 	// 创建测试团队
 	description := "测试团队"
 	createReq := CreateTeamRequest{
-		HeroID:      "test-hero-leader",
+		HeroID:      leaderHeroID.String(),
 		TeamName:    "测试团队-" + time.Now().Format("20060102150405"),
 		Description: &description,
 	}
@@ -241,17 +269,20 @@ func TestTeamWarehouseHandler_GetWarehouseItems(t *testing.T) {
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
-	c.Set("user_id", "test-user-leader")
+	c.Set("user_id", leaderUserID.String())
 
 	err := teamHandler.CreateTeam(c)
 	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, rec.Code)
 
 	var createResp response.Response
 	err = json.Unmarshal(rec.Body.Bytes(), &createResp)
 	require.NoError(t, err)
 
-	teamData := createResp.Data.(map[string]interface{})
-	teamID := teamData["id"].(string)
+	teamData, ok := createResp.Data.(map[string]interface{})
+	require.True(t, ok)
+	teamID, ok := teamData["id"].(string)
+	require.True(t, ok)
 
 	defer func() {
 		_, _ = db.Exec("DELETE FROM game_runtime.team_members WHERE team_id = $1", teamID)
@@ -268,13 +299,13 @@ func TestTeamWarehouseHandler_GetWarehouseItems(t *testing.T) {
 		{
 			name:           "队长成功获取物品列表",
 			teamID:         teamID,
-			heroID:         "test-hero-leader",
+			heroID:         leaderHeroID.String(),
 			expectedStatus: http.StatusOK,
 		},
 		{
 			name:           "TeamID为空",
 			teamID:         "",
-			heroID:         "test-hero-leader",
+			heroID:         leaderHeroID.String(),
 			expectedStatus: http.StatusBadRequest,
 		},
 	}

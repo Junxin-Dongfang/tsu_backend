@@ -7,6 +7,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"tsu-self/internal/modules/game/testseed"
 )
 
 // TestTeamMemberService_ApplyToJoin 测试申请加入团队
@@ -24,11 +26,11 @@ func TestTeamMemberService_ApplyToJoin(t *testing.T) {
 	ctx := context.Background()
 
 	// 创建测试团队
-	leaderUserID := "test-user-leader"
-	leaderHeroID := "test-hero-leader"
+	leaderUserID := testseed.EnsureUser(t, db, "team-member-leader")
+	leaderHeroID := testseed.EnsureHero(t, db, leaderUserID, "team-member-leader-hero")
 	createReq := &CreateTeamRequest{
-		UserID:      leaderUserID,
-		HeroID:      leaderHeroID,
+		UserID:      leaderUserID.String(),
+		HeroID:      leaderHeroID.String(),
 		TeamName:    "测试团队-" + time.Now().Format("20060102150405"),
 		Description: "测试团队",
 	}
@@ -38,12 +40,12 @@ func TestTeamMemberService_ApplyToJoin(t *testing.T) {
 	defer cleanupTestData(t, db, team.ID)
 
 	// 测试申请加入
-	applicantUserID := "test-user-applicant"
-	applicantHeroID := "test-hero-applicant"
+	applicantUserID := testseed.EnsureUser(t, db, "team-member-applicant")
+	applicantHeroID := testseed.EnsureHero(t, db, applicantUserID, "team-member-applicant-hero")
 	applyReq := &ApplyToJoinRequest{
 		TeamID:  team.ID,
-		HeroID:  applicantHeroID,
-		UserID:  applicantUserID,
+		HeroID:  applicantHeroID.String(),
+		UserID:  applicantUserID.String(),
 		Message: "我想加入你们的团队",
 	}
 
@@ -52,7 +54,7 @@ func TestTeamMemberService_ApplyToJoin(t *testing.T) {
 
 	// 验证申请记录是否创建
 	var requestID string
-	err = db.QueryRow("SELECT id FROM game_runtime.team_join_requests WHERE team_id = $1 AND hero_id = $2 AND status = 'pending'", team.ID, applicantHeroID).Scan(&requestID)
+	err = db.QueryRow("SELECT id FROM game_runtime.team_join_requests WHERE team_id = $1 AND hero_id = $2 AND status = 'pending'", team.ID, applicantHeroID.String()).Scan(&requestID)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, requestID)
 
@@ -77,11 +79,11 @@ func TestTeamMemberService_ApproveJoinRequest(t *testing.T) {
 	ctx := context.Background()
 
 	// 创建测试团队
-	leaderUserID := "test-user-leader"
-	leaderHeroID := "test-hero-leader"
+	leaderUserID := testseed.EnsureUser(t, db, "team-member-leader")
+	leaderHeroID := testseed.EnsureHero(t, db, leaderUserID, "team-member-leader-hero")
 	createReq := &CreateTeamRequest{
-		UserID:      leaderUserID,
-		HeroID:      leaderHeroID,
+		UserID:      leaderUserID.String(),
+		HeroID:      leaderHeroID.String(),
 		TeamName:    "测试团队-" + time.Now().Format("20060102150405"),
 		Description: "测试团队",
 	}
@@ -91,12 +93,12 @@ func TestTeamMemberService_ApproveJoinRequest(t *testing.T) {
 	defer cleanupTestData(t, db, team.ID)
 
 	// 创建申请
-	applicantUserID := "test-user-applicant"
-	applicantHeroID := "test-hero-applicant"
+	applicantUserID := testseed.EnsureUser(t, db, "team-member-applicant")
+	applicantHeroID := testseed.EnsureHero(t, db, applicantUserID, "team-member-applicant-hero")
 	applyReq := &ApplyToJoinRequest{
 		TeamID:  team.ID,
-		HeroID:  applicantHeroID,
-		UserID:  applicantUserID,
+		HeroID:  applicantHeroID.String(),
+		UserID:  applicantUserID.String(),
 		Message: "我想加入你们的团队",
 	}
 
@@ -105,7 +107,7 @@ func TestTeamMemberService_ApproveJoinRequest(t *testing.T) {
 
 	// 获取申请ID
 	var requestID string
-	err = db.QueryRow("SELECT id FROM game_runtime.team_join_requests WHERE team_id = $1 AND hero_id = $2", team.ID, applicantHeroID).Scan(&requestID)
+	err = db.QueryRow("SELECT id FROM game_runtime.team_join_requests WHERE team_id = $1 AND hero_id = $2", team.ID, applicantHeroID.String()).Scan(&requestID)
 	require.NoError(t, err)
 
 	defer func() {
@@ -115,7 +117,7 @@ func TestTeamMemberService_ApproveJoinRequest(t *testing.T) {
 	// 测试批准申请
 	approveReq := &ApproveJoinRequestRequest{
 		RequestID: requestID,
-		HeroID:    leaderHeroID,
+		HeroID:    leaderHeroID.String(),
 		Approved:  true,
 	}
 
@@ -155,11 +157,11 @@ func TestTeamMemberService_KickMember(t *testing.T) {
 	ctx := context.Background()
 
 	// 创建测试团队
-	leaderUserID := "test-user-leader"
-	leaderHeroID := "test-hero-leader"
+	leaderUserID := testseed.EnsureUser(t, db, "team-member-leader")
+	leaderHeroID := testseed.EnsureHero(t, db, leaderUserID, "team-member-leader-hero")
 	createReq := &CreateTeamRequest{
-		UserID:      leaderUserID,
-		HeroID:      leaderHeroID,
+		UserID:      leaderUserID.String(),
+		HeroID:      leaderHeroID.String(),
 		TeamName:    "测试团队-" + time.Now().Format("20060102150405"),
 		Description: "测试团队",
 	}
@@ -174,4 +176,3 @@ func TestTeamMemberService_KickMember(t *testing.T) {
 
 // 运行测试：
 // go test -v ./internal/modules/game/service -run TestTeamMemberService
-

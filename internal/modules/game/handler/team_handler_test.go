@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/json"
 	"net/http"
@@ -14,9 +15,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tsu-self/internal/modules/auth/client"
 	"tsu-self/internal/modules/game/service"
+	"tsu-self/internal/modules/game/testseed"
 	"tsu-self/internal/pkg/response"
+	"tsu-self/internal/pkg/validator"
+	"tsu-self/internal/pkg/xerrors"
 )
 
 // setupTestDB 设置测试数据库连接
@@ -40,14 +43,13 @@ func setupTestDB(t *testing.T) *sql.DB {
 func setupTestHandler(t *testing.T, db *sql.DB) (*TeamHandler, *echo.Echo) {
 	t.Helper()
 
-	// 创建一个模拟的 KetoClient
-	ketoClient := &client.KetoClient{} // 在测试中可以使用空实例
-
-	serviceContainer := service.NewServiceContainer(db, ketoClient, nil)
+	// 在单元/集成测试中跳过 Keto，同步路径由数据库降级逻辑覆盖
+	serviceContainer := service.NewServiceContainer(db, nil, nil)
 	respWriter := response.DefaultResponseHandler()
 	handler := NewTeamHandler(serviceContainer, respWriter)
 
 	e := echo.New()
+	e.Validator = validator.New()
 	return handler, e
 }
 
@@ -62,6 +64,10 @@ func TestTeamHandler_CreateTeam(t *testing.T) {
 
 	handler, e := setupTestHandler(t, db)
 
+	userID := testseed.EnsureUser(t, db, "team-handler-user")
+	heroID := testseed.EnsureHero(t, db, userID, "team-handler-hero")
+	testseed.CleanupTeamsByHero(t, db, heroID)
+
 	tests := []struct {
 		name           string
 		requestBody    CreateTeamRequest
@@ -71,22 +77,22 @@ func TestTeamHandler_CreateTeam(t *testing.T) {
 		{
 			name: "成功创建团队",
 			requestBody: CreateTeamRequest{
-				HeroID:   "test-hero-001",
+				HeroID:   heroID.String(),
 				TeamName: "测试团队-" + time.Now().Format("20060102150405"),
 			},
 			setupContext: func(c echo.Context) {
-				c.Set("user_id", "test-user-001")
+				c.Set("user_id", userID.String())
 			},
 			expectedStatus: http.StatusOK,
 		},
 		{
 			name: "团队名称为空",
 			requestBody: CreateTeamRequest{
-				HeroID:   "test-hero-001",
+				HeroID:   heroID.String(),
 				TeamName: "",
 			},
 			setupContext: func(c echo.Context) {
-				c.Set("user_id", "test-user-001")
+				c.Set("user_id", userID.String())
 			},
 			expectedStatus: http.StatusBadRequest,
 		},
@@ -127,7 +133,7 @@ func TestTeamHandler_CreateTeam(t *testing.T) {
 				var resp response.Response
 				err = json.Unmarshal(rec.Body.Bytes(), &resp)
 				assert.NoError(t, err)
-				assert.Equal(t, 0, resp.Code)
+				assert.Equal(t, xerrors.CodeSuccess, resp.Code)
 
 				// 清理测试数据
 				if resp.Data != nil {
@@ -165,18 +171,21 @@ func TestTeamHandler_GetTeam(t *testing.T) {
 	handler, e := setupTestHandler(t, db)
 
 	// 先创建一个测试团队
-	ketoClient := &client.KetoClient{} // 在测试中可以使用空实例
-	serviceContainer := service.NewServiceContainer(db, ketoClient, nil)
+	serviceContainer := service.NewServiceContainer(db, nil, nil)
 	teamService := serviceContainer.GetTeamService()
 
+	leaderUserID := testseed.EnsureUser(t, db, "team-handler-leader")
+	leaderHeroID := testseed.EnsureHero(t, db, leaderUserID, "team-handler-leader-hero")
+	testseed.CleanupTeamsByHero(t, db, leaderHeroID)
+
 	createReq := &service.CreateTeamRequest{
-		UserID:      "test-user-001",
-		HeroID:      "test-hero-001",
+		UserID:      leaderUserID.String(),
+		HeroID:      leaderHeroID.String(),
 		TeamName:    "测试团队-" + time.Now().Format("20060102150405"),
 		Description: "测试团队",
 	}
 
-	team, err := teamService.CreateTeam(e.NewContext(nil, nil).Request().Context(), createReq)
+	team, err := teamService.CreateTeam(context.Background(), createReq)
 	require.NoError(t, err)
 
 	defer func() {

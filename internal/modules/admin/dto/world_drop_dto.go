@@ -3,8 +3,45 @@ package dto
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 )
+
+// RawOrStringJSON 支持直接传对象或用字符串包装的JSON对象
+type RawOrStringJSON json.RawMessage
+
+// UnmarshalJSON 解包字符串或对象JSON
+func (r *RawOrStringJSON) UnmarshalJSON(data []byte) error {
+	// 允许 null
+	if string(data) == "null" {
+		*r = nil
+		return nil
+	}
+
+	// 如果是字符串，先解码再校验内部是否为合法JSON
+	if len(data) > 0 && data[0] == '"' {
+		var inner string
+		if err := json.Unmarshal(data, &inner); err != nil {
+			return err
+		}
+		if inner == "" {
+			*r = nil
+			return nil
+		}
+		if !json.Valid([]byte(inner)) {
+			return fmt.Errorf("invalid JSON string")
+		}
+		*r = RawOrStringJSON([]byte(inner))
+		return nil
+	}
+
+	// 直接对象，校验合法性
+	if !json.Valid(data) {
+		return fmt.Errorf("invalid JSON object")
+	}
+	*r = RawOrStringJSON(data)
+	return nil
+}
 
 // CreateWorldDropRequest 创建世界掉落请求
 type CreateWorldDropRequest struct {
@@ -22,7 +59,7 @@ type CreateWorldDropRequest struct {
 	// required_quest: 需要完成的任务ID(可选)
 	// zone: 限定区域(可选)
 	// 示例: {"min_player_level":10,"max_player_level":20,"zone":"forest"}
-	TriggerConditions json.RawMessage `json:"trigger_conditions,omitempty" swaggertype:"string"`
+	TriggerConditions RawOrStringJSON `json:"trigger_conditions,omitempty" swaggertype:"string"`
 
 	BaseDropRate float64 `json:"base_drop_rate" validate:"required,gt=0,lte=1"`
 
@@ -32,7 +69,7 @@ type CreateWorldDropRequest struct {
 	// player_luck_bonus: 玩家幸运加成(可选)
 	// party_size_bonus: 队伍人数加成(可选)
 	// 示例: {"time_of_day":{"morning":1.2,"night":0.8},"player_luck_bonus":0.1}
-	DropRateModifiers json.RawMessage `json:"drop_rate_modifiers,omitempty" swaggertype:"string"`
+	DropRateModifiers RawOrStringJSON `json:"drop_rate_modifiers,omitempty" swaggertype:"string"`
 }
 
 // UpdateWorldDropRequest 更新世界掉落请求
@@ -44,12 +81,12 @@ type UpdateWorldDropRequest struct {
 	MaxDropInterval *int `json:"max_drop_interval,omitempty" validate:"omitempty,min=0"`
 
 	// 触发条件 - 详细说明见CreateWorldDropRequest
-	TriggerConditions json.RawMessage `json:"trigger_conditions,omitempty" swaggertype:"string"`
+	TriggerConditions RawOrStringJSON `json:"trigger_conditions,omitempty" swaggertype:"string"`
 
 	BaseDropRate *float64 `json:"base_drop_rate,omitempty" validate:"omitempty,gt=0,lte=1"`
 
 	// 掉落率修正器 - 详细说明见CreateWorldDropRequest
-	DropRateModifiers json.RawMessage `json:"drop_rate_modifiers,omitempty" swaggertype:"string"`
+	DropRateModifiers RawOrStringJSON `json:"drop_rate_modifiers,omitempty" swaggertype:"string"`
 
 	IsActive *bool `json:"is_active,omitempty"`
 }

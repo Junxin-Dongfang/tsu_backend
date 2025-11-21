@@ -61,8 +61,9 @@ func (s *ItemConfigService) CreateItem(ctx context.Context, req *dto.CreateItemR
 		}
 	}
 
-	// 3. 验证JSON格式
-	if err := s.validateJSONFields(req.OutOfCombatEffects, req.InCombatEffects, req.UseEffects); err != nil {
+	// 3. 规范化并验证 JSON 字段
+	outJSON, inJSON, useJSON, providedSkillsJSON, err := normalizeItemJSONFields(req.OutOfCombatEffects, req.InCombatEffects, req.UseEffects, nil)
+	if err != nil {
 		return nil, err
 	}
 
@@ -109,21 +110,19 @@ func (s *ItemConfigService) CreateItem(ctx context.Context, req *dto.CreateItemR
 	if req.UniquenessType != nil {
 		item.UniquenessType.SetValid(*req.UniquenessType)
 	}
-	if len(req.OutOfCombatEffects) > 0 {
-		item.OutOfCombatEffects.SetValid(req.OutOfCombatEffects)
+	if len(outJSON) > 0 {
+		item.OutOfCombatEffects.SetValid(outJSON)
 	}
-	if len(req.InCombatEffects) > 0 {
-		item.InCombatEffects.SetValid(req.InCombatEffects)
+	if len(inJSON) > 0 {
+		item.InCombatEffects.SetValid(inJSON)
 	}
-	if len(req.UseEffects) > 0 {
-		item.UseEffects.SetValid(req.UseEffects)
+	if len(useJSON) > 0 {
+		item.UseEffects.SetValid(useJSON)
 	}
 	if len(req.ProvidedSkills) > 0 {
-		var skills []string
-		if err := json.Unmarshal(req.ProvidedSkills, &skills); err != nil {
+		if err := json.Unmarshal(providedSkillsJSON, &item.ProvidedSkills); err != nil {
 			return nil, xerrors.Wrap(err, xerrors.CodeInvalidParams, "解析 provided_skills 失败")
 		}
-		item.ProvidedSkills = skills
 	}
 	if req.SocketType != nil {
 		item.SocketType.SetValid(*req.SocketType)
@@ -216,17 +215,25 @@ func (s *ItemConfigService) CreateItem(ctx context.Context, req *dto.CreateItemR
 	return s.GetItemByID(ctx, item.ID)
 }
 
-// validateJSONFields 验证JSON字段格式
-func (s *ItemConfigService) validateJSONFields(fields ...json.RawMessage) error {
-	for _, field := range fields {
-		if len(field) > 0 {
-			var temp interface{}
-			if err := json.Unmarshal(field, &temp); err != nil {
-				return xerrors.New(xerrors.CodeInvalidParams, fmt.Sprintf("无效的JSON格式: %v", err))
-			}
-		}
+// normalizeItemJSONFields 规范化并验证物品相关的JSON字段，兼容字符串包裹的JSON
+func normalizeItemJSONFields(out, in, use, skills dto.RawOrStringJSON) (json.RawMessage, json.RawMessage, json.RawMessage, json.RawMessage, error) {
+	outJSON, err := normalizeJSON(json.RawMessage(out), "out_of_combat_effects")
+	if err != nil {
+		return nil, nil, nil, nil, err
 	}
-	return nil
+	inJSON, err := normalizeJSON(json.RawMessage(in), "in_combat_effects")
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	useJSON, err := normalizeJSON(json.RawMessage(use), "use_effects")
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	skillJSON, err := normalizeJSON(json.RawMessage(skills), "provided_skills")
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	return outJSON, inJSON, useJSON, skillJSON, nil
 }
 
 // GetItemByID 根据ID获取物品配置
@@ -320,8 +327,9 @@ func (s *ItemConfigService) UpdateItem(ctx context.Context, itemID string, req *
 		return nil, err
 	}
 
-	// 4. 验证JSON格式
-	if err := s.validateJSONFields(req.OutOfCombatEffects, req.InCombatEffects, req.UseEffects, req.ProvidedSkills); err != nil {
+	// 4. 规范化并验证 JSON 字段
+	outJSON, inJSON, useJSON, providedSkillsJSON, err := normalizeItemJSONFields(req.OutOfCombatEffects, req.InCombatEffects, req.UseEffects, req.ProvidedSkills)
+	if err != nil {
 		return nil, err
 	}
 
@@ -362,21 +370,19 @@ func (s *ItemConfigService) UpdateItem(ctx context.Context, itemID string, req *
 	if req.UniquenessType != nil {
 		item.UniquenessType.SetValid(*req.UniquenessType)
 	}
-	if len(req.OutOfCombatEffects) > 0 {
-		item.OutOfCombatEffects.SetValid(req.OutOfCombatEffects)
+	if len(outJSON) > 0 {
+		item.OutOfCombatEffects.SetValid(outJSON)
 	}
-	if len(req.InCombatEffects) > 0 {
-		item.InCombatEffects.SetValid(req.InCombatEffects)
+	if len(inJSON) > 0 {
+		item.InCombatEffects.SetValid(inJSON)
 	}
-	if len(req.UseEffects) > 0 {
-		item.UseEffects.SetValid(req.UseEffects)
+	if len(useJSON) > 0 {
+		item.UseEffects.SetValid(useJSON)
 	}
 	if len(req.ProvidedSkills) > 0 {
-		var skills []string
-		if err := json.Unmarshal(req.ProvidedSkills, &skills); err != nil {
+		if err := json.Unmarshal(providedSkillsJSON, &item.ProvidedSkills); err != nil {
 			return nil, xerrors.Wrap(err, xerrors.CodeInvalidParams, "解析 provided_skills 失败")
 		}
-		item.ProvidedSkills = skills
 	}
 	if req.SocketType != nil {
 		item.SocketType.SetValid(*req.SocketType)

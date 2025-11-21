@@ -1,9 +1,6 @@
 package dto
 
-import (
-	"encoding/json"
-	"time"
-)
+import "time"
 
 // CreateWorldDropItemRequest 创建世界掉落物品
 type CreateWorldDropItemRequest struct {
@@ -15,7 +12,7 @@ type CreateWorldDropItemRequest struct {
 	MinLevel       *int            `json:"min_level,omitempty" validate:"omitempty,min=1"`
 	MaxLevel       *int            `json:"max_level,omitempty" validate:"omitempty,min=1"`
 	GuaranteedDrop bool            `json:"guaranteed_drop"`
-	Metadata       json.RawMessage `json:"metadata,omitempty"`
+	Metadata       RawOrStringJSON `json:"metadata,omitempty"`
 }
 
 // UpdateWorldDropItemRequest 更新世界掉落物品
@@ -28,7 +25,7 @@ type UpdateWorldDropItemRequest struct {
 	MinLevel       *int            `json:"min_level,omitempty" validate:"omitempty,min=1"`
 	MaxLevel       *int            `json:"max_level,omitempty" validate:"omitempty,min=1"`
 	GuaranteedDrop *bool           `json:"guaranteed_drop,omitempty"`
-	Metadata       json.RawMessage `json:"metadata,omitempty"`
+	Metadata       RawOrStringJSON `json:"metadata,omitempty"`
 }
 
 // WorldDropItemResponse 返回详情
@@ -46,7 +43,7 @@ type WorldDropItemResponse struct {
 	MinLevel          *int            `json:"min_level,omitempty"`
 	MaxLevel          *int            `json:"max_level,omitempty"`
 	GuaranteedDrop    bool            `json:"guaranteed_drop"`
-	Metadata          json.RawMessage `json:"metadata,omitempty"`
+	Metadata          RawOrStringJSON `json:"metadata,omitempty"`
 	CreatedAt         time.Time       `json:"created_at"`
 	UpdatedAt         time.Time       `json:"updated_at"`
 }

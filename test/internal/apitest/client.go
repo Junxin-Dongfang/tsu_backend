@@ -64,6 +64,11 @@ func DeleteJSON[T any, R any](ctx context.Context, c *Client, path string, paylo
 	return doJSON[T, R](ctx, c, http.MethodDelete, path, payload, token)
 }
 
+// HTTPClient exposes the underlying http.Client (needed for custom header cases).
+func (c *Client) HTTPClient() *http.Client {
+	return c.httpClient
+}
+
 func doJSON[T any, R any](ctx context.Context, c *Client, method, path string, payload *T, token string) (*APIResponse[R], *http.Response, []byte, error) {
 	var body io.Reader
 	if payload != nil {

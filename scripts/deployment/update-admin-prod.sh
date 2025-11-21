@@ -38,9 +38,17 @@ echo "  完整标签: ${IMAGE_TAG}"
 echo ""
 
 # ==========================================
-# 1. 重新生成 Swagger 文档
+# 1. 数据库迁移（生产）
 # ==========================================
-print_step "[1/6] 重新生成 Swagger 文档"
+print_step "[1/7] 执行数据库迁移"
+
+ensure_remote_migrate
+ssh_exec "cd $SERVER_DEPLOY_DIR && source .env.prod && url=postgres://\${DB_USER}:\${DB_PASSWORD}@localhost:5432/\${DB_NAME}?sslmode=disable && migrate -path ./migrations -database \"\$url\" up"
+
+# ==========================================
+# 2. 重新生成 Swagger 文档
+# ==========================================
+print_step "[2/7] 重新生成 Swagger 文档"
 
 print_info "生成最新的 Admin Swagger 文档..."
 cd "$PROJECT_DIR"
@@ -49,9 +57,9 @@ swag init -g cmd/admin-server/main.go -o docs/admin --parseDependency --parseInt
 print_success "Swagger 文档已更新"
 
 # ==========================================
-# 2. 构建新镜像
+# 3. 构建新镜像
 # ==========================================
-print_step "[2/6] 构建 Admin Server 镜像"
+print_step "[3/7] 构建 Admin Server 镜像"
 
 print_info "构建镜像: $IMAGE_TAG"
 docker build \
@@ -65,9 +73,9 @@ docker build \
 print_success "镜像构建完成"
 
 # ==========================================
-# 3. 保存镜像到文件
+# 4. 保存镜像到文件
 # ==========================================
-print_step "[3/6] 保存镜像到文件"
+print_step "[4/7] 保存镜像到文件"
 
 TEMP_IMAGE_FILE="/tmp/tsu-admin-server-update.tar.gz"
 print_info "保存镜像为 tar.gz..."
@@ -76,9 +84,9 @@ docker save "$IMAGE_TAG" | gzip > "$TEMP_IMAGE_FILE"
 print_success "镜像已保存: $TEMP_IMAGE_FILE"
 
 # ==========================================
-# 4. 上传镜像到服务器
+# 5. 上传镜像到服务器
 # ==========================================
-print_step "[4/6] 上传镜像到服务器"
+print_step "[5/7] 上传镜像到服务器"
 
 print_info "上传镜像到服务器..."
 sshpass -p "$SERVER_PASSWORD" scp -o StrictHostKeyChecking=no "$TEMP_IMAGE_FILE" "$SERVER_USER@$SERVER_HOST:/tmp/"
@@ -86,9 +94,9 @@ sshpass -p "$SERVER_PASSWORD" scp -o StrictHostKeyChecking=no "$TEMP_IMAGE_FILE"
 print_success "镜像已上传"
 
 # ==========================================
-# 5. 在服务器加载镜像
+# 6. 在服务器加载镜像
 # ==========================================
-print_step "[5/6] 在服务器加载镜像"
+print_step "[6/7] 在服务器加载镜像"
 
 print_info "加载镜像..."
 ssh_exec "docker load < /tmp/tsu-admin-server-update.tar.gz"
@@ -103,9 +111,9 @@ ssh_exec "docker images | grep tsu-admin-server | head -3"
 print_success "镜像已加载到服务器"
 
 # ==========================================
-# 6. 重启 Admin Server 容器
+# 7. 重启 Admin Server 容器
 # ==========================================
-print_step "[6/6] 重启 Admin Server"
+print_step "[7/7] 重启 Admin Server"
 
 print_info "标记新镜像为 latest..."
 ssh_exec "docker tag $IMAGE_TAG lilonyon/tsu-admin-server:latest"

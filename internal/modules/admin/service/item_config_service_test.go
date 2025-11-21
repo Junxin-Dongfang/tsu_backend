@@ -13,8 +13,8 @@ import (
 // 这里我们主要测试业务逻辑函数，完整的CRUD测试应该使用集成测试
 // 集成测试需要真实的数据库环境
 
-// TestValidateJSONFields 测试JSON验证函数
-func TestValidateJSONFields(t *testing.T) {
+// TestNormalizeJSON 测试JSON规范化（支持字符串包裹）
+func TestNormalizeJSON(t *testing.T) {
 	tests := []struct {
 		name    string
 		input   json.RawMessage
@@ -31,9 +31,9 @@ func TestValidateJSONFields(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "空JSON",
+			name:    "空输入视为跳过",
 			input:   json.RawMessage(``),
-			wantErr: true, // 空JSON实际上会导致解析错误
+			wantErr: false,
 		},
 		{
 			name:    "null值",
@@ -55,12 +55,16 @@ func TestValidateJSONFields(t *testing.T) {
 			input:   json.RawMessage(`invalid json`),
 			wantErr: true,
 		},
+		{
+			name:    "字符串包裹的JSON对象",
+			input:   json.RawMessage(`"{\"k\":1}"`),
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var result interface{}
-			err := json.Unmarshal(tt.input, &result)
+			_, err := normalizeJSON(tt.input, "test-field")
 
 			if tt.wantErr {
 				assert.Error(t, err, "应该返回错误")

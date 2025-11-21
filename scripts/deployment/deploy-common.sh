@@ -95,6 +95,25 @@ check_docker() {
     return 0
 }
 
+ensure_remote_migrate() {
+    print_info "检查服务器上是否已安装 migrate 工具..."
+    if ssh_exec "command -v migrate >/dev/null 2>&1"; then
+        print_success "服务器已安装 migrate"
+        return 0
+    fi
+
+    print_info "服务器缺少 migrate，开始安装..."
+    ssh_exec "curl -L https://github.com/golang-migrate/migrate/releases/download/v4.16.2/migrate.linux-amd64.tar.gz | tar xvz && mv migrate /usr/local/bin/ && chmod +x /usr/local/bin/migrate"
+    # 再次校验
+    if ssh_exec "command -v migrate >/dev/null 2>&1"; then
+        print_success "服务器已安装 migrate"
+        return 0
+    else
+        print_error "安装 migrate 失败，请手动检查"
+        return 1
+    fi
+}
+
 # ==========================================
 # SSH 操作函数
 # ==========================================

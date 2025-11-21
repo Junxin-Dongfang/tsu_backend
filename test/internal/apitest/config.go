@@ -11,6 +11,7 @@ type Config struct {
 	PlayerEmailSuffix    string
 	GameUsername         string
 	GamePassword         string
+	GameInternalBase     string
 }
 
 // LoadConfig reads environment variables with sensible defaults for local docker env.
@@ -23,6 +24,7 @@ func LoadConfig() Config {
 		PlayerEmailSuffix:    getenv("PLAYER_EMAIL_SUFFIX", "example.com"),
 		GameUsername:         getenv("GAME_USERNAME", ""),
 		GamePassword:         getenv("GAME_PASSWORD", ""),
+		GameInternalBase:     getenv("GAME_INTERNAL_BASE", "http://localhost:8072"),
 	}
 }
 

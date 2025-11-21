@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tsu-self/internal/entity/game_runtime"
+	"tsu-self/internal/modules/game/testseed"
 )
 
 // TestTeamPermissionService_SyncMemberToKeto 测试同步成员权限到 Keto
@@ -87,11 +88,11 @@ func TestTeamPermissionService_CheckPermission(t *testing.T) {
 	ctx := context.Background()
 
 	// 创建测试团队
-	leaderUserID := "test-user-leader"
-	leaderHeroID := "test-hero-leader"
+	leaderUserID := testseed.EnsureUser(t, db, "team-permission-leader")
+	leaderHeroID := testseed.EnsureHero(t, db, leaderUserID, "team-permission-leader-hero")
 	createReq := &CreateTeamRequest{
-		UserID:      leaderUserID,
-		HeroID:      leaderHeroID,
+		UserID:      leaderUserID.String(),
+		HeroID:      leaderHeroID.String(),
 		TeamName:    "测试团队-" + time.Now().Format("20060102150405"),
 		Description: "测试团队",
 	}
@@ -101,13 +102,13 @@ func TestTeamPermissionService_CheckPermission(t *testing.T) {
 	defer cleanupTestData(t, db, team.ID)
 
 	// 添加一个管理员
-	adminUserID := "test-user-admin"
-	adminHeroID := "test-hero-admin"
+	adminUserID := testseed.EnsureUser(t, db, "team-permission-admin")
+	adminHeroID := testseed.EnsureHero(t, db, adminUserID, "team-permission-admin-hero")
 
 	applyReq := &ApplyToJoinRequest{
 		TeamID:  team.ID,
-		HeroID:  adminHeroID,
-		UserID:  adminUserID,
+		HeroID:  adminHeroID.String(),
+		UserID:  adminUserID.String(),
 		Message: "测试加入",
 	}
 	err = memberService.ApplyToJoin(ctx, applyReq)
@@ -115,12 +116,12 @@ func TestTeamPermissionService_CheckPermission(t *testing.T) {
 
 	// 批准并提升为管理员
 	var requestID string
-	err = db.QueryRow("SELECT id FROM game_runtime.team_join_requests WHERE team_id = $1 AND hero_id = $2", team.ID, adminHeroID).Scan(&requestID)
+	err = db.QueryRow("SELECT id FROM game_runtime.team_join_requests WHERE team_id = $1 AND hero_id = $2", team.ID, adminHeroID.String()).Scan(&requestID)
 	require.NoError(t, err)
 
 	approveReq := &ApproveJoinRequestRequest{
 		RequestID: requestID,
-		HeroID:    leaderHeroID,
+		HeroID:    leaderHeroID.String(),
 		Approved:  true,
 	}
 	err = memberService.ApproveJoinRequest(ctx, approveReq)
@@ -128,32 +129,32 @@ func TestTeamPermissionService_CheckPermission(t *testing.T) {
 
 	promoteReq := &PromoteToAdminRequest{
 		TeamID:       team.ID,
-		LeaderHeroID: leaderHeroID,
-		TargetHeroID: adminHeroID,
+		LeaderHeroID: leaderHeroID.String(),
+		TargetHeroID: adminHeroID.String(),
 	}
 	err = memberService.PromoteToAdmin(ctx, promoteReq)
 	require.NoError(t, err)
 
 	// 添加一个普通成员
-	memberUserID := "test-user-member"
-	memberHeroID := "test-hero-member"
+	memberUserID := testseed.EnsureUser(t, db, "team-permission-member")
+	memberHeroID := testseed.EnsureHero(t, db, memberUserID, "team-permission-member-hero")
 
 	applyReq2 := &ApplyToJoinRequest{
 		TeamID:  team.ID,
-		HeroID:  memberHeroID,
-		UserID:  memberUserID,
+		HeroID:  memberHeroID.String(),
+		UserID:  memberUserID.String(),
 		Message: "测试加入",
 	}
 	err = memberService.ApplyToJoin(ctx, applyReq2)
 	require.NoError(t, err)
 
 	var requestID2 string
-	err = db.QueryRow("SELECT id FROM game_runtime.team_join_requests WHERE team_id = $1 AND hero_id = $2", team.ID, memberHeroID).Scan(&requestID2)
+	err = db.QueryRow("SELECT id FROM game_runtime.team_join_requests WHERE team_id = $1 AND hero_id = $2", team.ID, memberHeroID.String()).Scan(&requestID2)
 	require.NoError(t, err)
 
 	approveReq2 := &ApproveJoinRequestRequest{
 		RequestID: requestID2,
-		HeroID:    leaderHeroID,
+		HeroID:    leaderHeroID.String(),
 		Approved:  true,
 	}
 	err = memberService.ApproveJoinRequest(ctx, approveReq2)
@@ -161,7 +162,7 @@ func TestTeamPermissionService_CheckPermission(t *testing.T) {
 
 	defer func() {
 		_, _ = db.Exec("DELETE FROM game_runtime.team_join_requests WHERE id IN ($1, $2)", requestID, requestID2)
-		_, _ = db.Exec("DELETE FROM game_runtime.team_members WHERE team_id = $1 AND hero_id IN ($2, $3)", team.ID, adminHeroID, memberHeroID)
+		_, _ = db.Exec("DELETE FROM game_runtime.team_members WHERE team_id = $1 AND hero_id IN ($2, $3)", team.ID, adminHeroID.String(), memberHeroID.String())
 	}()
 
 	tests := []struct {
@@ -175,7 +176,7 @@ func TestTeamPermissionService_CheckPermission(t *testing.T) {
 		{
 			name:        "队长拥有踢出成员权限",
 			teamID:      team.ID,
-			heroID:      leaderHeroID,
+			heroID:      leaderHeroID.String(),
 			permission:  "kick_member",
 			wantAllowed: true,
 			wantError:   false,
@@ -183,7 +184,7 @@ func TestTeamPermissionService_CheckPermission(t *testing.T) {
 		{
 			name:        "管理员拥有踢出成员权限",
 			teamID:      team.ID,
-			heroID:      adminHeroID,
+			heroID:      adminHeroID.String(),
 			permission:  "kick_member",
 			wantAllowed: true,
 			wantError:   false,
@@ -191,7 +192,7 @@ func TestTeamPermissionService_CheckPermission(t *testing.T) {
 		{
 			name:        "普通成员无踢出成员权限",
 			teamID:      team.ID,
-			heroID:      memberHeroID,
+			heroID:      memberHeroID.String(),
 			permission:  "kick_member",
 			wantAllowed: false,
 			wantError:   false,
@@ -199,7 +200,7 @@ func TestTeamPermissionService_CheckPermission(t *testing.T) {
 		{
 			name:        "队长拥有解散团队权限",
 			teamID:      team.ID,
-			heroID:      leaderHeroID,
+			heroID:      leaderHeroID.String(),
 			permission:  "disband_team",
 			wantAllowed: true,
 			wantError:   false,
@@ -207,7 +208,7 @@ func TestTeamPermissionService_CheckPermission(t *testing.T) {
 		{
 			name:        "管理员无解散团队权限",
 			teamID:      team.ID,
-			heroID:      adminHeroID,
+			heroID:      adminHeroID.String(),
 			permission:  "disband_team",
 			wantAllowed: false,
 			wantError:   false,
@@ -215,7 +216,7 @@ func TestTeamPermissionService_CheckPermission(t *testing.T) {
 		{
 			name:        "队长拥有查看仓库权限",
 			teamID:      team.ID,
-			heroID:      leaderHeroID,
+			heroID:      leaderHeroID.String(),
 			permission:  "view_warehouse",
 			wantAllowed: true,
 			wantError:   false,
@@ -223,7 +224,7 @@ func TestTeamPermissionService_CheckPermission(t *testing.T) {
 		{
 			name:        "管理员拥有查看仓库权限",
 			teamID:      team.ID,
-			heroID:      adminHeroID,
+			heroID:      adminHeroID.String(),
 			permission:  "view_warehouse",
 			wantAllowed: true,
 			wantError:   false,
@@ -231,7 +232,7 @@ func TestTeamPermissionService_CheckPermission(t *testing.T) {
 		{
 			name:        "普通成员无查看仓库权限",
 			teamID:      team.ID,
-			heroID:      memberHeroID,
+			heroID:      memberHeroID.String(),
 			permission:  "view_warehouse",
 			wantAllowed: false,
 			wantError:   false,
@@ -266,11 +267,11 @@ func TestTeamPermissionService_CheckPermission_NonMember(t *testing.T) {
 	ctx := context.Background()
 
 	// 创建测试团队
-	leaderUserID := "test-user-leader"
-	leaderHeroID := "test-hero-leader"
+	leaderUserID := testseed.EnsureUser(t, db, "team-permission-leader")
+	leaderHeroID := testseed.EnsureHero(t, db, leaderUserID, "team-permission-leader-hero")
 	createReq := &CreateTeamRequest{
-		UserID:      leaderUserID,
-		HeroID:      leaderHeroID,
+		UserID:      leaderUserID.String(),
+		HeroID:      leaderHeroID.String(),
 		TeamName:    "测试团队-" + time.Now().Format("20060102150405"),
 		Description: "测试团队",
 	}
@@ -280,7 +281,8 @@ func TestTeamPermissionService_CheckPermission_NonMember(t *testing.T) {
 	defer cleanupTestData(t, db, team.ID)
 
 	// 测试非成员
-	allowed, err := permissionService.CheckPermission(ctx, team.ID, "non-member-hero", "view_warehouse")
+	nonMemberHero := testseed.StableUUID("team-permission-non-member").String()
+	allowed, err := permissionService.CheckPermission(ctx, team.ID, nonMemberHero, "view_warehouse")
 	require.NoError(t, err)
 	assert.False(t, allowed, "非成员不应拥有权限")
 }

@@ -1,9 +1,6 @@
 package dto
 
-import (
-	"encoding/json"
-	"time"
-)
+import "time"
 
 // CreateItemRequest 创建物品配置请求
 type CreateItemRequest struct {
@@ -34,7 +31,7 @@ type CreateItemRequest struct {
 	// Bouns_type: 加成类型,"bonus"(固定值加成)或"percent"(百分比加成)
 	// Bouns_Number: 加成数值,字符串格式,如"10"表示+10或+10%
 	// 示例: [{"Data_type":"Status","Data_ID":"STR","Bouns_type":"bonus","Bouns_Number":"20"},{"Data_type":"Status","Data_ID":"ATK","Bouns_type":"bonus","Bouns_Number":"50"}]
-	OutOfCombatEffects json.RawMessage `json:"out_of_combat_effects,omitempty" swaggertype:"string"`
+	OutOfCombatEffects RawOrStringJSON `json:"out_of_combat_effects,omitempty" swaggertype:"string"`
 
 	// 局内效果 - 战斗时触发的效果
 	// 格式: [{"Data_type":"Buff","Data_ID":"buff_id","Trigger_type":"on_hit","Trigger_chance":"0.3"}]
@@ -43,21 +40,21 @@ type CreateItemRequest struct {
 	// Trigger_type: 触发类型,如"on_hit"(命中时),"on_attack"(攻击时),"on_damaged"(受伤时)等
 	// Trigger_chance: 触发概率,字符串格式,如"0.3"表示30%概率
 	// 示例: [{"Data_type":"Buff","Data_ID":"fire_buff_001","Trigger_type":"on_hit","Trigger_chance":"0.3"}]
-	InCombatEffects json.RawMessage `json:"in_combat_effects,omitempty" swaggertype:"string"`
+	InCombatEffects RawOrStringJSON `json:"in_combat_effects,omitempty" swaggertype:"string"`
 
 	// 使用效果 - 消耗品使用时的效果
 	// 格式: [{"Effect":"RESTORE_HP","params":{"amount":"100"}}]
 	// Effect: 效果类型,如"RESTORE_HP"(恢复生命),"RESTORE_MP"(恢复魔法),"APPLY_BUFF"(施加Buff)等
 	// params: 效果参数,根据不同的Effect类型有不同的参数
 	// 示例: [{"Effect":"RESTORE_HP","params":{"amount":"100","percent":"false"}}]
-	UseEffects json.RawMessage `json:"use_effects,omitempty" swaggertype:"string"`
+	UseEffects RawOrStringJSON `json:"use_effects,omitempty" swaggertype:"string"`
 
 	// 提供的技能 - 装备后获得的技能
 	// 格式: [{"skill_id":"skill_uuid","skill_level":1}]
 	// skill_id: 技能ID(UUID格式)
 	// skill_level: 技能等级
 	// 示例: [{"skill_id":"12345678-1234-4234-8234-123456789012","skill_level":1}]
-	ProvidedSkills json.RawMessage `json:"provided_skills,omitempty" swaggertype:"string"`
+	ProvidedSkills RawOrStringJSON `json:"provided_skills,omitempty" swaggertype:"string"`
 
 	// 强化相关
 	SocketType            *string `json:"socket_type,omitempty" validate:"omitempty,oneof=red blue yellow green prismatic"`
@@ -109,22 +106,22 @@ type UpdateItemRequest struct {
 	// 局外效果 - 直接影响英雄属性的效果
 	// 格式: [{"Data_type":"Status","Data_ID":"MAX_HP","Bouns_type":"bonus","Bouns_Number":"5"}]
 	// 详细说明见CreateItemRequest
-	OutOfCombatEffects json.RawMessage `json:"out_of_combat_effects,omitempty" swaggertype:"string"`
+	OutOfCombatEffects RawOrStringJSON `json:"out_of_combat_effects,omitempty" swaggertype:"string"`
 
 	// 局内效果 - 战斗时触发的效果
 	// 格式: [{"Data_type":"Buff","Data_ID":"buff_id","Trigger_type":"on_hit","Trigger_chance":"0.3"}]
 	// 详细说明见CreateItemRequest
-	InCombatEffects json.RawMessage `json:"in_combat_effects,omitempty" swaggertype:"string"`
+	InCombatEffects RawOrStringJSON `json:"in_combat_effects,omitempty" swaggertype:"string"`
 
 	// 使用效果 - 消耗品使用时的效果
 	// 格式: [{"Effect":"RESTORE_HP","params":{"amount":"100"}}]
 	// 详细说明见CreateItemRequest
-	UseEffects json.RawMessage `json:"use_effects,omitempty" swaggertype:"string"`
+	UseEffects RawOrStringJSON `json:"use_effects,omitempty" swaggertype:"string"`
 
 	// 提供的技能 - 装备后获得的技能
 	// 格式: [{"skill_id":"skill_uuid","skill_level":1}]
 	// 详细说明见CreateItemRequest
-	ProvidedSkills json.RawMessage `json:"provided_skills,omitempty" swaggertype:"string"`
+	ProvidedSkills RawOrStringJSON `json:"provided_skills,omitempty" swaggertype:"string"`
 
 	// 强化相关
 	SocketType            *string `json:"socket_type,omitempty" validate:"omitempty,oneof=red blue yellow green prismatic"`
@@ -177,22 +174,22 @@ type ItemConfigResponse struct {
 	// 局外效果 - 直接影响英雄属性的效果
 	// 格式: [{"Data_type":"Status","Data_ID":"MAX_HP","Bouns_type":"bonus","Bouns_Number":"5"}]
 	// 详细说明见CreateItemRequest
-	OutOfCombatEffects json.RawMessage `json:"out_of_combat_effects,omitempty" swaggertype:"string"`
+	OutOfCombatEffects RawOrStringJSON `json:"out_of_combat_effects,omitempty" swaggertype:"string"`
 
 	// 局内效果 - 战斗时触发的效果
 	// 格式: [{"Data_type":"Buff","Data_ID":"buff_id","Trigger_type":"on_hit","Trigger_chance":"0.3"}]
 	// 详细说明见CreateItemRequest
-	InCombatEffects json.RawMessage `json:"in_combat_effects,omitempty" swaggertype:"string"`
+	InCombatEffects RawOrStringJSON `json:"in_combat_effects,omitempty" swaggertype:"string"`
 
 	// 使用效果 - 消耗品使用时的效果
 	// 格式: [{"Effect":"RESTORE_HP","params":{"amount":"100"}}]
 	// 详细说明见CreateItemRequest
-	UseEffects json.RawMessage `json:"use_effects,omitempty" swaggertype:"string"`
+	UseEffects RawOrStringJSON `json:"use_effects,omitempty" swaggertype:"string"`
 
 	// 提供的技能 - 装备后获得的技能
 	// 格式: [{"skill_id":"skill_uuid","skill_level":1}]
 	// 详细说明见CreateItemRequest
-	ProvidedSkills json.RawMessage `json:"provided_skills,omitempty" swaggertype:"string"`
+	ProvidedSkills RawOrStringJSON `json:"provided_skills,omitempty" swaggertype:"string"`
 
 	// 强化相关
 	SocketType            *string `json:"socket_type,omitempty"`

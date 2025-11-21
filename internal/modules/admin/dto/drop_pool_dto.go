@@ -1,10 +1,7 @@
 // Package dto 定义Admin模块的数据传输对象
 package dto
 
-import (
-	"encoding/json"
-	"time"
-)
+import "time"
 
 // CreateDropPoolRequest 创建掉落池请求
 // @Description 创建掉落池配置
@@ -65,7 +62,7 @@ type AddDropPoolItemRequest struct {
 	// 键: 品质名称(poor/normal/fine/excellent/superb/master/epic/legendary/mythic)
 	// 值: 权重值,数值越大掉落概率越高
 	// 示例: {"normal":50,"fine":30,"excellent":15,"superb":5}
-	QualityWeights json.RawMessage `json:"quality_weights,omitempty" swaggertype:"string"`
+	QualityWeights RawOrStringJSON `json:"quality_weights,omitempty" swaggertype:"string"`
 
 	MinQuantity int16  `json:"min_quantity" validate:"required,min=1"`
 	MaxQuantity int16  `json:"max_quantity" validate:"required,min=1"`
@@ -79,7 +76,7 @@ type UpdateDropPoolItemRequest struct {
 	DropRate   *float64 `json:"drop_rate,omitempty" validate:"omitempty,gt=0,lte=1"`
 
 	// 品质权重 - 详细说明见AddDropPoolItemRequest
-	QualityWeights json.RawMessage `json:"quality_weights,omitempty" swaggertype:"string"`
+	QualityWeights RawOrStringJSON `json:"quality_weights,omitempty" swaggertype:"string"`
 
 	MinQuantity *int16 `json:"min_quantity,omitempty" validate:"omitempty,min=1"`
 	MaxQuantity *int16 `json:"max_quantity,omitempty" validate:"omitempty,min=1"`
@@ -99,7 +96,7 @@ type DropPoolItemResponse struct {
 	DropRate   *float64 `json:"drop_rate,omitempty"`
 
 	// 品质权重 - 详细说明见AddDropPoolItemRequest
-	QualityWeights json.RawMessage `json:"quality_weights,omitempty" swaggertype:"string"`
+	QualityWeights RawOrStringJSON `json:"quality_weights,omitempty" swaggertype:"string"`
 
 	MinQuantity int16      `json:"min_quantity"`
 	MaxQuantity int16      `json:"max_quantity"`

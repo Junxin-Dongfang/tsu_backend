@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"tsu-self/internal/modules/game/testseed"
 	"tsu-self/internal/pkg/xerrors"
 )
 
@@ -52,8 +53,8 @@ func TestTeamService_CreateTeam(t *testing.T) {
 	teamService := NewTeamService(db, nil)
 	ctx := context.Background()
 
-	userID := "test-user-001"
-	heroID := "test-hero-001"
+	userID := testseed.EnsureUser(t, db, "team-service-leader")
+	heroID := testseed.EnsureHero(t, db, userID, "team-service-leader-hero")
 
 	tests := []struct {
 		name      string
@@ -64,8 +65,8 @@ func TestTeamService_CreateTeam(t *testing.T) {
 		{
 			name: "成功创建团队",
 			req: &CreateTeamRequest{
-				UserID:      userID,
-				HeroID:      heroID,
+				UserID:      userID.String(),
+				HeroID:      heroID.String(),
 				TeamName:    "测试团队-" + time.Now().Format("20060102150405"),
 				Description: "这是一个测试团队",
 			},
@@ -74,8 +75,8 @@ func TestTeamService_CreateTeam(t *testing.T) {
 		{
 			name: "团队名称为空",
 			req: &CreateTeamRequest{
-				UserID:   userID,
-				HeroID:   heroID,
+				UserID:   userID.String(),
+				HeroID:   heroID.String(),
 				TeamName: "",
 			},
 			wantError: true,
@@ -125,11 +126,11 @@ func TestTeamService_UpdateTeamInfo(t *testing.T) {
 	teamService := NewTeamService(db, nil)
 	ctx := context.Background()
 
-	userID := "test-user-001"
-	heroID := "test-hero-001"
+	userID := testseed.EnsureUser(t, db, "team-service-leader")
+	heroID := testseed.EnsureHero(t, db, userID, "team-service-leader-hero")
 	createReq := &CreateTeamRequest{
-		UserID:      userID,
-		HeroID:      heroID,
+		UserID:      userID.String(),
+		HeroID:      heroID.String(),
 		TeamName:    "测试团队-" + time.Now().Format("20060102150405"),
 		Description: "原始描述",
 	}
@@ -142,7 +143,7 @@ func TestTeamService_UpdateTeamInfo(t *testing.T) {
 	newDesc := "新的描述"
 	updateReq := &UpdateTeamInfoRequest{
 		TeamID:      team.ID,
-		HeroID:      heroID,
+		HeroID:      heroID.String(),
 		Name:        newName,
 		Description: &newDesc,
 	}

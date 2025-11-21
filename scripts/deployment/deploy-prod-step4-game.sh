@@ -19,7 +19,7 @@ print_step "步骤 4: 部署 Game Server"
 # ==========================================
 # 1. 检查依赖服务
 # ==========================================
-print_step "[1/8] 检查依赖服务"
+print_step "[1/9] 检查依赖服务"
 
 print_info "检查基础设施服务..."
 if ! check_container_running "tsu_postgres_main"; then
@@ -49,7 +49,7 @@ print_success "依赖服务检查通过"
 # ==========================================
 # 2. 检查 Docker Hub 配置
 # ==========================================
-print_step "[2/8] 检查 Docker Hub 配置"
+print_step "[2/9] 检查 Docker Hub 配置"
 
 if [ ! -f "$PROJECT_DIR/.registry.conf" ]; then
     print_error "未找到 .registry.conf 文件"
@@ -81,9 +81,17 @@ print_info "镜像版本: $IMAGE_VERSION"
 GAME_IMAGE_TAG="${DOCKERHUB_USERNAME}/tsu-game-server:${IMAGE_VERSION}"
 
 # ==========================================
-# 3. 构建 Game Server Docker 镜像
+# 3. 执行数据库迁移（生产）
 # ==========================================
-print_step "[3/8] 构建 Game Server 镜像"
+print_step "[3/9] 执行数据库迁移"
+
+ensure_remote_migrate
+ssh_exec "cd $SERVER_DEPLOY_DIR && source .env.prod && url=postgres://\\${DB_USER}:\\${DB_PASSWORD}@localhost:5432/\\${DB_NAME}?sslmode=disable && migrate -path ./migrations -database \"\$url\" up"
+
+# ==========================================
+# 4. 构建 Game Server Docker 镜像
+# ==========================================
+print_step "[4/9] 构建 Game Server 镜像"
 
 print_info "开始构建 Game Server 镜像: $GAME_IMAGE_TAG"
 print_info "这可能需要几分钟时间..."
@@ -100,9 +108,9 @@ docker build \
 print_success "Game Server 镜像构建完成"
 
 # ==========================================
-# 4. 保存镜像到文件
+# 5. 保存镜像到文件
 # ==========================================
-print_step "[4/8] 保存镜像到文件"
+print_step "[5/9] 保存镜像到文件"
 
 print_info "保存 Game Server 镜像为 tar.gz..."
 TEMP_GAME_IMAGE_FILE="/tmp/tsu-game-server.tar.gz"
@@ -111,9 +119,9 @@ docker save "$GAME_IMAGE_TAG" | gzip > "$TEMP_GAME_IMAGE_FILE"
 print_success "镜像已保存"
 
 # ==========================================
-# 5. 上传镜像到服务器
+# 6. 上传镜像到服务器
 # ==========================================
-print_step "[5/8] 上传镜像到服务器"
+print_step "[6/9] 上传镜像到服务器"
 
 print_info "上传 Game Server 镜像（约 30MB，需要几分钟）..."
 sshpass -p "$SERVER_PASSWORD" scp -o StrictHostKeyChecking=no "$TEMP_GAME_IMAGE_FILE" "$SERVER_USER@$SERVER_HOST:/tmp/"
@@ -125,9 +133,9 @@ print_success "镜像已加载到服务器"
 rm -f "$TEMP_GAME_IMAGE_FILE"
 
 # ==========================================
-# 6. 上传配置文件到服务器
+# 7. 上传配置文件到服务器
 # ==========================================
-print_step "[6/8] 上传配置文件到服务器"
+print_step "[7/9] 上传配置文件到服务器"
 
 print_info "上传 docker-compose 配置..."
 ssh_copy "$PROJECT_DIR/deployments/docker-compose/docker-compose.prod.4-game.yml" "$SERVER_DEPLOY_DIR/"
@@ -138,9 +146,9 @@ ssh_copy "$PROJECT_DIR/configs" "$SERVER_DEPLOY_DIR/"
 print_success "配置文件上传完成"
 
 # ==========================================
-# 7. 启动 Game Server
+# 8. 启动 Game Server
 # ==========================================
-print_step "[7/8] 启动 Game Server"
+print_step "[8/9] 启动 Game Server"
 
 print_info "停止旧的 Game Server 容器（如果存在）..."
 ssh_exec "docker stop tsu_game 2>/dev/null || true"
@@ -157,9 +165,9 @@ print_info "等待服务启动..."
 sleep 15
 
 # ==========================================
-# 8. 验证服务状态
+# 9. 验证服务状态
 # ==========================================
-print_step "[8/8] 验证 Game Server 服务状态"
+print_step "[9/9] 验证 Game Server 服务状态"
 
 print_info "等待服务完全就绪..."
 wait_for_container_healthy "tsu_game" 10

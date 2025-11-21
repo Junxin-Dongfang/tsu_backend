@@ -275,10 +275,15 @@ func (s *DropPoolService) AddDropPoolItem(ctx context.Context, poolID string, re
 
 	// 5. 验证品质权重JSON格式
 	if len(req.QualityWeights) > 0 {
+		normalized, err := normalizeJSON(json.RawMessage(req.QualityWeights), "品质权重")
+		if err != nil {
+			return nil, err
+		}
 		var weights map[string]interface{}
-		if unmarshalErr := json.Unmarshal(req.QualityWeights, &weights); unmarshalErr != nil {
+		if unmarshalErr := json.Unmarshal(normalized, &weights); unmarshalErr != nil {
 			return nil, xerrors.New(xerrors.CodeInvalidParams, "品质权重JSON格式错误")
 		}
+		req.QualityWeights = dto.RawOrStringJSON(normalized)
 	}
 
 	// 6. 检查物品是否已在掉落池中
@@ -312,7 +317,7 @@ func (s *DropPoolService) AddDropPoolItem(ctx context.Context, poolID string, re
 
 	// 设置品质权重
 	if len(req.QualityWeights) > 0 {
-		poolItem.QualityWeights.SetValid(req.QualityWeights)
+		poolItem.QualityWeights.SetValid(json.RawMessage(req.QualityWeights))
 	}
 
 	// 设置数量范围
@@ -404,12 +409,16 @@ func (s *DropPoolService) UpdateDropPoolItem(ctx context.Context, poolID, itemID
 		poolItem.DropRate = types.NewNullDecimal(dec)
 	}
 	if len(req.QualityWeights) > 0 {
+		normalized, err := normalizeJSON(json.RawMessage(req.QualityWeights), "品质权重")
+		if err != nil {
+			return nil, err
+		}
 		// 验证JSON格式
 		var weights map[string]interface{}
-		if unmarshalErr := json.Unmarshal(req.QualityWeights, &weights); unmarshalErr != nil {
+		if unmarshalErr := json.Unmarshal(normalized, &weights); unmarshalErr != nil {
 			return nil, xerrors.New(xerrors.CodeInvalidParams, "品质权重JSON格式错误")
 		}
-		poolItem.QualityWeights.SetValid(req.QualityWeights)
+		poolItem.QualityWeights.SetValid(normalized)
 	}
 	if req.MinQuantity != nil {
 		poolItem.MinQuantity.SetValid(int(*req.MinQuantity))
