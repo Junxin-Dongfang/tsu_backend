@@ -53,7 +53,7 @@ func TestTeamWarehouseHandler_GetWarehouse(t *testing.T) {
 	// 创建测试团队
 	description := "测试团队"
 	createReq := CreateTeamRequest{
-		HeroID:      leaderHeroID.String(),
+		HeroID:      stringPtr(leaderHeroID.String()),
 		TeamName:    "测试团队-" + time.Now().Format("20060102150405"),
 		Description: &description,
 	}
@@ -152,7 +152,7 @@ func TestTeamWarehouseHandler_DistributeGold(t *testing.T) {
 	// 创建测试团队
 	description := "测试团队"
 	createReq := CreateTeamRequest{
-		HeroID:      leaderHeroID.String(),
+		HeroID:      stringPtr(leaderHeroID.String()),
 		TeamName:    "测试团队-" + time.Now().Format("20060102150405"),
 		Description: &description,
 	}
@@ -260,7 +260,7 @@ func TestTeamWarehouseHandler_GetWarehouseItems(t *testing.T) {
 	// 创建测试团队
 	description := "测试团队"
 	createReq := CreateTeamRequest{
-		HeroID:      leaderHeroID.String(),
+		HeroID:      stringPtr(leaderHeroID.String()),
 		TeamName:    "测试团队-" + time.Now().Format("20060102150405"),
 		Description: &description,
 	}

@@ -51,7 +51,7 @@ func TestTeamMemberHandler_ApplyToJoin(t *testing.T) {
 	// 创建测试团队
 	description := "测试团队"
 	createReq := CreateTeamRequest{
-		HeroID:      leaderHeroID.String(),
+		HeroID:      stringPtr(leaderHeroID.String()),
 		TeamName:    "测试团队-" + time.Now().Format("20060102150405"),
 		Description: &description,
 	}
@@ -154,7 +154,7 @@ func TestTeamMemberHandler_ApproveJoinRequest(t *testing.T) {
 	// 创建测试团队
 	description := "测试团队"
 	createReq := CreateTeamRequest{
-		HeroID:      leaderHeroID.String(),
+		HeroID:      stringPtr(leaderHeroID.String()),
 		TeamName:    "测试团队-" + time.Now().Format("20060102150405"),
 		Description: &description,
 	}
@@ -231,45 +231,71 @@ func TestTeamMemberHandler_ApproveJoinRequest(t *testing.T) {
 	}
 }
 
-// TestTeamMemberHandler_KickMember 测试踢出成员
+// TestTeamMemberHandler_KickMember 覆盖队长踢出成员
 func TestTeamMemberHandler_KickMember(t *testing.T) {
 	if testing.Short() {
 		t.Skip("跳过集成测试")
 	}
 
-	memberHandler, _, e, db := setupTestMemberHandler(t)
+	memberHandler, teamHandler, e, db := setupTestMemberHandler(t)
 	defer db.Close()
 
-	// 这里需要先创建团队和成员，然后测试踢出功能
-	// 由于涉及较复杂的数据准备，这里只测试基本的参数验证
-	tests := []struct {
-		name           string
-		requestBody    KickMemberRequest
-		expectedStatus int
-	}{
-		{
-			name: "参数验证 - TeamID为空",
-			requestBody: KickMemberRequest{
-				TeamID:       "",
-				TargetHeroID: "test-hero-target",
-				KickerHeroID: "test-hero-kicker",
-			},
-			expectedStatus: http.StatusBadRequest,
-		},
+	leaderUserID := testseed.EnsureUser(t, db, "team-member-handler-kick-leader")
+	leaderHeroID := testseed.EnsureHero(t, db, leaderUserID, "team-member-handler-kick-leader-hero")
+	testseed.CleanupTeamsByHero(t, db, leaderHeroID)
+
+	// 创建团队
+	description := "kick team"
+	createReq := CreateTeamRequest{
+		HeroID:      stringPtr(leaderHeroID.String()),
+		TeamName:    "kick-" + time.Now().Format("150405"),
+		Description: &description,
+	}
+	body, _ := json.Marshal(createReq)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/game/teams", bytes.NewReader(body))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.Set("user_id", leaderUserID.String())
+	require.NoError(t, teamHandler.CreateTeam(c))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("create team failed status=%d body=%s", rec.Code, rec.Body.String())
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			body, _ := json.Marshal(tt.requestBody)
-			req := httptest.NewRequest(http.MethodPost, "/api/v1/game/teams/members/kick", bytes.NewReader(body))
-			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-			rec := httptest.NewRecorder()
+	var createResp response.Response
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &createResp))
+	teamData := createResp.Data.(map[string]interface{})
+	teamID := teamData["id"].(string)
+	defer func() {
+		_, _ = db.Exec("DELETE FROM game_runtime.team_members WHERE team_id = $1", teamID)
+		_, _ = db.Exec("DELETE FROM game_runtime.team_warehouses WHERE team_id = $1", teamID)
+		_, _ = db.Exec("DELETE FROM game_runtime.teams WHERE id = $1", teamID)
+	}()
 
-			c := e.NewContext(req, rec)
+	// 添加一个成员
+	memberUserID := testseed.EnsureUser(t, db, "team-member-handler-kick-target")
+	memberHeroID := testseed.EnsureHero(t, db, memberUserID, "team-member-handler-kick-target-hero")
+	_, err := db.Exec(`
+		INSERT INTO game_runtime.team_members (id, team_id, hero_id, user_id, role, joined_at)
+		VALUES (gen_random_uuid(), $1, $2, $3, 'member', NOW())
+	`, teamID, memberHeroID.String(), memberUserID.String())
+	require.NoError(t, err)
 
-			_ = memberHandler.KickMember(c)
-			// 参数验证失败时可能不返回错误，而是设置状态码
-		})
+	// 队长踢出成员
+	kickReq := KickMemberRequest{
+		TeamID:       teamID,
+		TargetHeroID: memberHeroID.String(),
+		KickerHeroID: leaderHeroID.String(),
+	}
+	kickBody, _ := json.Marshal(kickReq)
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/game/teams/members/kick", bytes.NewReader(kickBody))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec = httptest.NewRecorder()
+	c = e.NewContext(req, rec)
+
+	err = memberHandler.KickMember(c)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("kick member failed status=%d body=%s err=%v", rec.Code, rec.Body.String(), err)
 	}
 }
 

@@ -41,6 +41,7 @@ type Hero struct {
 	UpdatedAt           time.Time   `boil:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
 	LastBattleAt        null.Time   `boil:"last_battle_at" json:"last_battle_at,omitempty" toml:"last_battle_at" yaml:"last_battle_at,omitempty"`
 	DeletedAt           null.Time   `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
+	IsActivated         bool        `boil:"is_activated" json:"is_activated" toml:"is_activated" yaml:"is_activated"`
 
 	R *heroR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L heroL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -64,6 +65,7 @@ var HeroColumns = struct {
 	UpdatedAt           string
 	LastBattleAt        string
 	DeletedAt           string
+	IsActivated         string
 }{
 	ID:                  "id",
 	UserID:              "user_id",
@@ -82,6 +84,7 @@ var HeroColumns = struct {
 	UpdatedAt:           "updated_at",
 	LastBattleAt:        "last_battle_at",
 	DeletedAt:           "deleted_at",
+	IsActivated:         "is_activated",
 }
 
 var HeroTableColumns = struct {
@@ -102,6 +105,7 @@ var HeroTableColumns = struct {
 	UpdatedAt           string
 	LastBattleAt        string
 	DeletedAt           string
+	IsActivated         string
 }{
 	ID:                  "heroes.id",
 	UserID:              "heroes.user_id",
@@ -120,6 +124,7 @@ var HeroTableColumns = struct {
 	UpdatedAt:           "heroes.updated_at",
 	LastBattleAt:        "heroes.last_battle_at",
 	DeletedAt:           "heroes.deleted_at",
+	IsActivated:         "heroes.is_activated",
 }
 
 // Generated where
@@ -165,6 +170,7 @@ var HeroWhere = struct {
 	UpdatedAt           whereHelpertime_Time
 	LastBattleAt        whereHelpernull_Time
 	DeletedAt           whereHelpernull_Time
+	IsActivated         whereHelperbool
 }{
 	ID:                  whereHelperstring{field: "\"game_runtime\".\"heroes\".\"id\""},
 	UserID:              whereHelperstring{field: "\"game_runtime\".\"heroes\".\"user_id\""},
@@ -183,10 +189,12 @@ var HeroWhere = struct {
 	UpdatedAt:           whereHelpertime_Time{field: "\"game_runtime\".\"heroes\".\"updated_at\""},
 	LastBattleAt:        whereHelpernull_Time{field: "\"game_runtime\".\"heroes\".\"last_battle_at\""},
 	DeletedAt:           whereHelpernull_Time{field: "\"game_runtime\".\"heroes\".\"deleted_at\""},
+	IsActivated:         whereHelperbool{field: "\"game_runtime\".\"heroes\".\"is_activated\""},
 }
 
 // HeroRels is where relationship names are stored.
 var HeroRels = struct {
+	CurrentHeroContexts                          string
 	HeroAllocatedAttributes                      string
 	HeroAttributeOperations                      string
 	HeroClassHistories                           string
@@ -203,6 +211,7 @@ var HeroRels = struct {
 	RecipientHeroTeamLootDistributionHistories   string
 	TeamMembers                                  string
 }{
+	CurrentHeroContexts:                          "CurrentHeroContexts",
 	HeroAllocatedAttributes:                      "HeroAllocatedAttributes",
 	HeroAttributeOperations:                      "HeroAttributeOperations",
 	HeroClassHistories:                           "HeroClassHistories",
@@ -222,6 +231,7 @@ var HeroRels = struct {
 
 // heroR is where relationships are stored.
 type heroR struct {
+	CurrentHeroContexts                          CurrentHeroContextSlice          `boil:"CurrentHeroContexts" json:"CurrentHeroContexts" toml:"CurrentHeroContexts" yaml:"CurrentHeroContexts"`
 	HeroAllocatedAttributes                      HeroAllocatedAttributeSlice      `boil:"HeroAllocatedAttributes" json:"HeroAllocatedAttributes" toml:"HeroAllocatedAttributes" yaml:"HeroAllocatedAttributes"`
 	HeroAttributeOperations                      HeroAttributeOperationSlice      `boil:"HeroAttributeOperations" json:"HeroAttributeOperations" toml:"HeroAttributeOperations" yaml:"HeroAttributeOperations"`
 	HeroClassHistories                           HeroClassHistorySlice            `boil:"HeroClassHistories" json:"HeroClassHistories" toml:"HeroClassHistories" yaml:"HeroClassHistories"`
@@ -242,6 +252,22 @@ type heroR struct {
 // NewStruct creates a new relationship struct
 func (*heroR) NewStruct() *heroR {
 	return &heroR{}
+}
+
+func (o *Hero) GetCurrentHeroContexts() CurrentHeroContextSlice {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetCurrentHeroContexts()
+}
+
+func (r *heroR) GetCurrentHeroContexts() CurrentHeroContextSlice {
+	if r == nil {
+		return nil
+	}
+
+	return r.CurrentHeroContexts
 }
 
 func (o *Hero) GetHeroAllocatedAttributes() HeroAllocatedAttributeSlice {
@@ -488,9 +514,9 @@ func (r *heroR) GetTeamMembers() TeamMemberSlice {
 type heroL struct{}
 
 var (
-	heroAllColumns            = []string{"id", "user_id", "class_id", "promotion_count", "hero_name", "description", "current_level", "experience_total", "experience_available", "experience_spent", "status", "last_login_at", "avatar_url", "created_at", "updated_at", "last_battle_at", "deleted_at"}
+	heroAllColumns            = []string{"id", "user_id", "class_id", "promotion_count", "hero_name", "description", "current_level", "experience_total", "experience_available", "experience_spent", "status", "last_login_at", "avatar_url", "created_at", "updated_at", "last_battle_at", "deleted_at", "is_activated"}
 	heroColumnsWithoutDefault = []string{"user_id", "class_id", "hero_name"}
-	heroColumnsWithDefault    = []string{"id", "promotion_count", "description", "current_level", "experience_total", "experience_available", "experience_spent", "status", "last_login_at", "avatar_url", "created_at", "updated_at", "last_battle_at", "deleted_at"}
+	heroColumnsWithDefault    = []string{"id", "promotion_count", "description", "current_level", "experience_total", "experience_available", "experience_spent", "status", "last_login_at", "avatar_url", "created_at", "updated_at", "last_battle_at", "deleted_at", "is_activated"}
 	heroPrimaryKeyColumns     = []string{"id"}
 	heroGeneratedColumns      = []string{}
 )
@@ -900,6 +926,20 @@ func (q heroQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (bool,
 	return count > 0, nil
 }
 
+// CurrentHeroContexts retrieves all the current_hero_context's CurrentHeroContexts with an executor.
+func (o *Hero) CurrentHeroContexts(mods ...qm.QueryMod) currentHeroContextQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"game_runtime\".\"current_hero_contexts\".\"hero_id\"=?", o.ID),
+	)
+
+	return CurrentHeroContexts(queryMods...)
+}
+
 // HeroAllocatedAttributes retrieves all the hero_allocated_attribute's HeroAllocatedAttributes with an executor.
 func (o *Hero) HeroAllocatedAttributes(mods ...qm.QueryMod) heroAllocatedAttributeQuery {
 	var queryMods []qm.QueryMod
@@ -1108,6 +1148,119 @@ func (o *Hero) TeamMembers(mods ...qm.QueryMod) teamMemberQuery {
 	)
 
 	return TeamMembers(queryMods...)
+}
+
+// LoadCurrentHeroContexts allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (heroL) LoadCurrentHeroContexts(ctx context.Context, e boil.ContextExecutor, singular bool, maybeHero interface{}, mods queries.Applicator) error {
+	var slice []*Hero
+	var object *Hero
+
+	if singular {
+		var ok bool
+		object, ok = maybeHero.(*Hero)
+		if !ok {
+			object = new(Hero)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeHero)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeHero))
+			}
+		}
+	} else {
+		s, ok := maybeHero.(*[]*Hero)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeHero)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeHero))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &heroR{}
+		}
+		args[object.ID] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &heroR{}
+			}
+			args[obj.ID] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`game_runtime.current_hero_contexts`),
+		qm.WhereIn(`game_runtime.current_hero_contexts.hero_id in ?`, argsSlice...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load current_hero_contexts")
+	}
+
+	var resultSlice []*CurrentHeroContext
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice current_hero_contexts")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on current_hero_contexts")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for current_hero_contexts")
+	}
+
+	if len(currentHeroContextAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.CurrentHeroContexts = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &currentHeroContextR{}
+			}
+			foreign.R.Hero = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.HeroID {
+				local.R.CurrentHeroContexts = append(local.R.CurrentHeroContexts, foreign)
+				if foreign.R == nil {
+					foreign.R = &currentHeroContextR{}
+				}
+				foreign.R.Hero = local
+				break
+			}
+		}
+	}
+
+	return nil
 }
 
 // LoadHeroAllocatedAttributes allows an eager lookup of values, cached into the
@@ -2804,6 +2957,90 @@ func (heroL) LoadTeamMembers(ctx context.Context, e boil.ContextExecutor, singul
 		}
 	}
 
+	return nil
+}
+
+// AddCurrentHeroContextsG adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.CurrentHeroContexts.
+// Sets related.R.Hero appropriately.
+// Uses the global database handle.
+func (o *Hero) AddCurrentHeroContextsG(ctx context.Context, insert bool, related ...*CurrentHeroContext) error {
+	return o.AddCurrentHeroContexts(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// AddCurrentHeroContextsP adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.CurrentHeroContexts.
+// Sets related.R.Hero appropriately.
+// Panics on error.
+func (o *Hero) AddCurrentHeroContextsP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*CurrentHeroContext) {
+	if err := o.AddCurrentHeroContexts(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddCurrentHeroContextsGP adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.CurrentHeroContexts.
+// Sets related.R.Hero appropriately.
+// Uses the global database handle and panics on error.
+func (o *Hero) AddCurrentHeroContextsGP(ctx context.Context, insert bool, related ...*CurrentHeroContext) {
+	if err := o.AddCurrentHeroContexts(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddCurrentHeroContexts adds the given related objects to the existing relationships
+// of the hero, optionally inserting them as new records.
+// Appends related to o.R.CurrentHeroContexts.
+// Sets related.R.Hero appropriately.
+func (o *Hero) AddCurrentHeroContexts(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*CurrentHeroContext) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.HeroID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"game_runtime\".\"current_hero_contexts\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"hero_id"}),
+				strmangle.WhereClause("\"", "\"", 2, currentHeroContextPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.UserID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.HeroID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &heroR{
+			CurrentHeroContexts: related,
+		}
+	} else {
+		o.R.CurrentHeroContexts = append(o.R.CurrentHeroContexts, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &currentHeroContextR{
+				Hero: o,
+			}
+		} else {
+			rel.R.Hero = o
+		}
+	}
 	return nil
 }
 

@@ -27,6 +27,9 @@ const (
 
 	// CurrentUser 当前用户完整信息（存储在 Echo Context 中）
 	CurrentUser ContextKey = "current_user"
+
+	// HeroID 当前操作英雄 ID (从英雄中间件设置)
+	HeroID ContextKey = "hero_id"
 )
 
 // WithValue 在 context 中设置指定 key 的值

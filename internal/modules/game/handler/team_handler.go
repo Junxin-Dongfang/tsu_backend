@@ -3,8 +3,10 @@ package handler
 import (
 	"github.com/labstack/echo/v4"
 
+	custommiddleware "tsu-self/internal/middleware"
 	"tsu-self/internal/modules/game/service"
 	"tsu-self/internal/pkg/response"
+	"tsu-self/internal/pkg/xerrors"
 )
 
 // TeamHandler 团队管理 Handler
@@ -21,11 +23,29 @@ func NewTeamHandler(serviceContainer *service.ServiceContainer, respWriter respo
 	}
 }
 
+// getHeroID 获取英雄ID（优先级：context > 查询参数）
+// 由于 HeroMiddleware 的存在，context 中应该总是有 hero_id
+func (h *TeamHandler) getHeroID(c echo.Context) (string, error) {
+	// 优先从 context 获取（由 HeroMiddleware 设置）
+	heroID, err := custommiddleware.GetCurrentHeroID(c)
+	if err == nil && heroID != "" {
+		return heroID, nil
+	}
+
+	// fallback: 从查询参数读取（向后兼容）
+	heroID = c.QueryParam("hero_id")
+	if heroID == "" {
+		return "", xerrors.New(xerrors.CodeBusinessLogicError, "hero_id不能为空，请先激活一个英雄")
+	}
+
+	return heroID, nil
+}
+
 // ==================== HTTP Request/Response Models ====================
 
 // CreateTeamRequest HTTP 创建团队请求
 type CreateTeamRequest struct {
-	HeroID      string  `json:"hero_id" validate:"required" example:"hero-uuid-001"`      // 英雄ID（必填）
+	HeroID      *string `json:"hero_id,omitempty" example:"hero-uuid-001"`                 // 英雄ID（可选，不提供时从上下文自动获取）
 	TeamName    string  `json:"team_name" validate:"required,min=2,max=20" example:"无敌战队"` // 团队名称（必填，2-20字符）
 	Description *string `json:"description,omitempty" example:"我们是最强的！"`                  // 团队描述（可选）
 }
@@ -87,10 +107,30 @@ func (h *TeamHandler) CreateTeam(c echo.Context) error {
 		return response.EchoUnauthorized(c, h.respWriter, "未登录")
 	}
 
-	// 3. 调用 Service
+	// 3. 确定 hero_id（优先级：context > 请求体 > 查询参数）
+	heroID := ""
+
+	// 优先从 context 获取（由 HeroMiddleware 设置）
+	contextHeroID, err := custommiddleware.GetCurrentHeroID(c)
+	if err == nil && contextHeroID != "" {
+		heroID = contextHeroID
+	} else if req.HeroID != nil && *req.HeroID != "" {
+		// 从请求体读取
+		heroID = *req.HeroID
+	} else {
+		// 最后尝试从查询参数读取（向后兼容）
+		heroID = c.QueryParam("hero_id")
+	}
+
+	// 如果所有方式都获取不到，返回错误
+	if heroID == "" {
+		return response.EchoBadRequest(c, h.respWriter, "hero_id不能为空，请先激活一个英雄或通过请求参数提供")
+	}
+
+	// 4. 调用 Service
 	createReq := &service.CreateTeamRequest{
 		UserID:   userID.(string),
-		HeroID:   req.HeroID,
+		HeroID:   heroID,
 		TeamName: req.TeamName,
 	}
 	if req.Description != nil {
@@ -181,9 +221,10 @@ func (h *TeamHandler) UpdateTeamInfo(c echo.Context) error {
 		return response.EchoBadRequest(c, h.respWriter, "团队ID不能为空")
 	}
 
-	heroID := c.QueryParam("hero_id")
-	if heroID == "" {
-		return response.EchoBadRequest(c, h.respWriter, "英雄ID不能为空")
+	// 获取英雄ID（优先从 context）
+	heroID, err := h.getHeroID(c)
+	if err != nil {
+		return response.EchoError(c, h.respWriter, err)
 	}
 
 	// 2. 绑定和验证 HTTP 请求
@@ -231,9 +272,10 @@ func (h *TeamHandler) DisbandTeam(c echo.Context) error {
 		return response.EchoBadRequest(c, h.respWriter, "团队ID不能为空")
 	}
 
-	heroID := c.QueryParam("hero_id")
-	if heroID == "" {
-		return response.EchoBadRequest(c, h.respWriter, "英雄ID不能为空")
+	// 获取英雄ID（优先从 context）
+	heroID, err := h.getHeroID(c)
+	if err != nil {
+		return response.EchoError(c, h.respWriter, err)
 	}
 
 	// 2. 调用 Service
@@ -264,9 +306,10 @@ func (h *TeamHandler) LeaveTeam(c echo.Context) error {
 		return response.EchoBadRequest(c, h.respWriter, "团队ID不能为空")
 	}
 
-	heroID := c.QueryParam("hero_id")
-	if heroID == "" {
-		return response.EchoBadRequest(c, h.respWriter, "英雄ID不能为空")
+	// 获取英雄ID（优先从 context）
+	heroID, err := h.getHeroID(c)
+	if err != nil {
+		return response.EchoError(c, h.respWriter, err)
 	}
 
 	// 2. 调用 Service

@@ -45,6 +45,7 @@ type GameModule struct {
 	authHandler                   *handler.AuthHandler
 	passwordRecoveryHandler       *handler.PasswordRecoveryHandler
 	heroHandler                   *handler.HeroHandler
+	heroActivationHandler         *handler.HeroActivationHandler
 	heroAttributeHandler          *handler.HeroAttributeHandler
 	heroSkillHandler              *handler.HeroSkillHandler
 	classHandler                  *handler.ClassHandler
@@ -363,6 +364,7 @@ func (m *GameModule) initServicesAndHandlers() {
 	m.authHandler = handler.NewAuthHandler(m, m.respWriter)
 	m.passwordRecoveryHandler = handler.NewPasswordRecoveryHandler(m, m.respWriter)
 	m.heroHandler = handler.NewHeroHandler(m.serviceContainer, m.respWriter)
+	m.heroActivationHandler = handler.NewHeroActivationHandler(m.db, m.respWriter)
 	m.heroAttributeHandler = handler.NewHeroAttributeHandler(m.serviceContainer, m.respWriter)
 	m.heroSkillHandler = handler.NewHeroSkillHandler(m.serviceContainer, m.respWriter)
 	m.classHandler = handler.NewClassHandler(m.serviceContainer, m.respWriter)
@@ -481,6 +483,12 @@ func (m *GameModule) setupRoutes() {
 			heroes.POST("/:hero_id/skills/learn", m.heroSkillHandler.LearnSkill)                 // 学习技能
 			heroes.POST("/:hero_id/skills/:skill_id/upgrade", m.heroSkillHandler.UpgradeSkill)   // 升级技能
 			heroes.POST("/:hero_id/skills/:skill_id/rollback", m.heroSkillHandler.RollbackSkill) // 回退技能
+
+			// 英雄激活管理
+			heroes.PATCH("/:hero_id/activate", m.heroActivationHandler.ActivateHero)         // 激活英雄
+			heroes.PATCH("/:hero_id/deactivate", m.heroActivationHandler.DeactivateHero)     // 停用英雄
+			heroes.PATCH("/switch", m.heroActivationHandler.SwitchCurrentHero)               // 切换当前英雄
+			heroes.GET("/activated", m.heroActivationHandler.GetActivatedHeroes)             // 获取已激活英雄列表
 		}
 
 		// Class routes (公开访问)
@@ -545,9 +553,10 @@ func (m *GameModule) setupRoutes() {
 		// 	inventory.POST("/sort", m.inventoryHandler.SortInventory)  // 整理背包
 		// }
 
-		//Team routes (需要认证)
+		//Team routes (需要认证 + 英雄上下文)
 		teams := game.Group("/teams")
 		teams.Use(custommiddleware.AuthMiddleware(m.respWriter, logger))
+		teams.Use(custommiddleware.HeroMiddleware(m.db, m.respWriter, logger)) // 自动从数据库获取当前英雄ID
 		{
 			// 团队管理
 			teams.POST("", m.teamHandler.CreateTeam) // 创建团队（任何认证用户都可以）

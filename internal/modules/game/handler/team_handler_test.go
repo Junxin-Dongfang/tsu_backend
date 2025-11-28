@@ -53,6 +53,11 @@ func setupTestHandler(t *testing.T, db *sql.DB) (*TeamHandler, *echo.Echo) {
 	return handler, e
 }
 
+// stringPtr 创建字符串指针的辅助函数
+func stringPtr(s string) *string {
+	return &s
+}
+
 // TestTeamHandler_CreateTeam 测试创建团队 API
 func TestTeamHandler_CreateTeam(t *testing.T) {
 	if testing.Short() {
@@ -77,7 +82,7 @@ func TestTeamHandler_CreateTeam(t *testing.T) {
 		{
 			name: "成功创建团队",
 			requestBody: CreateTeamRequest{
-				HeroID:   heroID.String(),
+				HeroID:   stringPtr(heroID.String()),
 				TeamName: "测试团队-" + time.Now().Format("20060102150405"),
 			},
 			setupContext: func(c echo.Context) {
@@ -88,7 +93,7 @@ func TestTeamHandler_CreateTeam(t *testing.T) {
 		{
 			name: "团队名称为空",
 			requestBody: CreateTeamRequest{
-				HeroID:   heroID.String(),
+				HeroID:   stringPtr(heroID.String()),
 				TeamName: "",
 			},
 			setupContext: func(c echo.Context) {
@@ -99,7 +104,7 @@ func TestTeamHandler_CreateTeam(t *testing.T) {
 		{
 			name: "未登录",
 			requestBody: CreateTeamRequest{
-				HeroID:   "test-hero-001",
+				HeroID:   stringPtr("test-hero-001"),
 				TeamName: "测试团队",
 			},
 			setupContext: func(c echo.Context) {
@@ -157,6 +162,118 @@ func TestTeamHandler_CreateTeam(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestTeamHandler_DisbandTeam 覆盖仓库非空与成功解散
+func TestTeamHandler_DisbandTeam(t *testing.T) {
+	if testing.Short() {
+		t.Skip("跳过集成测试")
+	}
+
+	db := setupTestDB(t)
+	defer db.Close()
+
+	handler, e := setupTestHandler(t, db)
+
+	userID := testseed.EnsureUser(t, db, "team-handler-disband-user")
+	heroID := testseed.EnsureHero(t, db, userID, "team-handler-disband-hero")
+	testseed.CleanupTeamsByHero(t, db, heroID)
+
+	// 创建团队
+	createReq := &service.CreateTeamRequest{
+		UserID:      userID.String(),
+		HeroID:      heroID.String(),
+		TeamName:    "disband-" + time.Now().Format("150405"),
+		Description: "for disband",
+	}
+	teamSvc := service.NewServiceContainer(db, nil, nil).GetTeamService()
+	team, err := teamSvc.CreateTeam(context.Background(), createReq)
+	require.NoError(t, err)
+	defer func() {
+		_, _ = db.Exec("DELETE FROM game_runtime.team_members WHERE team_id = $1", team.ID)
+		_, _ = db.Exec("DELETE FROM game_runtime.team_warehouses WHERE team_id = $1", team.ID)
+		_, _ = db.Exec("DELETE FROM game_runtime.teams WHERE id = $1", team.ID)
+	}()
+
+	// 仓库加金币，期望 400
+	_, err = db.Exec(`UPDATE game_runtime.team_warehouses SET gold_amount = 100 WHERE team_id = $1`, team.ID)
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/game/teams/"+team.ID+"/disband?hero_id="+heroID.String(), nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetParamNames("team_id")
+	c.SetParamValues(team.ID)
+
+	_ = handler.DisbandTeam(c)
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+
+	// 清空仓库，再次解散应 200
+	_, err = db.Exec(`UPDATE game_runtime.team_warehouses SET gold_amount = 0 WHERE team_id = $1`, team.ID)
+	require.NoError(t, err)
+
+	rec = httptest.NewRecorder()
+	c = e.NewContext(req, rec)
+	c.SetParamNames("team_id")
+	c.SetParamValues(team.ID)
+
+	err = handler.DisbandTeam(c)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
+}
+
+// TestTeamHandler_LeaveTeam 覆盖成员可离队、队长不可离队
+func TestTeamHandler_LeaveTeam(t *testing.T) {
+	if testing.Short() {
+		t.Skip("跳过集成测试")
+	}
+
+	db := setupTestDB(t)
+	defer db.Close()
+
+	handler, e := setupTestHandler(t, db)
+	svcContainer := service.NewServiceContainer(db, nil, nil)
+	teamSvc := svcContainer.GetTeamService()
+
+	leaderUserID := testseed.EnsureUser(t, db, "team-handler-leave-leader")
+	leaderHeroID := testseed.EnsureHero(t, db, leaderUserID, "team-handler-leave-leader-hero")
+	testseed.CleanupTeamsByHero(t, db, leaderHeroID)
+
+	team, err := teamSvc.CreateTeam(context.Background(), &service.CreateTeamRequest{
+		UserID:   leaderUserID.String(),
+		HeroID:   leaderHeroID.String(),
+		TeamName: "leave-" + time.Now().Format("150405"),
+	})
+	require.NoError(t, err)
+
+	memberUserID := testseed.EnsureUser(t, db, "team-handler-leave-member")
+	memberHeroID := testseed.EnsureHero(t, db, memberUserID, "team-handler-leave-member-hero")
+	_, err = db.Exec(`
+		INSERT INTO game_runtime.team_members (id, team_id, hero_id, user_id, role, joined_at)
+		VALUES (gen_random_uuid(), $1, $2, $3, 'member', NOW())
+	`, team.ID, memberHeroID.String(), memberUserID.String())
+	require.NoError(t, err)
+
+	// 普通成员离队
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/game/teams/"+team.ID+"/leave?hero_id="+memberHeroID.String(), nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetParamNames("team_id")
+	c.SetParamValues(team.ID)
+
+	err = handler.LeaveTeam(c)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
+
+	// 队长离队应失败
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/game/teams/"+team.ID+"/leave?hero_id="+leaderHeroID.String(), nil)
+	rec = httptest.NewRecorder()
+	c = e.NewContext(req, rec)
+	c.SetParamNames("team_id")
+	c.SetParamValues(team.ID)
+
+	_ = handler.LeaveTeam(c)
+	assert.Equal(t, http.StatusForbidden, rec.Code)
 }
 
 // TestTeamHandler_GetTeam 测试获取团队详情 API

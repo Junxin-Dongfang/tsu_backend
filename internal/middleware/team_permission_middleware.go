@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"tsu-self/internal/modules/auth/client"
+	"tsu-self/internal/pkg/ctxkey"
 	"tsu-self/internal/pkg/response"
 	"tsu-self/internal/pkg/xerrors"
 
@@ -190,18 +191,18 @@ func (m *TeamPermissionMiddleware) requireTeamRole(role string, next echo.Handle
 }
 
 // getHeroIDFromContext 从 context 中获取 heroID
-// 假设在认证中间件中已经将 hero_id 存入了 context
+// 优先级：context (由 HeroMiddleware 设置) > 查询参数 > 表单值
 func (m *TeamPermissionMiddleware) getHeroIDFromContext(c echo.Context) (string, error) {
-	// 尝试从 context 中获取
-	heroID := c.Get("hero_id")
+	// 优先从 context 中获取（由 HeroMiddleware 设置）
+	heroID := c.Get(string(ctxkey.HeroID))
 	if heroID == nil {
-		// 尝试从请求参数中获取 (用于测试)
+		// Fallback: 从请求参数中获取（向后兼容）
 		heroIDStr := c.QueryParam("hero_id")
 		if heroIDStr == "" {
 			heroIDStr = c.FormValue("hero_id")
 		}
 		if heroIDStr == "" {
-			return "", xerrors.New(xerrors.CodeAuthenticationFailed, "未找到英雄ID")
+			return "", xerrors.New(xerrors.CodeBusinessLogicError, "未找到英雄ID，请先激活一个英雄")
 		}
 		return heroIDStr, nil
 	}
