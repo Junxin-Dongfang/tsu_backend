@@ -49,19 +49,12 @@ print_success "依赖服务检查通过"
 print_step "[2/12] 检查 Docker Hub 配置"
 
 if [ ! -f "$PROJECT_DIR/.registry.conf" ]; then
-    print_error "未找到 .registry.conf 文件"
-    print_info "请执行以下步骤："
-    print_info "  1. cp .registry.conf.example .registry.conf"
-    print_info "  2. vim .registry.conf  # 填写 Docker Hub 用户名和密码"
-    exit 1
+    print_warning ".registry.conf 不存在，将使用环境变量中的 DOCKERHUB_USERNAME/DOCKERHUB_TOKEN（若跳过本地构建可不需要 token）"
+else
+    source "$PROJECT_DIR/.registry.conf"
 fi
 
-source "$PROJECT_DIR/.registry.conf"
-
-if [ -z "$DOCKERHUB_USERNAME" ] || [ "$DOCKERHUB_USERNAME" = "your-dockerhub-username" ]; then
-    print_error "请在 .registry.conf 中配置 Docker Hub 用户名"
-    exit 1
-fi
+DOCKERHUB_USERNAME="${DOCKERHUB_USERNAME:-$DOCKER_USER}"
 
 # 检查 IMAGE_VERSION，如果未定义则使用 latest
 IMAGE_VERSION="${IMAGE_VERSION:-latest}"
@@ -82,19 +75,24 @@ ADMIN_IMAGE_TAG="${DOCKERHUB_USERNAME}/tsu-admin-server:${IMAGE_VERSION}"
 # ==========================================
 print_step "[3/12] 构建 Admin Server 镜像"
 
-print_info "开始构建 Admin Server 镜像: $ADMIN_IMAGE_TAG"
-print_info "这可能需要几分钟时间..."
+if [ "${SKIP_BUILD:-true}" = "true" ]; then
+    print_info "跳过本地构建（SKIP_BUILD=true），后续将直接拉取/加载镜像"
+else
+    print_info "开始构建 Admin Server 镜像: $ADMIN_IMAGE_TAG"
+    print_info "这可能需要几分钟时间..."
 
-cd "$PROJECT_DIR"
-docker build \
-    --platform linux/amd64 \
-    -f deployments/docker/Dockerfile.admin.prod \
-    -t "$ADMIN_IMAGE_TAG" \
-    --build-arg BUILD_DATE="$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
-    --build-arg VERSION="${IMAGE_VERSION}" \
-    .
+    cd "$PROJECT_DIR"
+    export DOCKER_BUILDKIT=1
+    docker build \
+        --platform linux/amd64 \
+        -f deployments/docker/Dockerfile.admin.prod \
+        -t "$ADMIN_IMAGE_TAG" \
+        --build-arg BUILD_DATE="$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+        --build-arg VERSION="${IMAGE_VERSION}" \
+        .
 
-print_success "Admin Server 镜像构建完成"
+    print_success "Admin Server 镜像构建完成"
+fi
 
 # ==========================================
 # 4. 保存镜像到文件
@@ -112,14 +110,17 @@ print_success "镜像已保存"
 # ==========================================
 print_step "[5/12] 上传镜像到服务器"
 
-print_info "上传 Admin Server 镜像（约 30MB，需要几分钟）..."
-sshpass -p "$SERVER_PASSWORD" scp -o StrictHostKeyChecking=no "$TEMP_ADMIN_IMAGE_FILE" "$SERVER_USER@$SERVER_HOST:/tmp/"
-
-print_info "在服务器加载 Admin Server 镜像..."
-ssh_exec "docker load < /tmp/tsu-admin-server.tar.gz && rm /tmp/tsu-admin-server.tar.gz && docker images | grep tsu-admin-server"
-
-print_success "镜像已加载到服务器"
-rm -f "$TEMP_ADMIN_IMAGE_FILE"
+if [ "${SKIP_BUILD:-true}" = "true" ]; then
+    print_info "跳过本地构建与镜像上传，直接在服务器拉取镜像: $ADMIN_IMAGE_TAG"
+    ssh_exec "docker pull $ADMIN_IMAGE_TAG"
+else
+    print_info "上传 Admin Server 镜像（约 30MB，需要几分钟）..."
+    ssh_copy "$TEMP_ADMIN_IMAGE_FILE" "/tmp/"
+    print_info "在服务器加载 Admin Server 镜像..."
+    ssh_exec "docker load < /tmp/tsu-admin-server.tar.gz && rm /tmp/tsu-admin-server.tar.gz && docker images | grep tsu-admin-server"
+    rm -f "$TEMP_ADMIN_IMAGE_FILE"
+    print_success "镜像已加载到服务器"
+fi
 
 # ==========================================
 # 6. 上传配置文件到服务器

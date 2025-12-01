@@ -52,19 +52,12 @@ print_success "依赖服务检查通过"
 print_step "[2/9] 检查 Docker Hub 配置"
 
 if [ ! -f "$PROJECT_DIR/.registry.conf" ]; then
-    print_error "未找到 .registry.conf 文件"
-    print_info "请执行以下步骤："
-    print_info "  1. cp .registry.conf.example .registry.conf"
-    print_info "  2. vim .registry.conf  # 填写 Docker Hub 用户名和密码"
-    exit 1
+    print_warning ".registry.conf 不存在，将使用环境变量中的 DOCKERHUB_USERNAME/DOCKERHUB_TOKEN（若跳过本地构建可不需要 token）"
+else
+    source "$PROJECT_DIR/.registry.conf"
 fi
 
-source "$PROJECT_DIR/.registry.conf"
-
-if [ -z "$DOCKERHUB_USERNAME" ] || [ "$DOCKERHUB_USERNAME" = "your-dockerhub-username" ]; then
-    print_error "请在 .registry.conf 中配置 Docker Hub 用户名"
-    exit 1
-fi
+DOCKERHUB_USERNAME="${DOCKERHUB_USERNAME:-$DOCKER_USER}"
 
 # 检查 IMAGE_VERSION，如果未定义则使用 latest
 IMAGE_VERSION="${IMAGE_VERSION:-latest}"
@@ -93,44 +86,55 @@ ssh_exec "cd $SERVER_DEPLOY_DIR && source .env.prod && url=postgres://\\${DB_USE
 # ==========================================
 print_step "[4/9] 构建 Game Server 镜像"
 
-print_info "开始构建 Game Server 镜像: $GAME_IMAGE_TAG"
-print_info "这可能需要几分钟时间..."
+if [ "${SKIP_BUILD:-true}" = "true" ]; then
+    print_info "跳过本地构建（SKIP_BUILD=true），后续将直接拉取/加载镜像"
+else
+    print_info "开始构建 Game Server 镜像: $GAME_IMAGE_TAG"
+    print_info "这可能需要几分钟时间..."
 
-cd "$PROJECT_DIR"
-docker build \
-    --platform linux/amd64 \
-    -f deployments/docker/Dockerfile.game.prod \
-    -t "$GAME_IMAGE_TAG" \
-    --build-arg BUILD_DATE="$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
-    --build-arg VERSION="${IMAGE_VERSION}" \
-    .
+    cd "$PROJECT_DIR"
+    export DOCKER_BUILDKIT=1
+    docker build \
+        --platform linux/amd64 \
+        -f deployments/docker/Dockerfile.game.prod \
+        -t "$GAME_IMAGE_TAG" \
+        --build-arg BUILD_DATE="$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+        --build-arg VERSION="${IMAGE_VERSION}" \
+        .
 
-print_success "Game Server 镜像构建完成"
+    print_success "Game Server 镜像构建完成"
+fi
 
 # ==========================================
 # 5. 保存镜像到文件
 # ==========================================
 print_step "[5/9] 保存镜像到文件"
 
-print_info "保存 Game Server 镜像为 tar.gz..."
-TEMP_GAME_IMAGE_FILE="/tmp/tsu-game-server.tar.gz"
-docker save "$GAME_IMAGE_TAG" | gzip > "$TEMP_GAME_IMAGE_FILE"
-
-print_success "镜像已保存"
+if [ "${SKIP_BUILD:-true}" = "true" ]; then
+    print_info "跳过镜像保存（SKIP_BUILD=true）"
+else
+    print_info "保存 Game Server 镜像为 tar.gz..."
+    TEMP_GAME_IMAGE_FILE="/tmp/tsu-game-server.tar.gz"
+    docker save "$GAME_IMAGE_TAG" | gzip > "$TEMP_GAME_IMAGE_FILE"
+    print_success "镜像已保存"
+fi
 
 # ==========================================
 # 6. 上传镜像到服务器
 # ==========================================
 print_step "[6/9] 上传镜像到服务器"
 
-print_info "上传 Game Server 镜像（约 30MB，需要几分钟）..."
-sshpass -p "$SERVER_PASSWORD" scp -o StrictHostKeyChecking=no "$TEMP_GAME_IMAGE_FILE" "$SERVER_USER@$SERVER_HOST:/tmp/"
-
-print_info "在服务器加载 Game Server 镜像..."
-ssh_exec "docker load < /tmp/tsu-game-server.tar.gz && rm /tmp/tsu-game-server.tar.gz && docker images | grep tsu-game-server"
-
-print_success "镜像已加载到服务器"
-rm -f "$TEMP_GAME_IMAGE_FILE"
+if [ "${SKIP_BUILD:-true}" = "true" ]; then
+    print_info "跳过本地构建与镜像上传，直接在服务器拉取镜像: $GAME_IMAGE_TAG"
+    ssh_exec "docker pull $GAME_IMAGE_TAG"
+else
+    print_info "上传 Game Server 镜像（约 30MB，需要几分钟）..."
+    ssh_copy "$TEMP_GAME_IMAGE_FILE" "/tmp/"
+    print_info "在服务器加载 Game Server 镜像..."
+    ssh_exec "docker load < /tmp/tsu-game-server.tar.gz && rm /tmp/tsu-game-server.tar.gz && docker images | grep tsu-game-server"
+    rm -f "$TEMP_GAME_IMAGE_FILE"
+    print_success "镜像已加载到服务器"
+fi
 
 # ==========================================
 # 7. 上传配置文件到服务器

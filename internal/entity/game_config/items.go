@@ -301,6 +301,7 @@ var ItemRels = struct {
 	ItemClassRelations       string
 	EnhancementMaterialItems string
 	WorldDropConfigs         string
+	WorldDropItems           string
 }{
 	EnhancementMaterial:      "EnhancementMaterial",
 	Set:                      "Set",
@@ -308,6 +309,7 @@ var ItemRels = struct {
 	ItemClassRelations:       "ItemClassRelations",
 	EnhancementMaterialItems: "EnhancementMaterialItems",
 	WorldDropConfigs:         "WorldDropConfigs",
+	WorldDropItems:           "WorldDropItems",
 }
 
 // itemR is where relationships are stored.
@@ -318,6 +320,7 @@ type itemR struct {
 	ItemClassRelations       ItemClassRelationSlice `boil:"ItemClassRelations" json:"ItemClassRelations" toml:"ItemClassRelations" yaml:"ItemClassRelations"`
 	EnhancementMaterialItems ItemSlice              `boil:"EnhancementMaterialItems" json:"EnhancementMaterialItems" toml:"EnhancementMaterialItems" yaml:"EnhancementMaterialItems"`
 	WorldDropConfigs         WorldDropConfigSlice   `boil:"WorldDropConfigs" json:"WorldDropConfigs" toml:"WorldDropConfigs" yaml:"WorldDropConfigs"`
+	WorldDropItems           WorldDropItemSlice     `boil:"WorldDropItems" json:"WorldDropItems" toml:"WorldDropItems" yaml:"WorldDropItems"`
 }
 
 // NewStruct creates a new relationship struct
@@ -419,6 +422,22 @@ func (r *itemR) GetWorldDropConfigs() WorldDropConfigSlice {
 	}
 
 	return r.WorldDropConfigs
+}
+
+func (o *Item) GetWorldDropItems() WorldDropItemSlice {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetWorldDropItems()
+}
+
+func (r *itemR) GetWorldDropItems() WorldDropItemSlice {
+	if r == nil {
+		return nil
+	}
+
+	return r.WorldDropItems
 }
 
 // itemL is where Load methods for each relationship are stored.
@@ -913,6 +932,20 @@ func (o *Item) WorldDropConfigs(mods ...qm.QueryMod) worldDropConfigQuery {
 	)
 
 	return WorldDropConfigs(queryMods...)
+}
+
+// WorldDropItems retrieves all the world_drop_item's WorldDropItems with an executor.
+func (o *Item) WorldDropItems(mods ...qm.QueryMod) worldDropItemQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"game_config\".\"world_drop_items\".\"item_id\"=?", o.ID),
+	)
+
+	return WorldDropItems(queryMods...)
 }
 
 // LoadEnhancementMaterial allows an eager lookup of values, cached into the
@@ -1610,6 +1643,120 @@ func (itemL) LoadWorldDropConfigs(ctx context.Context, e boil.ContextExecutor, s
 				local.R.WorldDropConfigs = append(local.R.WorldDropConfigs, foreign)
 				if foreign.R == nil {
 					foreign.R = &worldDropConfigR{}
+				}
+				foreign.R.Item = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadWorldDropItems allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (itemL) LoadWorldDropItems(ctx context.Context, e boil.ContextExecutor, singular bool, maybeItem interface{}, mods queries.Applicator) error {
+	var slice []*Item
+	var object *Item
+
+	if singular {
+		var ok bool
+		object, ok = maybeItem.(*Item)
+		if !ok {
+			object = new(Item)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeItem)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeItem))
+			}
+		}
+	} else {
+		s, ok := maybeItem.(*[]*Item)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeItem)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeItem))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &itemR{}
+		}
+		args[object.ID] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &itemR{}
+			}
+			args[obj.ID] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`game_config.world_drop_items`),
+		qm.WhereIn(`game_config.world_drop_items.item_id in ?`, argsSlice...),
+		qmhelper.WhereIsNull(`game_config.world_drop_items.deleted_at`),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load world_drop_items")
+	}
+
+	var resultSlice []*WorldDropItem
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice world_drop_items")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on world_drop_items")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for world_drop_items")
+	}
+
+	if len(worldDropItemAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.WorldDropItems = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &worldDropItemR{}
+			}
+			foreign.R.Item = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.ItemID {
+				local.R.WorldDropItems = append(local.R.WorldDropItems, foreign)
+				if foreign.R == nil {
+					foreign.R = &worldDropItemR{}
 				}
 				foreign.R.Item = local
 				break
@@ -2358,6 +2505,90 @@ func (o *Item) AddWorldDropConfigs(ctx context.Context, exec boil.ContextExecuto
 	for _, rel := range related {
 		if rel.R == nil {
 			rel.R = &worldDropConfigR{
+				Item: o,
+			}
+		} else {
+			rel.R.Item = o
+		}
+	}
+	return nil
+}
+
+// AddWorldDropItemsG adds the given related objects to the existing relationships
+// of the item, optionally inserting them as new records.
+// Appends related to o.R.WorldDropItems.
+// Sets related.R.Item appropriately.
+// Uses the global database handle.
+func (o *Item) AddWorldDropItemsG(ctx context.Context, insert bool, related ...*WorldDropItem) error {
+	return o.AddWorldDropItems(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// AddWorldDropItemsP adds the given related objects to the existing relationships
+// of the item, optionally inserting them as new records.
+// Appends related to o.R.WorldDropItems.
+// Sets related.R.Item appropriately.
+// Panics on error.
+func (o *Item) AddWorldDropItemsP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*WorldDropItem) {
+	if err := o.AddWorldDropItems(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddWorldDropItemsGP adds the given related objects to the existing relationships
+// of the item, optionally inserting them as new records.
+// Appends related to o.R.WorldDropItems.
+// Sets related.R.Item appropriately.
+// Uses the global database handle and panics on error.
+func (o *Item) AddWorldDropItemsGP(ctx context.Context, insert bool, related ...*WorldDropItem) {
+	if err := o.AddWorldDropItems(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddWorldDropItems adds the given related objects to the existing relationships
+// of the item, optionally inserting them as new records.
+// Appends related to o.R.WorldDropItems.
+// Sets related.R.Item appropriately.
+func (o *Item) AddWorldDropItems(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*WorldDropItem) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.ItemID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"game_config\".\"world_drop_items\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"item_id"}),
+				strmangle.WhereClause("\"", "\"", 2, worldDropItemPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.ItemID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &itemR{
+			WorldDropItems: related,
+		}
+	} else {
+		o.R.WorldDropItems = append(o.R.WorldDropItems, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &worldDropItemR{
 				Item: o,
 			}
 		} else {

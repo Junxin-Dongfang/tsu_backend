@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -282,11 +281,11 @@ func (h *AuthHandler) Login(c echo.Context) error {
 	}
 
 	// 构造 Protobuf RPC 请求
-	sessionToken := readSessionToken(c)
+	// 注意：登录请求不应该复用旧的 session token，应该总是生成新的 token
 	rpcReq := &authpb.LoginRequest{
 		Identifier:    req.Identifier,
 		Password:      req.Password,
-		SessionToken:  sessionToken,
+		SessionToken:  "",  // 登录总是生成新 session，不复用旧的
 		ClientService: "admin",
 	}
 
@@ -434,21 +433,6 @@ func (h *AuthHandler) Logout(c echo.Context) error {
 	})
 }
 
-func readSessionToken(c echo.Context) string {
-	if token := c.Request().Header.Get("X-Session-Token"); token != "" {
-		return token
-	}
-	if authHeader := c.Request().Header.Get(echo.HeaderAuthorization); authHeader != "" {
-		parts := strings.SplitN(authHeader, " ", 2)
-		if len(parts) == 2 && strings.EqualFold(parts[0], "bearer") {
-			return strings.TrimSpace(parts[1])
-		}
-	}
-	if cookie, err := c.Cookie("ory_kratos_session"); err == nil && cookie != nil {
-		return cookie.Value
-	}
-	return ""
-}
 
 // DeleteUser 删除用户（管理员操作）
 // @Summary 删除用户

@@ -47,6 +47,7 @@ var TableNames = struct {
 	Tags                      string
 	TagsRelations             string
 	WorldDropConfigs          string
+	WorldDropItems            string
 }{
 	ActionCategories:          "action_categories",
 	ActionEffects:             "action_effects",
@@ -91,4 +92,5 @@ var TableNames = struct {
 	Tags:                      "tags",
 	TagsRelations:             "tags_relations",
 	WorldDropConfigs:          "world_drop_configs",
+	WorldDropItems:            "world_drop_items",
 }

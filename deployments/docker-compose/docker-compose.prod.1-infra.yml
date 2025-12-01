@@ -52,7 +52,7 @@ services:
       - PGDATA=/var/lib/postgresql/data/pgdata
     volumes:
       - postgres_ory_data:/var/lib/postgresql/data/pgdata
-      - ./infra/ory/init-schemas.sql:/docker-entrypoint-initdb.d/init-schemas.sql
+      - ./infra/ory/init-schemas-new/init-schemas.sql:/docker-entrypoint-initdb.d/init-schemas.sql
     restart: always
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${ORY_DB_USER:-ory_user} -d ${ORY_DB_NAME:-ory_db}"]

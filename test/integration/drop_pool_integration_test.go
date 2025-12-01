@@ -170,7 +170,7 @@ func TestDropPoolIntegration_CompleteWorkflow(t *testing.T) {
 			MaxQuantity:    5,
 			DropWeight:     intPtr(100),
 			DropRate:       float64Ptr(0.15),
-			QualityWeights: json.RawMessage(`{"common": 50, "rare": 30, "epic": 15, "legendary": 5}`),
+			QualityWeights: dto.RawOrStringJSON(`{"common": 50, "rare": 30, "epic": 15, "legendary": 5}`),
 		}
 
 		body, _ := json.Marshal(reqBody)

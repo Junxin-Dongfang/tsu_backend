@@ -14,14 +14,14 @@ import (
 
 // TeamMemberService 团队成员服务
 type TeamMemberService struct {
-	db                     *sql.DB
-	teamRepo               interfaces.TeamRepository
-	teamMemberRepo         interfaces.TeamMemberRepository
-	teamJoinRequestRepo    interfaces.TeamJoinRequestRepository
-	teamInvitationRepo     interfaces.TeamInvitationRepository
-	teamKickedRecordRepo   interfaces.TeamKickedRecordRepository
-	heroRepo               interfaces.HeroRepository
-	teamPermissionService  *TeamPermissionService
+	db                    *sql.DB
+	teamRepo              interfaces.TeamRepository
+	teamMemberRepo        interfaces.TeamMemberRepository
+	teamJoinRequestRepo   interfaces.TeamJoinRequestRepository
+	teamInvitationRepo    interfaces.TeamInvitationRepository
+	teamKickedRecordRepo  interfaces.TeamKickedRecordRepository
+	heroRepo              interfaces.HeroRepository
+	teamPermissionService *TeamPermissionService
 }
 
 // NewTeamMemberService 创建团队成员服务
@@ -47,46 +47,46 @@ type ApplyToJoinRequest struct {
 }
 
 // ApplyToJoin 申请加入团队
-func (s *TeamMemberService) ApplyToJoin(ctx context.Context, req *ApplyToJoinRequest) error {
+func (s *TeamMemberService) ApplyToJoin(ctx context.Context, req *ApplyToJoinRequest) (string, error) {
 	// 1. 验证参数
 	if req.TeamID == "" || req.HeroID == "" || req.UserID == "" {
-		return xerrors.New(xerrors.CodeInvalidParams, "参数不能为空")
+		return "", xerrors.New(xerrors.CodeInvalidParams, "参数不能为空")
 	}
 
 	// 2. 检查团队是否存在
 	team, err := s.teamRepo.GetByID(ctx, req.TeamID)
 	if err != nil {
-		return xerrors.Wrap(err, xerrors.CodeResourceNotFound, "团队不存在")
+		return "", xerrors.Wrap(err, xerrors.CodeResourceNotFound, "团队不存在")
 	}
 
 	// 3. 检查是否已是成员
 	existingMember, _ := s.teamMemberRepo.GetByTeamAndHero(ctx, req.TeamID, req.HeroID)
 	if existingMember != nil {
-		return xerrors.New(xerrors.CodeDuplicateResource, "您已是该团队成员")
+		return "", xerrors.New(xerrors.CodeDuplicateResource, "您已是该团队成员")
 	}
 
 	// 4. 检查团队是否满员
 	memberCount, err := s.teamMemberRepo.CountByTeam(ctx, req.TeamID)
 	if err != nil {
-		return xerrors.Wrap(err, xerrors.CodeInternalError, "统计成员数量失败")
+		return "", xerrors.Wrap(err, xerrors.CodeInternalError, "统计成员数量失败")
 	}
 	if memberCount >= int64(team.MaxMembers) {
-		return xerrors.New(xerrors.CodeInvalidParams, "团队已满员")
+		return "", xerrors.New(xerrors.CodeInvalidParams, "团队已满员")
 	}
 
 	// 5. 检查是否在冷却期
 	inCooldown, err := s.teamKickedRecordRepo.CheckCooldown(ctx, req.TeamID, req.HeroID)
 	if err != nil {
-		return xerrors.Wrap(err, xerrors.CodeInternalError, "检查冷却期失败")
+		return "", xerrors.Wrap(err, xerrors.CodeInternalError, "检查冷却期失败")
 	}
 	if inCooldown {
-		return xerrors.New(xerrors.CodeInvalidParams, "您在24小时内不能重新加入该团队")
+		return "", xerrors.New(xerrors.CodeInvalidParams, "您在24小时内不能重新加入该团队")
 	}
 
 	// 6. 检查是否已有待审批的申请
 	existingRequest, _ := s.teamJoinRequestRepo.GetPendingByHeroAndTeam(ctx, req.HeroID, req.TeamID)
 	if existingRequest != nil {
-		return xerrors.New(xerrors.CodeDuplicateResource, "您已有待审批的申请")
+		return "", xerrors.New(xerrors.CodeDuplicateResource, "您已有待审批的申请")
 	}
 
 	// 7. 创建申请记录
@@ -101,12 +101,12 @@ func (s *TeamMemberService) ApplyToJoin(ctx context.Context, req *ApplyToJoinReq
 	}
 
 	if err := s.teamJoinRequestRepo.Create(ctx, joinRequest); err != nil {
-		return xerrors.Wrap(err, xerrors.CodeInternalError, "创建申请失败")
+		return "", xerrors.Wrap(err, xerrors.CodeInternalError, "创建申请失败")
 	}
 
 	// TODO: 通知队长和管理员
 
-	return nil
+	return joinRequest.ID, nil
 }
 
 // ApproveJoinRequestRequest 审批加入申请请求
@@ -184,45 +184,44 @@ type InviteMemberRequest struct {
 	Message       string
 }
 
-// InviteMember 邀请成员（需要队长/管理员审批）
-func (s *TeamMemberService) InviteMember(ctx context.Context, req *InviteMemberRequest) error {
+// InviteMember 邀请成员（需要队长/管理员审批），返回创建的邀请
+func (s *TeamMemberService) InviteMember(ctx context.Context, req *InviteMemberRequest) (*game_runtime.TeamInvitation, error) {
 	// 1. 验证参数
 	if req.TeamID == "" || req.InviterHeroID == "" || req.InviteeHeroID == "" {
-		return xerrors.New(xerrors.CodeInvalidParams, "参数不能为空")
+		return nil, xerrors.New(xerrors.CodeInvalidParams, "参数不能为空")
 	}
 
 	// 2. 检查邀请人是否是团队成员
-	_, err := s.teamMemberRepo.GetByTeamAndHero(ctx, req.TeamID, req.InviterHeroID)
-	if err != nil {
-		return xerrors.Wrap(err, xerrors.CodeResourceNotFound, "您不是该团队成员")
+	if _, err := s.teamMemberRepo.GetByTeamAndHero(ctx, req.TeamID, req.InviterHeroID); err != nil {
+		return nil, xerrors.Wrap(err, xerrors.CodeResourceNotFound, "您不是该团队成员")
 	}
 
 	// 3. 检查被邀请人是否已是成员
 	existingMember, _ := s.teamMemberRepo.GetByTeamAndHero(ctx, req.TeamID, req.InviteeHeroID)
 	if existingMember != nil {
-		return xerrors.New(xerrors.CodeDuplicateResource, "该英雄已是团队成员")
+		return nil, xerrors.New(xerrors.CodeDuplicateResource, "该英雄已是团队成员")
 	}
 
 	// 4. 检查团队是否满员
 	team, err := s.teamRepo.GetByID(ctx, req.TeamID)
 	if err != nil {
-		return xerrors.Wrap(err, xerrors.CodeResourceNotFound, "团队不存在")
+		return nil, xerrors.Wrap(err, xerrors.CodeResourceNotFound, "团队不存在")
 	}
 	memberCount, err := s.teamMemberRepo.CountByTeam(ctx, req.TeamID)
 	if err != nil {
-		return xerrors.Wrap(err, xerrors.CodeInternalError, "统计成员数量失败")
+		return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "统计成员数量失败")
 	}
 	if memberCount >= int64(team.MaxMembers) {
-		return xerrors.New(xerrors.CodeInvalidParams, "团队已满员")
+		return nil, xerrors.New(xerrors.CodeInvalidParams, "团队已满员")
 	}
 
 	// 5. 检查被邀请人是否在冷却期
 	inCooldown, err := s.teamKickedRecordRepo.CheckCooldown(ctx, req.TeamID, req.InviteeHeroID)
 	if err != nil {
-		return xerrors.Wrap(err, xerrors.CodeInternalError, "检查冷却期失败")
+		return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "检查冷却期失败")
 	}
 	if inCooldown {
-		return xerrors.New(xerrors.CodeInvalidParams, "该英雄在24小时内不能重新加入该团队")
+		return nil, xerrors.New(xerrors.CodeInvalidParams, "该英雄在24小时内不能重新加入该团队")
 	}
 
 	// 6. 创建邀请记录
@@ -237,12 +236,12 @@ func (s *TeamMemberService) InviteMember(ctx context.Context, req *InviteMemberR
 	}
 
 	if err := s.teamInvitationRepo.Create(ctx, invitation); err != nil {
-		return xerrors.Wrap(err, xerrors.CodeInternalError, "创建邀请失败")
+		return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "创建邀请失败")
 	}
 
 	// TODO: 通知队长和管理员审批
 
-	return nil
+	return invitation, nil
 }
 
 // ApproveInvitationRequest 审批邀请请求
@@ -573,4 +572,3 @@ func (s *TeamMemberService) DemoteAdmin(ctx context.Context, teamID, targetHeroI
 
 	return nil
 }
-

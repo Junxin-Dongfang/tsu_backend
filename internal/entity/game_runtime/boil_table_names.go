@@ -4,6 +4,8 @@
 package game_runtime
 
 var TableNames = struct {
+	BattleReports               string
+	CurrentHeroContexts         string
 	HeroAllocatedAttributes     string
 	HeroAttributeOperations     string
 	HeroClassHistory            string
@@ -26,6 +28,8 @@ var TableNames = struct {
 	Teams                       string
 	WorldDropStats              string
 }{
+	BattleReports:               "battle_reports",
+	CurrentHeroContexts:         "current_hero_contexts",
 	HeroAllocatedAttributes:     "hero_allocated_attributes",
 	HeroAttributeOperations:     "hero_attribute_operations",
 	HeroClassHistory:            "hero_class_history",

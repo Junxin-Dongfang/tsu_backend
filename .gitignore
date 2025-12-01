@@ -42,6 +42,8 @@ infra/.ory-postgres-data/
 .claude/
 .consul-data/
 .*data*/
+.factory/
+.taskmaster/
 
 .42c/
 

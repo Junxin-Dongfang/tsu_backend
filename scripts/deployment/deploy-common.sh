@@ -8,21 +8,31 @@
 # ==========================================
 # 配置区域
 # ==========================================
-SERVER_HOST="47.239.139.109"
-SERVER_USER="root"
-SERVER_PASSWORD="J8Do8e8Oiv"
-SERVER_DEPLOY_DIR="/opt/tsu"
+SERVER_HOST="${SERVER_HOST:-47.239.139.109}"
+SERVER_USER="${SERVER_USER:-root}"
+SERVER_PASSWORD="${SERVER_PASSWORD:-J8Do8e8Oiv}"
+SERVER_DEPLOY_DIR="${SERVER_DEPLOY_DIR:-/opt/tsu}"
+
+# 认证方式: key | askpass | sshpass（默认 askpass，建议生产用 key）
+SSH_AUTH_MODE="${SSH_AUTH_MODE:-askpass}"
+
+# 临时 askpass 脚本路径
+ASKPASS_SCRIPT=""
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 # ==========================================
-# 颜色输出
+# 颜色输出（NO_COLOR 可关闭）
 # ==========================================
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-BLUE='\033[0;34m'
-NC='\033[0m'
+if [ -z "$NO_COLOR" ]; then
+    GREEN='\033[0;32m'
+    YELLOW='\033[1;33m'
+    RED='\033[0;31m'
+    BLUE='\033[0;34m'
+    NC='\033[0m'
+else
+    GREEN='' ; YELLOW='' ; RED='' ; BLUE='' ; NC=''
+fi
 
 # ==========================================
 # 日志函数
@@ -54,6 +64,12 @@ print_warning() {
 # 环境检查函数
 # ==========================================
 check_sshpass() {
+    # 在 askpass 模式下无需 sshpass
+    if [ "$SSH_AUTH_MODE" = "askpass" ]; then
+        print_info "跳过 sshpass 检查（SSH_AUTH_MODE=askpass）"
+        return 0
+    fi
+
     if ! command -v sshpass &> /dev/null; then
         print_error "未安装 sshpass"
         
@@ -117,21 +133,76 @@ ensure_remote_migrate() {
 # ==========================================
 # SSH 操作函数
 # ==========================================
+init_askpass() {
+    if [ -n "$ASKPASS_SCRIPT" ] && [ -f "$ASKPASS_SCRIPT" ]; then
+        return 0
+    fi
+    umask 077
+    ASKPASS_SCRIPT="$(mktemp)"
+    cat > "$ASKPASS_SCRIPT" <<EOF
+#!/bin/sh
+echo "$SERVER_PASSWORD"
+EOF
+    chmod +x "$ASKPASS_SCRIPT"
+}
+
+cleanup_askpass() {
+    if [ -n "$ASKPASS_SCRIPT" ] && [ -f "$ASKPASS_SCRIPT" ]; then
+        rm -f "$ASKPASS_SCRIPT"
+        ASKPASS_SCRIPT=""
+    fi
+}
+
+SSH_OPTS=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10)
+
 ssh_exec() {
     local command=$1
-    sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$SERVER_USER@$SERVER_HOST" "$command" 2>/dev/null
+    case "$SSH_AUTH_MODE" in
+        key)
+            ssh "${SSH_OPTS[@]}" "$SERVER_USER@$SERVER_HOST" "$command" 2>/dev/null
+            ;;
+        sshpass)
+            sshpass -p "$SERVER_PASSWORD" ssh "${SSH_OPTS[@]}" "$SERVER_USER@$SERVER_HOST" "$command" 2>/dev/null
+            ;;
+        *)
+            init_askpass
+            DISPLAY=:0 SSH_ASKPASS_REQUIRE=force SSH_ASKPASS="$ASKPASS_SCRIPT" ssh \
+                "${SSH_OPTS[@]}" \
+                -o BatchMode=no \
+                -o PreferredAuthentications=password \
+                -o PubkeyAuthentication=no \
+                "$SERVER_USER@$SERVER_HOST" "$command" </dev/null 2>/dev/null
+            ;;
+    esac
 }
 
 ssh_copy() {
     local source=$1
     local dest=$2
-    sshpass -p "$SERVER_PASSWORD" scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -r "$source" "$SERVER_USER@$SERVER_HOST:$dest" 2>/dev/null
+    case "$SSH_AUTH_MODE" in
+        key)
+            scp "${SSH_OPTS[@]}" -r "$source" "$SERVER_USER@$SERVER_HOST:$dest" 2>/dev/null
+            ;;
+        sshpass)
+            sshpass -p "$SERVER_PASSWORD" scp "${SSH_OPTS[@]}" -r "$source" "$SERVER_USER@$SERVER_HOST:$dest" 2>/dev/null
+            ;;
+        *)
+            init_askpass
+            DISPLAY=:0 SSH_ASKPASS_REQUIRE=force SSH_ASKPASS="$ASKPASS_SCRIPT" scp \
+                "${SSH_OPTS[@]}" \
+                -o BatchMode=no \
+                -o PreferredAuthentications=password \
+                -o PubkeyAuthentication=no \
+                -r "$source" "$SERVER_USER@$SERVER_HOST:$dest" </dev/null 2>/dev/null
+            ;;
+    esac
 }
 
 test_ssh_connection() {
     print_info "测试 SSH 连接..."
     if ssh_exec "echo 'SSH 连接成功'" > /dev/null 2>&1; then
         print_success "SSH 连接正常"
+        cleanup_askpass
         return 0
     else
         print_error "无法连接到服务器 $SERVER_HOST"

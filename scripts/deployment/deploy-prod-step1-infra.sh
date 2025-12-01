@@ -12,9 +12,12 @@
 
 set -e
 
-# 加载通用函数库
+# 加载通用函数库（可通过环境变量覆盖参数）
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/deploy-common.sh"
+
+SKIP_ENV_UPLOAD="${SKIP_ENV_UPLOAD:-false}"
+ALLOW_RECREATE="${ALLOW_RECREATE:-false}"
 
 print_step "步骤 1: 部署基础设施服务"
 
@@ -63,10 +66,16 @@ print_info "上传 docker-compose 配置..."
 ssh_copy "$PROJECT_DIR/deployments/docker-compose/docker-compose.prod.1-infra.yml" "$SERVER_DEPLOY_DIR/"
 
 print_info "上传环境变量文件..."
-ssh_copy "$PROJECT_DIR/.env.prod" "$SERVER_DEPLOY_DIR/"
+if [ "$SKIP_ENV_UPLOAD" = true ]; then
+    print_warning "已跳过 .env.prod 上传（--skip-env-upload）"
+else
+    ssh_copy "$PROJECT_DIR/.env.prod" "$SERVER_DEPLOY_DIR/"
+fi
 
 print_info "上传 Ory 初始化脚本..."
-ssh_copy "$PROJECT_DIR/infra/ory/init-schemas.sql" "$SERVER_DEPLOY_DIR/infra/ory/"
+# 为避免覆盖历史文件，使用 init-schemas-new 子目录
+ssh_exec "mkdir -p $SERVER_DEPLOY_DIR/infra/ory/init-schemas-new"
+ssh_copy "$PROJECT_DIR/infra/ory/init-schemas.sql" "$SERVER_DEPLOY_DIR/infra/ory/init-schemas-new/init-schemas.sql"
 
 print_success "配置文件上传完成"
 
@@ -89,7 +98,11 @@ fi
 print_step "[7/8] 启动基础设施服务"
 
 print_info "启动服务（这可能需要几分钟）..."
-ssh_exec "cd $SERVER_DEPLOY_DIR && docker compose -f docker-compose.prod.1-infra.yml --env-file .env.prod up -d"
+COMPOSE_FLAGS="--env-file .env.prod up -d"
+if [ "$ALLOW_RECREATE" != true ]; then
+    COMPOSE_FLAGS="--env-file .env.prod up -d --no-recreate --no-build"
+fi
+ssh_exec "cd $SERVER_DEPLOY_DIR && docker compose -f docker-compose.prod.1-infra.yml $COMPOSE_FLAGS"
 
 print_info "等待服务启动..."
 sleep 10

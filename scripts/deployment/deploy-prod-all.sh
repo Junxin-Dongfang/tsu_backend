@@ -21,6 +21,8 @@ source "$SCRIPT_DIR/deploy-common.sh"
 # 命令行参数
 AUTO_MODE=false
 SKIP_CONFIRM=false
+SKIP_ENV_UPLOAD=false
+ALLOW_RECREATE=false
 
 for arg in "$@"; do
     case $arg in
@@ -31,6 +33,22 @@ for arg in "$@"; do
             ;;
         --yes|-y)
             SKIP_CONFIRM=true
+            shift
+            ;;
+        --skip-env-upload)
+            SKIP_ENV_UPLOAD=true
+            shift
+            ;;
+        --allow-recreate)
+            ALLOW_RECREATE=true
+            shift
+            ;;
+        --auth-mode=*)
+            SSH_AUTH_MODE="${arg#*=}"
+            shift
+            ;;
+        --no-color)
+            NO_COLOR=1
             shift
             ;;
         *)
@@ -70,7 +88,7 @@ START_TIME=$(date +%s)
 # ==========================================
 print_step "执行步骤 1: 基础设施"
 
-if bash "$SCRIPT_DIR/deploy-prod-step1-infra.sh"; then
+if SKIP_ENV_UPLOAD=$SKIP_ENV_UPLOAD ALLOW_RECREATE=$ALLOW_RECREATE SSH_AUTH_MODE=$SSH_AUTH_MODE NO_COLOR=$NO_COLOR bash "$SCRIPT_DIR/deploy-prod-step1-infra.sh"; then
     print_success "步骤 1 完成"
 else
     print_error "步骤 1 失败，部署中止"
@@ -87,7 +105,7 @@ fi
 # ==========================================
 print_step "执行步骤 2: Ory 服务"
 
-if bash "$SCRIPT_DIR/deploy-prod-step2-ory.sh"; then
+if ALLOW_RECREATE=$ALLOW_RECREATE SSH_AUTH_MODE=$SSH_AUTH_MODE NO_COLOR=$NO_COLOR bash "$SCRIPT_DIR/deploy-prod-step2-ory.sh"; then
     print_success "步骤 2 完成"
 else
     print_error "步骤 2 失败，部署中止"
@@ -104,7 +122,7 @@ fi
 # ==========================================
 print_step "执行步骤 3: Admin Server"
 
-if bash "$SCRIPT_DIR/deploy-prod-step3-admin.sh"; then
+if ALLOW_RECREATE=$ALLOW_RECREATE SSH_AUTH_MODE=$SSH_AUTH_MODE NO_COLOR=$NO_COLOR bash "$SCRIPT_DIR/deploy-prod-step3-admin.sh"; then
     print_success "步骤 3 完成"
 else
     print_error "步骤 3 失败，部署中止"

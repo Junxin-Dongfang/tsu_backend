@@ -170,8 +170,52 @@ func TestTeamMemberService_KickMember(t *testing.T) {
 	require.NoError(t, err)
 	defer cleanupTestData(t, db, team.ID)
 
-	// TODO: 添加成员后再测试踢出
-	// 这里需要先通过申请流程添加成员，然后再测试踢出功能
+	// 先添加一个成员
+	memberUserID := testseed.EnsureUser(t, db, "team-member-kick-target-user")
+	memberHeroID := testseed.EnsureHero(t, db, memberUserID, "team-member-kick-target-hero")
+	_, err = db.Exec(`
+		INSERT INTO game_runtime.team_members (id, team_id, hero_id, user_id, role, joined_at)
+		VALUES (gen_random_uuid(), $1, $2, $3, 'member', NOW())
+	`, team.ID, memberHeroID.String(), memberUserID.String())
+	require.NoError(t, err)
+
+	memberService := NewTeamMemberService(db, nil)
+
+	// 队长踢出成员应成功
+	err = memberService.KickMember(ctx, &KickMemberRequest{
+		TeamID:       team.ID,
+		TargetHeroID: memberHeroID.String(),
+		KickerHeroID: leaderHeroID.String(),
+		Reason:       "长期不活跃",
+	})
+	assert.NoError(t, err)
+
+	// 验证成员被删除并记录冷却
+	var count int
+	_ = db.QueryRow(`SELECT COUNT(1) FROM game_runtime.team_members WHERE team_id = $1 AND hero_id = $2`, team.ID, memberHeroID.String()).Scan(&count)
+	assert.Equal(t, 0, count)
+
+	var cooldownExists int
+	_ = db.QueryRow(`SELECT COUNT(1) FROM game_runtime.team_kicked_records WHERE team_id = $1 AND hero_id = $2`, team.ID, memberHeroID.String()).Scan(&cooldownExists)
+	assert.Equal(t, 1, cooldownExists)
+
+	// 管理员不能踢出队长
+	adminUserID := testseed.EnsureUser(t, db, "team-member-kick-admin-user")
+	adminHeroID := testseed.EnsureHero(t, db, adminUserID, "team-member-kick-admin-hero")
+	_, err = db.Exec(`
+		INSERT INTO game_runtime.team_members (id, team_id, hero_id, user_id, role, joined_at)
+		VALUES (gen_random_uuid(), $1, $2, $3, 'admin', NOW())
+		ON CONFLICT DO NOTHING
+	`, team.ID, adminHeroID.String(), adminUserID.String())
+	require.NoError(t, err)
+
+	err = memberService.KickMember(ctx, &KickMemberRequest{
+		TeamID:       team.ID,
+		TargetHeroID: leaderHeroID.String(),
+		KickerHeroID: adminHeroID.String(),
+		Reason:       "尝试踢出队长应失败",
+	})
+	assert.Error(t, err)
 }
 
 // 运行测试：

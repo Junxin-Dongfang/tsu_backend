@@ -1,0 +1,23 @@
+# reduce build context size
+.git
+cache
+tmp
+logs
+*.log
+node_modules
+web/node_modules
+web/.next
+web/dist
+.taskmaster
+.mcp
+.claude
+.idea
+.vscode
+.DS_Store
+*.swp
+*.swo
+.env*
+test/results
+infra/ory/init-schemas.sql/init-schemas.sql
+infra/ory/init-schemas.sql
+infra/ory/init-schemas-new/init-schemas.sql

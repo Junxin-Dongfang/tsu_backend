@@ -234,6 +234,28 @@ func (f *fakePermissionCache) DeleteKey(_ context.Context, keys ...string) error
 	return nil
 }
 
+func TestTeamPermissionService_SyncMemberToKeto_ClearsCache(t *testing.T) {
+	ctx := context.Background()
+	cache := newFakePermissionCache()
+	cacheKey := buildPermissionCacheKey("team-1", "hero-1")
+	cache.values[cacheKey] = `{"view_team_info":true}`
+
+	keto := &fakeKetoClient{}
+	svc := &TeamPermissionService{
+		permissionCache: cache,
+		ketoClient:      keto,
+	}
+
+	err := svc.SyncMemberToKeto(ctx, &game_runtime.TeamMember{
+		TeamID: "team-1",
+		HeroID: "hero-1",
+		Role:   "member",
+	})
+	require.NoError(t, err)
+	_, exists := cache.values[cacheKey]
+	assert.False(t, exists, "sync 应清除权限缓存以避免脏读")
+}
+
 func TestTeamPermissionService_CheckPermissionFallback(t *testing.T) {
 	repo := &fakeTeamMemberRepo{
 		members: map[string]*game_runtime.TeamMember{

@@ -44,8 +44,8 @@ func TestWorldDropIntegration_CompleteWorkflow(t *testing.T) {
 			MinDropInterval:   intPtr(300),
 			MaxDropInterval:   intPtr(600),
 			BaseDropRate:      0.05,
-			TriggerConditions: json.RawMessage(`{"type": "level_range", "min_level": 10, "max_level": 50}`),
-			DropRateModifiers: json.RawMessage(`{"vip_bonus": 0.05, "event_bonus": 0.1}`),
+			TriggerConditions: dto.RawOrStringJSON(`{"type": "level_range", "min_level": 10, "max_level": 50}`),
+			DropRateModifiers: dto.RawOrStringJSON(`{"vip_bonus": 0.05, "event_bonus": 0.1}`),
 		}
 
 		body, _ := json.Marshal(reqBody)

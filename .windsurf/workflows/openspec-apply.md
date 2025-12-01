@@ -1,5 +1,6 @@
 ---
 description: Implement an approved OpenSpec change and keep tasks in sync.
+auto_execution_mode: 3
 ---
 <!-- OPENSPEC:START -->
 **Guardrails**

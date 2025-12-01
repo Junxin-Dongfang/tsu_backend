@@ -52,8 +52,8 @@ type CreateTeamRequest struct {
 
 // UpdateTeamInfoRequest HTTP 更新团队信息请求
 type UpdateTeamInfoRequest struct {
-	Name        string  `json:"name,omitempty" validate:"omitempty,min=2,max=20" example:"新团队名称"` // 团队名称（可选，2-20字符）
-	Description *string `json:"description,omitempty" example:"新的团队描述"`                          // 团队描述（可选）
+	TeamName    string  `json:"team_name,omitempty" validate:"omitempty,min=2,max=20" example:"新团队名称"` // 团队名称（可选，2-20字符）
+	Description *string `json:"description,omitempty" example:"新的团队描述"`                               // 团队描述（可选）
 }
 
 // TeamResponse HTTP 团队响应
@@ -241,7 +241,7 @@ func (h *TeamHandler) UpdateTeamInfo(c echo.Context) error {
 	updateReq := &service.UpdateTeamInfoRequest{
 		TeamID:      teamID,
 		HeroID:      heroID,
-		Name:        req.Name,
+		Name:        req.TeamName,
 		Description: req.Description,
 	}
 

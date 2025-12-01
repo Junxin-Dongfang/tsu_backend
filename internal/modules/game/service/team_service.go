@@ -95,9 +95,9 @@ func (s *TeamService) CreateTeam(ctx context.Context, req *CreateTeamRequest) (*
 
 	// 6. 创建团队
 	team := &game_runtime.Team{
-		Name:          req.TeamName,
-		LeaderHeroID:  req.HeroID,
-		MaxMembers:    12,
+		Name:         req.TeamName,
+		LeaderHeroID: req.HeroID,
+		MaxMembers:   12,
 	}
 	if req.Description != "" {
 		team.Description.SetValid(req.Description)
@@ -247,6 +247,13 @@ func (s *TeamService) DisbandTeam(ctx context.Context, teamID, heroID string) er
 		return xerrors.Wrap(err, xerrors.CodeInternalError, "获取成员列表失败")
 	}
 
+	// 4.1 删除团队成员记录，避免软删除团队后仍存在成员关联
+	for _, m := range members {
+		if err := s.teamMemberRepo.Delete(ctx, s.db, m.ID); err != nil {
+			return xerrors.Wrap(err, xerrors.CodeInternalError, "删除团队成员失败")
+		}
+	}
+
 	// 5. 软删除团队
 	if err := s.teamRepo.Delete(ctx, teamID); err != nil {
 		return xerrors.Wrap(err, xerrors.CodeInternalError, "解散团队失败")
@@ -349,13 +356,14 @@ func (s *TeamService) transferLeader(ctx context.Context, team *game_runtime.Tea
 	defer tx.Rollback()
 
 	// 3. 更新团队的队长ID
+	oldLeaderHeroID := team.LeaderHeroID
 	team.LeaderHeroID = newLeaderCandidate.HeroID
 	if err := s.teamRepo.Update(ctx, team); err != nil {
 		return fmt.Errorf("更新团队队长失败: %w", err)
 	}
 
 	// 4. 更新原队长角色为 member
-	if err := s.teamMemberRepo.UpdateRole(ctx, tx, team.ID, team.LeaderHeroID, "member"); err != nil {
+	if err := s.teamMemberRepo.UpdateRole(ctx, tx, team.ID, oldLeaderHeroID, "member"); err != nil {
 		return fmt.Errorf("更新原队长角色失败: %w", err)
 	}
 
@@ -376,7 +384,7 @@ func (s *TeamService) transferLeader(ctx context.Context, team *game_runtime.Tea
 		oldLeaderNewRole := "member"
 
 		// 更新原队长角色
-		if err := s.teamPermissionService.UpdateMemberRoleInKeto(ctx, team.ID, team.LeaderHeroID, oldLeaderOldRole, oldLeaderNewRole); err != nil {
+		if err := s.teamPermissionService.UpdateMemberRoleInKeto(ctx, team.ID, oldLeaderHeroID, oldLeaderOldRole, oldLeaderNewRole); err != nil {
 			fmt.Printf("Warning: Failed to update old leader role in Keto for team %s: %v\n", team.ID, err)
 		}
 
@@ -391,4 +399,3 @@ func (s *TeamService) transferLeader(ctx context.Context, team *game_runtime.Tea
 
 	return nil
 }
-

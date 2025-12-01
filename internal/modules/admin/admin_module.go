@@ -314,7 +314,7 @@ func (m *AdminModule) setupRoutes() {
 	// Admin protected routes (需要认证，应用认证中间件)
 	// 这些路由的请求必须经过 Oathkeeper 验证，并且会从 Header 中提取用户信息
 	adminProtected := admin.Group("")
-	adminProtected.Use(custommiddleware.AuthMiddleware(m.respWriter, logger))
+	adminProtected.Use(custommiddleware.AuthMiddleware(m.respWriter, logger, m.db))
 	adminProtected.Use(validation.UUIDValidationMiddleware(m.respWriter))
 	userRead := requirePerm("user:read")
 	userUpdate := requirePerm("user:update")

@@ -460,7 +460,7 @@ func (m *GameModule) setupRoutes() {
 		logger := log.GetLogger()
 		heroes := game.Group("/heroes")
 		// 应用认证中间件
-		heroes.Use(custommiddleware.AuthMiddleware(m.respWriter, logger))
+		heroes.Use(custommiddleware.AuthMiddleware(m.respWriter, logger, m.db))
 		{
 			// 英雄管理
 			heroes.POST("", m.heroHandler.CreateHero)                                 // 创建英雄
@@ -502,7 +502,7 @@ func (m *GameModule) setupRoutes() {
 
 		// Skill detail routes (需要认证)
 		skills := game.Group("/skills")
-		skills.Use(custommiddleware.AuthMiddleware(m.respWriter, logger))
+		skills.Use(custommiddleware.AuthMiddleware(m.respWriter, logger, m.db))
 		{
 			skills.GET("/basic", m.skillDetailHandler.ListSkillsBasic)               // 获取技能列表（简化版）
 			skills.GET("/standard", m.skillDetailHandler.ListSkillsStandard)         // 获取技能列表（标准版）
@@ -555,7 +555,7 @@ func (m *GameModule) setupRoutes() {
 
 		//Team routes (需要认证 + 英雄上下文)
 		teams := game.Group("/teams")
-		teams.Use(custommiddleware.AuthMiddleware(m.respWriter, logger))
+		teams.Use(custommiddleware.AuthMiddleware(m.respWriter, logger, m.db))
 		teams.Use(custommiddleware.HeroMiddleware(m.db, m.respWriter, logger)) // 自动从数据库获取当前英雄ID
 		{
 			// 团队管理
