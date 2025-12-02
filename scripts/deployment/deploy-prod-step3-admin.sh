@@ -242,7 +242,7 @@ print_info "赋予权限同步脚本执行权限..."
 ssh_exec "cd $SERVER_DEPLOY_DIR && chmod +x init_keto_from_db.sh"
 
 print_info "执行权限同步脚本(同步角色-权限关系到 Keto)..."
-SYNC_KETO_CMD="cd $SERVER_DEPLOY_DIR && source .env.prod && POSTGRES_CONTAINER=tsu_postgres_main KETO_CONTAINER=tsu_keto TSU_KETO_AUTO_APPROVE=true TSU_KETO_RESET=false DB_USER=\${DB_USER} DB_PASSWORD=\${DB_PASSWORD} DB_NAME=\${DB_NAME} ./init_keto_from_db.sh"
+SYNC_KETO_CMD="cd $SERVER_DEPLOY_DIR && source .env.prod && POSTGRES_CONTAINER=tsu_postgres_main KETO_CONTAINER=tsu_keto TSU_KETO_AUTO_APPROVE=true TSU_KETO_RESET=false DB_HOST=tsu_postgres_main DB_PORT=5432 DB_USER=\${DB_USER} DB_PASSWORD=\${DB_PASSWORD} DB_NAME=\${DB_NAME} ./init_keto_from_db.sh"
 if ssh_exec "$SYNC_KETO_CMD"; then
     print_success "Keto 权限同步完成"
 else
