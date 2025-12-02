@@ -39,12 +39,12 @@ print_step "[2/6] 上传 Ory 配置文件"
 print_info "上传 docker-compose 配置..."
 ssh_copy "$PROJECT_DIR/deployments/docker-compose/docker-compose.prod.2-ory.yml" "$SERVER_DEPLOY_DIR/"
 
-print_info "清理旧配置并重新创建目录..."
-ssh_exec "rm -rf $SERVER_DEPLOY_DIR/infra/ory && mkdir -p $SERVER_DEPLOY_DIR/infra/ory/prod"
+print_info "准备配置目录（保留已有文件）..."
+ssh_exec "mkdir -p $SERVER_DEPLOY_DIR/infra/ory/prod"
 
 print_info "上传 Kratos 配置..."
 ssh_copy "$PROJECT_DIR/infra/ory/prod/kratos.prod.yml" "$SERVER_DEPLOY_DIR/infra/ory/prod/"
-ssh_copy "$PROJECT_DIR/infra/ory/identity.schema.json" "$SERVER_DEPLOY_DIR/infra/ory/prod/"
+ssh_copy "$PROJECT_DIR/infra/ory/identity.schema.json" "$SERVER_DEPLOY_DIR/infra/ory/identity.schema.json"
 
 print_info "上传 Keto 配置..."
 ssh_copy "$PROJECT_DIR/infra/ory/prod/keto.prod.yml" "$SERVER_DEPLOY_DIR/infra/ory/prod/"

@@ -40,11 +40,11 @@ type SwitchCurrentHeroRequest struct {
 
 // ActivatedHeroResponse 已激活英雄响应
 type ActivatedHeroResponse struct {
-	ID              string `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
-	HeroName        string `json:"hero_name" example:"战士阿尔法"`
-	IsActivated     bool   `json:"is_activated" example:"true"`
-	IsCurrentHero   bool   `json:"is_current_hero" example:"true"`
-	CreatedAt       string `json:"created_at" example:"2025-10-17 10:30:00"`
+	ID            string `json:"id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	HeroName      string `json:"hero_name" example:"战士阿尔法"`
+	IsActivated   bool   `json:"is_activated" example:"true"`
+	IsCurrentHero bool   `json:"is_current_hero" example:"true"`
+	CreatedAt     string `json:"created_at" example:"2025-10-17 10:30:00"`
 }
 
 // ActivateHero 激活英雄
@@ -59,7 +59,7 @@ type ActivatedHeroResponse struct {
 // @Failure 401 {object} response.Response "未登录"
 // @Failure 404 {object} response.Response "英雄不存在"
 // @Failure 500 {object} response.Response "服务器内部错误"
-// @Router /game/heroes/{hero_id}/activate [patch]
+// @Router /game/heroes/activate [patch]
 func (h *HeroActivationHandler) ActivateHero(c echo.Context) error {
 	userID := c.Get("user_id")
 	if userID == nil {

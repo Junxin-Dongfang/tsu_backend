@@ -221,13 +221,15 @@ else
 fi
 
 print_info "执行数据库迁移..."
-# 加载环境变量并执行迁移
-if ssh_exec "cd $SERVER_DEPLOY_DIR && source .env.prod && migrate -path ./migrations -database \"postgres://\${DB_USER}:\${DB_PASSWORD}@localhost:5432/\${DB_NAME}?sslmode=disable\" up"; then
+# 先清理可能的 CRLF，再加载环境变量执行迁移
+sanitize_remote_env
+MIGRATE_CMD="cd $SERVER_DEPLOY_DIR && set -a && . .env.prod && set +a && migrate -path ./migrations -database \"postgres://\${DB_USER}:\${DB_PASSWORD}@localhost:5432/\${DB_NAME}?sslmode=disable\" up"
+if ssh_exec "$MIGRATE_CMD"; then
     print_success "数据库迁移完成"
 else
     print_error "数据库迁移失败"
     print_info "查看迁移日志以获取详细信息"
-    ssh_exec "cd $SERVER_DEPLOY_DIR && source .env.prod && migrate -path ./migrations -database \"postgres://\${DB_USER}:\${DB_PASSWORD}@localhost:5432/\${DB_NAME}?sslmode=disable\" version"
+    ssh_exec "cd $SERVER_DEPLOY_DIR && set -a && . .env.prod && set +a && migrate -path ./migrations -database \"postgres://\${DB_USER}:\${DB_PASSWORD}@localhost:5432/\${DB_NAME}?sslmode=disable\" version"
     exit 1
 fi
 

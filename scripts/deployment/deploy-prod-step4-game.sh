@@ -79,7 +79,8 @@ GAME_IMAGE_TAG="${DOCKERHUB_USERNAME}/tsu-game-server:${IMAGE_VERSION}"
 print_step "[3/9] 执行数据库迁移"
 
 ensure_remote_migrate
-ssh_exec "cd $SERVER_DEPLOY_DIR && source .env.prod && url=postgres://\\${DB_USER}:\\${DB_PASSWORD}@localhost:5432/\\${DB_NAME}?sslmode=disable && migrate -path ./migrations -database \"\$url\" up"
+sanitize_remote_env
+ssh_exec "cd $SERVER_DEPLOY_DIR && set -a && . .env.prod && set +a && url=postgres://\${DB_USER}:\${DB_PASSWORD}@localhost:5432/\${DB_NAME}?sslmode=disable && migrate -path ./migrations -database \"\$url\" up"
 
 # ==========================================
 # 4. 构建 Game Server Docker 镜像

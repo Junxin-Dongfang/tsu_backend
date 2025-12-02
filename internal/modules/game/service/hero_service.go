@@ -110,6 +110,7 @@ func (s *HeroService) CreateHero(ctx context.Context, req *CreateHeroRequest) (*
 		ExperienceAvailable: 0,
 		ExperienceSpent:     0,
 		Status:              "active",
+		IsActivated:         true, // 新建英雄即视为已激活
 		CreatedAt:           time.Now(),
 		UpdatedAt:           time.Now(),
 	}
@@ -147,7 +148,17 @@ func (s *HeroService) CreateHero(ctx context.Context, req *CreateHeroRequest) (*
 		return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "学习初始技能失败")
 	}
 
-	// 9. 提交事务
+	// 9. 将新英雄设为当前操作英雄（若已存在则覆盖）
+	if _, err := tx.ExecContext(ctx,
+		`INSERT INTO game_runtime.current_hero_contexts (user_id, hero_id, switched_at, updated_at)
+		 VALUES ($1, $2, NOW(), NOW())
+		 ON CONFLICT (user_id) DO UPDATE SET hero_id = EXCLUDED.hero_id, switched_at = NOW(), updated_at = NOW()`,
+		req.UserID, hero.ID,
+	); err != nil {
+		return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "设置当前英雄失败")
+	}
+
+	// 10. 提交事务
 	if err := tx.Commit(); err != nil {
 		return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "提交事务失败")
 	}

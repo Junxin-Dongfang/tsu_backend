@@ -130,6 +130,11 @@ ensure_remote_migrate() {
     fi
 }
 
+# 处理服务器上的 .env.prod 换行符，避免 CRLF 造成 source 失败
+sanitize_remote_env() {
+    ssh_exec "cd $SERVER_DEPLOY_DIR && (command -v dos2unix >/dev/null 2>&1 && dos2unix -q .env.prod || sed -i 's/\\r$//' .env.prod)"
+}
+
 # ==========================================
 # SSH 操作函数
 # ==========================================
