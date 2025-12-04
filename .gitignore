@@ -4,6 +4,7 @@
 # IDE
 .vscode/
 .idea/
+.windsurf/
 
 # Logs & temp
 logs/
@@ -15,31 +16,40 @@ cache/
 bin/
 dist/
 build/
-
+/game-server
 # Local env
 .env
 .env.prod
 .env.local
 .env.*.local
+.env.smtp
 .devops/config.env
 
-# Registry and deployment
-.registry.conf
-.last-build.info
+# Development tools
+.air.*.toml
+.devops/config.env
 
 .postgres-data/
+.redis-data/
+.ory-postgres-data/
 infra/.ory-postgres-data/
 !.specify/
 !.claude/
 !.augment/
 .env.*
 .docker/
+.docker-tmp/
 .gocache/
 .cache/
 .venv/
 .VSCodeCounter/
 .modcache/
 .claude/
+.consul-data/
+.*data*/
+.factory/
+.taskmaster/
+.agent/
 .consul-data/
 .*data*/
 .factory/

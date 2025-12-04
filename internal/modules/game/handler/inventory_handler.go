@@ -6,6 +6,7 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"tsu-self/internal/modules/game/service"
+	"tsu-self/internal/pkg/ctxkey"
 	"tsu-self/internal/pkg/response"
 	"tsu-self/internal/pkg/xerrors"
 )
@@ -30,12 +31,12 @@ func NewInventoryHandler(db *sql.DB, respWriter response.Writer) *InventoryHandl
 
 // GetInventoryRequest 查询背包请求
 type GetInventoryRequest struct {
-	OwnerID      string  `query:"owner_id" validate:"required" example:"123e4567-e89b-12d3-a456-426614174000"` // 所有者ID（必填）
-	ItemLocation string  `query:"item_location" validate:"required" example:"backpack"`                        // 物品位置（必填：backpack/warehouse/storage）
-	ItemType     *string `query:"item_type" example:"equipment"`                                               // 物品类型（可选）
-	ItemQuality  *string `query:"item_quality" example:"epic"`                                                 // 物品品质（可选）
-	Page         int     `query:"page" example:"1"`                                                            // 页码（默认1）
-	PageSize     int     `query:"page_size" example:"20"`                                                      // 每页数量（默认20）
+	OwnerID      string  `query:"owner_id" validate:"required" example:"123e4567-e89b-12d3-a456-426614174000"`           // 所有者ID（必填）
+	ItemLocation string  `query:"item_location" validate:"required,oneof=backpack warehouse storage" example:"backpack"` // 物品位置（必填：backpack/warehouse/storage）
+	ItemType     *string `query:"item_type" example:"equipment"`                                                         // 物品类型（可选）
+	ItemQuality  *string `query:"item_quality" example:"epic"`                                                           // 物品品质（可选）
+	Page         int     `query:"page" example:"1"`                                                                      // 页码（默认1）
+	PageSize     int     `query:"page_size" example:"20"`                                                                // 每页数量（默认20）
 }
 
 // GetInventoryResponse 查询背包响应
@@ -55,18 +56,19 @@ type MoveItemRequest struct {
 
 // MoveItemResponse 移动物品响应
 type MoveItemResponse struct {
-	Success bool   `json:"success" example:"true"`  // 是否成功
+	Success bool   `json:"success" example:"true"`   // 是否成功
 	Message string `json:"message" example:"物品移动成功"` // 消息
 }
 
 // DiscardItemRequest 丢弃物品请求
 type DiscardItemRequest struct {
 	ItemInstanceID string `json:"item_instance_id" validate:"required" example:"660e8400-e29b-41d4-a716-446655440001"` // 物品实例ID（必填）
+	Quantity       int    `json:"quantity" validate:"required,min=1" example:"5"`                                      // 丢弃数量（必填，<= 当前堆叠数；等于堆叠数则删除实例）
 }
 
 // DiscardItemResponse 丢弃物品响应
 type DiscardItemResponse struct {
-	Success bool   `json:"success" example:"true"`  // 是否成功
+	Success bool   `json:"success" example:"true"`   // 是否成功
 	Message string `json:"message" example:"物品丢弃成功"` // 消息
 }
 
@@ -78,20 +80,20 @@ type SortInventoryRequest struct {
 
 // SortInventoryResponse 整理背包响应
 type SortInventoryResponse struct {
-	Success bool              `json:"success" example:"true"`  // 是否成功
+	Success bool              `json:"success" example:"true"`   // 是否成功
 	Message string            `json:"message" example:"背包整理成功"` // 消息
-	Items   []*PlayerItemInfo `json:"items"`                   // 整理后的物品列表
+	Items   []*PlayerItemInfo `json:"items"`                    // 整理后的物品列表
 }
 
 // ==================== HTTP Handlers ====================
 
 // GetInventory 查询背包/仓库
 // @Summary 查询背包/仓库
-// @Description 查询玩家的背包或仓库物品列表,支持分页和筛选
+// @Description 查询玩家的背包或仓库物品列表,支持分页和筛选。`owner_id` 为用户ID（非英雄ID）。只能查询自己的背包，若 owner_id 与登录用户不一致返回 403。
 // @Tags Inventory
 // @Accept json
 // @Produce json
-// @Param owner_id query string true "所有者ID"
+// @Param owner_id query string true "所有者ID（用户ID）"
 // @Param item_location query string true "物品位置(backpack/warehouse/storage)"
 // @Param item_type query string false "物品类型"
 // @Param item_quality query string false "物品品质"
@@ -99,8 +101,9 @@ type SortInventoryResponse struct {
 // @Param page_size query int false "每页数量(默认20)"
 // @Success 200 {object} response.Response{data=GetInventoryResponse} "成功"
 // @Failure 400 {object} response.Response "参数错误"
+// @Failure 403 {object} response.Response "只能查询自己的背包"
 // @Failure 500 {object} response.Response "服务器错误"
-// @Router /api/inventory [get]
+// @Router /game/inventory [get]
 func (h *InventoryHandler) GetInventory(c echo.Context) error {
 	// 1. 解析请求
 	var req GetInventoryRequest
@@ -121,7 +124,13 @@ func (h *InventoryHandler) GetInventory(c echo.Context) error {
 		req.PageSize = 20
 	}
 
-	// 4. 调用服务
+	// 4. 权限校验：只能查询自己的背包
+	userID, _ := c.Get("user_id").(string)
+	if userID == "" || userID != req.OwnerID {
+		return response.EchoError(c, h.respWriter, xerrors.New(xerrors.CodePermissionDenied, "只能查询自己的背包"))
+	}
+
+	// 5. 调用服务
 	svcReq := &service.GetInventoryRequest{
 		OwnerID:      req.OwnerID,
 		ItemLocation: req.ItemLocation,
@@ -136,7 +145,7 @@ func (h *InventoryHandler) GetInventory(c echo.Context) error {
 		return response.EchoError(c, h.respWriter, err)
 	}
 
-	// 5. 构建响应
+	// 6. 构建响应
 	resp := &GetInventoryResponse{
 		Items:      make([]*PlayerItemInfo, 0, len(svcResp.Items)),
 		TotalCount: svcResp.TotalCount,
@@ -153,13 +162,14 @@ func (h *InventoryHandler) GetInventory(c echo.Context) error {
 
 // MoveItem 移动物品
 // @Summary 移动物品
-// @Description 在背包和仓库之间移动物品
+// @Description 在背包和仓库之间移动物品；只能操作当前登录英雄拥有的实例，越权请求返回 "只能操作自己的物品"。
 // @Tags Inventory
 // @Accept json
 // @Produce json
 // @Param request body MoveItemRequest true "移动物品请求"
 // @Success 200 {object} response.Response{data=MoveItemResponse} "成功"
 // @Failure 400 {object} response.Response "参数错误"
+// @Failure 403 {object} response.Response "只能操作自己的物品"
 // @Failure 404 {object} response.Response "资源不存在"
 // @Failure 500 {object} response.Response "服务器错误"
 // @Router /game/inventory/move [post]
@@ -176,13 +186,28 @@ func (h *InventoryHandler) MoveItem(c echo.Context) error {
 	}
 
 	// 3. 调用服务
+	ownerID := c.Get("hero_id")
+	if ownerIDStr, ok := ownerID.(string); ok && ownerIDStr != "" {
+		// 强制使用当前英雄作为 owner
+	}
+
 	svcReq := &service.MoveItemRequest{
 		ItemInstanceID: req.ItemInstanceID,
 		FromLocation:   req.FromLocation,
 		ToLocation:     req.ToLocation,
 	}
 
-	svcResp, err := h.inventorySvc.MoveItem(c.Request().Context(), svcReq)
+	ctx := c.Request().Context()
+	if userID, ok := c.Get("user_id").(string); ok && userID != "" {
+		ctx = ctxkey.WithValue(ctx, ctxkey.UserID, userID)
+	} else {
+		return response.EchoError(c, h.respWriter, xerrors.New(xerrors.CodePermissionDenied, "未登录或会话已过期"))
+	}
+	if heroID, ok := c.Get(string(ctxkey.HeroID)).(string); ok && heroID != "" {
+		ctx = ctxkey.WithValue(ctx, ctxkey.HeroID, heroID)
+	}
+
+	svcResp, err := h.inventorySvc.MoveItem(ctx, svcReq)
 	if err != nil {
 		return response.EchoError(c, h.respWriter, err)
 	}
@@ -198,7 +223,7 @@ func (h *InventoryHandler) MoveItem(c echo.Context) error {
 
 // DiscardItem 丢弃物品
 // @Summary 丢弃物品
-// @Description 丢弃指定的物品(软删除)
+// @Description 丢弃指定的物品实例（软删除）。支持按数量丢弃：数量小于堆叠数则减少堆叠，等于堆叠数则删除该实例。
 // @Tags Inventory
 // @Accept json
 // @Produce json
@@ -223,6 +248,7 @@ func (h *InventoryHandler) DiscardItem(c echo.Context) error {
 	// 3. 调用服务
 	svcReq := &service.DiscardItemRequest{
 		ItemInstanceID: req.ItemInstanceID,
+		Quantity:       req.Quantity,
 	}
 
 	svcResp, err := h.inventorySvc.DiscardItem(c.Request().Context(), svcReq)
@@ -286,4 +312,3 @@ func (h *InventoryHandler) SortInventory(c echo.Context) error {
 
 	return response.EchoOK(c, h.respWriter, resp)
 }
-

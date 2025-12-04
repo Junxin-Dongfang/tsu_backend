@@ -38,7 +38,7 @@ func NewAuthHandler(rpcCaller module.RPCModule, respWriter response.Writer) *Aut
 type RegisterRequest struct {
 	Email    string `json:"email" validate:"required,email" example:"player@example.com"` // 邮箱地址（必填，用于登录和密码找回）
 	Username string `json:"username" validate:"required,min=3" example:"warrior123"`      // 用户名（必填，3-20字符，用于登录）
-	Password string `json:"password" validate:"required,min=6" example:"password123"`     // 密码（必填，最少6字符）
+	Password string `json:"password" validate:"required,min=8" example:"Admin123!"`       // 密码（必填，至少8位，需包含大小写字母、数字和特殊字符）
 }
 
 // RegisterResponse HTTP registration response
@@ -71,7 +71,7 @@ type GetUserResponse struct {
 // @Description **填写说明**：
 // @Description - `email`: 有效的邮箱地址，用于登录和密码找回
 // @Description - `username`: 用户名，3-20字符，支持字母、数字、下划线，用于登录
-// @Description - `password`: 密码，最少6字符，建议包含字母和数字
+// @Description - `password`: 密码，至少8位，必须包含大小写字母、数字和特殊字符（示例：Admin123!）
 // @Description
 // @Description **注册成功后**：
 // @Description - 系统自动创建用户账号
@@ -298,7 +298,7 @@ func (h *AuthHandler) Login(c echo.Context) error {
 	rpcReq := &authpb.LoginRequest{
 		Identifier:    req.Identifier,
 		Password:      req.Password,
-		SessionToken:  "",  // 登录总是生成新 session，不复用旧的
+		SessionToken:  "", // 登录总是生成新 session，不复用旧的
 		ClientService: "game",
 	}
 
@@ -445,4 +445,3 @@ func (h *AuthHandler) Logout(c echo.Context) error {
 		"message": "登出成功",
 	})
 }
-

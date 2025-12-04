@@ -68,6 +68,31 @@ func EnsureHero(t *testing.T, db *sql.DB, userID uuid.UUID, label string) uuid.U
 	return heroID
 }
 
+// EnsureItem creates a test item configuration if missing and returns its UUID.
+func EnsureItem(t *testing.T, db *sql.DB, label string, itemType string, maxStack int) uuid.UUID {
+	t.Helper()
+
+	itemID := StableUUID("item:" + label)
+	itemName := fmt.Sprintf("测试物品-%s", label)
+
+	var maxStackSize sql.NullInt64
+	if maxStack > 1 {
+		maxStackSize = sql.NullInt64{Int64: int64(maxStack), Valid: true}
+	}
+
+	_, err := db.Exec(`
+		INSERT INTO game_config.items (
+			id, item_code, item_name, item_type, item_quality, item_level,
+			max_stack_size, is_tradable, is_droppable, is_active
+		)
+		VALUES ($1, $2, $3, $4, 'normal', 1, $5, true, true, true)
+		ON CONFLICT (id) DO NOTHING
+	`, itemID, "item-"+label, itemName, itemType, maxStackSize)
+	require.NoError(t, err, "seed item failed")
+
+	return itemID
+}
+
 // CleanupTeamsByHero removes any team/membership records created with the given leader hero to keep tests isolated.
 func CleanupTeamsByHero(t *testing.T, db *sql.DB, heroID uuid.UUID) {
 	t.Helper()

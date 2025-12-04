@@ -44,12 +44,13 @@ type PlayerItem struct {
 	IsBound        null.Bool   `boil:"is_bound" json:"is_bound,omitempty" toml:"is_bound" yaml:"is_bound,omitempty"`
 	BoundAccountID null.String `boil:"bound_account_id" json:"bound_account_id,omitempty" toml:"bound_account_id" yaml:"bound_account_id,omitempty"`
 	// 堆叠数量 - 仅消耗品和材料有效
-	StackCount     null.Int  `boil:"stack_count" json:"stack_count,omitempty" toml:"stack_count" yaml:"stack_count,omitempty"`
-	CurrentValue   null.Int  `boil:"current_value" json:"current_value,omitempty" toml:"current_value" yaml:"current_value,omitempty"`
-	MarketMinPrice null.Int  `boil:"market_min_price" json:"market_min_price,omitempty" toml:"market_min_price" yaml:"market_min_price,omitempty"`
-	CreatedAt      time.Time `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
-	UpdatedAt      time.Time `boil:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
-	DeletedAt      null.Time `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
+	StackCount     null.Int    `boil:"stack_count" json:"stack_count,omitempty" toml:"stack_count" yaml:"stack_count,omitempty"`
+	CurrentValue   null.Int    `boil:"current_value" json:"current_value,omitempty" toml:"current_value" yaml:"current_value,omitempty"`
+	MarketMinPrice null.Int    `boil:"market_min_price" json:"market_min_price,omitempty" toml:"market_min_price" yaml:"market_min_price,omitempty"`
+	CreatedAt      time.Time   `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
+	UpdatedAt      time.Time   `boil:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
+	DeletedAt      null.Time   `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
+	HeroID         null.String `boil:"hero_id" json:"hero_id,omitempty" toml:"hero_id" yaml:"hero_id,omitempty"`
 
 	R *playerItemR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L playerItemL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -76,6 +77,7 @@ var PlayerItemColumns = struct {
 	CreatedAt             string
 	UpdatedAt             string
 	DeletedAt             string
+	HeroID                string
 }{
 	ID:                    "id",
 	ItemID:                "item_id",
@@ -97,6 +99,7 @@ var PlayerItemColumns = struct {
 	CreatedAt:             "created_at",
 	UpdatedAt:             "updated_at",
 	DeletedAt:             "deleted_at",
+	HeroID:                "hero_id",
 }
 
 var PlayerItemTableColumns = struct {
@@ -120,6 +123,7 @@ var PlayerItemTableColumns = struct {
 	CreatedAt             string
 	UpdatedAt             string
 	DeletedAt             string
+	HeroID                string
 }{
 	ID:                    "player_items.id",
 	ItemID:                "player_items.item_id",
@@ -141,6 +145,7 @@ var PlayerItemTableColumns = struct {
 	CreatedAt:             "player_items.created_at",
 	UpdatedAt:             "player_items.updated_at",
 	DeletedAt:             "player_items.deleted_at",
+	HeroID:                "player_items.hero_id",
 }
 
 // Generated where
@@ -228,6 +233,7 @@ var PlayerItemWhere = struct {
 	CreatedAt             whereHelpertime_Time
 	UpdatedAt             whereHelpertime_Time
 	DeletedAt             whereHelpernull_Time
+	HeroID                whereHelpernull_String
 }{
 	ID:                    whereHelperstring{field: "\"game_runtime\".\"player_items\".\"id\""},
 	ItemID:                whereHelperstring{field: "\"game_runtime\".\"player_items\".\"item_id\""},
@@ -249,6 +255,7 @@ var PlayerItemWhere = struct {
 	CreatedAt:             whereHelpertime_Time{field: "\"game_runtime\".\"player_items\".\"created_at\""},
 	UpdatedAt:             whereHelpertime_Time{field: "\"game_runtime\".\"player_items\".\"updated_at\""},
 	DeletedAt:             whereHelpernull_Time{field: "\"game_runtime\".\"player_items\".\"deleted_at\""},
+	HeroID:                whereHelpernull_String{field: "\"game_runtime\".\"player_items\".\"hero_id\""},
 }
 
 // PlayerItemRels is where relationship names are stored.
@@ -326,9 +333,9 @@ func (r *playerItemR) GetItemInstanceItemDropRecords() ItemDropRecordSlice {
 type playerItemL struct{}
 
 var (
-	playerItemAllColumns            = []string{"id", "item_id", "owner_id", "source_type", "source_id", "item_location", "location_index", "current_durability", "max_durability_override", "enhancement_level", "used_count", "socketed_gems", "is_bound", "bound_account_id", "stack_count", "current_value", "market_min_price", "created_at", "updated_at", "deleted_at"}
+	playerItemAllColumns            = []string{"id", "item_id", "owner_id", "source_type", "source_id", "item_location", "location_index", "current_durability", "max_durability_override", "enhancement_level", "used_count", "socketed_gems", "is_bound", "bound_account_id", "stack_count", "current_value", "market_min_price", "created_at", "updated_at", "deleted_at", "hero_id"}
 	playerItemColumnsWithoutDefault = []string{"item_id", "owner_id", "source_type"}
-	playerItemColumnsWithDefault    = []string{"id", "source_id", "item_location", "location_index", "current_durability", "max_durability_override", "enhancement_level", "used_count", "socketed_gems", "is_bound", "bound_account_id", "stack_count", "current_value", "market_min_price", "created_at", "updated_at", "deleted_at"}
+	playerItemColumnsWithDefault    = []string{"id", "source_id", "item_location", "location_index", "current_durability", "max_durability_override", "enhancement_level", "used_count", "socketed_gems", "is_bound", "bound_account_id", "stack_count", "current_value", "market_min_price", "created_at", "updated_at", "deleted_at", "hero_id"}
 	playerItemPrimaryKeyColumns     = []string{"id"}
 	playerItemGeneratedColumns      = []string{}
 )

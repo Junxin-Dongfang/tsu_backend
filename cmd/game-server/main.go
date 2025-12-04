@@ -8,6 +8,7 @@ import (
 	docs "tsu-self/docs/game"
 	"tsu-self/internal/modules/auth"
 	"tsu-self/internal/modules/game"
+	"tsu-self/internal/pkg/notify"
 
 	"github.com/liangdas/mqant"
 	"github.com/liangdas/mqant/module"
@@ -67,6 +68,8 @@ func main() {
 		return
 	}
 	fmt.Println("[Main] Connected to NATS successfully")
+	// 设置全局通知通道
+	notify.SetNatsConn(nc)
 
 	// Configure Swagger to follow current request origin
 	docs.SwaggerInfo.Host = ""

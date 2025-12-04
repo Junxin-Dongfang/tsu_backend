@@ -1,0 +1,6 @@
+IMAGE_TAG=lilonyon/tsu-admin:3549e4c
+BUILD_DATE=2025-10-06T14:53:23Z
+VERSION=3549e4c
+REGISTRY=docker.io
+NAMESPACE=lilonyon
+IMAGE_NAME=tsu-admin

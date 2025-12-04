@@ -257,14 +257,18 @@ func (h *ResponseHandler) getUserMessage(ctx context.Context, appErr *xerrors.Ap
 		}
 	}
 
-	// 使用 i18n 获取本地化消息
+	// 使用 i18n 获取本地化消息（若有定制消息则优先返回定制消息）
 	localizedMsg := i18n.GetErrorMessage(appErr.Code, lang)
-	if localizedMsg != "" {
+	if localizedMsg != "" && appErr.Message == "" {
 		return localizedMsg
 	}
 
-	// 降级到 AppError 的默认消息
-	return appErr.Message
+	// 优先返回错误自带的消息（便于上游定制提示）
+	if appErr.Message != "" {
+		return appErr.Message
+	}
+
+	return localizedMsg
 }
 
 // logError 记录错误日志

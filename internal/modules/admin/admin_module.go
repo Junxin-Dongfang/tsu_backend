@@ -645,6 +645,8 @@ func (m *AdminModule) setupRoutes() {
 
 		// 工具：发放物品（仅测试环境启用，需 system:config）
 		adminProtected.POST("/tools/grant-item", m.toolsHandler.GrantItem, systemConfig)
+		adminProtected.POST("/tools/grant-gold", m.toolsHandler.GrantGold, systemConfig)
+		adminProtected.POST("/tools/grant-experience", m.toolsHandler.GrantExperience, systemConfig)
 
 		// 团队管理（后台）
 		// adminProtected.GET("/teams", m.teamAdminHandler.ListTeams, teamRead)                         // 查询团队列表

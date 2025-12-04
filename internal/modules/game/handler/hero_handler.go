@@ -363,9 +363,10 @@ func (h *HeroHandler) TransferClass(c echo.Context) error {
 }
 
 // AddExperience handles adding experience to a hero
-// @Summary 增加英雄经验
-// @Description 为英雄增加经验值。用于测试和开发目的，生产环境应通过战斗/任务系统增加经验
+// @Summary 增加英雄经验（已弃用）
+// @Description 已弃用，请改用 Admin 工具接口 `/api/v1/admin/tools/grant-experience`
 // @Tags 英雄
+// @Deprecated true
 // @Accept json
 // @Produce json
 // @Param hero_id path string true "英雄ID（UUID格式）"
@@ -376,6 +377,8 @@ func (h *HeroHandler) TransferClass(c echo.Context) error {
 // @Failure 500 {object} response.Response "服务器内部错误"
 // @Router /game/heroes/{hero_id}/experience [post]
 func (h *HeroHandler) AddExperience(c echo.Context) error {
+	return response.EchoBadRequest(c, h.respWriter, "接口已废弃，请在 Admin /api/v1/admin/tools/grant-experience 使用加经验工具")
+
 	heroID := c.Param("hero_id")
 	if heroID == "" {
 		return response.EchoBadRequest(c, h.respWriter, "英雄ID不能为空")

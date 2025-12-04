@@ -21,6 +21,7 @@ type ToolsService struct {
 	playerItemRepo        interfaces.PlayerItemRepository
 	teamWarehouseRepo     interfaces.TeamWarehouseRepository
 	teamWarehouseItemRepo interfaces.TeamWarehouseItemRepository
+	heroRepo              interfaces.HeroRepository
 }
 
 func NewToolsService(db *sql.DB) *ToolsService {
@@ -30,6 +31,7 @@ func NewToolsService(db *sql.DB) *ToolsService {
 		playerItemRepo:        impl.NewPlayerItemRepository(db),
 		teamWarehouseRepo:     impl.NewTeamWarehouseRepository(db),
 		teamWarehouseItemRepo: impl.NewTeamWarehouseItemRepository(db),
+		heroRepo:              impl.NewHeroRepository(db),
 	}
 }
 
@@ -116,4 +118,56 @@ func (s *ToolsService) grantToTeamWarehouse(ctx context.Context, teamID, itemTyp
 	}
 
 	return &dto.GrantItemResponse{Granted: quantity}, nil
+}
+
+// GrantGold 向团队仓库添加金币
+func (s *ToolsService) GrantGold(ctx context.Context, req *dto.GrantGoldRequest) (*dto.GrantGoldResponse, error) {
+	if req.Amount <= 0 {
+		return nil, xerrors.New(xerrors.CodeInvalidParams, "金币数量必须大于0")
+	}
+	wh, err := s.teamWarehouseRepo.GetByTeamID(ctx, req.TeamID)
+	if err != nil {
+		return nil, xerrors.Wrap(err, xerrors.CodeResourceNotFound, "团队仓库不存在")
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "开启事务失败")
+	}
+	defer tx.Rollback()
+
+	if err := s.teamWarehouseRepo.AddGold(ctx, tx, wh.ID, req.Amount); err != nil {
+		return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "添加金币失败")
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "提交事务失败")
+	}
+	return &dto.GrantGoldResponse{Added: req.Amount}, nil
+}
+
+// GrantExperience 向英雄添加经验（可用于测试）
+func (s *ToolsService) GrantExperience(ctx context.Context, req *dto.GrantExperienceRequest) (*dto.GrantExperienceResponse, error) {
+	if req.Amount <= 0 {
+		return nil, xerrors.New(xerrors.CodeInvalidParams, "经验必须大于0")
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "开启事务失败")
+	}
+	defer tx.Rollback()
+
+	hero, err := s.heroRepo.GetByIDForUpdate(ctx, tx, req.HeroID)
+	if err != nil {
+		return nil, xerrors.Wrap(err, xerrors.CodeResourceNotFound, "英雄不存在")
+	}
+
+	hero.ExperienceTotal += req.Amount
+	hero.ExperienceAvailable += req.Amount
+	if err := s.heroRepo.Update(ctx, tx, hero); err != nil {
+		return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "更新英雄经验失败")
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "提交事务失败")
+	}
+	return &dto.GrantExperienceResponse{Added: req.Amount}, nil
 }

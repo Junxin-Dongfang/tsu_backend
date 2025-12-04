@@ -65,6 +65,11 @@ func NewTeamDungeonService(db *sql.DB, deps *TeamDungeonDependencies) *TeamDunge
 			teamMemberRepo:        deps.TeamMemberRepo,
 			teamWarehouseRepo:     impl.NewTeamWarehouseRepository(db),
 			teamWarehouseItemRepo: impl.NewTeamWarehouseItemRepository(db),
+			heroWalletRepo:        impl.NewHeroWalletRepository(db),
+			lootHistoryRepo:       impl.NewTeamLootHistoryRepository(db),
+			lootLogRepo:           impl.NewTeamWarehouseLootLogRepository(db),
+			itemRepo:              impl.NewItemRepository(db),
+			heroRepo:              deps.HeroRepo,
 		}
 	}
 
@@ -314,7 +319,9 @@ func (s *TeamDungeonService) CompleteDungeon(ctx context.Context, req *CompleteD
 		return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "提交事务失败")
 	}
 
-	s.awardLoot(ctx, req)
+	if err := s.awardLoot(ctx, req); err != nil {
+		return nil, err
+	}
 	return progress, nil
 }
 
@@ -437,12 +444,12 @@ func (s *TeamDungeonService) updateProgressStatus(ctx context.Context, teamID, d
 	return progress, nil
 }
 
-func (s *TeamDungeonService) awardLoot(ctx context.Context, req *CompleteDungeonRequest) {
+func (s *TeamDungeonService) awardLoot(ctx context.Context, req *CompleteDungeonRequest) error {
 	if s.teamWarehouseService == nil {
-		return
+		return nil
 	}
 	if req.Loot.Gold <= 0 && len(req.Loot.Items) == 0 {
-		return
+		return nil
 	}
 
 	items := make([]LootItem, 0, len(req.Loot.Items))
@@ -467,8 +474,9 @@ func (s *TeamDungeonService) awardLoot(ctx context.Context, req *CompleteDungeon
 	}
 
 	if err := s.teamWarehouseService.AddLootToWarehouse(ctx, addReq); err != nil {
-		fmt.Printf("Warning: AddLootToWarehouse failed: %v\n", err)
+		return err
 	}
+	return nil
 }
 
 func minMembersFromDungeon(dungeon *game_config.Dungeon) int {

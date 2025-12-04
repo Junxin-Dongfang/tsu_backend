@@ -1,4 +1,4 @@
-MAIN_DB_URL="postgres://postgres:postgres@localhost:5432/tsu_db?sslmode=disable"
+MAIN_DB_URL="postgres://postgres:postgres@localhost:5432/tsu_db?sslmode=disable&search_path=public,auth,game_config,game_runtime,admin"
 BASE_URL ?= http://localhost:80
 ADMIN_USERNAME ?= root
 ADMIN_PASSWORD ?= admin

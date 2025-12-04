@@ -87,10 +87,12 @@ var TeamWarehouseRels = struct {
 	Team                                   string
 	WarehouseTeamLootDistributionHistories string
 	WarehouseTeamWarehouseItems            string
+	WarehouseTeamWarehouseLootLogs         string
 }{
 	Team:                                   "Team",
 	WarehouseTeamLootDistributionHistories: "WarehouseTeamLootDistributionHistories",
 	WarehouseTeamWarehouseItems:            "WarehouseTeamWarehouseItems",
+	WarehouseTeamWarehouseLootLogs:         "WarehouseTeamWarehouseLootLogs",
 }
 
 // teamWarehouseR is where relationships are stored.
@@ -98,6 +100,7 @@ type teamWarehouseR struct {
 	Team                                   *Team                            `boil:"Team" json:"Team" toml:"Team" yaml:"Team"`
 	WarehouseTeamLootDistributionHistories TeamLootDistributionHistorySlice `boil:"WarehouseTeamLootDistributionHistories" json:"WarehouseTeamLootDistributionHistories" toml:"WarehouseTeamLootDistributionHistories" yaml:"WarehouseTeamLootDistributionHistories"`
 	WarehouseTeamWarehouseItems            TeamWarehouseItemSlice           `boil:"WarehouseTeamWarehouseItems" json:"WarehouseTeamWarehouseItems" toml:"WarehouseTeamWarehouseItems" yaml:"WarehouseTeamWarehouseItems"`
+	WarehouseTeamWarehouseLootLogs         TeamWarehouseLootLogSlice        `boil:"WarehouseTeamWarehouseLootLogs" json:"WarehouseTeamWarehouseLootLogs" toml:"WarehouseTeamWarehouseLootLogs" yaml:"WarehouseTeamWarehouseLootLogs"`
 }
 
 // NewStruct creates a new relationship struct
@@ -151,6 +154,22 @@ func (r *teamWarehouseR) GetWarehouseTeamWarehouseItems() TeamWarehouseItemSlice
 	}
 
 	return r.WarehouseTeamWarehouseItems
+}
+
+func (o *TeamWarehouse) GetWarehouseTeamWarehouseLootLogs() TeamWarehouseLootLogSlice {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetWarehouseTeamWarehouseLootLogs()
+}
+
+func (r *teamWarehouseR) GetWarehouseTeamWarehouseLootLogs() TeamWarehouseLootLogSlice {
+	if r == nil {
+		return nil
+	}
+
+	return r.WarehouseTeamWarehouseLootLogs
 }
 
 // teamWarehouseL is where Load methods for each relationship are stored.
@@ -608,6 +627,20 @@ func (o *TeamWarehouse) WarehouseTeamWarehouseItems(mods ...qm.QueryMod) teamWar
 	return TeamWarehouseItems(queryMods...)
 }
 
+// WarehouseTeamWarehouseLootLogs retrieves all the team_warehouse_loot_log's TeamWarehouseLootLogs with an executor via warehouse_id column.
+func (o *TeamWarehouse) WarehouseTeamWarehouseLootLogs(mods ...qm.QueryMod) teamWarehouseLootLogQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"game_runtime\".\"team_warehouse_loot_log\".\"warehouse_id\"=?", o.ID),
+	)
+
+	return TeamWarehouseLootLogs(queryMods...)
+}
+
 // LoadTeam allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for an N-1 relationship.
 func (teamWarehouseL) LoadTeam(ctx context.Context, e boil.ContextExecutor, singular bool, maybeTeamWarehouse interface{}, mods queries.Applicator) error {
@@ -955,6 +988,119 @@ func (teamWarehouseL) LoadWarehouseTeamWarehouseItems(ctx context.Context, e boi
 	return nil
 }
 
+// LoadWarehouseTeamWarehouseLootLogs allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (teamWarehouseL) LoadWarehouseTeamWarehouseLootLogs(ctx context.Context, e boil.ContextExecutor, singular bool, maybeTeamWarehouse interface{}, mods queries.Applicator) error {
+	var slice []*TeamWarehouse
+	var object *TeamWarehouse
+
+	if singular {
+		var ok bool
+		object, ok = maybeTeamWarehouse.(*TeamWarehouse)
+		if !ok {
+			object = new(TeamWarehouse)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeTeamWarehouse)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeTeamWarehouse))
+			}
+		}
+	} else {
+		s, ok := maybeTeamWarehouse.(*[]*TeamWarehouse)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeTeamWarehouse)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeTeamWarehouse))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &teamWarehouseR{}
+		}
+		args[object.ID] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &teamWarehouseR{}
+			}
+			args[obj.ID] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`game_runtime.team_warehouse_loot_log`),
+		qm.WhereIn(`game_runtime.team_warehouse_loot_log.warehouse_id in ?`, argsSlice...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load team_warehouse_loot_log")
+	}
+
+	var resultSlice []*TeamWarehouseLootLog
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice team_warehouse_loot_log")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on team_warehouse_loot_log")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for team_warehouse_loot_log")
+	}
+
+	if len(teamWarehouseLootLogAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.WarehouseTeamWarehouseLootLogs = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &teamWarehouseLootLogR{}
+			}
+			foreign.R.Warehouse = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.WarehouseID {
+				local.R.WarehouseTeamWarehouseLootLogs = append(local.R.WarehouseTeamWarehouseLootLogs, foreign)
+				if foreign.R == nil {
+					foreign.R = &teamWarehouseLootLogR{}
+				}
+				foreign.R.Warehouse = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
 // SetTeamG of the teamWarehouse to the related item.
 // Sets o.R.Team to related.
 // Adds o to related.R.TeamWarehouse.
@@ -1189,6 +1335,90 @@ func (o *TeamWarehouse) AddWarehouseTeamWarehouseItems(ctx context.Context, exec
 	for _, rel := range related {
 		if rel.R == nil {
 			rel.R = &teamWarehouseItemR{
+				Warehouse: o,
+			}
+		} else {
+			rel.R.Warehouse = o
+		}
+	}
+	return nil
+}
+
+// AddWarehouseTeamWarehouseLootLogsG adds the given related objects to the existing relationships
+// of the team_warehouse, optionally inserting them as new records.
+// Appends related to o.R.WarehouseTeamWarehouseLootLogs.
+// Sets related.R.Warehouse appropriately.
+// Uses the global database handle.
+func (o *TeamWarehouse) AddWarehouseTeamWarehouseLootLogsG(ctx context.Context, insert bool, related ...*TeamWarehouseLootLog) error {
+	return o.AddWarehouseTeamWarehouseLootLogs(ctx, boil.GetContextDB(), insert, related...)
+}
+
+// AddWarehouseTeamWarehouseLootLogsP adds the given related objects to the existing relationships
+// of the team_warehouse, optionally inserting them as new records.
+// Appends related to o.R.WarehouseTeamWarehouseLootLogs.
+// Sets related.R.Warehouse appropriately.
+// Panics on error.
+func (o *TeamWarehouse) AddWarehouseTeamWarehouseLootLogsP(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*TeamWarehouseLootLog) {
+	if err := o.AddWarehouseTeamWarehouseLootLogs(ctx, exec, insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddWarehouseTeamWarehouseLootLogsGP adds the given related objects to the existing relationships
+// of the team_warehouse, optionally inserting them as new records.
+// Appends related to o.R.WarehouseTeamWarehouseLootLogs.
+// Sets related.R.Warehouse appropriately.
+// Uses the global database handle and panics on error.
+func (o *TeamWarehouse) AddWarehouseTeamWarehouseLootLogsGP(ctx context.Context, insert bool, related ...*TeamWarehouseLootLog) {
+	if err := o.AddWarehouseTeamWarehouseLootLogs(ctx, boil.GetContextDB(), insert, related...); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// AddWarehouseTeamWarehouseLootLogs adds the given related objects to the existing relationships
+// of the team_warehouse, optionally inserting them as new records.
+// Appends related to o.R.WarehouseTeamWarehouseLootLogs.
+// Sets related.R.Warehouse appropriately.
+func (o *TeamWarehouse) AddWarehouseTeamWarehouseLootLogs(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*TeamWarehouseLootLog) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.WarehouseID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"game_runtime\".\"team_warehouse_loot_log\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"warehouse_id"}),
+				strmangle.WhereClause("\"", "\"", 2, teamWarehouseLootLogPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.WarehouseID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &teamWarehouseR{
+			WarehouseTeamWarehouseLootLogs: related,
+		}
+	} else {
+		o.R.WarehouseTeamWarehouseLootLogs = append(o.R.WarehouseTeamWarehouseLootLogs, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &teamWarehouseLootLogR{
 				Warehouse: o,
 			}
 		} else {

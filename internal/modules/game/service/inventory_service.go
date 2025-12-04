@@ -3,7 +3,14 @@ package service
 import (
 	"context"
 	"database/sql"
+	"sort"
+	"time"
 
+	"github.com/aarondl/null/v8"
+	"github.com/aarondl/sqlboiler/v4/boil"
+
+	"tsu-self/internal/entity/game_runtime"
+	"tsu-self/internal/pkg/ctxkey"
 	"tsu-self/internal/pkg/xerrors"
 	"tsu-self/internal/repository/impl"
 	"tsu-self/internal/repository/interfaces"
@@ -143,9 +150,25 @@ func (s *InventoryService) MoveItem(ctx context.Context, req *MoveItemRequest) (
 		return nil, xerrors.Wrap(err, xerrors.CodeResourceNotFound, "物品实例不存在")
 	}
 
+	currentUserID := ctxkey.GetString(ctx, ctxkey.UserID)
+	if currentUserID == "" {
+		return nil, xerrors.New(xerrors.CodePermissionDenied, "未登录或会话失效")
+	}
+	if item.OwnerID != currentUserID {
+		return nil, xerrors.New(xerrors.CodePermissionDenied, "只能操作自己的物品")
+	}
+
 	// 5. 验证当前位置
 	if item.ItemLocation != req.FromLocation {
 		return nil, xerrors.New(xerrors.CodeInvalidParams, "物品当前位置与源位置不匹配")
+	}
+
+	// 5.1 验证归属：若物品有 hero_id 则只能由该英雄移动
+	if item.HeroID.Valid {
+		currentHeroID := ctxkey.GetString(ctx, ctxkey.HeroID)
+		if currentHeroID != "" && item.HeroID.String != currentHeroID {
+			return nil, xerrors.New(xerrors.CodePermissionDenied, "无权操作该物品")
+		}
 	}
 
 	// 6. 验证物品未装备
@@ -153,7 +176,14 @@ func (s *InventoryService) MoveItem(ctx context.Context, req *MoveItemRequest) (
 		return nil, xerrors.New(xerrors.CodeInvalidParams, "已装备的物品无法移动,请先卸下")
 	}
 
-	// 7. TODO: 验证目标位置有足够空间
+	// 7. 验证目标位置有足够空间（按条目计数近似）
+	used, capacity, err := s.GetInventoryCapacity(ctx, item.OwnerID, req.ToLocation)
+	if err != nil {
+		return nil, err
+	}
+	if used >= capacity {
+		return nil, xerrors.New(xerrors.CodeInvalidParams, "目标位置容量不足")
+	}
 
 	// 8. 更新物品位置
 	if err := s.playerItemRepo.UpdateLocation(ctx, tx, req.ItemInstanceID, req.ToLocation); err != nil {
@@ -174,6 +204,7 @@ func (s *InventoryService) MoveItem(ctx context.Context, req *MoveItemRequest) (
 // DiscardItemRequest 丢弃物品请求
 type DiscardItemRequest struct {
 	ItemInstanceID string `json:"item_instance_id"`
+	Quantity       int    `json:"quantity"`
 }
 
 // DiscardItemResponse 丢弃物品响应
@@ -188,9 +219,20 @@ func (s *InventoryService) DiscardItem(ctx context.Context, req *DiscardItemRequ
 	if req.ItemInstanceID == "" {
 		return nil, xerrors.New(xerrors.CodeInvalidParams, "物品实例ID不能为空")
 	}
+	if req.Quantity <= 0 {
+		return nil, xerrors.New(xerrors.CodeInvalidParams, "丢弃数量必须大于0")
+	}
 
-	// 2. 获取物品实例
-	item, err := s.playerItemRepo.GetByID(ctx, req.ItemInstanceID)
+	// 2. 开启事务并加锁获取
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "开启事务失败")
+	}
+	defer func() {
+		_ = tx.Rollback()
+	}()
+
+	item, err := s.playerItemRepo.GetByIDForUpdate(ctx, tx, req.ItemInstanceID)
 	if err != nil {
 		return nil, xerrors.Wrap(err, xerrors.CodeResourceNotFound, "物品实例不存在")
 	}
@@ -211,9 +253,32 @@ func (s *InventoryService) DiscardItem(ctx context.Context, req *DiscardItemRequ
 		return nil, xerrors.New(xerrors.CodeInvalidParams, "该物品无法丢弃")
 	}
 
-	// 6. 软删除物品
-	if err := s.playerItemRepo.Delete(ctx, req.ItemInstanceID); err != nil {
-		return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "丢弃物品失败")
+	// 6. 校验数量并更新/删除
+	current := 1
+	if item.StackCount.Valid && item.StackCount.Int > 0 {
+		current = int(item.StackCount.Int)
+	}
+	if req.Quantity > current {
+		return nil, xerrors.New(xerrors.CodeInvalidParams, "丢弃数量超过持有数量")
+	}
+
+	now := time.Now()
+	if req.Quantity == current {
+		item.DeletedAt = null.TimeFrom(now)
+		item.UpdatedAt = now
+		if _, err := item.Update(ctx, tx, boil.Whitelist("deleted_at", "updated_at")); err != nil {
+			return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "丢弃物品失败")
+		}
+	} else {
+		item.StackCount = null.IntFrom(current - req.Quantity)
+		item.UpdatedAt = now
+		if _, err := item.Update(ctx, tx, boil.Whitelist("stack_count", "updated_at")); err != nil {
+			return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "更新物品数量失败")
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "提交事务失败")
 	}
 
 	return &DiscardItemResponse{
@@ -251,11 +316,43 @@ func (s *InventoryService) SortInventory(ctx context.Context, req *SortInventory
 		return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "查询物品失败")
 	}
 
-	// 3. TODO: 实现排序逻辑
-	// - 按物品类型排序(装备、消耗品、材料等)
-	// - 同类型按品质排序
-	// - 同品质按等级排序
-	// - 更新物品的 location_index
+	// 3. 实现排序逻辑：类型 > 品质 > 获得时间倒序
+	type itemWithMeta struct {
+		item  *game_runtime.PlayerItem
+		typeV string
+		qualV string
+	}
+
+	itemMeta := make([]itemWithMeta, 0, len(items))
+	for _, it := range items {
+		cfg, err := s.itemRepo.GetByID(ctx, it.ItemID)
+		if err != nil {
+			itemMeta = append(itemMeta, itemWithMeta{item: it})
+			continue
+		}
+		itemMeta = append(itemMeta, itemWithMeta{
+			item:  it,
+			typeV: cfg.ItemType,
+			qualV: cfg.ItemQuality,
+		})
+	}
+
+	sort.Slice(itemMeta, func(i, j int) bool {
+		if itemMeta[i].typeV != itemMeta[j].typeV {
+			return itemMeta[i].typeV < itemMeta[j].typeV
+		}
+		if itemMeta[i].qualV != itemMeta[j].qualV {
+			return itemMeta[i].qualV < itemMeta[j].qualV
+		}
+		return itemMeta[i].item.CreatedAt.After(itemMeta[j].item.CreatedAt)
+	})
+
+	for idx, meta := range itemMeta {
+		meta.item.LocationIndex = null.IntFrom(int(idx))
+		if err := s.playerItemRepo.Update(ctx, s.db, meta.item); err != nil {
+			return nil, xerrors.Wrap(err, xerrors.CodeInternalError, "更新物品排序失败")
+		}
+	}
 
 	// 转换为DTO
 	dtos := make([]*PlayerItemDTO, 0, len(items))
@@ -272,11 +369,26 @@ func (s *InventoryService) SortInventory(ctx context.Context, req *SortInventory
 
 // GetInventoryCapacity 查询背包容量
 func (s *InventoryService) GetInventoryCapacity(ctx context.Context, ownerID string, location string) (int, int, error) {
-	// TODO: 实现容量查询
-	// - 查询该位置的物品数量
-	// - 查询该位置的最大容量(可能需要新增配置表)
-	// - 返回 (已用容量, 最大容量)
+	if ownerID == "" || location == "" {
+		return 0, 0, xerrors.New(xerrors.CodeInvalidParams, "参数不能为空")
+	}
 
-	return 0, 100, nil // 临时返回
+	// 查询容量配置
+	var maxSlots int
+	err := s.db.QueryRowContext(ctx, `SELECT max_slots FROM game_config.inventory_capacities WHERE location = $1`, location).Scan(&maxSlots)
+	if err == sql.ErrNoRows {
+		return 0, 0, xerrors.New(xerrors.CodeInternalError, "未配置容量")
+	}
+	if err != nil {
+		return 0, 0, xerrors.Wrap(err, xerrors.CodeInternalError, "查询容量配置失败")
+	}
+
+	// 已用容量（以记录数近似槽位数）
+	var used int
+	err = s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM game_runtime.player_items WHERE owner_id = $1 AND item_location = $2 AND deleted_at IS NULL`, ownerID, location).Scan(&used)
+	if err != nil {
+		return 0, 0, xerrors.Wrap(err, xerrors.CodeInternalError, "统计已用容量失败")
+	}
+
+	return used, maxSlots, nil
 }
-

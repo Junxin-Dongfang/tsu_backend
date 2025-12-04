@@ -50,7 +50,7 @@ func TestTeamDungeonService_SelectDungeon(t *testing.T) {
 		UserID:  memberUserID,
 		Message: "测试加入",
 	}
-	err = memberService.ApplyToJoin(ctx, applyReq)
+	_, err = memberService.ApplyToJoin(ctx, applyReq)
 	require.NoError(t, err)
 
 	// 获取申请ID并批准
@@ -174,7 +174,7 @@ func TestTeamDungeonService_EnterDungeon(t *testing.T) {
 		UserID:  adminUserID,
 		Message: "测试加入",
 	}
-	err = memberService.ApplyToJoin(ctx, applyReq)
+	_, err = memberService.ApplyToJoin(ctx, applyReq)
 	require.NoError(t, err)
 
 	// 批准并提升为管理员

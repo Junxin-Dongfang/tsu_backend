@@ -41,6 +41,10 @@ type ServiceContainer struct {
 	teamKickedRecordRepo       interfaces.TeamKickedRecordRepository
 	teamWarehouseRepo          interfaces.TeamWarehouseRepository
 	teamWarehouseItemRepo      interfaces.TeamWarehouseItemRepository
+	heroWalletRepo             interfaces.HeroWalletRepository
+	teamLootHistoryRepo        interfaces.TeamLootHistoryRepository
+	teamWarehouseLootLogRepo   interfaces.TeamWarehouseLootLogRepository
+	playerItemRepo             interfaces.PlayerItemRepository
 	dungeonRepo                interfaces.DungeonRepository
 	teamDungeonProgressRepo    interfaces.TeamDungeonProgressRepository
 	teamDungeonRecordRepo      interfaces.TeamDungeonRecordRepository
@@ -96,6 +100,10 @@ func NewServiceContainer(db *sql.DB, ketoClient *client.KetoClient, permissionCa
 	c.teamKickedRecordRepo = impl.NewTeamKickedRecordRepository(db)
 	c.teamWarehouseRepo = impl.NewTeamWarehouseRepository(db)
 	c.teamWarehouseItemRepo = impl.NewTeamWarehouseItemRepository(db)
+	c.heroWalletRepo = impl.NewHeroWalletRepository(db)
+	c.teamLootHistoryRepo = impl.NewTeamLootHistoryRepository(db)
+	c.teamWarehouseLootLogRepo = impl.NewTeamWarehouseLootLogRepository(db)
+	c.playerItemRepo = impl.NewPlayerItemRepository(db)
 	c.dungeonRepo = impl.NewDungeonRepository(db)
 	c.teamDungeonProgressRepo = impl.NewTeamDungeonProgressRepository(db)
 	c.teamDungeonRecordRepo = impl.NewTeamDungeonRecordRepository(db)
@@ -174,6 +182,12 @@ func NewServiceContainer(db *sql.DB, ketoClient *client.KetoClient, permissionCa
 		teamMemberRepo:        c.teamMemberRepo,
 		teamWarehouseRepo:     c.teamWarehouseRepo,
 		teamWarehouseItemRepo: c.teamWarehouseItemRepo,
+		heroWalletRepo:        c.heroWalletRepo,
+		lootHistoryRepo:       c.teamLootHistoryRepo,
+		lootLogRepo:           c.teamWarehouseLootLogRepo,
+		itemRepo:              c.itemRepo,
+		heroRepo:              c.heroRepo,
+		playerItemRepo:        c.playerItemRepo,
 	}
 
 	// 初始化 TeamDungeonService（依赖 repository）

@@ -129,29 +129,6 @@ var HeroTableColumns = struct {
 
 // Generated where
 
-type whereHelperint64 struct{ field string }
-
-func (w whereHelperint64) EQ(x int64) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.EQ, x) }
-func (w whereHelperint64) NEQ(x int64) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.NEQ, x) }
-func (w whereHelperint64) LT(x int64) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.LT, x) }
-func (w whereHelperint64) LTE(x int64) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.LTE, x) }
-func (w whereHelperint64) GT(x int64) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.GT, x) }
-func (w whereHelperint64) GTE(x int64) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.GTE, x) }
-func (w whereHelperint64) IN(slice []int64) qm.QueryMod {
-	values := make([]interface{}, 0, len(slice))
-	for _, value := range slice {
-		values = append(values, value)
-	}
-	return qm.WhereIn(fmt.Sprintf("%s IN ?", w.field), values...)
-}
-func (w whereHelperint64) NIN(slice []int64) qm.QueryMod {
-	values := make([]interface{}, 0, len(slice))
-	for _, value := range slice {
-		values = append(values, value)
-	}
-	return qm.WhereNotIn(fmt.Sprintf("%s NOT IN ?", w.field), values...)
-}
-
 var HeroWhere = struct {
 	ID                  whereHelperstring
 	UserID              whereHelperstring
@@ -194,6 +171,7 @@ var HeroWhere = struct {
 
 // HeroRels is where relationship names are stored.
 var HeroRels = struct {
+	HeroWallet                                   string
 	CurrentHeroContexts                          string
 	HeroAllocatedAttributes                      string
 	HeroAttributeOperations                      string
@@ -211,6 +189,7 @@ var HeroRels = struct {
 	RecipientHeroTeamLootDistributionHistories   string
 	TeamMembers                                  string
 }{
+	HeroWallet:                                   "HeroWallet",
 	CurrentHeroContexts:                          "CurrentHeroContexts",
 	HeroAllocatedAttributes:                      "HeroAllocatedAttributes",
 	HeroAttributeOperations:                      "HeroAttributeOperations",
@@ -231,6 +210,7 @@ var HeroRels = struct {
 
 // heroR is where relationships are stored.
 type heroR struct {
+	HeroWallet                                   *HeroWallet                      `boil:"HeroWallet" json:"HeroWallet" toml:"HeroWallet" yaml:"HeroWallet"`
 	CurrentHeroContexts                          CurrentHeroContextSlice          `boil:"CurrentHeroContexts" json:"CurrentHeroContexts" toml:"CurrentHeroContexts" yaml:"CurrentHeroContexts"`
 	HeroAllocatedAttributes                      HeroAllocatedAttributeSlice      `boil:"HeroAllocatedAttributes" json:"HeroAllocatedAttributes" toml:"HeroAllocatedAttributes" yaml:"HeroAllocatedAttributes"`
 	HeroAttributeOperations                      HeroAttributeOperationSlice      `boil:"HeroAttributeOperations" json:"HeroAttributeOperations" toml:"HeroAttributeOperations" yaml:"HeroAttributeOperations"`
@@ -252,6 +232,22 @@ type heroR struct {
 // NewStruct creates a new relationship struct
 func (*heroR) NewStruct() *heroR {
 	return &heroR{}
+}
+
+func (o *Hero) GetHeroWallet() *HeroWallet {
+	if o == nil {
+		return nil
+	}
+
+	return o.R.GetHeroWallet()
+}
+
+func (r *heroR) GetHeroWallet() *HeroWallet {
+	if r == nil {
+		return nil
+	}
+
+	return r.HeroWallet
 }
 
 func (o *Hero) GetCurrentHeroContexts() CurrentHeroContextSlice {
@@ -926,6 +922,17 @@ func (q heroQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (bool,
 	return count > 0, nil
 }
 
+// HeroWallet pointed to by the foreign key.
+func (o *Hero) HeroWallet(mods ...qm.QueryMod) heroWalletQuery {
+	queryMods := []qm.QueryMod{
+		qm.Where("\"hero_id\" = ?", o.ID),
+	}
+
+	queryMods = append(queryMods, mods...)
+
+	return HeroWallets(queryMods...)
+}
+
 // CurrentHeroContexts retrieves all the current_hero_context's CurrentHeroContexts with an executor.
 func (o *Hero) CurrentHeroContexts(mods ...qm.QueryMod) currentHeroContextQuery {
 	var queryMods []qm.QueryMod
@@ -1148,6 +1155,123 @@ func (o *Hero) TeamMembers(mods ...qm.QueryMod) teamMemberQuery {
 	)
 
 	return TeamMembers(queryMods...)
+}
+
+// LoadHeroWallet allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-1 relationship.
+func (heroL) LoadHeroWallet(ctx context.Context, e boil.ContextExecutor, singular bool, maybeHero interface{}, mods queries.Applicator) error {
+	var slice []*Hero
+	var object *Hero
+
+	if singular {
+		var ok bool
+		object, ok = maybeHero.(*Hero)
+		if !ok {
+			object = new(Hero)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeHero)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeHero))
+			}
+		}
+	} else {
+		s, ok := maybeHero.(*[]*Hero)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeHero)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeHero))
+			}
+		}
+	}
+
+	args := make(map[interface{}]struct{})
+	if singular {
+		if object.R == nil {
+			object.R = &heroR{}
+		}
+		args[object.ID] = struct{}{}
+	} else {
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &heroR{}
+			}
+
+			args[obj.ID] = struct{}{}
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	argsSlice := make([]interface{}, len(args))
+	i := 0
+	for arg := range args {
+		argsSlice[i] = arg
+		i++
+	}
+
+	query := NewQuery(
+		qm.From(`game_runtime.hero_wallets`),
+		qm.WhereIn(`game_runtime.hero_wallets.hero_id in ?`, argsSlice...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load HeroWallet")
+	}
+
+	var resultSlice []*HeroWallet
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice HeroWallet")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results of eager load for hero_wallets")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for hero_wallets")
+	}
+
+	if len(heroWalletAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+
+	if len(resultSlice) == 0 {
+		return nil
+	}
+
+	if singular {
+		foreign := resultSlice[0]
+		object.R.HeroWallet = foreign
+		if foreign.R == nil {
+			foreign.R = &heroWalletR{}
+		}
+		foreign.R.Hero = object
+	}
+
+	for _, local := range slice {
+		for _, foreign := range resultSlice {
+			if local.ID == foreign.HeroID {
+				local.R.HeroWallet = foreign
+				if foreign.R == nil {
+					foreign.R = &heroWalletR{}
+				}
+				foreign.R.Hero = local
+				break
+			}
+		}
+	}
+
+	return nil
 }
 
 // LoadCurrentHeroContexts allows an eager lookup of values, cached into the
@@ -2957,6 +3081,84 @@ func (heroL) LoadTeamMembers(ctx context.Context, e boil.ContextExecutor, singul
 		}
 	}
 
+	return nil
+}
+
+// SetHeroWalletG of the hero to the related item.
+// Sets o.R.HeroWallet to related.
+// Adds o to related.R.Hero.
+// Uses the global database handle.
+func (o *Hero) SetHeroWalletG(ctx context.Context, insert bool, related *HeroWallet) error {
+	return o.SetHeroWallet(ctx, boil.GetContextDB(), insert, related)
+}
+
+// SetHeroWalletP of the hero to the related item.
+// Sets o.R.HeroWallet to related.
+// Adds o to related.R.Hero.
+// Panics on error.
+func (o *Hero) SetHeroWalletP(ctx context.Context, exec boil.ContextExecutor, insert bool, related *HeroWallet) {
+	if err := o.SetHeroWallet(ctx, exec, insert, related); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// SetHeroWalletGP of the hero to the related item.
+// Sets o.R.HeroWallet to related.
+// Adds o to related.R.Hero.
+// Uses the global database handle and panics on error.
+func (o *Hero) SetHeroWalletGP(ctx context.Context, insert bool, related *HeroWallet) {
+	if err := o.SetHeroWallet(ctx, boil.GetContextDB(), insert, related); err != nil {
+		panic(boil.WrapErr(err))
+	}
+}
+
+// SetHeroWallet of the hero to the related item.
+// Sets o.R.HeroWallet to related.
+// Adds o to related.R.Hero.
+func (o *Hero) SetHeroWallet(ctx context.Context, exec boil.ContextExecutor, insert bool, related *HeroWallet) error {
+	var err error
+
+	if insert {
+		related.HeroID = o.ID
+
+		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
+			return errors.Wrap(err, "failed to insert into foreign table")
+		}
+	} else {
+		updateQuery := fmt.Sprintf(
+			"UPDATE \"game_runtime\".\"hero_wallets\" SET %s WHERE %s",
+			strmangle.SetParamNames("\"", "\"", 1, []string{"hero_id"}),
+			strmangle.WhereClause("\"", "\"", 2, heroWalletPrimaryKeyColumns),
+		)
+		values := []interface{}{o.ID, related.HeroID}
+
+		if boil.IsDebug(ctx) {
+			writer := boil.DebugWriterFrom(ctx)
+			fmt.Fprintln(writer, updateQuery)
+			fmt.Fprintln(writer, values)
+		}
+		if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+			return errors.Wrap(err, "failed to update foreign table")
+		}
+
+		related.HeroID = o.ID
+	}
+
+	if o.R == nil {
+		o.R = &heroR{
+			HeroWallet: related,
+		}
+	} else {
+		o.R.HeroWallet = related
+	}
+
+	if related.R == nil {
+		related.R = &heroWalletR{
+			Hero: o,
+		}
+	} else {
+		related.R.Hero = o
+	}
 	return nil
 }
 

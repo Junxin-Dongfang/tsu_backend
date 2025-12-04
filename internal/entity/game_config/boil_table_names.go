@@ -31,6 +31,7 @@ var TableNames = struct {
 	GemEffectConfigs          string
 	HeroAttributeType         string
 	HeroLevelRequirements     string
+	InventoryCapacities       string
 	ItemClassRelations        string
 	Items                     string
 	MetadataDictionary        string
@@ -76,6 +77,7 @@ var TableNames = struct {
 	GemEffectConfigs:          "gem_effect_configs",
 	HeroAttributeType:         "hero_attribute_type",
 	HeroLevelRequirements:     "hero_level_requirements",
+	InventoryCapacities:       "inventory_capacities",
 	ItemClassRelations:        "item_class_relations",
 	Items:                     "items",
 	MetadataDictionary:        "metadata_dictionary",

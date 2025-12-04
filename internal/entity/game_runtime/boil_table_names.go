@@ -12,6 +12,7 @@ var TableNames = struct {
 	HeroEquipmentSlots          string
 	HeroSkillOperations         string
 	HeroSkills                  string
+	HeroWallets                 string
 	Heroes                      string
 	ItemDropRecords             string
 	ItemOperationLogs           string
@@ -24,6 +25,7 @@ var TableNames = struct {
 	TeamLootDistributionHistory string
 	TeamMembers                 string
 	TeamWarehouseItems          string
+	TeamWarehouseLootLog        string
 	TeamWarehouses              string
 	Teams                       string
 	WorldDropStats              string
@@ -36,6 +38,7 @@ var TableNames = struct {
 	HeroEquipmentSlots:          "hero_equipment_slots",
 	HeroSkillOperations:         "hero_skill_operations",
 	HeroSkills:                  "hero_skills",
+	HeroWallets:                 "hero_wallets",
 	Heroes:                      "heroes",
 	ItemDropRecords:             "item_drop_records",
 	ItemOperationLogs:           "item_operation_logs",
@@ -48,6 +51,7 @@ var TableNames = struct {
 	TeamLootDistributionHistory: "team_loot_distribution_history",
 	TeamMembers:                 "team_members",
 	TeamWarehouseItems:          "team_warehouse_items",
+	TeamWarehouseLootLog:        "team_warehouse_loot_log",
 	TeamWarehouses:              "team_warehouses",
 	Teams:                       "teams",
 	WorldDropStats:              "world_drop_stats",

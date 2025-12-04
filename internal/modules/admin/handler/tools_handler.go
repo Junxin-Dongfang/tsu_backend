@@ -53,3 +53,65 @@ func (h *ToolsHandler) GrantItem(c echo.Context) error {
 	}
 	return response.EchoOK(c, h.respWriter, respData)
 }
+
+// GrantGold 向仓库添加金币
+// @Summary 管理员加金币到团队仓库（测试工具）
+// @Tags Tools
+// @Accept json
+// @Produce json
+// @Param request body dto.GrantGoldRequest true "加金币请求"
+// @Success 200 {object} response.Response{data=dto.GrantGoldResponse}
+// @Failure 400 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Failure 500 {object} response.Response
+// @Router /admin/tools/grant-gold [post]
+func (h *ToolsHandler) GrantGold(c echo.Context) error {
+	if !h.enabled {
+		return response.EchoForbidden(c, h.respWriter, "tools", "grant_gold")
+	}
+
+	var req dto.GrantGoldRequest
+	if err := c.Bind(&req); err != nil {
+		return response.EchoBadRequest(c, h.respWriter, "请求格式错误")
+	}
+	if err := c.Validate(&req); err != nil {
+		return response.EchoBadRequest(c, h.respWriter, err.Error())
+	}
+
+	respData, err := h.service.GrantGold(c.Request().Context(), &req)
+	if err != nil {
+		return response.EchoError(c, h.respWriter, err)
+	}
+	return response.EchoOK(c, h.respWriter, respData)
+}
+
+// GrantExperience 给英雄加经验
+// @Summary 管理员给英雄加经验（测试工具）
+// @Tags Tools
+// @Accept json
+// @Produce json
+// @Param request body dto.GrantExperienceRequest true "加经验请求"
+// @Success 200 {object} response.Response{data=dto.GrantExperienceResponse}
+// @Failure 400 {object} response.Response
+// @Failure 403 {object} response.Response
+// @Failure 500 {object} response.Response
+// @Router /admin/tools/grant-experience [post]
+func (h *ToolsHandler) GrantExperience(c echo.Context) error {
+	if !h.enabled {
+		return response.EchoForbidden(c, h.respWriter, "tools", "grant_experience")
+	}
+
+	var req dto.GrantExperienceRequest
+	if err := c.Bind(&req); err != nil {
+		return response.EchoBadRequest(c, h.respWriter, "请求格式错误")
+	}
+	if err := c.Validate(&req); err != nil {
+		return response.EchoBadRequest(c, h.respWriter, err.Error())
+	}
+
+	respData, err := h.service.GrantExperience(c.Request().Context(), &req)
+	if err != nil {
+		return response.EchoError(c, h.respWriter, err)
+	}
+	return response.EchoOK(c, h.respWriter, respData)
+}

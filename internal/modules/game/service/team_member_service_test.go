@@ -49,7 +49,7 @@ func TestTeamMemberService_ApplyToJoin(t *testing.T) {
 		Message: "我想加入你们的团队",
 	}
 
-	err = memberService.ApplyToJoin(ctx, applyReq)
+	_, err = memberService.ApplyToJoin(ctx, applyReq)
 	assert.NoError(t, err)
 
 	// 验证申请记录是否创建
@@ -102,7 +102,7 @@ func TestTeamMemberService_ApproveJoinRequest(t *testing.T) {
 		Message: "我想加入你们的团队",
 	}
 
-	err = memberService.ApplyToJoin(ctx, applyReq)
+	_, err = memberService.ApplyToJoin(ctx, applyReq)
 	require.NoError(t, err)
 
 	// 获取申请ID

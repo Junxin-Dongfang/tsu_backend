@@ -183,14 +183,9 @@ func (r *teamWarehouseItemRepositoryImpl) GetItemCount(ctx context.Context, ware
 
 // CountDistinctItems 统计仓库中不同物品的种类数
 func (r *teamWarehouseItemRepositoryImpl) CountDistinctItems(ctx context.Context, warehouseID string) (int64, error) {
-	count, err := game_runtime.TeamWarehouseItems(
-		qm.Where("warehouse_id = ?", warehouseID),
-	).Count(ctx, r.db)
-
-	if err != nil {
+	var count int64
+	if err := r.db.QueryRowContext(ctx, "SELECT COUNT(DISTINCT item_id) FROM game_runtime.team_warehouse_items WHERE warehouse_id = $1", warehouseID).Scan(&count); err != nil {
 		return 0, fmt.Errorf("统计物品种类数失败: %w", err)
 	}
-
 	return count, nil
 }
-

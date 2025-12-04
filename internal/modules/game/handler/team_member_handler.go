@@ -6,6 +6,7 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"tsu-self/internal/modules/game/service"
+	"tsu-self/internal/pkg/ctxkey"
 	"tsu-self/internal/pkg/response"
 	"tsu-self/internal/pkg/xerrors"
 )
@@ -120,9 +121,7 @@ type KickMemberRequest struct {
 
 // PromoteToAdminRequest HTTP 任命管理员请求
 type PromoteToAdminRequest struct {
-	TeamID       string `json:"team_id" validate:"required" example:"team-uuid-001"`        // 团队ID（必填）
 	TargetHeroID string `json:"target_hero_id" validate:"required" example:"hero-uuid-002"` // 被任命的英雄ID（必填）
-	LeaderHeroID string `json:"leader_hero_id" validate:"required" example:"hero-uuid-001"` // 队长英雄ID（必填）
 }
 
 // ==================== HTTP Handlers ====================
@@ -435,14 +434,33 @@ func (h *TeamMemberHandler) KickMember(c echo.Context) error {
 // @Tags 团队成员
 // @Accept json
 // @Produce json
-// @Param request body PromoteToAdminRequest true "任命管理员请求"
+// @Param team_id query string true "团队ID"
+// @Param hero_id query string false "队长英雄ID(可选，默认取当前登录英雄)"
+// @Param request body PromoteToAdminRequest true "任命管理员请求(仅需 target_hero_id)"
 // @Success 200 {object} response.Response "任命成功"
 // @Failure 400 {object} response.Response "请求参数错误"
 // @Failure 403 {object} response.Response "权限不足"
 // @Failure 500 {object} response.Response "服务器内部错误"
 // @Router /game/teams/members/promote [post]
 func (h *TeamMemberHandler) PromoteToAdmin(c echo.Context) error {
-	// 1. 绑定和验证 HTTP 请求
+	// 0. 基础参数：team_id & leader hero
+	teamID := c.QueryParam("team_id")
+	if teamID == "" {
+		return response.EchoBadRequest(c, h.respWriter, "团队ID不能为空")
+	}
+	leaderHeroID := c.QueryParam("hero_id")
+	if leaderHeroID == "" {
+		if v := c.Get(string(ctxkey.HeroID)); v != nil {
+			if s, ok := v.(string); ok {
+				leaderHeroID = s
+			}
+		}
+	}
+	if leaderHeroID == "" {
+		return response.EchoBadRequest(c, h.respWriter, "队长英雄ID不能为空")
+	}
+
+	// 1. 绑定和验证 HTTP 请求（仅 target_hero_id）
 	var req PromoteToAdminRequest
 	if err := c.Bind(&req); err != nil {
 		return response.EchoBadRequest(c, h.respWriter, "请求格式错误")
@@ -454,9 +472,9 @@ func (h *TeamMemberHandler) PromoteToAdmin(c echo.Context) error {
 
 	// 2. 调用 Service
 	promoteReq := &service.PromoteToAdminRequest{
-		TeamID:       req.TeamID,
+		TeamID:       teamID,
 		TargetHeroID: req.TargetHeroID,
-		LeaderHeroID: req.LeaderHeroID,
+		LeaderHeroID: leaderHeroID,
 	}
 
 	if err := h.memberService.PromoteToAdmin(c.Request().Context(), promoteReq); err != nil {
@@ -474,7 +492,7 @@ func (h *TeamMemberHandler) PromoteToAdmin(c echo.Context) error {
 // @Produce json
 // @Param team_id query string true "团队ID"
 // @Param target_hero_id query string true "被撤销的英雄ID"
-// @Param leader_hero_id query string true "队长英雄ID"
+// @Param leader_hero_id query string false "队长英雄ID(可选，默认取当前登录英雄)"
 // @Success 200 {object} response.Response "撤销成功"
 // @Failure 400 {object} response.Response "请求参数错误"
 // @Failure 403 {object} response.Response "权限不足"
@@ -494,7 +512,14 @@ func (h *TeamMemberHandler) DemoteAdmin(c echo.Context) error {
 
 	leaderHeroID := c.QueryParam("leader_hero_id")
 	if leaderHeroID == "" {
-		return response.EchoBadRequest(c, h.respWriter, "队长英雄ID不能为空")
+		if v := c.Get(string(ctxkey.HeroID)); v != nil {
+			if s, ok := v.(string); ok {
+				leaderHeroID = s
+			}
+		}
+		if leaderHeroID == "" {
+			return response.EchoBadRequest(c, h.respWriter, "队长英雄ID不能为空")
+		}
 	}
 
 	// 2. 调用 Service

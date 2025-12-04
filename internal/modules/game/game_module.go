@@ -485,10 +485,10 @@ func (m *GameModule) setupRoutes() {
 			heroes.POST("/:hero_id/skills/:skill_id/rollback", m.heroSkillHandler.RollbackSkill) // 回退技能
 
 			// 英雄激活管理
-			heroes.PATCH("/:hero_id/activate", m.heroActivationHandler.ActivateHero)         // 激活英雄
-			heroes.PATCH("/:hero_id/deactivate", m.heroActivationHandler.DeactivateHero)     // 停用英雄
-			heroes.PATCH("/switch", m.heroActivationHandler.SwitchCurrentHero)               // 切换当前英雄
-			heroes.GET("/activated", m.heroActivationHandler.GetActivatedHeroes)             // 获取已激活英雄列表
+			heroes.PATCH("/:hero_id/activate", m.heroActivationHandler.ActivateHero)     // 激活英雄
+			heroes.PATCH("/:hero_id/deactivate", m.heroActivationHandler.DeactivateHero) // 停用英雄
+			heroes.PATCH("/switch", m.heroActivationHandler.SwitchCurrentHero)           // 切换当前英雄
+			heroes.GET("/activated", m.heroActivationHandler.GetActivatedHeroes)         // 获取已激活英雄列表
 		}
 
 		// Class routes (公开访问)
@@ -543,15 +543,15 @@ func (m *GameModule) setupRoutes() {
 		// 	equipment.GET("/sets/active/:hero_id", m.equipmentSetHandler.GetActiveSets) // 查询英雄激活的套装
 		// }
 
-		// // Inventory routes (需要认证)
-		// inventory := game.Group("/inventory")
-		// inventory.Use(custommiddleware.AuthMiddleware(m.respWriter, logger))
-		// {
-		// 	inventory.GET("", m.inventoryHandler.GetInventory)       // 查询背包/仓库
-		// 	inventory.POST("/move", m.inventoryHandler.MoveItem)     // 移动物品
-		// 	inventory.POST("/discard", m.inventoryHandler.DiscardItem) // 丢弃物品
-		// 	inventory.POST("/sort", m.inventoryHandler.SortInventory)  // 整理背包
-		// }
+		// Inventory routes (需要认证)
+		inventory := game.Group("/inventory")
+		inventory.Use(custommiddleware.AuthMiddleware(m.respWriter, logger, m.db))
+		{
+			inventory.GET("", m.inventoryHandler.GetInventory)         // 查询背包/仓库
+			inventory.POST("/move", m.inventoryHandler.MoveItem)       // 移动物品
+			inventory.POST("/discard", m.inventoryHandler.DiscardItem) // 丢弃物品
+			inventory.POST("/sort", m.inventoryHandler.SortInventory)  // 整理背包
+		}
 
 		//Team routes (需要认证 + 英雄上下文)
 		teams := game.Group("/teams")
@@ -649,15 +649,19 @@ func (m *GameModule) setupRoutes() {
 			// 分配金币（管理员或队长）
 			if m.teamPermissionMW != nil {
 				teams.POST("/:team_id/warehouse/distribute-gold", m.teamWarehouseHandler.DistributeGold, m.teamPermissionMW.RequireTeamAdmin)
+				teams.POST("/:team_id/warehouse/distribute-items", m.teamWarehouseHandler.DistributeItems, m.teamPermissionMW.RequireTeamAdmin)
 			} else {
 				teams.POST("/:team_id/warehouse/distribute-gold", m.teamWarehouseHandler.DistributeGold)
+				teams.POST("/:team_id/warehouse/distribute-items", m.teamWarehouseHandler.DistributeItems)
 			}
 
 			// 查看仓库物品（需要是团队成员）
 			if m.teamPermissionMW != nil {
 				teams.GET("/:team_id/warehouse/items", m.teamWarehouseHandler.GetWarehouseItems, m.teamPermissionMW.RequireTeamMember)
+				teams.GET("/:team_id/warehouse/distributions", m.teamWarehouseHandler.GetDistributionHistory, m.teamPermissionMW.RequireTeamAdmin)
 			} else {
 				teams.GET("/:team_id/warehouse/items", m.teamWarehouseHandler.GetWarehouseItems)
+				teams.GET("/:team_id/warehouse/distributions", m.teamWarehouseHandler.GetDistributionHistory)
 			}
 
 			// 地城路由
@@ -681,6 +685,7 @@ func (m *GameModule) setupRoutes() {
 				}
 			}
 		}
+
 	}
 
 	internalGroup := v1.Group("/internal")

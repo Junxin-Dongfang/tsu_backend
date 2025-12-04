@@ -26,6 +26,7 @@ func TestTeamFlow_CreateAndDistributeGold(t *testing.T) {
 
 	leaderUserID := testseed.EnsureUser(t, db, "team-flow-leader")
 	leaderHeroID := testseed.EnsureHero(t, db, leaderUserID, "team-flow-leader-hero")
+	testseed.CleanupTeamsByHero(t, db, leaderHeroID)
 	team, err := teamSvc.CreateTeam(ctx, &CreateTeamRequest{
 		UserID:      leaderUserID.String(),
 		HeroID:      leaderHeroID.String(),

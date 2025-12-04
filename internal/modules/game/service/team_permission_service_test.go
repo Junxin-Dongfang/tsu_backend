@@ -111,7 +111,7 @@ func TestTeamPermissionService_CheckPermission(t *testing.T) {
 		UserID:  adminUserID.String(),
 		Message: "测试加入",
 	}
-	err = memberService.ApplyToJoin(ctx, applyReq)
+	_, err = memberService.ApplyToJoin(ctx, applyReq)
 	require.NoError(t, err)
 
 	// 批准并提升为管理员
@@ -145,7 +145,7 @@ func TestTeamPermissionService_CheckPermission(t *testing.T) {
 		UserID:  memberUserID.String(),
 		Message: "测试加入",
 	}
-	err = memberService.ApplyToJoin(ctx, applyReq2)
+	_, err = memberService.ApplyToJoin(ctx, applyReq2)
 	require.NoError(t, err)
 
 	var requestID2 string
