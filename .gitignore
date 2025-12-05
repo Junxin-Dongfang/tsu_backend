@@ -5,6 +5,10 @@
 .vscode/
 .idea/
 .windsurf/
+.kiro/
+.claude/
+.agent/
+
 
 # Logs & temp
 logs/

@@ -2,10 +2,26 @@
   "mcpServers": {
     "fetch": {
       "command": "uvx",
-      "args": ["mcp-server-fetch"],
+      "args": [
+        "mcp-server-fetch"
+      ],
       "env": {},
-      "disabled": true,
+      "disabled": false,
       "autoApprove": []
+    },
+    "Augment-Context-Engine": {
+      "command": "auggie",
+      "args": [
+        "--mcp",
+        "-m",
+        "default",
+        "-w",
+        "./"
+      ],
+      "disabled": false,
+      "autoApprove": [
+        "codebase-retrieval"
+      ]
     }
   }
 }
