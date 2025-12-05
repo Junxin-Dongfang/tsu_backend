@@ -26,7 +26,7 @@ services:
       - DB_USER=tsu_user
       - DB_PASSWORD=mvheLNICLwpeVzIdoihDbOO3O0Aftuj9
       - DB_NAME=tsu_db
-      - TSU_ADMIN_DATABASE_URL=postgres://tsu_user:mvheLNICLwpeVzIdoihDbOO3O0Aftuj9@tsu_postgres_main:5432/tsu_db?sslmode=disable&search_path=admin
+      - TSU_ADMIN_DATABASE_URL=postgres://tsu_user:mvheLNICLwpeVzIdoihDbOO3O0Aftuj9@tsu_postgres_main:5432/tsu_db?sslmode=disable&search_path=admin,game_runtime,game_config,public
       - TSU_AUTH_DATABASE_URL=postgres://tsu_user:mvheLNICLwpeVzIdoihDbOO3O0Aftuj9@tsu_postgres_main:5432/tsu_db?sslmode=disable&search_path=auth
       
       # Redis 配置

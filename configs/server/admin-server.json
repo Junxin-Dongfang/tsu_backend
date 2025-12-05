@@ -14,7 +14,7 @@
                     "environment": "development",
                     "http_port": "8071",
                     "database_url": "",
-                    "_comment_database_url": "从环境变量 TSU_ADMIN_DATABASE_URL 读取，格式：postgres://user:password@host:port/dbname?sslmode=disable&search_path=admin,game_config,public"
+                    "_comment_database_url": "从环境变量 TSU_ADMIN_DATABASE_URL 读取，格式：postgres://user:password@host:port/dbname?sslmode=disable&search_path=admin,game_runtime,game_config,public"
                 }
             }
         ],

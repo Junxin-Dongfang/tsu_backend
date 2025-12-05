@@ -287,7 +287,7 @@ KRATOS_COOKIE_SECRET=$KRATOS_COOKIE_SECRET
 KRATOS_CIPHER_SECRET=$KRATOS_CIPHER_SECRET
 
 # 数据库连接字符串
-TSU_ADMIN_DATABASE_URL=postgres://\${DB_USER}:\${DB_PASSWORD}@\${DB_HOST}:\${DB_PORT}/\${DB_NAME}?sslmode=disable&search_path=admin,game_config,public
+TSU_ADMIN_DATABASE_URL=postgres://\${DB_USER}:\${DB_PASSWORD}@\${DB_HOST}:\${DB_PORT}/\${DB_NAME}?sslmode=disable&search_path=admin,game_runtime,game_config,public
 TSU_AUTH_DATABASE_URL=postgres://\${DB_USER}:\${DB_PASSWORD}@\${DB_HOST}:\${DB_PORT}/\${DB_NAME}?sslmode=disable&search_path=auth,public
 KRATOS_DSN=postgres://\${ORY_DB_USER}:\${ORY_DB_PASSWORD}@\${ORY_DB_HOST}:\${ORY_DB_PORT}/\${ORY_DB_NAME}?sslmode=disable&search_path=kratos
 KETO_DSN=postgres://\${ORY_DB_USER}:\${ORY_DB_PASSWORD}@\${ORY_DB_HOST}:\${ORY_DB_PORT}/\${ORY_DB_NAME}?sslmode=disable&search_path=keto
